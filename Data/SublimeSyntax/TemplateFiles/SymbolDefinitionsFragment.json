@@ -1,0 +1,9 @@
+    - match: '#2'
+      scope: support.function.internal.wolfram
+      push:
+        - match: '(?:#3){{symbolEndBoundary}}'
+          scope: support.function.internal.wolfram
+          pop: true
+        - match: '{{symbolSegment}}{{symbolEndBoundary}}'
+          scope: invalid.unrecognized.wolfram
+          pop: true

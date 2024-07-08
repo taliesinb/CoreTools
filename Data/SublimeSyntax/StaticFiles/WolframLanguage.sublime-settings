@@ -1,0 +1,58 @@
+{
+  //
+  // Enables the Wolfram language server
+  //
+  "lsp_server_enabled": false,
+
+  //
+  // Enables the timeout warning if the kernel does not start after 15 seconds
+  //
+  "timeout_warning_enabled": true,
+
+  //
+  // WolframKernel for the Wolfram language server
+  //
+  // This defaults to platform-specific values
+  //
+  // Change this setting to use a different kernel
+  //
+  "kernel": "<<Path to WolframKernel>>",
+  
+  //
+  // Command for the Wolfram language server
+  //
+  // The special value `kernel` will be replaced with the value of the "kernel" setting
+  //
+  "lsp_server_command":
+  [
+    "`kernel`",
+    "-noinit",
+    "-noprompt",
+    "-nopaclet",
+    "-noicon",
+    "-nostartuppaclets",
+    "-run",
+    "Needs[\"LSPServer`\"];LSPServer`StartServer[]"
+  ],
+
+  //
+  // Experimental settings for the Wolfram language server
+  //
+  // "implicitTokens": [],
+  // "bracketMatcher": false,
+
+  "extensions":
+  [
+    "wl",
+    "m",
+    "wls",
+    "wlt",
+    "mt"
+  ],
+
+  //
+  // This allows for symbols like $name to be selected without leaving the $ out
+  //
+  "word_separators": "./\\()\"'-:,.;<>~!@#%^&*|+=[]{}`~?_",
+  "color_scheme": "Packages/User/WolframLanguage/WolframLanguage.sublime-color-scheme"
+}

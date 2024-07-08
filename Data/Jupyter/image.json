@@ -1,0 +1,7 @@
+{
+  "cell_type": "markdown",
+  "metadata": {},
+  "source": ["StringJoin",
+    "<center><img width=\"", "#width", "\" src=\"data:image/jpg;base64, ", "#encoded", "\"></center>"
+  ]
+}

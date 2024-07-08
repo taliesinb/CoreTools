@@ -1,0 +1,1014 @@
+%YAML 1.2
+---
+
+name: Wolfram
+
+file_extensions: ["wl", "m", "wls", "wlt", "mt"]
+
+scope: source.wolfram
+
+contexts:
+
+  main:
+    - include: shebang
+    - include: package_items
+    - include: toplevel_definitions
+    - include: simple_toplevel_definition
+    - include: metafunction_toplevel_definitions
+    - include: expressions
+
+  definitions_only:
+    - include: toplevel_definitions
+    - include: simple_toplevel_definition
+    - include: expressions
+
+  prototype:
+    - include: comments
+
+  shebang:
+    - match: '\A(#!).*(?=$)'
+      scope: comment.line.shebang.wolfram
+      captures:
+        1: punctuation.definition.comment.wolfram
+
+  toplevel_definitions:
+    - match: '^\s*(?={{symbolSegment}} = CaseOf\[)'
+      push:
+#        - match: '\s+'
+        - match: '(?={{symbolSegment}})'
+          set: [caseof_rhs, any_definition_target]
+    - match: '^\s*(?={{definitionAcceptors}}\[[^\n]+ := )'
+      push: acceptor_lhs
+    - match: '^\s*(?=[A-Z][^\n]+ := )'
+#      scope: entity.name.function
+      push:
+#        - match: '\s+'
+        - match: '(?=[A-Z])'
+          set: [sd_lhs, definition_target]
+
+  caseof_rhs:
+    - match: '\s+'
+    - match: '='
+      scope: keyword.operator.assignment.SetDelayed.wolfram
+      pop: true
+
+  acceptor_lhs:
+    - match: '\s+'
+    - match: '{{definitionAcceptors}}(?=\s*\[)'
+      scope: support.function.box.wolfram
+    - match: '\['
+      scope: punctuation.section.brackets.begin.wolfram
+      push:
+        - match: '(?=[A-Z])'
+          pop: true
+          push: [acceptor_args, definition_args, definition_target]
+    - match: ':='
+      scope: keyword.operator.assignment.SetDelayed.wolfram
+      pop: true
+
+  definition_args:
+    - match: '\['
+      scope: punctuation.section.brackets.begin.wolfram
+      push:
+        - meta_scope: meta.brackets.wolfram
+        - match: '\]'
+          scope: punctuation.section.brackets.end.wolfram
+          pop: true
+        - include: expressions
+    - match: '(?!\[)'
+      pop: true
+
+  acceptor_args:
+    - match: '\]'
+      scope: punctuation.section.brackets.end.wolfram
+      pop: true
+    - include: expressions
+
+  any_definition_target:
+    - meta_scope: entity.name.function meta.highlight_def
+    - match: '[a-z]{{symbolSegment}}'
+      pop: true
+    - include: library_sym
+
+  definition_target:
+    - meta_scope: entity.name.function meta.highlight_def
+    - include: library_sym
+
+  sd_lhs:
+    - match: '\s+'
+    - match: '\['
+      scope: punctuation.section.brackets.begin.wolfram
+      push:
+        - meta_scope: meta.brackets.wolfram
+        - match: '\]'
+          scope: punctuation.section.brackets.end.wolfram
+          pop: true
+        - include: expressions
+    - match: ':='
+      scope: keyword.operator.assignment.SetDelayed.wolfram
+      pop: true
+
+  simple_toplevel_definition:
+    - match: ^\s*(Attributes|Format|Options)\s*(\[)({{symbolSegment}})(\])\s*(:=|=(?!!|=|\.))
+      captures:
+        1: support.function.builtin.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+        3: meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+        4: punctuation.section.brackets.end.wolfram
+        5: keyword.operator.assignment.wolfram
+    - match: ^\s*({{symbolSegment}})(?=(\[(?>[^\[\]]+|\g<-1>)*\])\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
+      captures:
+        1: meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+    - match: ^\s*({{symbolSegment}})(?=(\[(?>[^\[\]]+|\g<-1>)*\])(\[(?>[^\[\]]+|\g<-1>)*\])\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
+      captures:
+        1: meta.highlight_def meta.function.wolfram entity.name.function.wolfram meta.highlight_def
+    - match: ^\s*({{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=) (?:Case))
+      captures:
+        1:meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+    - match: ^\s*(\${{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
+      captures:
+        1: meta.highlight_def meta.function.wolfram entity.name.constant.wolfram variable.global.wolfram meta.highlight_def
+    - match: ^\s*({{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
+      captures:
+        1: meta.highlight_def meta.function.wolfram entity.name.constant.wolfram variable.local.wolfram meta.highlight_def
+
+  package_items:
+    - match: '({{LibraryPackageDeclaration}})\['
+      captures:
+        1: meta.package.declaration.wolfram
+      push: package_items_block
+
+  package_items_block:
+    - meta_scope: meta.package.declaration.contents.wolfram
+    - match: ']'
+      pop: true
+    - match: ','
+    - match: ' '
+    - match: '->'
+    - match: '(?=[$a-zA-Z])'
+      push: definition_target
+    - match: '.'
+      scope: invalid.illegal
+
+  metafunction_toplevel_definitions:
+    - match: '^\s*(?=Define[A-Za-z]+Rules(\[))'
+      push: defining_rules_metafunction_call
+    # - match: '^\s*(?=Define[A-Za-z]+(\[))'
+    #   push: defining_metafunction_call
+    - match: '^\s*(?=Declare[A-Za-z]+(\[))'
+      push: declaring_metafunction_call
+    - match: '^\s*(?=[A-Za-z]+Definitions(\[)\s*\n)'
+      push: definitions_metafunction_call
+
+  definitions_metafunction_call:
+    - match: '({{LibraryMetaFunction}})(\[)'
+      captures:
+        1: support.function.meta.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+      embed: definitions_only
+      escape: '^\]'
+      embed_scope: meta.brackets.wolfram
+      escape_captures:
+        0: punctuation.section.brackets.end.wolfram
+      pop: true
+
+  defining_rules_metafunction_call:
+    - match: '({{LibraryMetaFunction}})(\[)'
+      captures:
+        1: support.function.meta.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+      push: [end_bracket, defined_symbol_rule_sequence]
+      pop: true
+    - match: '[A-Za-z]+'
+      scope: invalid.inappropriate
+      pop: true
+
+  defining_metafunction_call:
+    - match: '({{LibraryMetaFunction}})(\[)'
+      captures:
+        1: support.function.meta.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+      push: [end_bracket, single_expression, comma, defined_symbol_or_list]
+      pop: true
+    - match: '[A-Za-z]+'
+      scope: invalid.inappropriate
+      pop: true
+
+  declaring_metafunction_call:
+    - match: '({{LibraryMetaFunction}})(\[)'
+      captures:
+        1: support.function.meta.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+      push: [end_bracket, defined_symbol_sequence]
+      pop: true
+    - match: '[A-Za-z]+'
+      scope: invalid.inappropriate
+      pop: true
+
+  defined_symbol_or_list:
+    - match: '\s+'
+    - match: '\{'
+      push: defined_symbol_sequence
+    - match: '(?={{symbolSegment}})'
+      push: any_definition_target
+    - match: ''
+      pop: true
+
+  defined_symbol:
+    - match: '\s+'
+    - match: '(?={{symbolSegment}})'
+      set: any_definition_target
+    - match: ''
+      pop: true
+
+  defined_symbol_rule_sequence:
+    - match: '\s+'
+    - match: '(?={{symbolSegment}}\s*(->|:>))'
+      push:
+      - match: '\s*'
+      - match: '(?={{symbolSegment}})'
+        push: any_definition_target
+      - match: '(->|:>)'
+        scope: keyword.operator.wolfram
+        set: single_expression
+    - match: ','
+      scope: keyword.operator.Comma.wolfram
+    - match: '(?=[}\]])'
+      pop: true
+    - match: '.'
+      scope: invalid.illegal
+
+  defined_symbol_sequence:
+    - match: '\s+'
+    - match: '{{symbolSegment}}'
+      scope: entity.name.function.wolfram
+    - match: ','
+      scope: keyword.operator.Comma.wolfram
+    - match: '(?=[}\]])'
+      pop: true
+    - match: '.'
+      scope: invalid.illegal
+
+  comma:
+    - match: (?:,)
+      scope: keyword.operator.Comma.wolfram punctuation.separator
+      pop: true
+    - match: '.'
+      scope: invalid.illegal
+
+  end_bracket:
+    - match: '\]'
+      scope: punctuation.section.brackets.end.wolfram
+      pop: true
+    - match: '.'
+      scope: invalid.illegal
+
+  single_expression:
+    - match: '(?=[,\]])'
+      pop: true
+    - include: expressions
+
+  expression:
+    - include: escaped_character_symbols
+    - include: escaped_characters
+    - include: out
+    - include: slot
+    - include: literals
+    - include: groups
+    - include: stringifying_operators
+    - include: operators
+    - include: pattern_operators
+    - include: library_symbols
+#    - include: obselete_symbols
+    - include: builtin_symbols
+    - include: internal_symbols
+    - include: user_symbols
+    - match: '(?=[],)}])'
+      pop: true
+
+  expressions:
+    - include: escaped_character_symbols
+    - include: escaped_characters
+    - include: out
+    - include: slot
+    - include: literals
+    - include: groups
+    - include: stringifying_operators
+    - include: operators
+    - include: pattern_operators
+    - include: library_symbols
+#    - include: obselete_symbols
+    - include: builtin_symbols
+    - include: internal_symbols
+    - include: user_symbols
+    - match: '{{punctuationChar}}'
+      scope: invalid.illegal
+
+  comments:
+    - match: \(\*
+      scope: punctuation.definition.comment.wolfram
+      push: comment-block
+    - match: \*\)
+      scope: invalid.illegal.stray-comment-end.wolfram
+
+  comment-block:
+    - meta_scope: comment.block.wolfram
+    - match: \(\*
+      scope: punctuation.definition.comment.wolfram
+      push: comment-block
+    - match: \*\)
+      scope: punctuation.definition.comment.wolfram
+      pop: true
+    - match: .
+
+  escaped_character_symbols:
+    - match: System`\\\[{{systemLongNames_F}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: System`\\\[{{systemLongNames_S}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{systemLongNames_F}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{systemLongNames_S}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{specialLongNames_D}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{specialLongNames_E}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{specialLongNames_I}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+    - match: \\\[{{specialLongNames_P}}\]{{symbolEndBoundary}}
+      scope: constant.language.wolfram
+
+  escaped_characters:
+    - match: \\[!%&()*+/@^_` ]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{undocumentedLongNames_A}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_C}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_D}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_E}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_F}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_G}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_L}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_M}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_N}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_P}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_S}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_U}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_V}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{undocumentedLongNames_W}}\]
+      scope: donothighlight.constant.character.escape.undocumented
+    - match: \\\[{{unsupportedLongNames_C}}\]
+      scope: invalid.illegal.unsupported
+    - match: \\\[{{unsupportedLongNames_I}}\]
+      scope: invalid.illegal.unsupported
+    - match: \\\[{{freeLongNames_A}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_B}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_C}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_D}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_E}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_F}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_G}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_H}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_I}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_J}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_K}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_L}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_M}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_N}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_O}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_P}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_Q}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_R}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_S}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_T}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_U}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_V}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_W}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_X}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_Y}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{freeLongNames_Z}}\]
+      scope: donothighlight.constant.character.escape
+    - match: \\\[{{symbolSegment}}?\]?
+      scope: invalid.illegal.BadLongName
+    - match: \\{{symbolSegment}}\]
+      scope: invalid.illegal.BadLongName
+    - match: \\:\h{4}
+      scope: donothighlight.constant.character.escape
+    - match: \\:\h{1,3}
+      scope: invalid.illegal
+    - match: \\\.\h{2}
+      scope: donothighlight.constant.character.escape
+    - match: \\\.\h{1}
+      scope: invalid.illegal
+    - match: \\\|0\h{5}
+      scope: donothighlight.constant.character.escape
+    - match: \\\|10\h{4}
+      scope: donothighlight.constant.character.escape
+    - match: \\\|\h{1,6}
+      scope: invalid.illegal
+    - match: \\[0-7]{3}
+      scope: donothighlight.constant.character.escape
+    - match: \\[0-7]{1,2}
+      scope: invalid.illegal
+    - match: \\$
+      scope: donothighlight.constant.character.escape punctuation.separator.continuation
+    - match: \\.
+      scope: invalid.illegal
+
+  string_escaped_characters:
+    - match: \\[bfnrt"\\<>]
+      scope: donothighlight.constant.character.escape
+    - include: escaped_characters
+
+  literals:
+    - include: numbers
+    - include: raw_strings
+    - include: strings
+
+  numbers:
+    - match: '2\^\^{{binary}}{{accuracy}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^{{binary}}{{accuracy}}\*\^'
+      scope: invalid.illegal
+    - match: '2\^\^{{binary}}{{accuracy}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^{{binary}}``'
+      scope: invalid.illegal
+    - match: '2\^\^{{binary}}{{precision}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^{{binary}}{{precision}}\*\^'
+      scope: invalid.illegal
+    - match: '2\^\^{{binary}}{{precision}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^{{binary}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^{{binary}}\*\^'
+      scope: invalid.illegal
+    - match: '2\^\^{{binary}}'
+      scope: constant.numeric.wolfram
+    - match: '2\^\^'
+      scope: invalid.illegal
+    - match: '8\^\^{{octal}}{{accuracy}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^{{octal}}{{accuracy}}\*\^'
+      scope: invalid.illegal
+    - match: '8\^\^{{octal}}{{accuracy}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^{{octal}}``'
+      scope: invalid.illegal
+    - match: '8\^\^{{octal}}{{precision}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^{{octal}}{{precision}}\*\^'
+      scope: invalid.illegal
+    - match: '8\^\^{{octal}}{{precision}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^{{octal}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^{{octal}}\*\^'
+      scope: invalid.illegal
+    - match: '8\^\^{{octal}}'
+      scope: constant.numeric.wolfram
+    - match: '8\^\^'
+      scope: invalid.illegal
+    - match: '16\^\^{{hexadecimal}}{{accuracy}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^{{hexadecimal}}{{accuracy}}\*\^'
+      scope: invalid.illegal
+    - match: '16\^\^{{hexadecimal}}{{accuracy}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^{{hexadecimal}}``'
+      scope: invalid.illegal
+    - match: '16\^\^{{hexadecimal}}{{precision}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^{{hexadecimal}}{{precision}}\*\^'
+      scope: invalid.illegal
+    - match: '16\^\^{{hexadecimal}}{{precision}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^{{hexadecimal}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^{{hexadecimal}}\*\^'
+      scope: invalid.illegal
+    - match: '16\^\^{{hexadecimal}}'
+      scope: constant.numeric.wolfram
+    - match: '16\^\^'
+      scope: invalid.illegal
+    - match: '{{decimal}}{{accuracy}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '{{decimal}}{{accuracy}}\*\^'
+      scope: invalid.illegal
+    - match: '{{decimal}}{{accuracy}}'
+      scope: constant.numeric.wolfram
+    - match: '{{decimal}}``'
+      scope: invalid.illegal
+    - match: '{{decimal}}{{precision}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '{{decimal}}{{precision}}\*\^'
+      scope: invalid.illegal
+    - match: '{{decimal}}{{precision}}'
+      scope: constant.numeric.wolfram
+    - match: '{{decimal}}{{exponent}}'
+      scope: constant.numeric.wolfram
+    - match: '{{decimal}}\*\^'
+      scope: invalid.illegal
+    - match: '{{decimal}}'
+      scope: constant.numeric.wolfram
+
+  raw_strings:
+    - match: \"\"\"
+      scope: punctuation.definition.rawstring.begin
+      push:
+        - meta_scope: string.quoted.triple.wolfram
+        - meta_include_prototype: false
+        - match: \"\"\"
+          scope: punctuation.definition.string.end
+          pop: true
+        - match: .
+
+  strings:
+    - match: \"
+      scope: punctuation.definition.string.begin
+      push:
+        - meta_scope: string.quoted.double.wolfram
+        - meta_include_prototype: false
+        - match: \"
+          scope: punctuation.definition.string.end
+          pop: true
+        - include: string_escaped_characters
+        - match: .
+
+  stringifying_operators:
+    - match: (>>>)(?=\s*")
+      captures:
+        1: keyword.operator.PutAppend.wolfram
+    - match: (>>>)\s*(\w+)
+      captures:
+        1: keyword.operator.PutAppend.wolfram
+        2: string.unquoted.wolfram
+    - match: '>>>'
+      scope: invalid.illegal
+    - match: (::)(?=")
+      captures:
+        1: keyword.operator.MessageName.wolfram
+    - match: (::)([[:alpha:]][[:alnum:]]*)
+      captures:
+        1: keyword.operator.MessageName.wolfram
+        2: string.unquoted.messagename.wolfram
+    - match: '::'
+      scope: invalid.illegal
+    - match: (<<)(?=\s*")
+      captures:
+        1: keyword.operator.Get.wolfram
+    - match: (<<)\s*([`[:alpha:]][`[:alnum:]]*)
+      captures:
+        1: keyword.operator.Get.wolfram
+        2: string.unquoted.wolfram
+    - match: '<<'
+      scope: invalid.illegal
+    - match: (>>)(?=\s*")
+      captures:
+        1: keyword.operator.Put.wolfram
+    - match: (>>)\s*(\w+)
+      captures:
+        1: keyword.operator.Put.wolfram
+        2: string.unquoted.wolfram
+    - match: '>>'
+      scope: invalid.illegal
+
+  operators:
+    - match: (?:\^:=)
+      scope: keyword.operator.assignment.UpSetDelayed.wolfram
+    - match: (?:\^:)
+      scope: invalid.illegal
+    - match: "'"
+      scope: keyword.operator.special
+    - match: (?:\!(?=[\[\s@,;\]]))
+      scope: invalid.printing
+    # - match: (?:')
+    #   scope: invalid.printing
+    - match: (?:===)
+      scope: keyword.operator.SameQ.wolfram
+    - match: (?:=!=|\.\.\.|//\.|@@@|<->|//@|=>|~!~|~~)
+      scope: keyword.operator.wolfram
+    - match: (?:\|->)
+      scope: keyword.operator.Function.wolfram
+    - match: (?://=)
+      scope: keyword.operator.assignment.ApplyTo.wolfram
+    - match: (?:--|\+\+)
+      scope: keyword.operator.arithmetic.wolfram
+    - match: (?:\|\||&&)
+      scope: keyword.operator.logical.wolfram
+    - match: (?::=)
+      scope: keyword.operator.assignment.SetDelayed.wolfram
+    - match: (?:\^=)
+      scope: keyword.operator.assignment.UpSet.wolfram
+    - match: (?:/=)
+      scope: keyword.operator.assignment.DivideBy.wolfram
+    - match: (?:\+=)
+      scope: keyword.operator.assignment.AddTo.wolfram
+    - match: (?:=\s+\.(?![0-9]))
+      scope: invalid.whitespace.Unset.wolfram
+    - match: (?:=\.(?![0-9]))
+      scope: keyword.operator.assignment.Unset.wolfram
+    - match: (?:\*=)
+      scope: keyword.operator.assignment.TimesBy.wolfram
+    - match: (?:-=)
+      scope: keyword.operator.assignment.SubtractFrom.wolfram
+    - match: (?:/:)
+      scope: keyword.operator.assignment.Tag.wolfram
+    - match: (?:;;)$
+      scope: invalid.endofline.Span.wolfram
+    - match: (?:;;)
+      scope: keyword.operator.Span.wolfram
+    - match: (?:!=)
+      scope: keyword.operator.Unequal.wolfram
+    - match: (?:==)
+      scope: keyword.operator.Equal.wolfram
+    - match: (?:!!)
+      scope: keyword.operator.BangBang.wolfram
+    - match: (?:\?\?)
+      scope: invalid.illegal.Information.wolfram
+    - match: (?:<=>)
+      scope: keyword.operator.wolfram
+    - match: (?:<=|>=|\.\.|:>|<>|->|/@|/;|/\.|//|/\*|@@|@\*|~~|\*\*)
+      scope: keyword.operator.wolfram
+    - match: (?:-|\+|/|\*)
+      scope: keyword.operator.arithmetic.wolfram
+    - match: (?:=)
+      scope: keyword.operator.assignment.Set.wolfram
+    - match: (?:<)
+      scope: keyword.operator.Less.wolfram
+    - match: (?:\|)
+      scope: keyword.operator.Alternatives.wolfram
+    - match: (?:!)
+      scope: keyword.operator.Bang.wolfram
+    - match: (?:;)
+      scope: keyword.operator.CompoundExpression.wolfram punctuation.terminator
+    - match: (?:,)
+      scope: keyword.operator.Comma.wolfram punctuation.separator
+    - match: ^(?:\?)
+      scope: invalid.startofline.Information.wolfram
+    - match: (?:\?)
+      scope: keyword.operator.PatternTest.wolfram
+    - match: (?:')
+      scope: keyword.operator.Derivative.wolfram
+    - match: (?:&)
+      scope: keyword.operator.Function.wolfram
+    - match: (?:>|\^|\.|:|@|~)
+      scope: keyword.operator.wolfram
+
+  user_symbols:
+
+    - match: '{{symbolSegment}}(?:`{{symbolSegment}})+(?=\s*(\[(?!\s*\[)|@(?!@)))'
+      scope: variable.function.wolfram
+    - match: '{{symbolSegment}}(?:`{{symbolSegment}})+'
+      scope: symbol.unrecognized.wolfram
+    - match: '(?:`{{symbolSegment}})+(?=\s*(\[(?!\s*\[)|@(?!@)))'
+      scope: variable.function.wolfram
+    - match: '(?:`{{symbolSegment}})+'
+      scope: symbol.unrecognized.wolfram
+    - match: '[$][A-Z]{{symbolSegment}}'
+      scope: variable.global.unrecognized.wolfram
+    - match: '[$]{{symbolSegment}}'
+      scope: variable.global.wolfram
+    - match: '{{symbolSegment}}(?=_|:[^:])'
+      scope: variable.local.pattern.wolfram
+    - match: '[A-Z]{{symbolSegment}}'
+      scope: variable.local.unrecognized.wolfram
+    - match: '{{symbolSegment}}'
+      scope: variable.local.wolfram
+
+  invalid_symbols:
+    - match: '{{symbolSegment}}`'
+      scope: invalid.illegal.wolfram
+    - match: '`'
+      scope: invalid.illegal.wolfram
+
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
+
+  library_symbols:
+"#library_symbols"
+
+  library_sym:
+"#library_sym"
+
+  builtin_symbols:
+"#builtin_symbols"
+
+  builtin_sym:
+"#builtin_sym"
+
+  internal_symbols:
+"#internal_symbols"
+
+  obselete_symbols:
+    - match: '{{obsoleteSymbols_A}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_B}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_C}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_D}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_E}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_F}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_G}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_H}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_I}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_L}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_M}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_N}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_O}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_P}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_R}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_S}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_T}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_U}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_V}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_W}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+    - match: '{{obsoleteSymbols_DOLLAR}}{{symbolEndBoundary}}'
+      scope: invalid.deprecated.wolfram
+
+    # - match: '{{symbolSegment}}(?=\s*(\[(?!\s*\[)|@(?!@)))'
+    #   scope: variable.function.wolfram
+
+  groups:
+    - match: \\\)
+      scope: invalid.illegal.stray-linearsyntaxparens-end.wolfram
+    - match: \)
+      scope: invalid.illegal.stray-parens-end.wolfram
+    - match: \[\s+\[
+      scope: invalid.whitespace.Part.wolfram
+    - match: \]\s+\]
+      scope: invalid.whitespace.Part.wolfram
+    - match: \]\]
+      scope: invalid.illegal.stray-parts-end.wolfram
+    - match: \]
+      scope: invalid.illegal.stray-brackets-end.wolfram
+    - match: \}
+      scope: invalid.illegal.stray-braces-end.wolfram
+    - match: \|>
+      scope: invalid.illegal.stray-associations-end.wolfram
+    - include: linearsyntaxparen_group
+    - include: paren_group
+    - include: part_group
+    - include: bracket_group
+    - include: brace_group
+    - include: association_group
+
+  linearsyntaxparen_group:
+    - match: \\\(
+      scope: punctuation.section.linearsyntaxparens.begin.wolfram
+      push:
+        - meta_scope: meta.linearsyntaxparens.wolfram
+        - match: \\\)
+          scope: punctuation.section.linearsyntaxparens.end.wolfram
+          pop: true
+        - include: expressions
+
+  paren_group:
+    - match: \(
+      scope: punctuation.section.parens.begin.wolfram
+      push:
+        - meta_scope: meta.parens.wolfram
+        - match: \)
+          scope: punctuation.section.parens.end.wolfram
+          pop: true
+        - include: expressions
+
+  part_group:
+    - match: \[\[
+      scope: punctuation.section.parts.begin.wolfram
+      push:
+        - meta_scope: meta.parts.wolfram
+        - match: \]\]
+          scope: punctuation.section.parts.end.wolfram
+          pop: true
+        - include: expressions
+
+  bracket_group:
+    - match: ::\[|\[
+      scope: punctuation.section.brackets.begin.wolfram
+      push:
+        - meta_scope: meta.brackets.wolfram
+        - match: \]
+          scope: punctuation.section.brackets.end.wolfram
+          pop: true
+        - include: expressions
+
+  brace_group:
+    - match: \{
+      scope: punctuation.section.braces.begin.wolfram
+      push:
+        - meta_scope: meta.braces.wolfram
+        - match: \}
+          scope: punctuation.section.braces.end.wolfram
+          pop: true
+        - include: expressions
+
+  association_group:
+    - match: <\|
+      scope: punctuation.section.associations.begin.wolfram
+      push:
+        - meta_scope: meta.associations.wolfram
+        - match: \|>
+          scope: punctuation.section.associations.end.wolfram
+          pop: true
+        - include: expressions
+
+  pattern_operators:
+    - match: ___
+      scope: keyword.operator.BlankNullSequence.wolfram
+    - match: __
+      scope: keyword.operator.BlankSequence.wolfram
+    - match: _\.
+      scope: keyword.operator.Optional.wolfram
+    - match: _
+      scope: keyword.operator.Blank.wolfram
+
+  out:
+    - match: '%\d+'
+      scope: keyword.other.Out.wolfram
+    - match: '%+'
+      scope: keyword.other.Out.wolfram
+
+  slot:
+    - match: '#[[:alpha:]][[:alnum:]]*'
+      scope: keyword.other.Slot.wolfram
+    - match: '##\d*'
+      scope: keyword.other.SlotSequence.wolfram
+    - match: '#\d*'
+      scope: keyword.other.Slot.wolfram
+
+variables:
+  symbolSegment: (?:[$[:alpha:]][$[:alnum:]]*)
+  symbolEndBoundary: (?![`$[:alnum:]])
+
+"#variables"
+
+  definitionAcceptors: (?:MakeBoxes|CoreBoxes|TypeBoxes|FieldBoxes|TermBoxes|SystemBoxes)
+
+  systemLongNames_F: (?:F(?:ormalA|ormalAlpha|ormalB|ormalBeta|ormalC|ormalCapitalA|ormalCapitalAlpha|ormalCapitalB|ormalCapitalBeta|ormalCapitalC|ormalCapitalChi|ormalCapitalD|ormalCapitalDelta|ormalCapitalDigamma|ormalCapitalE|ormalCapitalEpsilon|ormalCapitalEta|ormalCapitalF|ormalCapitalG|ormalCapitalGamma|ormalCapitalH|ormalCapitalI|ormalCapitalIota|ormalCapitalJ|ormalCapitalK|ormalCapitalKappa|ormalCapitalKoppa|ormalCapitalL|ormalCapitalLambda|ormalCapitalM|ormalCapitalMu|ormalCapitalN|ormalCapitalNu|ormalCapitalO|ormalCapitalOmega|ormalCapitalOmicron|ormalCapitalP|ormalCapitalPhi|ormalCapitalPi|ormalCapitalPsi|ormalCapitalQ|ormalCapitalR|ormalCapitalRho|ormalCapitalS|ormalCapitalSampi|ormalCapitalSigma|ormalCapitalStigma|ormalCapitalT|ormalCapitalTau|ormalCapitalTheta|ormalCapitalU|ormalCapitalUpsilon|ormalCapitalV|ormalCapitalW|ormalCapitalX|ormalCapitalXi|ormalCapitalY|ormalCapitalZ|ormalCapitalZeta|ormalChi|ormalCurlyCapitalUpsilon|ormalCurlyEpsilon|ormalCurlyKappa|ormalCurlyPhi|ormalCurlyPi|ormalCurlyRho|ormalCurlyTheta|ormalD|ormalDelta|ormalDigamma|ormalE|ormalEpsilon|ormalEta|ormalF|ormalFinalSigma|ormalG|ormalGamma|ormalH|ormalI|ormalIota|ormalJ|ormalK|ormalKappa|ormalKoppa|ormalL|ormalLambda|ormalM|ormalMu|ormalN|ormalNu|ormalO|ormalOmega|ormalOmicron|ormalP|ormalPhi|ormalPi|ormalPsi|ormalQ|ormalR|ormalRho|ormalS|ormalSampi|ormalScriptA|ormalScriptB|ormalScriptC|ormalScriptCapitalA|ormalScriptCapitalB|ormalScriptCapitalC|ormalScriptCapitalD|ormalScriptCapitalE|ormalScriptCapitalF|ormalScriptCapitalG|ormalScriptCapitalH|ormalScriptCapitalI|ormalScriptCapitalJ|ormalScriptCapitalK|ormalScriptCapitalL|ormalScriptCapitalM|ormalScriptCapitalN|ormalScriptCapitalO|ormalScriptCapitalP|ormalScriptCapitalQ|ormalScriptCapitalR|ormalScriptCapitalS|ormalScriptCapitalT|ormalScriptCapitalU|ormalScriptCapitalV|ormalScriptCapitalW|ormalScriptCapitalX|ormalScriptCapitalY|ormalScriptCapitalZ|ormalScriptD|ormalScriptE|ormalScriptF|ormalScriptG|ormalScriptH|ormalScriptI|ormalScriptJ|ormalScriptK|ormalScriptL|ormalScriptM|ormalScriptN|ormalScriptO|ormalScriptP|ormalScriptQ|ormalScriptR|ormalScriptS|ormalScriptT|ormalScriptU|ormalScriptV|ormalScriptW|ormalScriptX|ormalScriptY|ormalScriptZ|ormalSigma|ormalStigma|ormalT|ormalTau|ormalTheta|ormalU|ormalUpsilon|ormalV|ormalW|ormalX|ormalXi|ormalY|ormalZ|ormalZeta))
+  systemLongNames_S: (?:S(?:ystemsModelDelay))
+
+  specialLongNames_D: (?:D(?:egree))
+  specialLongNames_E: (?:E(?:xponentialE))
+  specialLongNames_I: (?:I(?:maginaryI|maginaryJ|nfinity))
+  specialLongNames_P: (?:P(?:i))
+
+  obsoleteSymbols_A: (?:A(?:bortScheduledTask|ctive|lgebraicRules|lternateImage|natomyForm|nimationCycleOffset|nimationCycleRepetitions|nimationDisplayTime|spectRatioFixed|stronomicalData|synchronousTaskObject|synchronousTasks|udioDevice|udioLooping))
+  obsoleteSymbols_B: (?:B(?:uttonEvaluator|uttonExpandable|uttonFrame|uttonMargins|uttonNote|uttonStyle))
+  obsoleteSymbols_C: (?:C(?:DFInformation|hebyshevDistance|lassifierInformation|lipFill|olorOutput|olumnForm|ompose|onstantArrayLayer|onstantPlusLayer|onstantTimesLayer|onstrainedMax|onstrainedMin|ontourGraphics|ontourLines|onversionOptions|reateScheduledTask|reateTemporary|urry))
+  obsoleteSymbols_D: (?:D(?:atabinRemove|ate|ebug|efaultColor|efaultFont|ensityGraphics|isplay|isplayString|otPlusLayer|ragAndDrop))
+  obsoleteSymbols_E: (?:E(?:dgeLabeling|dgeRenderingFunction|valuateScheduledTask|xpectedValue))
+  obsoleteSymbols_F: (?:F(?:actorComplete|ontForm|ormTheme|romDate|ullOptions))
+  obsoleteSymbols_G: (?:G(?:raphStyle|raphicsArray|raphicsSpacing|ridBaseline))
+  obsoleteSymbols_H: (?:H(?:TMLSave|eldPart|iddenSurface|omeDirectory))
+  obsoleteSymbols_I: (?:I(?:mageRotated|nstanceNormalizationLayer))
+  obsoleteSymbols_L: (?:L(?:UBackSubstitution|egendreType|ightSources|inearProgramming|inkOpen|iteral|ongestMatch))
+  obsoleteSymbols_M: (?:M(?:eshRange|oleculeEquivalentQ))
+  obsoleteSymbols_N: (?:N(?:etInformation|etSharedArray|extScheduledTaskTime|otebookCreate))
+  obsoleteSymbols_O: (?:O(?:penTemporary))
+  obsoleteSymbols_P: (?:P(?:IDData|ackingMethod|ersistentValue|lot3Matrix|lotDivision|lotJoined|olygonIntersections|redictorInformation|roperties|roperty|ropertyList|ropertyValue))
+  obsoleteSymbols_R: (?:R(?:andom|asterArray|ecognitionThreshold|elease|emoteKernelObject|emoveAsynchronousTask|emoveProperty|emoveScheduledTask|enderAll|eplaceHeldPart|esetScheduledTask|esumePacket|unScheduledTask))
+  obsoleteSymbols_S: (?:S(?:cheduledTaskActiveQ|cheduledTaskInformation|cheduledTaskObject|cheduledTasks|creenRectangle|electionAnimate|equenceAttentionLayer|equenceForm|etProperty|hading|hortestMatch|ingularValues|kinStyle|ocialMediaData|tartAsynchronousTask|tartScheduledTask|tateDimensions|topAsynchronousTask|topScheduledTask|tructuredArray|tyleForm|tylePrint|ubscripted|urfaceColor|urfaceGraphics|uspendPacket|ystemModelProgressReporting))
+  obsoleteSymbols_T: (?:T(?:eXSave|extStyle|imeWarpingCorrespondence|imeWarpingDistance|oDate|oFileName|oHeldExpression))
+  obsoleteSymbols_U: (?:U(?:RLFetch|RLFetchAsynchronous|RLSave|RLSaveAsynchronous))
+  obsoleteSymbols_V: (?:V(?:ectorScale|ertexCoordinateRules|ertexLabeling|ertexRenderingFunction))
+  obsoleteSymbols_W: (?:W(?:aitAsynchronousTask|indowMovable))
+  obsoleteSymbols_DOLLAR: (?:\$(?:AsynchronousTask|ConfiguredKernels|DefaultFont|EntityStores|FormatType|HTTPCookies|InstallationDate|MachineDomain|ProductInformation|ProgramName|RandomState|ScheduledTask|SummaryBoxDataSizeLimit|TemporaryPrefix|TextStyle|TopDirectory|UserAddOnsDirectory))
+
+  undocumentedSymbols_A: (?:A(?:ctionDelay|ctionMenuBox|ctionMenuBoxOptions|ctiveItem|lgebraicRulesData|lignmentMarker|llowAdultContent|llowChatServices|llowIncomplete|nalytic|nimatorBox|nimatorBoxOptions|nimatorElements|ppendCheck|rgumentCountQ|rrow3DBox|rrowBox|uthenticate|utoEvaluateEvents|utoIndentSpacings|utoMatch|utoNumberFormatting|utoQuoteCharacters|utoScaling|utoStyleOptions|utoStyleWords|utomaticImageSize|xis3DBox|xis3DBoxOptions|xisBox|xisBoxOptions))
+  undocumentedSymbols_B: (?:B(?:SplineCurve3DBox|SplineCurve3DBoxOptions|SplineCurveBox|SplineCurveBoxOptions|SplineSurface3DBox|SplineSurface3DBoxOptions|ackFaceColor|ackFaceGlowColor|ackFaceOpacity|ackFaceSpecularColor|ackFaceSpecularExponent|ackFaceSurfaceAppearance|ackFaceTexture|ackgroundAppearance|ackgroundTasksSettings|acksubstitution|eveled|ezierCurve3DBox|ezierCurve3DBoxOptions|ezierCurveBox|ezierCurveBoxOptions|lankForm|ounds|ox|oxDimensions|oxForm|oxID|oxRotation|oxRotationPoint|ra|raKet|rowserCategory|uttonCell|uttonContents|uttonStyleMenuListing))
+  undocumentedSymbols_C: (?:C(?:acheGraphics|achedValue|ardinalBSplineBasis|ellBoundingBox|ellContents|ellElementSpacings|ellElementsBoundingBox|ellFrameStyle|ellInsertionPointCell|ellTrayPosition|ellTrayWidgets|hangeOptions|hannelDatabin|hannelListenerWait|hannelPreSendFunction|hartElementData|hartElementDataFunction|heckAll|heckboxBox|heckboxBoxOptions|ircleBox|lipboardNotebook|lockwiseContourIntegral|losed|losingEvent|loudConnections|loudObjectInformation|loudObjectInformationData|loudUserID|oarse|oefficientDomain|olonForm|olorSetterBox|olorSetterBoxOptions|olumnBackgrounds|ompilerEnvironmentAppend|ompletionsListPacket|omponentwiseContextMenu|ompressedData|oneBox|onicHullRegion3DBox|onicHullRegion3DBoxOptions|onicHullRegionBox|onicHullRegionBoxOptions|onnect|ontentsBoundingBox|ontextMenu|ontinuation|ontourIntegral|ontourSmoothing|ontrolAlignment|ontrollerDuration|ontrollerInformationData|onvertToPostScript|onvertToPostScriptPacket|ookies|opyTag|ounterBox|ounterBoxOptions|ounterClockwiseContourIntegral|ounterEvaluator|ounterStyle|uboidBox|uboidBoxOptions|urlyDoubleQuote|urlyQuote|ylinderBox|ylinderBoxOptions))
+  undocumentedSymbols_D: (?:D(?:OSTextFormat|ampingFactor|ataCompression|atasetDisplayPanel|ateDelimiters|ebugTag|ecimal|efault2DTool|efault3DTool|efaultAttachedCellStyle|efaultControlPlacement|efaultDockedCellStyle|efaultInputFormatType|efaultOutputFormatType|efaultStyle|efaultTextFormatType|efaultTextInlineFormatType|efaultValue|efineExternal|egreeLexicographic|egreeReverseLexicographic|eleteWithContents|elimitedArray|estroyAfterEvaluation|eviceOpenQ|ialogIndent|ialogLevel|ifferenceOrder|igitBlockMinimum|isableConsolePrintPacket|iskBox|iskBoxOptions|ispatchQ|isplayRules|isplayTemporary|istributionDomain|ivergence|ocumentGeneratorInformationData|omainRegistrationInformation|oubleContourIntegral|oublyInfinite|own|rawBackFaces|rawFrontFaces|rawHighlighted|ualLinearProgramming|umpGet|ynamicBox|ynamicBoxOptions|ynamicLocation|ynamicModuleBox|ynamicModuleBoxOptions|ynamicModuleParent|ynamicName|ynamicNamespace|ynamicReference|ynamicWrapperBox|ynamicWrapperBoxOptions))
+  undocumentedSymbols_E: (?:E(?:ditButtonSettings|liminationOrder|llipticReducedHalfPeriods|mbeddingObject|mphasizeSyntaxErrors|mpty|nableConsolePrintPacket|ndAdd|ngineEnvironment|nter|qualColumns|qualRows|quatedTo|rrorBoxOptions|rrorNorm|rrorPacket|rrorsDialogSettings|valuated|valuationMode|valuationOrder|valuationRateLimit|ventEvaluator|ventHandlerTag|xactRootIsolation|xitDialog|xpectationE|xportPacket|xpressionPacket|xternalCall|xternalFunctionName))
+  undocumentedSymbols_F: (?:F(?:EDisableConsolePrintPacket|EEnableConsolePrintPacket|ail|ileInformation|ileName|illForm|illedCurveBox|illedCurveBoxOptions|ine|itAll|lashSelection|ont|ontName|ontOpacity|ontPostScriptName|ontReencoding|ormatRules|ormatValues|rameInset|rameless|rontEndObject|rontEndResource|rontEndResourceString|rontEndStackSize|rontEndValueCache|rontEndVersion|rontFaceColor|rontFaceGlowColor|rontFaceOpacity|rontFaceSpecularColor|rontFaceSpecularExponent|rontFaceSurfaceAppearance|rontFaceTexture|ullAxes))
+  undocumentedSymbols_G: (?:G(?:eneratedCellStyles|eneric|eometricTransformation3DBox|eometricTransformation3DBoxOptions|eometricTransformationBox|eometricTransformationBoxOptions|estureHandlerTag|etContext|etFileName|etLinebreakInformationPacket|lobalPreferences|lobalSession|raphLayerLabels|raphRoot|raphics3DBox|raphics3DBoxOptions|raphicsBaseline|raphicsBox|raphicsBoxOptions|raphicsComplex3DBox|raphicsComplex3DBoxOptions|raphicsComplexBox|raphicsComplexBoxOptions|raphicsContents|raphicsData|raphicsGridBox|raphicsGroup3DBox|raphicsGroup3DBoxOptions|raphicsGroupBox|raphicsGroupBoxOptions|raphicsGrouping|raphicsStyle|reekStyle|ridBoxAlignment|ridBoxBackground|ridBoxDividers|ridBoxFrame|ridBoxItemSize|ridBoxItemStyle|ridBoxOptions|ridBoxSpacings|ridElementStyleOptions|roupOpenerColor|roupOpenerInsideFrame|roupTogetherGrouping|roupTogetherNestedGrouping))
+  undocumentedSymbols_H: (?:H(?:eadCompose|eaders|elpBrowserLookup|elpBrowserNotebook|elpViewerSettings|essian|exahedronBox|exahedronBoxOptions|ighlightString|omePage|orizontal|orizontalForm|orizontalScrollPosition|yperlinkCreationSettings|yphenationOptions))
+  undocumentedSymbols_I: (?:I(?:conizedObject|gnoreSpellCheck|mageCache|mageCacheValid|mageEditMode|mageMarkers|mageOffset|mageRangeCache|mageSizeCache|mageSizeRaw|nactiveStyle|ncludeSingularTerm|ndent|ndentMaxFraction|ndentingNewlineSpacings|ndexCreationOptions|ndexTag|nequality|nexactNumbers|nformationData|nformationDataGrid|nlineCounterAssignments|nlineCounterIncrements|nlineRules|nputFieldBox|nputFieldBoxOptions|nputGrouping|nputSettings|nputToBoxFormPacket|nsertionPointObject|nset3DBox|nset3DBoxOptions|nsetBox|nsetBoxOptions|ntegral|nterlaced|nterpolationPrecision|nterpretTemplate|nterruptSettings|nto|nvisibleApplication|nvisibleTimes|temBox|temBoxOptions))
+  undocumentedSymbols_J: (?:J(?:acobian|oinedCurveBox|oinedCurveBoxOptions))
+  undocumentedSymbols_K: (?:K(?:|ernelExecute|et))
+  undocumentedSymbols_L: (?:L(?:abeledSlider|ambertW|anguageOptions|aunch|ayoutInformation|exicographic|icenseID|ine3DBox|ine3DBoxOptions|ineBox|ineBoxOptions|ineBreak|ineWrapParts|inearFilter|inebreakSemicolonWeighting|inkConnectedQ|inkError|inkFlush|inkHost|inkMode|inkOptions|inkReadHeld|inkService|inkWriteHeld|istPickerBoxBackground|isten|iteralSearch|ocalizeDefinitions|ocatorBox|ocatorBoxOptions|ocatorCentering|ocatorPaneBox|ocatorPaneBoxOptions|ongEqual|ongForm|oopback))
+  undocumentedSymbols_M: (?:M(?:achineID|achineName|acintoshSystemPageSetup|ainSolve|aintainDynamicCaches|akeRules|atchLocalNameQ|aterial|athMLText|athematicaNotation|axBend|axPoints|enu|enuAppearance|enuEvaluator|enuItem|enuList|ergeDifferences|essageObject|essageOptions|essagesNotebook|etaCharacters|ethodOptions|inRecursion|inSize|ode|odular|onomialOrder|ouseAppearanceTag|ouseButtons|ousePointerNote|ultiLetterItalics|ultiLetterStyle|ultiplicity|ultiscriptBoxOptions))
+  undocumentedSymbols_N: (?:N(?:BernoulliB|ProductFactors|SumTerms|Values|amespaceBox|amespaceBoxOptions|estedScriptRules|etworkPacketRecordingDuring|ext|onAssociative|ormalGrouping|otebookDefault|otebookInterfaceObject))
+  undocumentedSymbols_O: (?:O(?:LEData|bjectExistsQ|pen|penFunctionInspectorPacket|penSpecialOptions|penerBox|penerBoxOptions|ptionQ|ptionValueBox|ptionValueBoxOptions|ptionsPacket|utputFormData|utputGrouping|utputMathEditExpression|ver|verlayBox|verlayBoxOptions))
+  undocumentedSymbols_P: (?:P(?:ackPaclet|ackage|acletDirectoryAdd|acletDirectoryRemove|acletInformation|acletObjectQ|acletUpdate|ageHeight|alettesMenuSettings|aneBox|aneBoxOptions|aneSelectorBox|aneSelectorBoxOptions|anelBox|anelBoxOptions|aperWidth|arameter|arameterVariables|arentConnect|arentForm|arentList|arenthesize|artialD|asteAutoQuoteCharacters|ausedTime|eriodicInterpolation|erpendicular|ickMode|ickedElements|ivoting|lotRangeClipPlanesStyle|oint3DBox|oint3DBoxOptions|ointBox|ointBoxOptions|olygon3DBox|olygon3DBoxOptions|olygonBox|olygonBoxOptions|olygonHoleScale|olygonScale|olyhedronBox|olyhedronBoxOptions|olynomialForm|olynomials|opupMenuBox|opupMenuBoxOptions|ostScript|recedence|redictionRoot|referencesSettings|revious|rimaryPlaceholder|rintForm|rismBox|rismBoxOptions|rivateFrontEndOptions|robabilityPr|rocessStateDomain|rocessTimeDomain|rogressIndicatorBox|rogressIndicatorBoxOptions|romptForm|yramidBox|yramidBoxOptions))
+  undocumentedSymbols_R: (?:R(?:adioButtonBox|adioButtonBoxOptions|andomSeed|angeSpecification|aster3DBox|aster3DBoxOptions|asterBox|asterBoxOptions|ationalFunctions|awArray|awMedium|ebuildPacletData|ectangleBox|ecurringDigitsForm|eferenceMarkerStyle|eferenceMarkers|einstall|emoved|epeatedString|esourceAcquire|esourceSubmissionObject|eturnCreatesNewCell|eturnEntersInput|eturnInputFormPacket|otationBox|otationBoxOptions|oundImplies|owBackgrounds|owHeights|uleCondition|uleForm))
+  undocumentedSymbols_S: (?:S(?:aveAutoDelete|caledMousePosition|cheduledTaskInformationData|criptForm|criptRules|ectionGrouping|electWithContents|election|electionCell|electionCellCreateCell|electionCellDefaultStyle|electionCellParentStyle|electionPlaceholder|elfLoops|erviceResponse|etOptionsPacket|etSecuredAuthenticationKey|etbacks|etterBox|etterBoxOptions|howAutoConvert|howCodeAssist|howControls|howGroupOpenCloseIcon|howInvisibleCharacters|howPredictiveInterface|howSyntaxStyles|hrinkWrapBoundingBox|ingleEvaluation|ingleLetterStyle|lider2DBox|lider2DBoxOptions|ocket|olveDelayed|oundAndGraphics|pace|paceForm|panningCharacters|phereBox|phereBoxOptions|tartupSound|tringBreak|tringByteCount|tripStyleOnPaste|trokeForm|tructuredArrayHeadQ|tyleKeyMapping|tyleNames|urfaceAppearance|yntax|ystemException|ystemGet|ystemInformationData|ystemStub|ystemTest))
+  undocumentedSymbols_T: (?:T(?:ab|abViewBox|abViewBoxOptions|ableViewBox|ableViewBoxAlignment|ableViewBoxBackground|ableViewBoxHeaders|ableViewBoxItemSize|ableViewBoxItemStyle|ableViewBoxOptions|agBoxNote|agStyle|emplateEvaluate|emplateSlotSequence|emplateUnevaluated|emplateVerbatim|emporaryVariable|ensorQ|etrahedronBox|etrahedronBoxOptions|ext3DBox|ext3DBoxOptions|extBand|extBoundingBox|extBox|extForm|extLine|extParagraph|hisLink|itleGrouping|oColor|oggle|oggleFalse|ogglerBox|ogglerBoxOptions|ooBig|ooltipBox|ooltipBoxOptions|otalHeight|raceAction|raceInternal|raceLevel|rackCellChangeTimes|raditionalNotation|raditionalOrder|ransparentColor|rapEnterKey|rapSelection|ubeBSplineCurveBox|ubeBSplineCurveBoxOptions|ubeBezierCurveBox|ubeBezierCurveBoxOptions|ubeBox|ubeBoxOptions))
+  undocumentedSymbols_U: (?:U(?:ntrackedVariables|p|seGraphicsRange|serDefinedWavelet|sing))
+  undocumentedSymbols_V: (?:V(?:2Get|alueBox|alueBoxOptions|alueForm|aluesData|ectorGlyphData|erbose|ertical|erticalForm|iewPointSelectorSettings|iewPort|irtualGroupData|isibleCell))
+  undocumentedSymbols_W: (?:W(?:aitUntil|ebPageMetaInformation|holeCellGroupOpener|indowPersistentStyles|indowSelected|indowWidth|olframAlphaDate|olframAlphaQuantity|olframAlphaResult|olframCloudSettings))
+  undocumentedSymbols_DOLLAR: (?:\$(?:ActivationGroupID|ActivationUserRegistered|AddOnsDirectory|BoxForms|CloudConnection|CloudVersionNumber|CloudWolframEngineVersionNumber|ConditionHold|DefaultMailbox|DefaultPath|FinancialDataSource|GeoEntityTypes|GeoLocationPrecision|HTMLExportRules|HTTPRequest|LaunchDirectory|LicenseProcesses|LicenseSubprocesses|LicenseType|LinkSupported|LoadedFiles|MaxLicenseProcesses|MaxLicenseSubprocesses|MinorReleaseNumber|NetworkLicense|Off|OutputForms|PatchLevelID|PermissionsGroupBase|PipeSupported|PreferencesDirectory|PrintForms|PrintLiteral|RegisteredDeviceClasses|RegisteredUserName|SecuredAuthenticationKeyTokens|SetParentLink|SoundDisplay|SuppressInputFormHeads|SystemMemory|TraceOff|TraceOn|TracePattern|TracePostAction|TracePreAction|UserAgentLanguages|UserAgentMachine|UserAgentName|UserAgentOperatingSystem|UserAgentVersion|UserName))
+
+  freeLongNames_A: (?:A(?:Acute|Bar|Cup|DoubleDot|E|Grave|Hat|Ring|Tilde|leph|liasDelimiter|liasIndicator|lignmentMarker|lpha|ltKey|nd|ngle|ngstrom|pplication|quariusSign|riesSign|scendingEllipsis|utoLeftMatch|utoOperand|utoPlaceholder|utoRightMatch|utoSpace))
+  freeLongNames_B: (?:B(?:ackslash|eamedEighthNote|eamedSixteenthNote|ecause|et|eta|lackBishop|lackKing|lackKnight|lackPawn|lackQueen|lackRook|reve|ullet))
+  freeLongNames_C: (?:C(?:Acute|Cedilla|Hacek|ancerSign|ap|apitalAAcute|apitalABar|apitalACup|apitalADoubleDot|apitalAE|apitalAGrave|apitalAHat|apitalARing|apitalATilde|apitalAlpha|apitalBeta|apitalCAcute|apitalCCedilla|apitalCHacek|apitalChi|apitalDHacek|apitalDelta|apitalDifferentialD|apitalDigamma|apitalEAcute|apitalEBar|apitalECup|apitalEDoubleDot|apitalEGrave|apitalEHacek|apitalEHat|apitalEpsilon|apitalEta|apitalEth|apitalGamma|apitalIAcute|apitalICup|apitalIDoubleDot|apitalIGrave|apitalIHat|apitalIota|apitalKappa|apitalKoppa|apitalLSlash|apitalLambda|apitalMu|apitalNHacek|apitalNTilde|apitalNu|apitalOAcute|apitalODoubleAcute|apitalODoubleDot|apitalOE|apitalOGrave|apitalOHat|apitalOSlash|apitalOTilde|apitalOmega|apitalOmicron|apitalPhi|apitalPi|apitalPsi|apitalRHacek|apitalRho|apitalSHacek|apitalSampi|apitalSigma|apitalStigma|apitalTHacek|apitalTau|apitalTheta|apitalThorn|apitalUAcute|apitalUDoubleAcute|apitalUDoubleDot|apitalUGrave|apitalUHat|apitalURing|apitalUpsilon|apitalXi|apitalYAcute|apitalZHacek|apitalZeta|apricornSign|edilla|ent|enterDot|enterEllipsis|heckedBox|heckmark|heckmarkedBox|hi|ircleDot|ircleMinus|irclePlus|ircleTimes|lockwiseContourIntegral|loseCurlyDoubleQuote|loseCurlyQuote|loverLeaf|lubSuit|olon|ommandKey|onditioned|ongruent|onjugate|onjugateTranspose|onstantC|ontinuation|ontourIntegral|ontrolKey|oproduct|opyright|ounterClockwiseContourIntegral|ross|ubeRoot|up|upCap|urlyCapitalUpsilon|urlyEpsilon|urlyKappa|urlyPhi|urlyPi|urlyRho|urlyTheta|urrency))
+  freeLongNames_D: (?:D(?:Hacek|agger|alet|ash|egree|el|eleteKey|elta|escendingEllipsis|iameter|iamond|iamondSuit|ifferenceDelta|ifferentialD|igamma|irectedEdge|iscreteRatio|iscreteShift|iscretionaryHyphen|iscretionaryLineSeparator|iscretionaryPageBreakAbove|iscretionaryPageBreakBelow|iscretionaryParagraphSeparator|istributed|ivide|ivides|otEqual|otlessI|otlessJ|ottedSquare|oubleContourIntegral|oubleDagger|oubleDot|oubleDownArrow|oubleLeftArrow|oubleLeftRightArrow|oubleLeftTee|oubleLongLeftArrow|oubleLongLeftRightArrow|oubleLongRightArrow|oublePrime|oubleRightArrow|oubleRightTee|oubleStruckA|oubleStruckB|oubleStruckC|oubleStruckCapitalA|oubleStruckCapitalB|oubleStruckCapitalC|oubleStruckCapitalD|oubleStruckCapitalE|oubleStruckCapitalF|oubleStruckCapitalG|oubleStruckCapitalH|oubleStruckCapitalI|oubleStruckCapitalJ|oubleStruckCapitalK|oubleStruckCapitalL|oubleStruckCapitalM|oubleStruckCapitalN|oubleStruckCapitalO|oubleStruckCapitalP|oubleStruckCapitalQ|oubleStruckCapitalR|oubleStruckCapitalS|oubleStruckCapitalT|oubleStruckCapitalU|oubleStruckCapitalV|oubleStruckCapitalW|oubleStruckCapitalX|oubleStruckCapitalY|oubleStruckCapitalZ|oubleStruckD|oubleStruckE|oubleStruckEight|oubleStruckF|oubleStruckFive|oubleStruckFour|oubleStruckG|oubleStruckH|oubleStruckI|oubleStruckJ|oubleStruckK|oubleStruckL|oubleStruckM|oubleStruckN|oubleStruckNine|oubleStruckO|oubleStruckOne|oubleStruckP|oubleStruckQ|oubleStruckR|oubleStruckS|oubleStruckSeven|oubleStruckSix|oubleStruckT|oubleStruckThree|oubleStruckTwo|oubleStruckU|oubleStruckV|oubleStruckW|oubleStruckX|oubleStruckY|oubleStruckZ|oubleStruckZero|oubleUpArrow|oubleUpDownArrow|oubleVerticalBar|oubledGamma|oubledPi|ownArrow|ownArrowBar|ownArrowUpArrow|ownBreve|ownExclamation|ownLeftRightVector|ownLeftTeeVector|ownLeftVector|ownLeftVectorBar|ownPointer|ownQuestion|ownRightTeeVector|ownRightVector|ownRightVectorBar|ownTee|ownTeeArrow))
+  freeLongNames_E: (?:E(?:Acute|Bar|Cup|DoubleDot|Grave|Hacek|Hat|arth|ighthNote|lement|llipsis|mptyCircle|mptyDiamond|mptyDownTriangle|mptyRectangle|mptySet|mptySmallCircle|mptySmallSquare|mptySquare|mptyUpTriangle|mptyVerySmallSquare|nterKey|ntityEnd|ntityStart|psilon|qual|qualTilde|quilibrium|quivalent|rrorIndicator|scapeKey|ta|th|uro|xists|xponentialE))
+  freeLongNames_F: (?:F(?:iLigature|illedCircle|illedDiamond|illedDownTriangle|illedLeftTriangle|illedRectangle|illedRightTriangle|illedSmallCircle|illedSmallSquare|illedSquare|illedUpTriangle|illedVerySmallSquare|inalSigma|irstPage|ivePointedStar|lLigature|lat|lorin|orAll|ormalA|ormalAlpha|ormalB|ormalBeta|ormalC|ormalCapitalA|ormalCapitalAlpha|ormalCapitalB|ormalCapitalBeta|ormalCapitalC|ormalCapitalChi|ormalCapitalD|ormalCapitalDelta|ormalCapitalDigamma|ormalCapitalE|ormalCapitalEpsilon|ormalCapitalEta|ormalCapitalF|ormalCapitalG|ormalCapitalGamma|ormalCapitalH|ormalCapitalI|ormalCapitalIota|ormalCapitalJ|ormalCapitalK|ormalCapitalKappa|ormalCapitalKoppa|ormalCapitalL|ormalCapitalLambda|ormalCapitalM|ormalCapitalMu|ormalCapitalN|ormalCapitalNu|ormalCapitalO|ormalCapitalOmega|ormalCapitalOmicron|ormalCapitalP|ormalCapitalPhi|ormalCapitalPi|ormalCapitalPsi|ormalCapitalQ|ormalCapitalR|ormalCapitalRho|ormalCapitalS|ormalCapitalSampi|ormalCapitalSigma|ormalCapitalStigma|ormalCapitalT|ormalCapitalTau|ormalCapitalTheta|ormalCapitalU|ormalCapitalUpsilon|ormalCapitalV|ormalCapitalW|ormalCapitalX|ormalCapitalXi|ormalCapitalY|ormalCapitalZ|ormalCapitalZeta|ormalChi|ormalCurlyCapitalUpsilon|ormalCurlyEpsilon|ormalCurlyKappa|ormalCurlyPhi|ormalCurlyPi|ormalCurlyRho|ormalCurlyTheta|ormalD|ormalDelta|ormalDigamma|ormalE|ormalEpsilon|ormalEta|ormalF|ormalFinalSigma|ormalG|ormalGamma|ormalH|ormalI|ormalIota|ormalJ|ormalK|ormalKappa|ormalKoppa|ormalL|ormalLambda|ormalM|ormalMu|ormalN|ormalNu|ormalO|ormalOmega|ormalOmicron|ormalP|ormalPhi|ormalPi|ormalPsi|ormalQ|ormalR|ormalRho|ormalS|ormalSampi|ormalScriptA|ormalScriptB|ormalScriptC|ormalScriptCapitalA|ormalScriptCapitalB|ormalScriptCapitalC|ormalScriptCapitalD|ormalScriptCapitalE|ormalScriptCapitalF|ormalScriptCapitalG|ormalScriptCapitalH|ormalScriptCapitalI|ormalScriptCapitalJ|ormalScriptCapitalK|ormalScriptCapitalL|ormalScriptCapitalM|ormalScriptCapitalN|ormalScriptCapitalO|ormalScriptCapitalP|ormalScriptCapitalQ|ormalScriptCapitalR|ormalScriptCapitalS|ormalScriptCapitalT|ormalScriptCapitalU|ormalScriptCapitalV|ormalScriptCapitalW|ormalScriptCapitalX|ormalScriptCapitalY|ormalScriptCapitalZ|ormalScriptD|ormalScriptE|ormalScriptF|ormalScriptG|ormalScriptH|ormalScriptI|ormalScriptJ|ormalScriptK|ormalScriptL|ormalScriptM|ormalScriptN|ormalScriptO|ormalScriptP|ormalScriptQ|ormalScriptR|ormalScriptS|ormalScriptT|ormalScriptU|ormalScriptV|ormalScriptW|ormalScriptX|ormalScriptY|ormalScriptZ|ormalSigma|ormalStigma|ormalT|ormalTau|ormalTheta|ormalU|ormalUpsilon|ormalV|ormalW|ormalX|ormalXi|ormalY|ormalZ|ormalZeta|reakedSmiley|unction))
+  freeLongNames_G: (?:G(?:amma|eminiSign|imel|othicA|othicB|othicC|othicCapitalA|othicCapitalB|othicCapitalC|othicCapitalD|othicCapitalE|othicCapitalF|othicCapitalG|othicCapitalH|othicCapitalI|othicCapitalJ|othicCapitalK|othicCapitalL|othicCapitalM|othicCapitalN|othicCapitalO|othicCapitalP|othicCapitalQ|othicCapitalR|othicCapitalS|othicCapitalT|othicCapitalU|othicCapitalV|othicCapitalW|othicCapitalX|othicCapitalY|othicCapitalZ|othicD|othicE|othicEight|othicF|othicFive|othicFour|othicG|othicH|othicI|othicJ|othicK|othicL|othicM|othicN|othicNine|othicO|othicOne|othicP|othicQ|othicR|othicS|othicSeven|othicSix|othicT|othicThree|othicTwo|othicU|othicV|othicW|othicX|othicY|othicZ|othicZero|rayCircle|raySquare|reaterEqual|reaterEqualLess|reaterFullEqual|reaterGreater|reaterLess|reaterSlantEqual|reaterTilde))
+  freeLongNames_H: (?:H(?:Bar|acek|appySmiley|eartSuit|ermitianConjugate|orizontalLine|umpDownHump|umpEqual|yphen))
+  freeLongNames_I: (?:I(?:Acute|Cup|DoubleDot|Grave|Hat|maginaryI|maginaryJ|mplicitPlus|mplies|ndentingNewLine|nfinity|ntegral|ntersection|nvisibleApplication|nvisibleComma|nvisiblePostfixScriptBase|nvisiblePrefixScriptBase|nvisibleSpace|nvisibleTimes|ota))
+  freeLongNames_J: (?:J(?:upiter))
+  freeLongNames_K: (?:K(?:appa|ernelIcon|eyBar|oppa))
+  freeLongNames_L: (?:L(?:Slash|ambda|astPage|eftAngleBracket|eftArrow|eftArrowBar|eftArrowRightArrow|eftAssociation|eftBracketingBar|eftCeiling|eftDoubleBracket|eftDoubleBracketingBar|eftDownTeeVector|eftDownVector|eftDownVectorBar|eftFloor|eftGuillemet|eftModified|eftPointer|eftRightArrow|eftRightVector|eftSkeleton|eftTee|eftTeeArrow|eftTeeVector|eftTriangle|eftTriangleBar|eftTriangleEqual|eftUpDownVector|eftUpTeeVector|eftUpVector|eftUpVectorBar|eftVector|eftVectorBar|eoSign|essEqual|essEqualGreater|essFullEqual|essGreater|essLess|essSlantEqual|essTilde|etterSpace|ibraSign|ightBulb|imit|ineSeparator|ongDash|ongEqual|ongLeftArrow|ongLeftRightArrow|ongRightArrow|owerLeftArrow|owerRightArrow))
+  freeLongNames_M: (?:M(?:ars|athematicaIcon|axLimit|easuredAngle|ediumSpace|ercury|ho|icro|inLimit|inusPlus|od1Key|od2Key|u))
+  freeLongNames_N: (?:N(?:Hacek|Tilde|and|atural|egativeMediumSpace|egativeThickSpace|egativeThinSpace|egativeVeryThinSpace|eptune|estedGreaterGreater|estedLessLess|eutralSmiley|ewLine|oBreak|onBreakingSpace|or|ot|otCongruent|otCupCap|otDoubleVerticalBar|otElement|otEqual|otEqualTilde|otExists|otGreater|otGreaterEqual|otGreaterFullEqual|otGreaterGreater|otGreaterLess|otGreaterSlantEqual|otGreaterTilde|otHumpDownHump|otHumpEqual|otLeftTriangle|otLeftTriangleBar|otLeftTriangleEqual|otLess|otLessEqual|otLessFullEqual|otLessGreater|otLessLess|otLessSlantEqual|otLessTilde|otNestedGreaterGreater|otNestedLessLess|otPrecedes|otPrecedesEqual|otPrecedesSlantEqual|otPrecedesTilde|otReverseElement|otRightTriangle|otRightTriangleBar|otRightTriangleEqual|otSquareSubset|otSquareSubsetEqual|otSquareSuperset|otSquareSupersetEqual|otSubset|otSubsetEqual|otSucceeds|otSucceedsEqual|otSucceedsSlantEqual|otSucceedsTilde|otSuperset|otSupersetEqual|otTilde|otTildeEqual|otTildeFullEqual|otTildeTilde|otVerticalBar|u|ull|umberSign))
+  freeLongNames_O: (?:O(?:Acute|DoubleAcute|DoubleDot|E|Grave|Hat|Slash|Tilde|mega|micron|penCurlyDoubleQuote|penCurlyQuote|ptionKey|r|verBrace|verBracket|verParenthesis))
+  freeLongNames_P: (?:P(?:aragraph|aragraphSeparator|artialD|ermutationProduct|erpendicular|hi|i|iecewise|iscesSign|laceholder|lusMinus|luto|recedes|recedesEqual|recedesSlantEqual|recedesTilde|rime|roduct|roportion|roportional|si))
+  freeLongNames_Q: (?:Q(?:uarterNote))
+  freeLongNames_R: (?:R(?:Hacek|awAmpersand|awAt|awBackquote|awBackslash|awColon|awComma|awDash|awDollar|awDot|awDoubleQuote|awEqual|awEscape|awExclamation|awGreater|awLeftBrace|awLeftBracket|awLeftParenthesis|awLess|awNumberSign|awPercent|awPlus|awQuestion|awQuote|awReturn|awRightBrace|awRightBracket|awRightParenthesis|awSemicolon|awSlash|awSpace|awStar|awTab|awTilde|awUnderscore|awVerticalBar|awWedge|egisteredTrademark|eturnIndicator|eturnKey|everseDoublePrime|everseElement|everseEquilibrium|eversePrime|everseUpEquilibrium|ho|ightAngle|ightAngleBracket|ightArrow|ightArrowBar|ightArrowLeftArrow|ightAssociation|ightBracketingBar|ightCeiling|ightDoubleBracket|ightDoubleBracketingBar|ightDownTeeVector|ightDownVector|ightDownVectorBar|ightFloor|ightGuillemet|ightModified|ightPointer|ightSkeleton|ightTee|ightTeeArrow|ightTeeVector|ightTriangle|ightTriangleBar|ightTriangleEqual|ightUpDownVector|ightUpTeeVector|ightUpVector|ightUpVectorBar|ightVector|ightVectorBar|oundImplies|oundSpaceIndicator|ule|uleDelayed|upee))
+  freeLongNames_S: (?:S(?:Hacek|Z|adSmiley|agittariusSign|ampi|aturn|corpioSign|criptA|criptB|criptC|criptCapitalA|criptCapitalB|criptCapitalC|criptCapitalD|criptCapitalE|criptCapitalF|criptCapitalG|criptCapitalH|criptCapitalI|criptCapitalJ|criptCapitalK|criptCapitalL|criptCapitalM|criptCapitalN|criptCapitalO|criptCapitalP|criptCapitalQ|criptCapitalR|criptCapitalS|criptCapitalT|criptCapitalU|criptCapitalV|criptCapitalW|criptCapitalX|criptCapitalY|criptCapitalZ|criptD|criptDotlessI|criptDotlessJ|criptE|criptEight|criptF|criptFive|criptFour|criptG|criptH|criptI|criptJ|criptK|criptL|criptM|criptN|criptNine|criptO|criptOne|criptP|criptQ|criptR|criptS|criptSeven|criptSix|criptT|criptThree|criptTwo|criptU|criptV|criptW|criptX|criptY|criptZ|criptZero|ection|electionPlaceholder|hah|harp|hiftKey|hortDownArrow|hortLeftArrow|hortRightArrow|hortUpArrow|igma|ixPointedStar|keletonIndicator|mallCircle|paceIndicator|paceKey|padeSuit|panFromAbove|panFromBoth|panFromLeft|phericalAngle|qrt|quare|quareIntersection|quareSubset|quareSubsetEqual|quareSuperset|quareSupersetEqual|quareUnion|tar|terling|tigma|ubset|ubsetEqual|ucceeds|ucceedsEqual|ucceedsSlantEqual|ucceedsTilde|uchThat|um|uperset|upersetEqual|ystemEnterKey|ystemsModelDelay))
+  freeLongNames_T: (?:T(?:Hacek|abKey|au|aurusSign|ensorProduct|ensorWedge|herefore|heta|hickSpace|hinSpace|horn|ilde|ildeEqual|ildeFullEqual|ildeTilde|imes|rademark|ranspose|ripleDot|woWayRule))
+  freeLongNames_U: (?:U(?:Acute|DoubleAcute|DoubleDot|Grave|Hat|Ring|nderBrace|nderBracket|nderParenthesis|ndirectedEdge|nion|nionPlus|pArrow|pArrowBar|pArrowDownArrow|pDownArrow|pEquilibrium|pPointer|pTee|pTeeArrow|pperLeftArrow|pperRightArrow|psilon|ranus))
+  freeLongNames_V: (?:V(?:ectorGreater|ectorGreaterEqual|ectorLess|ectorLessEqual|ee|enus|erticalBar|erticalEllipsis|erticalLine|erticalSeparator|erticalTilde|eryThinSpace|irgoSign))
+  freeLongNames_W: (?:W(?:arningSign|atchIcon|edge|eierstrassP|hiteBishop|hiteKing|hiteKnight|hitePawn|hiteQueen|hiteRook|olf|olframLanguageLogo|olframLanguageLogoCircle))
+  freeLongNames_X: (?:X(?:i|nor|or))
+  freeLongNames_Y: (?:Y(?:Acute|DoubleDot|en))
+  freeLongNames_Z: (?:Z(?:Hacek|eta))
+
+  undocumentedLongNames_A: (?:A(?:kuz|ndy))
+  undocumentedLongNames_C: (?:C(?:ontinuedFractionK|url))
+  undocumentedLongNames_D: (?:D(?:ivergence|ivisionSlash))
+  undocumentedLongNames_E: (?:E(?:xpectationE))
+  undocumentedLongNames_F: (?:F(?:reeformPrompt))
+  undocumentedLongNames_G: (?:G(?:radient))
+  undocumentedLongNames_L: (?:L(?:aplacian))
+  undocumentedLongNames_M: (?:M(?:inus|oon))
+  undocumentedLongNames_N: (?:N(?:umberComma))
+  undocumentedLongNames_P: (?:P(?:ageBreakAbove|ageBreakBelow|robabilityPr))
+  undocumentedLongNames_S: (?:S(?:pooky|tepperDown|tepperLeft|tepperRight|tepperUp|un))
+  undocumentedLongNames_U: (?:U(?:nknownGlyph))
+  undocumentedLongNames_V: (?:V(?:illa))
+  undocumentedLongNames_W: (?:W(?:olframAlphaPrompt))
+
+  unsupportedLongNames_C: (?:C(?:OMPATIBILITYKanjiSpace|OMPATIBILITYNoBreak))
+  unsupportedLongNames_I: (?:I(?:nlinePart))
+
+  punctuationChar: (?:!|&|'|\*|\+|,|-|\.|/|:|;|<|=|>|\?|@|\\|\^|\||~)
+  binary: (?:(?:0|1)+(?:\.(?!\.)(?:0|1)*)?+|\.(?!\.)(?:0|1)+)
+  octal: (?:(?:0|1|2|3|4|5|6|7)+(?:\.(?!\.)(?:0|1|2|3|4|5|6|7)*)?+|\.(?!\.)(?:0|1|2|3|4|5|6|7)+)
+  decimal: (?:\d+(?:\.(?!\.)\d*)?+|\.(?!\.)\d+)
+  hexadecimal: (?:\h+(?:\.(?!\.)\h*)?+|\.(?!\.)\h+)
+  precision: (?:`(?:(?:-|\+)?+(?:\d+(?:\.(?!\.)\d*)?+|\.(?!\.)\d+))?+)
+  accuracy: (?:``(?:(?:-|\+)?+(?:\d+(?:\.(?!\.)\d*)?+|\.(?!\.)\d+)))
+  exponent: (?:\*\^(?:-|\+)?+\d+)
