@@ -11,6 +11,7 @@ SystemExports[
     MapLeaves, ApplyLastAxis, MapLastAxis, MapAxis, MapAxisP, ScanAxisP, ApplyAxis,
     MapSeq,
     VectorReplace,
+    UniqueValue, UniqueValueBy,
     MapValues
 ];
 
@@ -20,6 +21,19 @@ PackageExports[
   "Operator",
     SeqLens, RevLens, IfLens, FlipLens, AxisLens
 ];
+
+(*************************************************************************************************)
+
+DeclareHoldRest[UniqueValue, UniqueValueBy];
+DeclareHoldFirst[iUniqueValue];
+
+UniqueValue[list_, else_:None]        := iUniqueValue[else, list];
+UniqueValueBy[list_, fn_, else_:None] := iUniqueValue[else, fn /@ list];
+
+iUniqueValue[else_, {}]        := else;
+iUniqueValue[else_, {elem_}]   := elem;
+iUniqueValue[else_, expr_]     := iUniqueValue[else, Args @ expr];
+iUniqueValue[else_, list_List] := Replace[Union @ list, {{u_} :> u, _ :> else}];
 
 (*************************************************************************************************)
 

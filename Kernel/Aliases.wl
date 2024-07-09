@@ -10,7 +10,7 @@ PackageExports[
   "ScopingFunction",
     InheritedBlock,
   "SpecialFunction",
-    ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved,
+    ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved, HoldC,
   "MutatingFunction",
     StuffBag, HoldSetNoEntryExpr, HoldSetValidExpr, SetD,
   "TypeHead",
@@ -18,7 +18,7 @@ PackageExports[
   "DataHead",
     Bag, Dict, Assoc, UDict, UAssoc, UAssociation, UnorderedAssociation, RuleD, InternalData,
   "ControlFlowFunction",
-    Seq, Then, Eval, NoEval, TryEval, FailEval, HoldC, FastQuietCheck,
+    Seq, Then, Eval, NoEval, TryEval, FailEval, FastQuietCheck,
   "PatternHead",
     HoldP, Regex, Alt,
     VPattern, VCondition, VPatternTest, VBlank, VBlankSeq, VBlankNullSeq, VAlt, VRepeated, VExcept, VVerbatim, VHoldP,
@@ -83,7 +83,7 @@ PackageExports[
     DictOfQ, ListDictOfQ,
     NonEmptyDictOfQ, NonEmptyListDictOfQ,
     ContainsDictQ,
-    SameLenQ,
+    SameLenQ, AllSameLenQ,
   "PredicateOperator",
     DictOf, ListDictOf,
     NonEmptyDictOf, NonEmptyListDictOf
@@ -221,7 +221,8 @@ DefineAliasRules[
   NonEmptyDictOfQ               -> NonEmptyAssociationOfQ,
   NonEmptyListDictOfQ           -> NonEmptyListAssociationOfQ,
   ContainsDictQ                 -> ContainsAssociationQ,
-  SameLenQ                      -> SameLengthQ
+  SameLenQ                      -> SameLengthQ,
+  AllSameLenQ                   -> AllSameLengthQ
 ];
 
 DefineAliasRules[

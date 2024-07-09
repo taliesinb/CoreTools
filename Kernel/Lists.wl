@@ -63,12 +63,16 @@ Multiply[e_] := Apply[Times, e];
 
 (*************************************************************************************************)
 
-Args[_[a___]] := List[a];
-Args[_]       := $Failed;
+Args[dict_Dict ? HoldAtomQ] := Values @ dict;
+Args[list_List]             := list;
+Args[_[args___]]            := List[args];
+Args[_]                     := $Failed;
 
 DeclareHoldAllComplete[HoldArgs];
-HoldArgs[_[a___]] := HoldComplete @ a;
-HoldArgs[_]       := $Failed;
+
+HoldArgs[dict_Dict ? HoldAtomQ] := Level[dict, 1, HoldComplete];
+HoldArgs[_[args___]]            := HoldComplete[args];
+HoldArgs[_]                     := $Failed;
 
 (*************************************************************************************************)
 

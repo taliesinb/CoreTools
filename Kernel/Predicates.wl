@@ -24,7 +24,7 @@ SystemExports[
     AllSameQ,        NonEmptyAllSameQ,
     AllSameByQ,      NonEmptyAllSameByQ,
 
-    AllSameLengthsQ, NonEmptyAllSameLengthsQ,
+    AllSameLengthQ, NonEmptyAllSameLengthQ,
     AllSameHeadsQ,   NonEmptyAllSameHeadsQ,
     AllSamePartsQ,   NonEmptyAllSamePartsQ,
     AllSameSetsQ,    NonEmptyAllSameSetsQ,
@@ -369,7 +369,7 @@ AllSameByQ = CaseOf[
   $[SingleP, _]     := True;
   $[{a_, b_}, f_]   := f[a] === f[b];
   $[list_List, f_]  := AllTrue[Rest @ list, f /* SameAs[f @ First @ list]];
-  $[expr_, f_]      := NotZeroLenQ[expr] @ AllTrue[Rest @ Level[expr, 1], f /* SameAs[f @ First @ expr]];
+  $[expr_, f_]      := NotZeroLenQ[expr] && AllTrue[Rest @ Level[expr, 1], f /* SameAs[f @ First @ expr]];
 ];
 
 NonEmptyAllSameByQ[e_ ? EmptyQ, _] := False;
@@ -397,7 +397,7 @@ rectQ[expr_] := Length[Dimensions[expr, 2, AllowedHeads -> All]] == 2;
 cheapAllSameQ[fn_, expr_] := Apply[SameQ, MapValues[fn, expr]];
 
 (* does not allow them to all have length 0 *)
-iAllSameLengthsQ = CaseOf[
+iAllSameLengthQ = CaseOf[
   list_List ? PackedQ := ArrayDepth[list] > 1;
   expr_ ? SingleQ     := NonEmptyQ @ First @ expr;
   expr_               := rectQ[expr] || (Depth[expr] > 2 && cheapAllSameQ[Length, expr]);
@@ -441,13 +441,13 @@ sameKeysAssocVectorQ[assocs_] := And[
 
 (*************************************************************************************************)
 
-AllSameLengthsQ[_ ? EmptyQ] := True;
+AllSameLengthQ[_ ? EmptyQ] := True;
 AllSameHeadsQ[_ ? EmptyQ]  := True;
 AllSamePartsQ[_ ? EmptyQ]  := True;
 AllSameSetsQ[_ ? EmptyQ]   := True;
 AllSameKeysQ[_ ? EmptyQ]   := True;
 
-AllSameLengthsQ[expr_]      := iAllSameLengthsQ @ expr;
+AllSameLengthQ[expr_]      := iAllSameLengthQ @ expr;
 AllSameHeadsQ[expr_]       := iAllSameHeadsQ @ expr;
 AllSamePartsQ[expr_]       := iAllSamePartsQ @ expr;
 AllSameSetsQ[expr_]        := iAllSameSetsQ @ expr;
@@ -455,13 +455,13 @@ AllSameKeysQ[expr_]        := iAllSameKeysQ @ expr;
 
 (*************************************************************************************************)
 
-NonEmptyAllSameLengthsQ[_ ? EmptyQ] := False;
+NonEmptyAllSameLengthQ[_ ? EmptyQ] := False;
 NonEmptyAllSameHeadsQ[_ ? EmptyQ]  := False;
 NonEmptyAllSamePartsQ[_ ? EmptyQ]  := False;
 NonEmptyAllSameSetsQ[_ ? EmptyQ]   := False;
 NonEmptyAllSameKeysQ[_ ? EmptyQ]   := False;
 
-NonEmptyAllSameLengthsQ[expr_]      := iAllSameLengthsQ @ expr;
+NonEmptyAllSameLengthQ[expr_]      := iAllSameLengthQ @ expr;
 NonEmptyAllSameHeadsQ[expr_]       := iAllSameHeadsQ @ expr;
 NonEmptyAllSamePartsQ[expr_]       := iAllSamePartsQ @ expr;
 NonEmptyAllSameSetsQ[expr_]        := iAllSameSetsQ @ expr;
