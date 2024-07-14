@@ -50,7 +50,7 @@
         "stringDelim" : "hsla(114, 31%, 68%, 0.5)",
         "unrecognizedBg": "hsl(210, 15%, 33%)",
         "function": "hsl(200, 55%, 66%)",
-        "usersymbol": "color(var(plain) blend(hsl(200, 36%, 54%) 50%))",
+        "usersymbol": "color(var(plain) blend(var(plainDim) 30%))",
         "variable": "hsl(210, 40%, 69%)",
         "mutating": "color(var(plain) blend(var(red) 50%))",
 

@@ -1,7 +1,7 @@
 Scratch/
 .DS_Store
 *.sublime-workspace
-LinkWolframLanguage.sublime-syntax
+SoftLinks
 Data/SublimeSyntax/StaticFiles/WolframLanguage.sublime-completions
 Data/SublimeSyntax/StaticFiles/WolframLanguage.sublime-syntax
 Data/SublimeSyntax/UserSymbols

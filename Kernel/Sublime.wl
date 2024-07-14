@@ -108,7 +108,7 @@ savePreludeExports[kind_String, Longest[syms___Symbol], rest___] := (
 
 cachePackageSymbolKinds["CoreTools`"] := Null;
 cachePackageSymbolKinds[context_] := Locals[
-  filename = StringDelete[context, "`"] <> ".txt";
+  filename = StringDelete[context, "`"] <> ".wl.txt";
   symbolKinds = Prelude`Packages`PackageSymbolKinds[context];
   ExportStringTable[userSymbolFile[filename], symbolKinds]
 ];
@@ -130,8 +130,8 @@ SublimeUpdateSyntax[] := Locals[
   Map[cachePackageSymbolKinds, Prelude`Packages`LoadedPackages[]];
 
   (* load syntax groups from syntax files, and list of internal context -> symbols *)
-  builtinKinds = ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.txt";
-  librarySymbolFiles = userSymbolFile @ FileList["*.txt"];
+  builtinKinds = ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wl.txt";
+  librarySymbolFiles = userSymbolFile @ FileList["*.wl.txt"];
   libraryKinds = Merge[ImportStringTable /@ librarySymbolFiles, Catenate];
 
   coreToolsSymbolsKinds = CoreToolsSymbolKinds[];
@@ -141,7 +141,7 @@ SublimeUpdateSyntax[] := Locals[
 
   (* generate strings *)
   res = Check[
-    internalSymbols = ImportStringTable @ systemSymbolFile["InternalSymbols.txt"];
+    internalSymbols = ImportStringTable @ systemSymbolFile["InternalSymbols.wl.txt"];
     preludeSymbols = GroupPairs[SymbolNameMostLast /@ Select[Names["Prelude`*`*"], StringFreeQ["`Private"]]];
     JoinTo[internalSymbols, preludeSymbols];
     {builtinRegexs, builtinDefs, builtinContext} = makeGroupsRegexpsDefs[builtinKinds, "Builtin"];
