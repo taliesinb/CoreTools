@@ -1,7 +1,7 @@
 SystemExports[
   "Function",
     NullifyFunction, PostComposeFunction, ConstructHoldComplete,
-    ConstFn, NullFn, Const,
+    ConstFn, NullFn, ConstTrue, ConstFalse, Const,
     Supply1, Supply2, Supply3,
     Applied
 ];
@@ -36,6 +36,8 @@ ConstructHoldComplete[fn_, args___] :=
 ConstFn[k_] := Function[{}, k];
 
 NullFn = Function[Null];
+ConstTrue[___] := True;
+ConstFalse[___] := False;
 
 (**************************************************************************************************)
 

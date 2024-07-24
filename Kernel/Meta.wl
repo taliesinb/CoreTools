@@ -1,17 +1,27 @@
 SystemExports[
   "Function",
     HoldSymbolName, MapHold, Ensure,
+  "MutatingFunction",
+    BlockSet, BlockAssociate, BlockJoin, BlockAppend,
+    BlockIncrement, BlockDecrement,
+    BlockTrue, BlockFalse,
+    BlockContext
+];
+
+PackageExports[
   "MetaFunction",
     DeclareDeclare,
     DeclareCurry1, DeclareCurry2, DeclareCurry12, DeclareCurry23,
     DeclarePredicate1, DeclarePredicate2, DeclarePredicate3,
+    DeclareNotPredicate1, DeclareNotPredicate2, DeclareNotPredicate3,
     DeclareListableOperator, DeclareListable1,
+    DefineOperator1Rules, DefineOperator2Rules,
+    StringListableFunctionDefs,
     DeclareHoldFirst, DeclareHoldRest, DeclareHoldAll, DeclareHoldAllComplete, DeclareSequenceHold, DeclareListable,
     DeclareStrict, DeclareSeqScan, DeclareThenScan,
-    DefineOperator1Rules, DefineOperator2Rules,
     DeclarationFunctionDefinitions,
-  "ScopingFunction",
-    BlockIncrement, BlockDecrement, BlockAppendTo, BlockTrue, BlockFalse, BlockContext,
+  "IOFunction",
+    ToImplementationSymbol,
   "Head",
     SymbolList
 ];
@@ -19,6 +29,11 @@ SystemExports[
 (*************************************************************************************************)
 
 SetAttributes[SymbolList, {HoldAll, Flat}]
+
+(*************************************************************************************************)
+
+ToImplementationSymbol[sym_] := ToImplementationSymbol[sym] =
+  Symbol @ StrJoin[$Context, "i", SymbolName @ sym];
 
 (*************************************************************************************************)
 
@@ -35,11 +50,19 @@ DeclareDeclare[head_Symbol] := (
 
 (*************************************************************************************************)
 
-SetAttributes[{DeclarationFunctionDefinitions, declareFnScan}, HoldAllComplete];
+General::declarationExpectedSetDelayed = "Expected SetDelayed instead of ``.";
 
-DeclarationFunctionDefinitions::expectedSetDelayed = "Expected SetDelayed instead of ``.";
-DeclarationFunctionDefinitions[defs__] := Scan[DeclarationFunctionDefinitions, Hold[defs]];
-DeclarationFunctionDefinitions[expr_] := (Message[DeclarationFunctionDefinitions::expectedSetDelayed, HoldForm @ expr]; $Failed)
+declareDeclarationDefinitions[sym_] := (
+  SetAttributes[sym, HoldAllComplete];
+  sym[defs:BlankSeq2] := Scan[sym, Hold[defs]];
+  sym[expr_]          := (Message[sym::declarationExpectedSetDelayed, HoldForm @ expr]; $Failed)
+);
+
+(*************************************************************************************************)
+
+SetAttributes[declareFnScan, HoldAllComplete];
+
+declareDeclarationDefinitions[DeclarationFunctionDefinitions];
 
 DeclarationFunctionDefinitions[HoldP[SetDelayed][(fn_Symbol)[VPattern[var_Symbol, VBlank[Symbol]]], rhs_]] := With[
   {lhs = Make[Pattern, var, Blank @ Symbol]},
@@ -83,9 +106,12 @@ DeclarationFunctionDefinitions[
 (*************************************************************************************************)
 
 DeclarationFunctionDefinitions[
-  DeclarePredicate1[sym_Sym] := Set[sym[_],       False],
-  DeclarePredicate2[sym_Sym] := Set[sym[_, _],    False],
-  DeclarePredicate3[sym_Sym] := Set[sym[_, _, _], False]
+  DeclarePredicate1[sym_Sym]    := Set[sym[_],       False],
+  DeclarePredicate2[sym_Sym]    := Set[sym[_, _],    False],
+  DeclarePredicate3[sym_Sym]    := Set[sym[_, _, _], False],
+  DeclareNotPredicate1[sym_Sym] := Set[sym[_],       True],
+  DeclareNotPredicate2[sym_Sym] := Set[sym[_, _],    True],
+  DeclareNotPredicate3[sym_Sym] := Set[sym[_, _, _], True]
 ];
 
 (*************************************************************************************************)
@@ -102,14 +128,27 @@ DeclarationFunctionDefinitions[
 
 (*************************************************************************************************)
 
-DeclareStrict[BlockIncrement, BlockDecrement, BlockAppendTo, BlockTrue, BlockFalse, BlockContext]
-DeclareHoldAll[BlockIncrement, BlockDecrement, BlockAppendTo, BlockTrue, BlockFalse, BlockContext]
+DeclareStrict[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext];
+DeclareHoldAll[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext]
+
+BlockSet[var_Sym, val_, body_]         := Block[{var = val}, body];
+BlockSet[{v1_, v2_}, val_, body_]      := Block[{v1 = val, v2 = val}, body];
+BlockSet[{v1_, v2_, v3_}, val_, body_] := Block[{v1 = val, v2 = val, v3 = val}, body];
+
+BlockAssociate[var_, rules_, body_] := InheritedBlock[{var}, AssociateTo[var, rules]; body];
+BlockJoin[var_, item_, body_]       := Block[{var = Join[var, item]}, body];
+BlockAppend[var_, item_, body_]     := Block[{var = Append[var, item]}, body];
 
 BlockIncrement[var_, body_]       := Block[{var = var + 1}, body];
 BlockDecrement[var_, body_]       := Block[{var = var - 1}, body];
-BlockAppendTo[var_, item_, body_] := Block[{var = Append[var, item]}, body];
-BlockTrue[var_, body_]            := Block[{var = True}, body];
-BlockFalse[var_, body_]           := Block[{var = False}, body];
+
+BlockTrue[var_, body_]             := Block[{var = True}, body];
+BlockTrue[{v1_, v2_}, body_]       := Block[{v1 = True, v2 = True}, body];
+BlockTrue[{v1_, v2_, v3_}, body_]  := Block[{v1 = True, v2 = True, v3 = True}, body];
+
+BlockFalse[var_, body_]            := Block[{var = False}, body];
+BlockFalse[{v1_, v2_}, body_]      := Block[{v1 = False, v2 = False}, body];
+BlockFalse[{v1_, v2_, v3_}, body_] := Block[{v1 = False, v2 = False, v3 = False}, body];
 
 BlockContext[context_, body_]               := Block[{$Context = context, $ContextPath = {"System`"}}, body];
 BlockContext[context_, contextPath_, body_] := Block[{$Context = context, $ContextPath = contextPath}, body];
@@ -132,14 +171,14 @@ DeclarationFunctionDefinitions[
   DeclareSeqScan[head_Sym] := (
     DeclareStrict[head];
     SetDelayed[e_head, Message[General::badSeqScanArg, head, HoldForm @ e]; $Failed];
-    SetDelayed[head[seq__], Scan[head, Hold[seq]]];
+    SetDelayed[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
   ),
 
   DeclareThenScan[head_Sym] := (
     DeclareHoldAllComplete[head];
     SetDelayed[head[$LHS_], Message[MessageName[head, "badArguments"], HoldForm @ $LHS]; $Failed];
     SetDelayed[head[Null], Null];
-    SetDelayed[head[seq__], Scan[head, Hold[seq]]];
+    SetDelayed[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
     SetDelayed[head[Then[args___]], head[args]];
   )
 ];
@@ -162,6 +201,31 @@ DeclareHoldAllComplete[MapHold]
 MapHold[f_, args_]                     := Map[f, Unevaluated[args]];
 MapHold[Function[body_], args_]        := Map[Function[Null, body, HoldAllComplete], Unevaluated[args]];
 MapHold[Function[args_, body_], args_] := Map[Function[args, body, HoldAllComplete], Unevaluated[args]];
+
+(*************************************************************************************************)
+
+General::notStringOrStrings = "First argument `` should be a string, or nested container of such.";
+
+strImplNeedsSetupQ[_] := True;
+
+declareDeclarationDefinitions[StringListableFunctionDefs];
+
+(* TODO: use this technique more widely *)
+StringListableFunctionDefs[sd:SetD[$LHS_, $RHS_]] := With[
+  {head = First @ PatternHeadSymbol @ $LHS},
+  {impl = ToImplementationSymbol @ head},
+  ReleaseHold @ ReplaceAll[Hold[sd] /. {mn_MessageName :> mn, head -> impl}];
+  If[strImplNeedsSetupQ[head],
+    strImplNeedsSetupQ[head] = False;
+    head[expr_ ? StringOrStringVectorQ, args___] := impl[expr, args];
+    head[expr:ListDictP, args___]                := Map[elem |-> head[elem, args], expr];
+    head[expr_, ___]                             := ErrorMsg[head::notStringOrStrings, expr];
+    expr_impl                                    := badImplArgs[head, expr];
+  ];
+];
+
+DeclareHoldRest[badImplArgs];
+badImplArgs[sym_, _[args___]] := ErrorMsg[sym::badArguments, HoldForm[sym[args]]];
 
 (*************************************************************************************************)
 

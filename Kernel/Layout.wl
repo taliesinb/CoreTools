@@ -221,7 +221,7 @@ Options[NiceGrid] = {
   "Splits"            -> Automatic,
   ItemSize            -> {UpTo @ 300, UpTo @ 150},
   ItemFunction        -> None,
-  ItemDisplayFunction -> CodePane
+  ItemDisplayFunction -> Id
 };
 
 MakeBoxes[NiceGrid[data_, opts___Rule], StandardForm] := niceGridBoxes[data, opts];

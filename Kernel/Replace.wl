@@ -42,10 +42,10 @@ LevelPositions[expr_, level_]    := Position[expr, _, level, Heads -> False];
 
 DeclareCurry2[OccurenceAssociation, ArgumentAssociation]
 
-    LevelAssociation[expr_, level_:All, fn_:Id]        := partAssoc[expr, Position[expr,    _, level, Heads -> False]];
-OccurenceAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Position[expr, patt, level, Heads -> True]];
- ArgumentAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Position[expr, patt, level, Heads -> False]];
-     LeafAssociation[expr_, fn_:Id]                    := partAssoc[expr, Position[expr,    _, {-1},  Heads -> False]];
+    LevelAssociation[expr_, level_:All, fn_:Id]        := partAssoc[expr, Position[expr,    _, level, Heads -> False], fn];
+OccurenceAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Position[expr, patt, level, Heads -> True], fn];
+ ArgumentAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Position[expr, patt, level, Heads -> False], fn];
+     LeafAssociation[expr_, fn_:Id]                    := partAssoc[expr, Position[expr,    _, {-1},  Heads -> False], fn];
 
 PartAssociation[expr_, parts_ ? ListVectorQ, fn_:Id] := partAssoc[expr, parts, fn];
 partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[expr, parts]];
@@ -68,7 +68,7 @@ OccurencesWithin[expr_, patt_, up_Int] := Locals[
 
 (**************************************************************************************************)
 
-DeclareCurry1[FullReplaceAll, FullReplaceRepeated]
+DeclareCurry2[FullReplaceAll, FullReplaceRepeated]
 
 FullReplaceAll[expr_, rules_]      :=      First[ReplaceAll[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];
 FullReplaceRepeated[expr_, rules_] := First[ReplaceRepeated[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];

@@ -203,7 +203,7 @@ tangentAlongSegment[{a_, b_}, d_] := Locals[
 ];
 
 tangentAlongLine[coords_, d_] := Locals[
-  prev = F @ coords; total = 0;
+  prev = First @ coords; total = 0;
   n = LengthWhile[coords, curr |-> (
     total += PointDist[curr, prev];
     prev = curr; total < d

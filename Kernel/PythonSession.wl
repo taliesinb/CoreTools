@@ -1,91 +1,178 @@
 SystemExports[
-  "Variable",
-    $PythonSession, $PythonSessionParameters,
   "Head",
     PythonVariable,
   "IOFunction",
-    PythonRestart, PythonRun, PythonScriptRun, PythonScriptRunDynamic, PythonRestart, PrintPythonFile,
+    PythonEvaluators,
+    PythonRestart,
+    PythonRun,
+    PythonScriptRun,
+    PythonScriptRunDynamic,
+    PrintPythonFile,
+    PythonReload,
   "Head",
-    TorchTensor, NamedTuple, PythonScriptResult, PythonResult,
+    TorchTensor, NamedTuple, PythonScriptResult, PythonResult, PyObject, PyObjectRef, PyFunction,
   "IOFunction",
     SetupTorchSerialization, PythonSessionPrint, PythonSessionError,
   "Function",
-    SplitOnAxis
+    SplitOnAxis,
+  "Variable",
+    $PythonSession,
+    $PythonPath
+];
+
+PackageExports[
+  "IOFunction",
+    DefaultPythonSession,
+    InitializeTorch,
+  "Function",
+    PyObjectGraph,
+  "Variable",
+    $PythonPrintCallback,
+    $PythonErrorCallback,
+    $PythonResultPostProcessor,
+    $PythonSessionParameters
 ];
 
 PrivateExports[
+  "IOFunction",
+    PythonPrint,
+    PythonRawPrint,
+    PythonErrorPrint,
+    PythonSessionInfo,
+  "SpecialFunction",
+    CustomExternalEvaluateCatch,
+    ExternalEvaluatePostProcessor,
   "SpecialVariable",
+    $PythonSessionName,
     $TorchInitialized,
-    $PythonPrintCallback,
-    $PythonErrorCallback,
+    $WolframClientPath,
     $PathToNotebookCache
 ];
 
 (*************************************************************************************************)
 
-RegisterPackagePatchFunctions["ExternalEvaluate`",
-"OverrideDefaultExternalSession" -> Function[
-  ExternalEvaluate`GetDefaultExternalSession["Python"] := $PythonSession;
-]];
+PyObjectGraph[expr_] := Locals[
+  assoc = OccurenceAssociation[expr, PyObject[_, _] | PyObjectRef[_, _]];
+  KeyMapValueMap[toPathExpr, ReplaceAll[PyObjectRef -> PyObject], assoc]
+];
 
-RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
+toPathExpr[{pos___, 0}] := ExprPath[pos];
+toPathExpr[path_List] := ExprPath @@ path;
 
 (*************************************************************************************************)
+
+PythonSessionInfo[args___] :=
+  ExternalEvaluate`Private`getSessionOpts[First @ $PythonSession, args];
+
+(* "StartupCommand" -> {"/opt/homebrew/bin/python3.12", "-u",
+  "/Applications/Mathematica.app/Contents/SystemFiles/Components/\
+ExternalEvaluate_Python/Resources/cli.py", "start_externalevaluate",
+  "--path",
+  "/Applications/Mathematica.app/Contents/SystemFiles/Components/\
+WolframClientForPython", "--installpath",
+  "/Applications/Mathematica.app/Contents"}
+ *)
+(*************************************************************************************************)
+
+SetInitial[$PythonPath, None];
+SetInitial[$PythonSessionName, "Python"];
+SetInitial[$PythonSessionParameters, Dict[
+  "Name"                   :> $PythonSessionName,
+  "System"                 -> "Python",
+  "StandardOutputFunction" -> PythonSessionPrint,
+  "StandardErrorFunction"  -> PythonSessionError,
+  "SessionProlog"          -> File @ DataPath["Python", "ct_prelude.py"],
+  "ID"                     :> $PythonSessionName
+]];
+SetInitial[$PythonPrintCallback, PythonRawPrint];
+SetInitial[$PythonErrorCallback, PythonErrorPrint];
+SetInitial[$PythonResultPostProcessor, Id];
+
+SetDelayedInitial[$PythonSession, DefaultPythonSession[]];
+SetDelayedInitial[$WolframClientPath, $WolframClientPath = First[PacletFind["WolframClientForPython"]]["Location"]];
+
+(*************************************************************************************************)
+
+$pythonPrintOpts = {
+  CellLabel -> "Python", CellLabelStyle -> $DarkGreen
+};
+
+PythonRawPrint[]        := CustomizedPrint[$pythonPrintOpts];
+PythonRawPrint[arg_]    := CustomizedPrint[$pythonPrintOpts, arg];
+PythonRawPrint[args___] := CustomizedPrint[$pythonPrintOpts, Row[{args}, " "]];
+
+$pythonErrorPrintOpts = {
+  CellStyle -> "Message",
+  CellLabel -> "Python", CellLabelStyle -> $DarkGreen,
+  FontSize -> 13, FontColor -> $DarkOrange
+};
+
+PythonErrorPrint[args___] := CustomizedPrint[$pythonErrorPrintOpts, args];
+
+(*************************************************************************************************)
+
+PythonEvaluators[query___] := Select[
+  Normal @ FindExternalEvaluators["Python"],
+  dictMatchQ[Dict[query]]
+];
+
+dictMatchQ[query_][dict_] := AllAreTrueQ @ Merge[{query, dict}, valMatchQ];
+valMatchQ[{_}] := True;
+valMatchQ[{q_Str, v_}] := StringContainsQ[v, q];
+valMatchQ[{a_, b_}] := a === b;
+
+(*************************************************************************************************)
+
+DefaultPythonSession[] := SelectFirst[
+  ExternalSessions[],
+  SameQ[#["ID"], $PythonSessionName]&, PythonRestart[]
+];
 
 PythonSessionPrint[e___] := $PythonPrintCallback[e];
-PythonSessionError[e____] := $PythonErrorCallback[e];
+PythonSessionError[e___] := $PythonErrorCallback[e];
 
-SetInitial[$PythonPrintCallback, LogPrint];
-SetInitial[$PythonErrorCallback, ErrorPrint[#1]&];
+PythonReload[] := PythonRun["reload_prelude()"];
 
-$prolog =
-"from wolframclient.language import wl
-from wolframclient.language.side_effects import wl_side_effect
-def wlPrint(*args):
-  wl_side_effect(wl.PythonSessionPrint(*args))
-print = wlPrint
-
-def is_namedtuple(obj):
-  return isinstance(obj, tuple) and hasattr(obj, '_fields')
-
-from wolframclient.serializers import wolfram_encoder
-from wolframclient.language import wl
-from wolframclient.serializers import export
-
-from collections import namedtuple, OrderedDict
-def wlnamedtuple(name, *args):
-  x = namedtuple(name, *args)
-  @wolfram_encoder.dispatch(x)
-  def named_tuple_encoder(serializer, t):
-    return serializer.encode(wl.NamedTuple(name)(t._asdict()))
-  return x
-
-import runpy
-"
-
-SetInitial[$PythonSessionParameters, Assoc[
-  "Name"->"DefaultPythonSession", "System" -> "Python",
-  "StandardOutputFunction" -> PythonSessionPrint,
-  "StandardErrorFunction" -> PythonSessionError,
-  "SessionProlog" -> $prolog
-]];
-
-SetDelayedInitial[$PythonSession, PythonRestart[]];
-
-PythonRestart[] := (
-  LogPrint["Initializing $PythonSession."];
+PythonRestart[] := Module[{path},
+  path = If[StrQ @ $PythonPath, $PythonPath <> ":" <> DataPath["Python"]];
+  DebugPrint["Initializing $PythonSession with ", path];
+  SetEnvironment["PYTHONPATH" -> path];
   If[SymbolImmediateValueQ[$PythonSession], Quiet @ DeleteObject[$PythonSession]];
   $TorchInitialized = False;
-  $PythonSession = StartExternalSession[$PythonSessionParameters]
-);
+  $PythonSession = StartExternalSession[
+    addBestEval @ $PythonSessionParameters
+  ]
+];
+
+addBestEval[params_] :=
+  Join[params, KeyDrop["Registered"] @ First[PythonEvaluators["Registered" -> True], Assoc[]]];
 
 (*************************************************************************************************)
+
+DeclareHoldFirst[CustomExternalEvaluateCatch];
+
+CustomExternalEvaluateCatch[expr_] := Catch[ExternalEvaluatePostProcessor @ expr, "__externalevaluate__"];
+
+ExternalEvaluatePostProcessor[f_Failure] := $PythonErrorCallback @ f;
+ExternalEvaluatePostProcessor[e_]        := $PythonResultPostProcessor @ e;
+
+RegisterPackagePatchFunctions["ExternalEvaluate`",
+"OverrideDefaultExternalSession" -> Function[
+  ExternalEvaluateCommon`ExternalEvaluateCatch[expr_] := CustomExternalEvaluateCatch[expr];
+  ExternalEvaluate`Private`$SessionNormalizationRules //= ReplaceAll[$sessionNormUpdate];
+  ExternalEvaluate`GetDefaultExternalSession["Python"] := DefaultPythonSession[]
+]];
+
+$sessionNormUpdate = HoldP[s:Switch[#Name, ___]] :> If[StringQ[#Name] && StringQ[#Evaluator], {#Name, #Evaluator}, s];
+
+(*************************************************************************************************)
+
+RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
 
 PythonVariable[name_String] := Block[{$NewSymbol, res},
   res = ExternalEvaluate[$PythonSession, name];
   If[FailureQ[res], None, res]
 ];
-
 
 (*************************************************************************************************)
 
@@ -130,7 +217,9 @@ saveCurrentCell[cell_CellObject, path_String] := Locals[
 
 (*************************************************************************************************)
 
-PythonRun[cmd_String] := PythonResult[ExternalEvaluate[$PythonSession, cmd]];
+(*f`ExternalEvaluate`Private`$LanguageInformations["Python"]//Keys*)
+
+PythonRun[cmd_String] := ExternalEvaluate[$PythonSession, cmd];
 
 (*************************************************************************************************)
 
@@ -324,8 +413,6 @@ realign[e_] := If[FreeQ[e, GraphicsBox], e, ItemBox[e, Alignment -> Top]];
 
 $spanAbove = "\[SpanFromAbove]";
 
-fieldBox[f_, opts___Rule] := StyleBox[f, FontColor -> GrayLevel[.5], FontFamily -> "Source Code Sans", opts];
-
 (*************************************************************************************************)
 
 SetInitial[$TorchInitialized, False];
@@ -338,11 +425,64 @@ InitializeTorch[] := If[!$TorchInitialized,
 
 (*************************************************************************************************)
 
-MakeBoxes[NamedTuple[name_String][assoc_Assoc], StandardForm] := namedTupleBoxes[name, assoc];
+pyStyleBox[None][s_] := StyleBox[ToBoxes @ s, FontColor -> $DarkGreen];
+pyStyleBox[hash_][s_] := StyleBox[ToBoxes @ s, FontColor -> HashToColor[Hash @ hash]];
+
+(* CoreBoxes[PyFunction[name_String, args_List]] :=
+  NiceObjectBoxes[
+    pyStyleBox @ "PyFunction",
+    {ItalicBox @ BraceRowBox[ToBoxes /@ args], SkeletonBox @ pyStyleBox @ name},
+    .2
+  ];
+ *)
+CoreBoxes[PyFunction[name_String, args_List]] :=
+  NiceObjectBoxes[
+    pyStyleBox[None] @ "PyFunction",
+    {FnParenRowBox[ToBoxes @ name, ItalicBox /@ ToBoxes /@ args]},
+    .2
+  ];
+
+PyFunction[name_String, _][in___] :=
+  ExternalFunction[Assoc["System" -> "Python", "Session" -> $PythonSession, "Command" -> name]][in];
+
+(*************************************************************************************************)
+
+DeclareCoreSubBoxes[PyObject]
+
+MakeCoreBoxes[PyObject[name_String, hash_Integer][assoc_Association]] := pyObjectBoxes[name, hash, assoc];
+MakeCoreBoxes[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Assoc[]];
+
+CoreBoxes[PyObjectRef[name_String, hash_Integer]]  := RBox[SemiBoldBox @ pyStyleBox[hash] @ name, "[", "\[Ellipsis]", "]"];
+
+pyObjectBoxes[name_, hash_, assoc_] := NiceObjectBoxes[pyStyleBox[hash] @ name, objectEntryBoxes @ assoc, .3];
+
+fieldBox[f_, opts___Rule] := StyleBox[
+  RBox[ToBoxes @ f, ":"], FontColor -> GrayLevel[.5], FontFamily -> "Source Code Sans", opts
+];
+
+objectEntryBoxes[<||>] := "";
+objectEntryBoxes[assoc_Association] := Locals[
+  grid = KeyValueMap[{fieldBox @ #1, ToBoxes[#2]}&, assoc];
+  GridBox[
+    grid,
+    GridBoxDividers -> {"Rows" -> {False, {True}, False}},
+    FrameStyle -> GrayLevel[0.8],
+    RowMinHeight -> 1.2,
+    BaseStyle -> {FontFamily -> "Source Code Pro"},
+    GridBoxAlignment -> {"Rows" -> {{Baseline}}, "Columns" -> {{Right, Left}}},
+    GridBoxSpacings -> {"Rows" -> {1, {.5, .5}}, "Columns" -> {0, {.5}}},
+    BaselinePosition -> {{1, 2}, Baseline}
+  ]
+];
+
+PyObject[name_String, _][assoc_Association][key_] := assoc[key];
+
+(*************************************************************************************************)
 
 namedTupleBoxes[name_, assoc_] := NiceObjectBoxes[name, assocBoxes @ assoc];
 
-assocBoxes[assoc_Association, maxLen_:2] := Locals[
+assocBoxes[<||>] := {};
+assocBoxes[assoc_Association] := Locals[
   entryLists = Partition[Normal @ assoc, UpTo @ maxLen];
   If[Len[assoc] > maxLen,
     entryLists //= Map[PadRight[#, maxLen, "" -> ""]&];
@@ -356,7 +496,7 @@ assocBoxes[assoc_Association, maxLen_:2] := Locals[
     GridBoxDividers -> {"Columns" -> {False, {True}, False}},
     FrameStyle -> GrayLevel[0.8],
     RowMinHeight -> 1,
-    GridBoxAlignment -> {"Rows" -> {{Top}}, "Columns" -> {{Left}}},
+    GridBoxAlignment -> {"Rows" -> {{Baseline}}, "Columns" -> {{Right, Left}}},
     GridBoxSpacings -> {"Rows" -> {1, {.25, .5}}, "Columns" -> {1, {1.5}}}
   ]
 ];

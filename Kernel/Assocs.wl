@@ -9,11 +9,13 @@ SystemExports[
     AssociationMapThread, AssociationMapApply,
     PairsToAssociation, AssociationToPairs,
     RulesToAssociation, AssociationToRules,
-    GroupPairs, MergeAssocations
+    GroupPairs, GroupAgainst, CombineBy, CombineAgainst, MergeAssocations,
+    LevelIndex, PadAssociation
 ];
 
 PackageExports[
   "MutatingFunction",
+    CachedTo,
     KeyApplyTo, KeyIncrement, KeyDecrement,
     KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy,
     KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyAssociateTo,
@@ -32,7 +34,16 @@ ListAssociationParts[list_List] := RangeLen @ list;
 
 (**************************************************************************************************)
 
+PadAssociation[assoc_, keys_, val_] := Join[
+  assoc,
+  ConstAssoc[Complement[keys, Keys @ assoc], val]
+];
+
+(**************************************************************************************************)
+
 DeclareStrict[ReverseRules, InvertAssociation, PartIndex];
+
+ReverseRules[dict_Dict]                := Map[Reverse, dict];
 ReverseRules[rules_ ? RuleLikeVectorQ] := Map[Reverse, rules];
 
 InvertAssociation::notUnique = "Cannot uniquely invert association ``.";
@@ -139,18 +150,37 @@ AssociationMapThread[fn_, assoc_Association] := With[
 DeclareStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation]
 
 AssociationToRules[assoc_Assoc] := Normal @ assoc;
-AssociationToPairs[assoc_Assoc] := Transpose[{Keys @ assoc, Values @ assoc}];
+AssociationToPairs[assoc_Assoc] := Transpose @ {Keys @ assoc, Values @ assoc};
 
-PairsToAssociation[list_List] := AssociationThread @@ Transpose[list];
-RulesToAssociation[list_List] := Ensure[AssociationQ, ErrorMsg[RulesToAssociation::notRules]] @ Association[list];
+PairsToAssociation[list_ ? PairVectorQ] := AssociationThread @@ Transpose @ list;
+RulesToAssociation[list_ ? RuleVectorQ] := Ensure[AssociationQ, ErrorMsg[RulesToAssociation::notRules]] @ Association[list];
 RulesToAssociation::notRules = "Argument was not a list of rules.";
 
-(**************************************************************************************************
-`GroupPairs[{{key$i, val$i}}_i]` yields `<|key_i -> {val_{i1}, val_{i2}, ..}|>_i` where the val_{ij} are grouped by matching `key_i`.
-`GroupPairs[{expr_1, expr_2, $$}]` effectively gives `GroupBy[expr, First -> Last]`.
-?*)
+(**************************************************************************************************)
 
-GroupPairs[list_] := GroupBy[list, First -> Last];
+DeclareStrict[GroupPairs]
+
+GroupPairs::usage = "
+GroupPairs[{{key$i, val$i}}_i]` yields `<|key_i -> {val_{i1}, val_{i2}, ..}|>_i` where the val_{ij} are grouped by matching `key_i`.
+GroupPairs[pairs$, f$] aggregates the resulting lists of values using f$.
+GroupPairs[pairs$]` effectively gives `GroupBy[expr$, First -> Last]`.
+The transposed version of this is GroupAgainst."
+
+GroupPairs[list_ ? PairVectorQ]     := GroupBy[list, First -> Last];
+GroupPairs[list_ ? PairVectorQ, f_] := GroupBy[list, First -> Last, f];
+
+(**************************************************************************************************)
+
+DeclareStrict[GroupAgainst]
+
+GroupAgainst::usage = "
+GroupAgainst[expr$, against$] returns an association whose keys are unique values of against$, and \
+whose values are the corresponding lists of parts of expr$.
+GroupAgainst[expr$, against$, f$] aggregates the resulting lists of values using f$.
+"
+
+GroupAgainst[expr_, against_, fn_:Id] /; SameLenQ[expr, against] :=
+  Map[indices |-> fn[Part[expr, indices]], PositionIndex @ against];
 
 (**************************************************************************************************
 `MergeAssocations[XXX]` yields `XXX`.
@@ -171,6 +201,14 @@ LevelIndex[expr_, level:PosIntP] := Module[
     expr
   ];
   Merge[BagPart[index, All], Id]
+];
+
+(**************************************************************************************************)
+
+DeclareHoldAll[CachedTo]
+
+CachedTo[sym_, key2_, value_, test_:NotFailureQ] := Module[{key = key2, res},
+  Lookup[sym, Key @ key, If[test[res = value], sym[key] = res, $Failed, $Failed]]
 ];
 
 (**************************************************************************************************)

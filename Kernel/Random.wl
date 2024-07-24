@@ -1,6 +1,7 @@
 SystemExports[
   "Function",
     RandomSymbol,
+    RandomInt,
     RandomLetter, RandomLowercaseString, RandomBase36String,
     RandomBit, RandomBoolean, RandomUnitInteger, RandomUnitReal,
     RandomUnitVectorND, RandomBallVectorND,
@@ -92,10 +93,11 @@ declareSpecRandFn[head_] := (
   head[spec_, dims___Integer] := head[spec, {dims}];
 );
 
-Scan[declareSpecRandFn, {RandomLowercaseString, RandomUnitVectorND, RandomBallVectorND, RandomUnitNormalND}];
+Scan[declareSpecRandFn, {RandomInt, RandomLowercaseString, RandomUnitVectorND, RandomBallVectorND, RandomUnitNormalND}];
 
 (**************************************************************************************************)
 
+RandomInt[n_Int, shape_ ? PositiveIntegerVectorQ] := RandomInteger[n, shape];
 RandomLowercaseString[n_Int, shape_ ? PositiveIntegerVectorQ] := Map[FromCharacterCode, RandomInteger[{97, 122}, Append[shape, n]], {-2}];
 RandomBase36String[n_Integer] := Base36String[RandomInteger[36^n - 1], n];
 

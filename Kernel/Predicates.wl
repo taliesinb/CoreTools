@@ -1,5 +1,7 @@
 SystemExports[
   "Predicate",
+    EmptyQ, AtomicQ, NonAtomicQ,
+
     SingleQ, DatumQ,
     HeadedQ, VectorHeadedQ, AssociationHeadedQ,
     HasKeysQ, HasLengthQ, HasDimensionsQ,
@@ -18,13 +20,14 @@ SystemExports[
     BooleanArrayQ,  IntegerArrayQ,  NaturalArrayQ,  PositiveIntegerArrayQ,  SymbolArrayQ,  RealArrayQ,  NumberArrayQ,  ListArrayQ,  ColorArrayQ,  ExtendedNumberArrayQ
 
     NoneQ, AutomaticQ, InfinityQ,
+    NotNoneQ, NotAutomaticQ, NotInfinityQ,
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
 
     AllSameQ,        NonEmptyAllSameQ,
     AllSameByQ,      NonEmptyAllSameByQ,
 
-    AllSameLengthQ, NonEmptyAllSameLengthQ,
+    AllSameLengthQ,  NonEmptyAllSameLengthQ,
     AllSameHeadsQ,   NonEmptyAllSameHeadsQ,
     AllSamePartsQ,   NonEmptyAllSamePartsQ,
     AllSameSetsQ,    NonEmptyAllSameSetsQ,
@@ -37,7 +40,7 @@ SystemExports[
     KeysTrue, ValuesTrue, KeysValuesTrue, RuleKeysTrue, RuleValuesTrue, RulesTrue,
     IntegerKeysQ, StringKeysQ, ListKeysQ, AssociationKeysQ, SymbolKeysQ,
     IntegerValuesQ, StringValuesQ, ListValuesQ, AssociationValuesQ, BooleanValuesQ, SymbolValuesQ,
-    AnyMissingQ, NoneMissingQ, AnyFailedQ, NoneFailedQ,
+    AnyMissingQ, NoneMissingQ, AnyFailedQ, NoneFailedQ, NotFailureQ,
     HoldAssociationQ, HoldPackedArrayQ,
 
     ListOfQ,                 AssociationOfQ,         ListAssociationOfQ,
@@ -58,6 +61,20 @@ PackageExports[
 
 (*************************************************************************************************)
 
+EmptyQ[_ ? UnsafeEmptyQ]  = True;
+EmptyQ[_ ? NonEmptyQ]     = False;
+EmptyQ[_]                 = True;
+
+AtomicQ[_Assoc]           = False;
+AtomicQ[_ ? HoldAtomQ]    = True;
+AtomicQ[_]                = False;
+
+NonAtomicQ[_Assoc]        = True;
+NonAtomicQ[_ ? HoldAtomQ] = False;
+NonAtomicQ[_]             = True;
+
+(*************************************************************************************************)
+
 DeclarePredicate2[ListOfQ, AssociationOfQ, ListAssociationOfQ];
 DeclarePredicate1[NonEmptyListQ, NonEmptyAssociationQ, NonEmptyListAssociationQ];
 DeclarePredicate2[NonEmptyListOfQ, NonEmptyAssociationOfQ, NonEmptyListAssociationOfQ];
@@ -67,15 +84,15 @@ DeclarePredicate2[NonEmptyListOfQ, NonEmptyAssociationOfQ, NonEmptyListAssociati
 ListAssociationOfQ[data_List,              pred_] := VectorQ[data, pred];
 ListAssociationOfQ[data_Assoc ? HoldAtomQ, pred_] := VectorQ[Values @ data, pred];
 
-           NonEmptyListQ[list_List ? NotZeroLenQ]                 := True;
-    NonEmptyAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NotZeroLenQ] := True;
-NonEmptyListAssociationQ[list_List ? NotZeroLenQ]                 := True;
-NonEmptyListAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NotZeroLenQ] := True;
+           NonEmptyListQ[list_List ? NonEmptyQ]                 := True;
+    NonEmptyAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ] := True;
+NonEmptyListAssociationQ[list_List ? NonEmptyQ]                 := True;
+NonEmptyListAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ] := True;
 
-           NonEmptyListOfQ[list_List ? NotZeroLenQ,                 pred_] := VectorQ[list, pred];
-    NonEmptyAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NotZeroLenQ, pred_] := VectorQ[Values @ assoc, pred];
-NonEmptyListAssociationOfQ[list_List ? NotZeroLenQ,                 pred_] := VectorQ[list, pred];
-NonEmptyListAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NotZeroLenQ, pred_] := VectorQ[Values @ assoc, pred];
+           NonEmptyListOfQ[list_List ? NonEmptyQ,                 pred_] := VectorQ[list, pred];
+    NonEmptyAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ, pred_] := VectorQ[Values @ assoc, pred];
+NonEmptyListAssociationOfQ[list_List ? NonEmptyQ,                 pred_] := VectorQ[list, pred];
+NonEmptyListAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ, pred_] := VectorQ[Values @ assoc, pred];
 
 (*************************************************************************************************)
 
@@ -242,7 +259,7 @@ SamePartsQ[a_Dict, b_Dict] := Len[a] === Len[b] && Keys[a] === Keys[b];
 
 DeclareCurry1[SameHeadQ, SameLengthQ]
 
-SameHeadQ[a_, b_] := H[a] === H[b];
+SameHeadQ[a_, b_] := Head[a] === Head[b];
 SameLengthQ[a_, b_] := Length[a] === Length[b];
 
 (*************************************************************************************************)
@@ -273,8 +290,6 @@ DeclarePredicate1[RuleVectorQ, RuleDelayedVectorQ]
 
 RuleVectorQ[{___Rule}] := True;
 RuleDelayedVectorQ[{___RuleDelayed}] := True;
-RuleLikeVectorQ[e_] := VectorQ[e, RuleLikeQ];
-
 RuleLikeVectorQ[e_] := VectorQ[e, RuleLikeQ];
 
 (*************************************************************************************************)
@@ -333,10 +348,15 @@ PackedArrayDepthAtLeastQ[arr_, n_]   := PackedArrayQ[arr] && Depth[arr] > n;
 (*************************************************************************************************)
 
 DeclarePredicate1[NoneQ, AutomaticQ, InfinityQ]
+DeclareNotPredicate1[NotNoneQ, NotAutomaticQ, NotInfinityQ]
 
-NoneQ[None] := True;
-AutomaticQ[Auto] := True;
-InfinityQ[Infinity] := True;
+NoneQ[None]            = True;
+AutomaticQ[Auto]       = True;
+InfinityQ[Infinity]    = True;
+
+NotNoneQ[None]         = False;
+NotAutomaticQ[Auto]    = False;
+NotInfinityQ[Infinity] = False;
 
 (*************************************************************************************************)
 
@@ -357,7 +377,7 @@ AnySameQ = CaseOf[
   EmptyP   := False;
   SingleP  := False;
   {a_, b_} := f[a] === f[b];
-  list_    := NotZeroLenQ[list] && !Apply[UnsameQ, list];
+  list_    := NonEmptyQ[list] && !Apply[UnsameQ, list];
 ];
 
 NoneSameQ[list_] := Apply[UnsameQ, list];
@@ -369,7 +389,7 @@ AllSameByQ = CaseOf[
   $[SingleP, _]     := True;
   $[{a_, b_}, f_]   := f[a] === f[b];
   $[list_List, f_]  := AllTrue[Rest @ list, f /* SameAs[f @ First @ list]];
-  $[expr_, f_]      := NotZeroLenQ[expr] && AllTrue[Rest @ Level[expr, 1], f /* SameAs[f @ First @ expr]];
+  $[expr_, f_]      := NonEmptyQ[expr] && AllTrue[Rest @ Level[expr, 1], f /* SameAs[f @ First @ expr]];
 ];
 
 NonEmptyAllSameByQ[e_ ? EmptyQ, _] := False;
@@ -380,7 +400,7 @@ AnySameByQ = CaseOf[
   $[EmptyP, _]    := False;
   $[SingleP, _]   := False;
   $[{a_, b_}, f_] := f[a] === f[b];
-  $[expr_, f_]    := NotZeroLenQ[expr] && !DuplicateFreeQ[f /@ expr];
+  $[expr_, f_]    := NonEmptyQ[expr] && !DuplicateFreeQ[f /@ expr];
 ];
 
 NoneSameByQ = CaseOf[
@@ -399,7 +419,7 @@ cheapAllSameQ[fn_, expr_] := Apply[SameQ, MapValues[fn, expr]];
 (* does not allow them to all have length 0 *)
 iAllSameLengthQ = CaseOf[
   list_List ? PackedQ := ArrayDepth[list] > 1;
-  expr_ ? SingleQ     := NonEmptyQ @ First @ expr;
+  expr_ ? SingleQ     := NonAtomicQ @ First @ expr;
   expr_               := rectQ[expr] || (Depth[expr] > 2 && cheapAllSameQ[Length, expr]);
 ];
 
@@ -411,7 +431,7 @@ iAllSameHeadsQ = CaseOf[
 
 iAllSamePartsQ = CaseOf[
   list_List ? PackedQ := ArrayDepth[list] > 1;
-  expr_ ? SingleQ     := NonEmptyQ @ First @ expr;
+  expr_ ? SingleQ     := NonAtomicQ @ First @ expr;
   expr_               := rectQ @ expr;
 ];
 
@@ -510,6 +530,9 @@ AnyFailedQ[e:ListDictP]  := AnyTrue[e, FailureQ];
 
 NoneMissingQ[e:ListDictP] := !MemberQ[e, _Missing];
 NoneFailedQ[e:ListDictP]  := NoneTrue[e, FailureQ];
+
+NotFailureQ[_ ? FailureQ] := False;
+NotFailureQ[_] := True;
 
 (**************************************************************************************************)
 

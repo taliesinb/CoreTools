@@ -11,6 +11,7 @@ PackageExports[
     RegisterPackagePatchFunctions, GetPackageSymbol, HiddenLoadPackage, ApplyPackagePatches,
 
   "SpecialVariable",
+    $PackageNeedsPatchesQ,
     $PackageLoadedCache, $PackagePatchFunctions, $PackageAppliedPatches,
     $IsPacletManagerHooked, $PacletManagerHook, $PatchDebugging,
     $CurrentDefinitionNotebooks
@@ -60,11 +61,13 @@ SystemPackageLoadedQ[context_] := $PackageLoadedCache[package] = Or[
 
 SetInitial[$PackagePatchFunctions, Assoc[]];
 SetInitial[$PackageAppliedPatches, Assoc[]];
+SetInitial[$PackageNeedsPatchesQ, UAssoc[]];
 
 DeclareStrict[RegisterPackagePatchFunctions];
 
 RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
   If[$CurrentlyTracingAutoloads, Return[]];
+  $PackageNeedsPatchesQ[context] := True;
   KeyAssociateTo[$PackagePatchFunctions, context, {rules}];
   PatchPrint["Registered new patch functions for ", context, ": ", Keys @ {rules}];
   If[SystemPackageLoadedQ[context],
@@ -75,16 +78,19 @@ RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
 
 (*************************************************************************************************)
 
+$alOuter = True;
 If[!TrueQ[$IsPacletManagerHooked] && !TrueQ[$CurrentlyTracingAutoloads],
   PatchPrint["Installing PacletManager and Autoload hook."];
   With[{lwlc := PacletManager`Package`loadWolframLanguageCode,
       context = PacletManager`Manager`Private`pacletContext,
       autoload := System`Dump`AutoLoad,
       context2 = System`Dump`file},
-    Unprotect[autoload];
+    Unprotect[autoload, Package`ActivateLoad];
     DownValues[lwlc]     = Insert[DownValues[lwlc],     Unevaluated[$PacletManagerHook[context1]], {1,-1,-1,-2}];
     DownValues[autoload] = Insert[DownValues[autoload], Unevaluated[$PacletManagerHook[context2]], {-1,2,1,2,-2}];
-    Protect[autoload];
+    loader:Package`ActivateLoad[_, _, context_String ? $PackageNeedsPatchesQ, _] /; TrueQ[$alOuter] :=
+      Block[{$alOuter}, Then1[loader, $PacletManagerHook[context]]];
+    Protect[autoload, Package`ActivateLoad];
   ];
   $IsPacletManagerHooked = True
 ];
@@ -96,6 +102,7 @@ $PacletManagerHook = ApplyPackagePatches;
 ApplyPackagePatches[context_String] := Module[{patches},
   $PackageLoadedCache[context] = True;
   ApplyPackagePatches[context] = Null;
+  $PackageNeedsPatchesQ[context] = False;
   patches = Lookup[$PackagePatchFunctions, context, {}];
   If[patches =!= {},
     patches = KeyDrop[patches, Lookup[$PackageAppliedPatches, context, {}]];

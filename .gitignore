@@ -1,7 +1,10 @@
 Scratch/
 .DS_Store
 *.sublime-workspace
-SoftLinks
+*.slink.*
+__pycache__
+StyleSheets/SystemSheets
+StyleSheets/UserSheets
 Data/Sublime/StaticFiles/WolframLanguage.sublime-completions
 Data/Sublime/StaticFiles/WolframLanguage.sublime-syntax
 Data/Sublime/UserSymbols

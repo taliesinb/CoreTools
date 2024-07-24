@@ -1,4 +1,6 @@
 SystemExports[
+  "Function",
+    P1, P2, P3, P4, P5, PN, P11, P1N, PNN, PN1, Col1, Col2, Col12, Col21, Col3, Col4, ColN,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor,
     SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
@@ -20,6 +22,27 @@ PackageExports[
   "PatternSymbol",
     StrMatchP, StrStartsP, StrContainsP, DeepStrContainsP
 ];
+
+(**************************************************************************************************)
+
+DefineSimpleMacro[P1,   P1[e_] :> Part[e, 1]];
+DefineSimpleMacro[P2,   P2[e_] :> Part[e, 2]];
+DefineSimpleMacro[P3,   P3[e_] :> Part[e, 3]];
+DefineSimpleMacro[P4,   P4[e_] :> Part[e, 4]];
+DefineSimpleMacro[P5,   P4[e_] :> Part[e, 5]];
+DefineSimpleMacro[PN,   PN[e_] :> Part[e, -1]];
+DefineSimpleMacro[P11,  P11[e_] :> Part[e, 1, 1]];
+DefineSimpleMacro[P1N,  P1N[e_] :> Part[e, 1, -1]];
+DefineSimpleMacro[PNN,  PNN[e_] :> Part[e, -1, -1]];
+DefineSimpleMacro[PN1,  PN1[e_] :> Part[e, -1, 1]];
+DefineSimpleMacro[Col1, Col1[e_] :> Part[e, All, 1]];
+DefineSimpleMacro[Col2, Col2[e_] :> Part[e, All, 2]];
+DefineSimpleMacro[Col3, Col3[e_] :> Part[e, All, 3]];
+DefineSimpleMacro[Col4, Col4[e_] :> Part[e, All, 4]];
+DefineSimpleMacro[ColN, ColN[e_] :> Part[e, All, -1]];
+
+Col12[e_] := {Col1 @ e, Col2 @ e};
+Col21[e_] := {Col1 @ e, Col2 @ e};
 
 (**************************************************************************************************)
 
@@ -71,7 +94,7 @@ DefineSimpleMacro[SetAuto,                 SetAuto[lhs_, rhs_] :> If[lhs === Aut
 DefineSimpleMacro[SetFailed,             SetFailed[lhs_, rhs_] :> If[FailureQ[lhs],     lhs = rhs, lhs]];
 DefineSimpleMacro[SetMissing,           SetMissing[lhs_, rhs_] :> If[MissingQ[lhs],     lhs = rhs, lhs]];
 DefineSimpleMacro[SetInherited,       SetInherited[lhs_, rhs_] :> If[lhs === Inherited, lhs = rhs, lhs]];
-DefineSimpleMacro[SetScaledFactor, SetScaledFactor[lhs_, rhs_] :> If[MatchQ[lhs, Scaled[_ ? NumericQ]], lhs //= F /* N; lhs *= rhs]];
+DefineSimpleMacro[SetScaledFactor, SetScaledFactor[lhs_, rhs_] :> If[MatchQ[lhs, Scaled[_ ? NumericQ]], lhs //= First /* N; lhs *= rhs]];
 
 (*************************************************************************************************)
 
@@ -348,6 +371,10 @@ mUnpackOptions[syms_] :=
 
 (**************************************************************************************************)
 
+UnpackOptionsAs::usage =
+"UnpackOptionsAs[head$, options$, sym$1, sym$2, $$] unpacks option from options$ with matching names to sym$i, \
+using head$ for default value."
+
 DefineComplexMacro[UnpackOptionsAs, UnpackOptionsAs[head_Symbol, opts_, syms__Symbol] :> mUnpackOptions[head, opts, {syms}]]
 
 DeclareHoldAllComplete[mUnpackOptionsAs]
@@ -416,11 +443,14 @@ mUnpackTuple[val_, s1_Symbol, s2_Symbol, s3_Symbol, s4_Symbol, s5_Symbol] :=
 DeclareHoldAllComplete[symsToCapStrings]
 
 symsToCapStrings[syms_] := Map[
-  Function[sym, capitalizeFirstLetter @ HoldSymbolName @ sym, HoldAllComplete],
+  Function[sym, toOptionNameStr @ HoldSymbolName @ sym, HoldAllComplete],
   Unevaluated @ syms
 ];
 
-capitalizeFirstLetter[str_String] := capitalizeFirstLetter[str] =
-  If[StringStartsQ[str, "$"], capitalizeFirstLetter @ StringDrop[str, 1],
-    ToUpperCase[StringTake[str, 1]] <> StringDrop[str, 1]];
+toOptionNameStr[str_String] := toOptionNameStr[str] =
+  makeOptionNameStr @ StrTrimL[str, "$"];
 
+makeOptionNameStr[str_] := Which[
+  StrStartsQ[str, "json"], "JSON" <> StringDrop[str, 4],
+  True,                    ToUpperCase1 @ str
+];

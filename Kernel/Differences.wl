@@ -162,7 +162,7 @@ _holdKeys := BadArguments[];
 
 (**************************************************************************************************)
 
-SetHoldRest[withCrumb, withPos, withPosCrumb, withSubCrumb];
+DeclareHoldRest[withCrumb, withPos, withPosCrumb, withSubCrumb];
 
 withCrumb[c_, body_] := Block[{$crumbs = Append[$crumbs, c]}, body];
 withPos[p_, body_] := Block[{$pos = Append[$pos, p]}, body];
@@ -203,7 +203,7 @@ _diffExpr := BadArguments[];
 
 (**************************************************************************************************)
 
-SetHoldFirst[setLikeListQ]
+DeclareHoldFirst[setLikeListQ]
 
 setLikeListQ[{}] := False;
 setLikeListQ[e_List] := VecQ[NoEval @ e, HoldAtomQ] && OrderedQ[NoEval @ e];

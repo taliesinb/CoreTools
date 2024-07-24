@@ -23,7 +23,7 @@ PackageExports[
   "SpecialVariable",
     $CurrentTreeDepth, $MaxTreeDepth,
   "OptionSymbol",
-    GraphScale, NodePattern
+    GraphScale, NodePattern, NodeColorRules
 ];
 
 (*************************************************************************************************)
@@ -109,7 +109,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     PrependTo[layerDepths, 0];
     If[$maxD >= numDepths,
       depthDelta = Subtract @@ Part[layerDepths, {-1, -2}];
-      newDepths = L[layerDepths, 1] + Range[$maxD - numDepths] * depthDelta;
+      newDepths = Last[layerDepths, 1] + Range[$maxD - numDepths] * depthDelta;
       JoinTo[layerDepths, newDepths]
     ];
     $ys = N @ Part[layerDepths, $ys + 1];
@@ -157,12 +157,12 @@ VertexEdgeIndexGraph[g_] := IndexEdgeTaggedGraph @ IndexGraph @ g;
 
 constructEdgePaths[edgePaths_, bendRadius_, fanoutStyle_] := Locals[
   $r = bendRadius;
-  SetAuto[$r, 0.333 * MinimumDistance @ Join[Col1 @ edgePaths, ColL @ edgePaths]];
+  SetAuto[$r, 0.333 * MinimumDistance @ Join[Col1 @ edgePaths, ColN @ edgePaths]];
   Switch[fanoutStyle,
     "Top" | Top,       Map[bendTop, edgePaths],
     "Circuit",         Map[bendCenter, edgePaths],
     "Center" | Center, Map[bendCenterFraction[#, 0.5]&, edgePaths],
-    Center -> _,       Map[bendCenterFraction[#, L @ fanoutStyle]&, edgePaths],
+    Center -> _,       Map[bendCenterFraction[#, Last @ fanoutStyle]&, edgePaths],
     "Bottom" | Bottom, Map[bendBottom, edgePaths],
     Auto | None,       edgePaths,
     _,
@@ -274,6 +274,7 @@ Options[ExprTreePlot] = Options[ExprTreePlotBoxes] = {
   VertexSize  -> 4,
   NodePattern -> Auto,
   EdgeColor   -> Auto,
+  NodeColorRules -> None,
   EdgeThickness -> 1
 };
 
@@ -293,7 +294,7 @@ toColor = CaseOf[
 ];
 
 ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
-  UnpackOptions[graphScale, vertexSize, nodePattern, edgeColor, edgeThickness];
+  UnpackOptions[graphScale, vertexSize, nodePattern, edgeColor, edgeThickness, nodeColorRules];
   leafVertexSize = vertexSize;
   nodeVertexSize = vertexSize - 0.5;
   SetAuto[nodePattern, _];
@@ -303,7 +304,10 @@ ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
   plotBounds = CoordinateBounds[vertCoords, {.5, .5}];
   plotSize = Dist @@@ plotBounds;
   imageSize = plotSize * graphScale;
-  nodeColors = Map[toColor, Extract[expr, List @@@ paths]];
+  nodes = Extract[expr, List @@@ paths];
+  If[nodeColorRules =!= None,
+    nodes = VectorReplace[nodes, ToList[nodeColorRules, _ -> Black]]];
+  nodeColors = Map[toColor, nodes];
   useColors = If[AllSameQ[nodeColors] && First[nodeColors] === Black, False, True];
   If[useColors,
     vertexSize += 1;
@@ -418,5 +422,4 @@ iTreeMapThread[list_List] := Which[
   MemberQ[list, _TreeNode], iTreeMapThread /@ FastQuietCheck[Thread[list, TreeNode], TreeLeaf],
   True,                     $threadFn @@ list
 ];
-
 

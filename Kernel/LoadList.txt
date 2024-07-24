@@ -24,6 +24,7 @@ Layout.wl
 Sublime.wl
 Packages.wl
 FrontEnd.wl
+Stylesheets.wl
 Code.wl
 Patches.wl
 Random.wl
@@ -35,5 +36,10 @@ Geometry.wl
 Trees.wl
 Data.wl
 Generators.wl
-Graph.wl
+GraphPlotting.wl
+GraphUtils.wl
 Discrete.wl
+Specs.wl
+ToStr.wl
+Refs.wl
+Views.wl

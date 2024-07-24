@@ -1,7 +1,15 @@
 PackageExports[
+  "Function",
+    OptionKeys, OptionKeyQ,
+
   "MessageFunction",
-    TopLevelEvaluationFunction, ThrowErrorMessage, ThrowError, CatchError, TryCatchError, CatchErrorAsFailure,
-    MsgPrePrint, MsgHold, ThrowOptionError, OptionError, ErrorMessage
+    TopLevelEvaluationFunction, ThrowErrorMessage,
+    ThrowError, CatchError, TryCatchError, CatchErrorAsFailure,
+    MsgPrePrint, MsgHold,
+    CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError,
+    ThrowOptionError,
+    SameQOrThrow, SameLenQOrThrow, LookupOrThrow, LookupListOrThrow,
+    OptionError, ErrorMessage
 ];
 
 PrivateExports[
@@ -117,6 +125,49 @@ ThrowErrorMessage["quiet", ___] :=
 
 (**************************************************************************************************)
 
+DeclareStrict[SameQOrThrow, SameLenQOrThrow, LookupOrThrow, LookupListOrThrow];
+
+SameQOrThrow[a_, b_, msg_Str, args___] :=
+  If[a === b, True, ThrowMsg[msg, a, b, args]];
+
+SameLenQOrThrow[a_, b_, msg_Str, args___] :=
+  If[Len[a] === Len[b], ThrowMsg[msg, Len[a], Len[b], args], True];
+
+LookupOrThrow[dict_, key_, msg_Str, args___] :=
+  Lookup[dict, Key @ key, ThrowMsg[msg, key, args]];
+
+LookupListOrThrow[dict_, keys_List, msg_Str, args___] :=
+  Lookup[dict, keys, ThrowMsg[msg, Compl[keys, Keys @ dict], args]];
+
+(**************************************************************************************************)
+
+DeclareStrict[OptionKeys, OptionKeyQ]
+
+OptionKeys[sym_Sym] := Keys @ Options @ sym;
+OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
+
+(**************************************************************************************************)
+
+DeclareStrict[CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError];
+
+CheckForUnknownOptions[head_Symbol] := Null;
+
+CheckForUnknownOptions[head_Symbol, key_ -> _] :=
+  If[!OptionKeyQ[head, key], ThrowUnknownOptionError[head, key]];
+
+CheckForUnknownOptions[head_Symbol, opts___] := Locals[
+  validKeys = OptionKeys @ head;
+  actualKeys = Keys @ FlatList @ opts;
+  badKeys = Compl[actualKeys, validKeys];
+  If[NonEmptyQ[badKeys], ThrowUnknownOptionError[head, First @ badKeys]];
+];
+
+General::unknownOption = "`` is not a known option to ``. Available options are ``.";
+UnknownOptionError[head_, key_] := ErrorMessage["unknownOption", key, head, OptionKeys @ head];
+ThrowUnknownOptionError[head_, key_] := ThrowErrorMessage["unknownOption", key, head, OptionKeys @ head];
+
+(**************************************************************************************************)
+
 DeclareStrict[OptionError, ThrowOptionError]
 
 OptionError[opt_, val_] := ErrorMessage["invalidOption", opt, val];
@@ -130,7 +181,7 @@ ThrowError[] returns a $Failed from the containing CatchError.
 ThrowError[expr$] returns $expr from the containing CatchError.
 "
 
-General::uncaughtMessage = "The message \"``\" was thrown but not caught. Aborting.";
+General::uncaughtMessage = "The message name \"``\" was thrown but not caught. Aborting.";
 
 ThrowError[] := ThrowError @ $Failed;
 
@@ -180,6 +231,8 @@ General::uncaughtErrorMessage = "ThrowErrorMessage occurred without a surroundin
 
 declareHAC[MsgPrePrint, msgBoxes];
 
+MsgPrePrint[$PrintLiteral[s_Str]] := s;
+MsgPrePrint[f_Failure]      := FailureString @ f;
 MsgPrePrint[b_RawBoxes]     := b;
 MsgPrePrint[HoldForm[e_]]   := MsgPrePrint @ e;
 MsgPrePrint[HoldForm[e___]] := MsgPrePrint @ CoreToolsSequence @ e;

@@ -272,13 +272,13 @@
             "font_style": "glow stippled_underline"
         },
         {
-            "name": "Object",
+            "name": "Object Head",
             "scope": "support.function.object.wolfram",
             "foreground": "var(plain)",
             "font_style": "bold"
         },
         {
-            "name": "Object",
+            "name": "Object Head",
             "scope": "meta.highlight_def support.function.object.wolfram",
             "foreground": "var(plain)",
             "font_style": "bold stippled_underline"

@@ -148,7 +148,7 @@ blocksToJupyter = CaseOf[
 
   ImageBlock[path_Str] := Locals[
     img = Import @ path;
-    width = IntStr @ Round[F[ImageDimensions @ img] * 1/2];
+    width = IntStr @ Round[First[ImageDimensions @ img] * 1/2];
     encoded = encodeImageToBase64 @ img;
     jupyterTemplate["image.json", "#width" -> width, "#encoded" -> encoded]
   ];

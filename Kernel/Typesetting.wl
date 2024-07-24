@@ -423,7 +423,7 @@ With[{haq = Developer`HoldAtomQ, recurse1 = $boxRecurse1P, typeset = $boxTypeset
 cmFinal[CoreToolsSequence[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
 cmFinal[CoreToolsHold[a_]] := cmAny[a];
 cmFinal[(h_Symbol ? haq)[CoreToolsSequence[a___]]] := cmAny[h[a]];
-
+cmFinal[r_Ref ? ExprNoEntryQ] := MakeRefBoxes @ r;
 cmFinal[a:recurse1]         := ToBoxes @ MapAt[cmAny /* RawBoxes, Unevaluated @ a, 1];
 cmFinal[Style[a_, rest___]] := StyleBox[cmAny @ a, rest];
 cmFinal[Row[a_List]]        := RowBox @ Riffle[holdMap[cmAny, a], ""];
@@ -434,9 +434,15 @@ cmFinal[a_]                 := cmFinal2[a];
 ];
 
 cmFinal2[(s_Symbol ? recHeadQ)[a___]] := chowing[2, decStrLen @ rbox[cmSymbol @ s, "[", cmListSeq @ {a}, "]"]];
-cmFinal2[a_]                          := chowing[holdByteCount[a] / 4, cleanupManualBoxes @ MakeBoxes[a, StandardForm]];
+cmFinal2[_ExternalSessionObject]      := "ExternalSessionObject[\[Ellipsis]]";
+cmFinal2[a_]                          := chowing[holdByteCount[a] / 4, Capture @ cleanupManualBoxes @ MakeBoxes[a, StandardForm]];
 
-cleanupManualBoxes[e_] := e //. FractionBox[a_, b_] :> RowBox[{a, "/", b}];
+cleanupManualBoxes[e_] := e //. {
+  FractionBox[a_, b_] :> RowBox[{a, "/", b}],
+  RowBox[{TagBox[head_String, "SummaryHead"], ___}] :> TryEval[head <> "[\[Ellipsis]]"],
+  InterpretationBox[b_, ___] :> b
+};
+
 (* TODO: find way of disabling fraction box *)
 
 recHeadQ2[s_] := EchoLabel[Hold[s]] @ recHeadQ @ s;

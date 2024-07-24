@@ -2,6 +2,7 @@ SystemExports[
   "Function",
     StringReplaceRepeated,
     Base36Hash, FromHexString, HexString, FromBase36String, Base36String, FromBitString, BitString,
+    StringFirst, StringRest, StringMost, StringLast, StringFirstRest, StringMostLast,
     ToLowerCase1, ToUpperCase1,
     ToTitleString, ToCamelCase, CamelCaseSplit,
     StringPositionLeft, StringPositionRight,
@@ -13,17 +14,47 @@ SystemExports[
     StringTrimLeft, StringTrimRight, StringTrimLeftRight,
     StringPrepend, StringAppend,
     StringLines,
+    DelimitedString, DelimitedStringRow,
+    BraceString,     BraceStringRow,
+    AngleString,     AngleStringRow,
+    ParenString,     ParenStringRow,
+    BracketString,   BracketStringRow,
+    DQuotedString,   SQuotedString,
+    EscapeCharacters, UnescapeCharacters,
+    EscapeDQuotes, EscapeSQuotes, EscapeNewlines,
+
+
+  "IOFunction",
+    HoldToInputString, ToInputString, FromInputString,
   "Predicate",
     CharQ, StringStartsEndsQ, UpperCase1Q, LowerCase1Q, PrintableASCIIQ
 ];
 
+PackageExports[
+  "MetaFunction",
+    DefineSeqRowStringForms,
+  "Function",
+    FnBracketStringRow, FnParenStringRow, FnBracketString, FnParenString,
+    StrTake1, StrTakeN,
+  "Variable",
+    $DQuote, $SQuote, $Newline, $DNewline, $Backslash
+];
+
 (**************************************************************************************************)
 
- StringPadLeft[list_List] :=  StringPadLeft[list, Automatic];
-StringPadRight[list_List] := StringPadRight[list, Automatic];
+HoldToInputString[e_]   := ToString[NoEval @ e, InputForm];
+ToInputString[e_]       := ToString[e, InputForm];
 
- StringPadLeft[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadLeft];
-StringPadRight[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadRight];
+FromInputString[str_]     := ToExpression[str, InputForm];
+FromInputString[str_, head_] := ToExpression[str, InputForm, head];
+
+(**************************************************************************************************)
+
+ System`StringPadLeft[list_List] :=  StringPadLeft[list, Automatic];
+System`StringPadRight[list_List] := StringPadRight[list, Automatic];
+
+ System`StringPadLeft[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadLeft];
+System`StringPadRight[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadRight];
 
  s_StringPadLeft := RuleCondition[Message[StringPadLeft::strse, 1, HoldForm[s]]; Fail];
 s_StringPadRight := RuleCondition[Message[StringPadRight::strse, 1, HoldForm[s]]; Fail];
@@ -90,6 +121,18 @@ StringStartsEndsQ::usage = "StringStartsEndsQ[str$, prefix$, suffix$] gives True
 StringStartsEndsQ[str_String, a_, b_] := StringStartsQ[str, a] && StringEndsQ[str, b];
 StringStartsEndsQ[str_List, a_, b_] := Map[StringStartsEndsQ[#, a, b]&, str];
 StringStartsEndsQ[a_, b_][str_] := StringStartsEndsQ[str, a, b];
+
+(**************************************************************************************************)
+
+General::emptyString1 = "First argument is an empty string.";
+StringListableFunctionDefs[
+  StringFirst[s_] := FastQuietCheck[StringTake[s,  1], ErrorMsg[StringFirst::emptyString1]],
+  StringLast[s_]  := FastQuietCheck[StringTake[s, -1], ErrorMsg[StringLast::emptyString1]],
+  StringRest[s_]  := FastQuietCheck[StringDrop[s,  1], ErrorMsg[StringRest::emptyString1]],
+  StringMost[s_]  := FastQuietCheck[StringDrop[s, -1], ErrorMsg[StringMost::emptyString1]],
+  StringFirstRest[s_]  := FastQuietCheck[StringTake[s, {1, 2;;}],    ErrorMsg[StringFirstRest::emptyString1]],
+  StringMostLast[s_]   := FastQuietCheck[StringTake[s, {1;;-2, -1}], ErrorMsg[StringMostLast::emptyString1]]
+];
 
 (**************************************************************************************************)
 
@@ -279,4 +322,83 @@ RealString[_] := "?";
 dropDot[s_] := If[StringTake[s, -1] === ".", StringDrop[s, -1], s];
 
 (**************************************************************************************************)
+
+DQuotedString[e_Str] := StrJoin["\"", EscapeDQuotes[e], "\""];
+SQuotedString[e_Str] := StrJoin["'", EscapeSQuotes[e], "'"];
+
+(**************************************************************************************************)
+
+$DQuote    = "\"";
+$SQuote    = "'";
+$Newline   = "\n";
+$DNewline  = "\n\n";
+$Backslash = "\\";
+
+$escapedDQuote = "\\\""; $escapedSQuote = "\\'"; $escapedNewline = "\\\n"; $escapedEscape = "\\\\";
+
+$escapeDQuoteRules = {$escapedDQuote -> $escapedDQuote,   $DQuote -> $escapedDQuote};
+$escapeSQuoteRules = {$escapedSQuote -> $escapedSQuote,   $SQuote -> $escapedSQuote};
+$escapeNewlines    = {$escapedNewline -> $escapedNewline, $Newline -> $escapedNewline};
+
+$escapeRules   = z:{$Newline, $DQuote, $Backslash} :> "\\" <> z;
+$unescapeRules = ("\\" ~~ z:{$Newline, $DQuote, $Backslash}) :> z;
+
+EscapeCharacters[e_]   := StringReplace[e, $escapeRules];
+UnescapeCharacters[e_] := StringReplace[e, $unescapeRules];
+EscapeDQuotes[e_]      := StringReplace[e, $escapeDQuoteRules];
+EscapeSQuotes[e_]      := StringReplace[e, $escapeSQuoteRules];
+EscapeNewlines[e_]     := StringReplace[e, $escapeSQuoteRules];
+
+(**************************************************************************************************)
+
+toStr1[s_Str] := s;
+toStr1[e_]    := StrJoin @ toStr2 @ e
+
+toStr2[s_Str]     := s;
+toStr2[i_Int]     := If[Negative[i], "-" <> IntStr[i], IntStr[i]];
+toStr2[Null]      := {};
+toStr2[s_StrExpr] := Map[toStr2, s];
+toStr2[l_List]    := Map[toStr2, l]
+toStr2[e_]        := (Echo[e]; "\[FilledSquare]");
+
+stringyQ[_Str | _Int | Null] := True;
+stringyQ[l_List]             := VectorQ[l, stringyQ];
+stringyQ[_]                  := False;
+
+(**************************************************************************************************)
+
+DeclareCurry1[FnBracketStringRow, FnParenStringRow]
+
+FnBracketStringRow[f_ ? stringyQ, list_List ? stringyQ] := fnStr[f, "[", list, "]"];
+FnParenStringRow[f_ ? stringyQ, list_List ? stringyQ]   := fnStr[f, "(", list, ")"];
+
+FnBracketString[f_ ? stringyQ][args___ ? stringyQ]      := fnStr[f, "[", {args}, "]"]
+FnParenString[f_ ? stringyQ][args___ ? stringyQ]        := fnStr[f, "(", {args}, ")"];
+
+fnStr[f_, l_, args_, r_] := toStr1 @ {f, l, Riffle[args, ", "], r};
+
+(**************************************************************************************************)
+
+DelimitedString[l_Str, m_Str, r_Str][args___ ? stringyQ]      := delimStr[l, m, r, {args}];
+DelimitedStringRow[l_Str, m_Str, r_Str][args_List ? stringyQ] := delimStr[l, m, r, args];
+
+delimStr[l_, m_, r_, args_] := toStr1 @ {l, Riffle[args, m], r};
+
+(**************************************************************************************************)
+
+DefineSeqRowStringForms[fnSeq_, fnRow_, tuples__List] := MapApply[
+  {seqSym, rowSym, l, m, r} |-> (
+    rowSym[arg_ ? stringyQ]    := fnRow[l, m, r][arg];
+    seqSym[args___ ? stringyQ] := fnSeq[l, m, r][args];
+  ),
+  {tuples}
+];
+
+DefineSeqRowStringForms[
+  DelimitedString, DelimitedStringRow,
+  {BraceString,    BraceStringRow,   "{", ",", "}"},
+  {AngleString,    AngleStringRow,   "⟨", ",", "⟩"},
+  {ParenString,    ParenStringRow,   "(", ",", ")"},
+  {BracketString,  BracketStringRow, "[", ",", "]"}
+];
 

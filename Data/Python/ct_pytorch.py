@@ -10,7 +10,3 @@ else:
 @wolfram_encoder.dispatch(torch.Tensor)
 def torch_tensor_encoder(serializer, t):
     return serializer.encode(wl.TorchTensor(t.detach().numpy()))
-
-None
-
-

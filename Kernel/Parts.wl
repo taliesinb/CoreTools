@@ -1,54 +1,76 @@
 SystemExports[
   "Function",
-    Ends, Second, Third, P1, P2, P3, P4, P11, P1N, PNN, PN1, Col1, Col2, Col3, ColL, MaybePart, PartOr
+    Second, Third, Fourth,
+    FirstLast, FirstRest, MostLast,
+    MaybePart, PartOr, PartOf
+];
+
+PackageExports[
+  "Function",
+    Dup1, Dup2, Dup3, Dup4
 ];
 
 (**************************************************************************************************)
 
-DeclareHoldRest[Second, Third]
-
-Second[e_] /; Len[e] < 2 := None;
-Second[e_] := Part[e, 2];
-Second[e_, else_] /; Len[e] < 2 := else;
-Second[e_, _] := Part[e, 2];
-
-Third[e_] /; Len[e] < 3 := None;
-Third[e_] := Part[e, 3];
-Third[e_, else_] /; Len[e] < 3 := else;
-Third[e_, _] := Part[e, 3];
+Dup1[e_] := {e};
+Dup2[e_] := {e, e};
+Dup3[e_] := {e, e, e};
+Dup4[e_] := {e, e, e, e};
 
 (**************************************************************************************************)
 
-P1[e_] := Part[e, 1];
-P2[e_] := Part[e, 2];
-P3[e_] := Part[e, 3];
-P4[e_] := Part[e, 4];
+DeclareHoldRest[Second, Third, Fourth]
 
-P11[e_] := Part[e, 1, 1];
-P1N[e_] := Part[e, 1, -1];
-PNN[e_] := Part[e, -1, -1];
-PN1[e_] := Part[e, -1, 1];
+Second::usage = "Second[e$] gives Part[e, 2] or None.\nSecond[e$, else$] evaluates else if there is no second part.";
+Third::usage  =  "Third[e$] gives Part[e, 3] or None.\nThird[e$, else$] evaluates else if there is no third part.";
+Fourth::usage = "Fourth[e$] gives Part[e, 4] or None.\nFourth[e$, else$] evaluates else if there is no fourth part.";
 
-Col1[e_] := Part[e, All, 1];
-Col2[e_] := Part[e, All, 2];
-Col3[e_] := Part[e, All, 3];
-ColL[e_] := Part[e, All, -1];
+Second[e_, f_:None] := FastQuietCheck[Part[e, 2], f];
+ Third[e_, f_:None] := FastQuietCheck[Part[e, 3], f];
+Fourth[e_, f_:None] := FastQuietCheck[Part[e, 4], f];
 
 (**************************************************************************************************)
 
-Ends[e_] /; Length[e] == 0 := {None, None};
-Ends[e_] := {First[e], Last[e]};
+DeclareHoldRest[FirstLast]
+
+FirstLast::usage = "FirstLast[e$] gives {First[e], Last[e]}, or {None, None}.\nFirstLast[e$, else$] gives {else, else} in this case.";
+FirstLast[_ ? EmptyQ, f_:None] := Dup2 @ f;
+FirstLast[e_, _]               := {First @ e, Last @ e};
+
+DeclareStrict[FirstRest, MostLast]
+
+FirstRest::usage = "FirstRest[e$] gives {First[e], Rest[e]}. It throws an error if e$ is empty.";
+MostLast::usage  =  "MostLast[e$] gives {Most[e], Last[e]}. It throws an error if e$ is empty.";
+
+FirstRest[e_] := FastQuietCheck[{First @ e, Rest @ e}, ThrowMsg["expressionEmpty1", e]];
+MostLast[e_]  := FastQuietCheck[{ Most @ e, Last @ e}, ThrowMsg["expressionEmpty1", e]];
+
+General::expressionEmpty1 = "First argument was an empty expression ``."
+
+(**************************************************************************************************)
+
+PartOf::usage = "PartOf[p$$, e$] gives Part[e$, p$$] or $Failed.\nThe operator forms are PartOp (curry p$) or PartOfOp (curry e$)."
+
+PartOf[p__, e_] := FastQuietCheck @ Part[e, p];
 
 (**************************************************************************************************)
 
 DeclareCurry2[MaybePart]
 
-MaybePart[e_, p_] := FastQuietCheck[Part[e, p]];
+MaybePart::usage ="MaybePart[e$, p$] gives Part[e$, p$$] or $Failed.
+MaybePart[p$] is the single-part operator form of MaybePart.
+For deeper parts, use PartOp."
+
+MaybePart[e_, p_] := FastQuietCheck @ Part[e, p];
 
 (**************************************************************************************************)
 
 DeclareCurry23[PartOr]
 DeclareHoldRest[PartOr]
 
+(* same as SafePart *)
+PartOr::usage =
+"PartOr[e$, p$, else$] gives Part[e$, p$] or else$.
+PartOr[p$, else$] is the operator form of PartOr."
 PartOr[e_, p_, else_] := FastQuietCheck[Part[e, p], else];
 

@@ -9,6 +9,10 @@ PackageExports[
     ReadRawJSONString, WriteRawJSONString,
   "ScopingFunction",
     InheritedBlock,
+  "ObjectHead",
+    NBObject,
+  "SpecialVariable",
+    $Fail,
   "SpecialFunction",
     ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved, HoldC,
   "MutatingFunction",
@@ -22,52 +26,58 @@ PackageExports[
   "PatternHead",
     HoldP, Regex, Alt,
     VPattern, VCondition, VPatternTest, VBlank, VBlankSeq, VBlankNullSeq, VAlt, VRepeated, VExcept, VVerbatim, VHoldP,
-    BlankSeq, BlankNullSeq,
+    BlankSeq2, BlankSeq, BlankNullSeq,
   "Symbol",
     Auto, Inf, Tau,
   "PatternSymbol",
     AtomP, DatumP, BoolP, ZeroP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
     NumP, Num2P, Num3P, UnitNumP,
     ExtNumP, ExtNatP, ExtIntP, ExtPosIntP,
-    PosNumP, ExtPosNumP, ColorP, SideP,
+    PosNumP, ExtPosNumP, ColorP, SideP, ExtSideP,
     SymP, FormalSymP,
     SingleP, PairP, ListVecP, AssocVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
     RuleP, RuleLikeP, RuleVecP, RuleLikeVecP, RuleSeqP,
     AssocLikeP, ListDictP, AssocP,
-    EmptyP, EmptyAssoc,
+    EmptyP, EmptyAssoc, EmptyDict,
     UserSymbolP, InertSymbolP, SystemSymbolP,
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
   "Function",
     PosIndex, RangeAssoc, AssocRange, UAssocRange, RangeUAssoc,
-    SeqLen, SeqFirst, SeqSecond, SeqLast, SeqMost, SeqRest, SeqReverse,
+    SeqLen, Seq1, Seq2, Seq3, SeqN, SeqMost, SeqRest, SeqReverse,
     LenRange, RangeLen, ConstAssoc, ConstRules, ConstList, ConstUAssoc, ConstTrueAssoc, PairsToAssoc, AssocToPairs,
     Rep, RepRep, RepAll, VecRep,
-    Vals, ToVals, KeysVals,
+    Vals, ToVals, KeysVals, MapVals, MapValsP,
     DelCases, DelNone, DelNull, DelDups,
     Make, Dist,
+    Inter, Compl,
+    Occs, OccsPos,
     ListDictParts, DictMap, DictThread, UDictThread, DictRange, RangeDict, UDictRange, RangeUDict,
-    ConstDict, ConstUDict, ConstTrueDict, PairsToDict, DictToPairs,
-    LevelDict, OccurenceDict, ArgumentDict, LeafDict, PartDict,
+    ConstDict, ConstUDict, ConstTrueDict, PairsToDict, RulesToDict, DictToPairs, DictToRules,
+    LevelDict, OccDict, ArgDict, LeafDict, PartDict,
     AssocMap, UAssocThread, AssocMapThread,
-    F, L, H, HoldLen, Len, Len2, Dims, Fn, Id, Rev, IntDigits,
-    IntStr, HexStr, Chars, FromCharCode, ToCharCode, CharRange, StrCases, StrDelete, StrDrop, StrExpr,
+    HoldLen, Len, Len2, Dims, Fn, Id, Rev, IntDigits,
+    IntStr, HexStr, Chars, FromCharCode, ToCharCode, CharRange,
+    Char1, CharN, StrFirst, StrRest, StrMost, StrLast,
+    StrCases, StrDelete, StrDrop, StrExpr,
     StrExtract, StrInsert, StrJoin, StrLen, StrPadLeft, StrPadRight, StrPartition, StrPos, StrPosL, StrPosR,
     StrCaseF, StrCaseL, StrSplitPos, StrSplitL, StrSplitR, StrTake, StrTrim, StrTrimL, StrTrimR, StrTrimLR,
     StrSegment, StrSegmentL, StrSegmentR, StrRepeat, StrRep, StrRepPart, StrRev, StrSplit, StrPre, StrApp,
     DecodeBase64, DecodeBase64ToByteArray, EncodeBase64, ToList, ToPackedArray, ToPacked, FromPackedArray, BagPart, BagLength,
     RepetitionFromMultiplicity, Reciprocal, OutermostToInnermost, PackedArrayForm, PackedArrayType, StringHash,
-    MapThreadMin, MapThreadMax, SelectIndex1, VectorIndex1, VectorIndex1Of,
-    RandBit, RandNat, RandBool, RandReal, RandNorm,
+    MapThreadMin, MapThreadMax,
+    Select1, SelectIndex1, VectorIndex1, VectorIndex1Of,
+    RandInt, RandBit, RandNat, RandBool, RandReal, RandNorm,
   "Predicate",
-    AutoQ, InfQ, StrQ, StrMatchQ, StrStartsEndsQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, ASCIIQ,
+    AutoQ, InfQ, NotAutoQ, NotInfQ,
+    StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, ASCIIQ,
     BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ,
     AssocQ, VecQ, AssocVecQ, StrVecQ, PairVecQ, ListVecQ, BoolVecQ, SymVecQ, NatVecQ, IntVecQ, PosIntVecQ, RealVecQ,
     ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, MaybeFunctionQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
     SymbolAnyCodesQ, SymbolAnyEvaluationsQ, SymbolDelayedValueQ, SymbolDownCodeQ, SymbolDownEvaluationsQ, SymbolImmediateValueQ, SymbolNoCodesQ, SymbolNoEvaluationsQ, SymbolOwnEvaluationsQ, SymbolPrintCodeQ, SymbolSubCodeQ, SymbolSubEvaluationsQ, SymbolUpCodeQ, SymbolUpEvaluationsQ,
     Base64StringQ, IntegerPartitionQ,
     AssociationVectorQ, ListOrAssociationQ, StringOrStringVectorQ, StringVectorQ,
-    EmptyQ, NotEmptyQ, NonEmptyQ, ZeroLenQ, NotZeroLenQ,
+    UnsafeEmptyQ, NonEmptyQ, NotEmptyQ
     SymbolQ, HoldSymbolQ, HoldAtomQ, SymQ, HSymQ, HAtomQ,
     RealQ, MachineRealQ, MachineIntegerQ, MachineComplexQ,
     PackedArrayQ, PackedQ,
@@ -76,6 +86,7 @@ PackageExports[
     SyntacticNegativeQ, ComplexPresentQ, ExceptionFreeQ,
     TensorTypeQ,
     PatternPresentQ, PatternFreeQ, VContainsQ, VFreeQ, ValidSymbolNameQ,
+    DupFreeQ,
     AssocScanWhileQ, EmptyComplementQ, EmptyIntersectionQ, SameHashQ, NValueQ, FastNumericIndices,
     HAssocQ, HPackedQ,
     DictQ, ListDictQ,
@@ -84,9 +95,14 @@ PackageExports[
     NonEmptyDictOfQ, NonEmptyListDictOfQ,
     ContainsDictQ,
     SameLenQ, AllSameLenQ,
+    FailedQ, FailQ, NotFailedQ, NotFailQ,
   "PredicateOperator",
     DictOf, ListDictOf,
-    NonEmptyDictOf, NonEmptyListDictOf
+    NonEmptyDictOf, NonEmptyListDictOf,
+  "Function",
+    DRowStr, RiffRowStr, SpaceRowStr, CommaRowStr,
+  "BoxFunction",
+    DRowBox, DRiffRowBox
 ];
 
 (*************************************************************************************************)
@@ -136,15 +152,17 @@ DefinePatternRules[
   VRepeated      -> Verbatim[Repeated],
   VExcept        -> Verbatim[Except],
   VVerbatim      -> Verbatim[Verbatim],
-  VHoldP         -> Verbatim[HoldPattern]
+  VHoldP         -> Verbatim[HoldPattern],
+  BlankSeq2      -> Repeated[_, {2, Infinity}]
 ];
 
 DefinePatternRules[
   AtomP          -> HoldPattern[Except[_Association] ? Developer`HoldAtomQ],
-  DatumP         -> Alternatives[False, True, _String, _Integer, _Real, _Rational, None, Null],
+  DatumP         -> Alternatives[False, True, None, Null, _String, _Integer, _Real, _Rational] ? Developer`HoldAtomQ,
   BoolP          -> False | True,
   ColorP         -> Alternatives[_RGBColor, _GrayLevel, _CMYKColor, _Hue, _XYZColor, _LABColor, _LCHColor, _LUVColor, Opacity[_, _]],
   SideP          -> Left | Right | Bottom | Top,
+  ExtSideP       -> Left | Right | Bottom | Top | BottomLeft | BottomRight | TopLeft | TopRight,
   SymP           -> _Symbol ? Developer`HoldSymbolQ,
   FormalSymP     -> _Symbol ? HoldFormalSymbolQ,
   AssocP         -> _Association ? Developer`HoldAtomQ,
@@ -156,8 +174,9 @@ DefinePatternRules[
 With[
   {emptyAssoc = Association[], dirInf = DirectedInfinity[1], tau = 2. * Pi},
   DefinePatternRules[
-    EmptyP     -> Alternatives[{}, emptyAssoc],
+    EmptyDataP -> Alternatives[{}, emptyAssoc],
     EmptyAssoc -> emptyAssoc,
+    EmptyDict  -> emptyAssoc,
     Inf        -> dirInf,
     Tau        -> tau
   ]
@@ -209,8 +228,6 @@ DefinePatternRules[
   ListDictP      -> _List | (_Association ? Developer`HoldAtomQ)
 ];
 
-(*************************************************************************************************)
-
 DefineAliasRules[
   DictQ                         -> AssociationQ,
   ListDictQ                     -> Developer`ListOrAssociationQ,
@@ -222,7 +239,11 @@ DefineAliasRules[
   NonEmptyListDictOfQ           -> NonEmptyListAssociationOfQ,
   ContainsDictQ                 -> ContainsAssociationQ,
   SameLenQ                      -> SameLengthQ,
-  AllSameLenQ                   -> AllSameLengthQ
+  AllSameLenQ                   -> AllSameLengthQ,
+  FailedQ                       -> FailureQ,
+  FailQ                         -> FailureQ,
+  NotFailedQ                    -> NotFailureQ,
+  NotFailQ                      -> NotFailureQ
 ];
 
 DefineAliasRules[
@@ -234,10 +255,12 @@ DefineAliasRules[
 
 DefineAliasRules[
   AutoQ                         -> AutomaticQ,
+  NotAutoQ                      -> NotAutomaticQ,
   InfQ                          -> InfinityQ,
+  NotInfQ                       -> NotInfinityQ,
   StrQ                          -> StringQ,
   StrMatchQ                     -> StringMatchQ,
-  StrStartsEndsQ                -> StringStartsEndsQ,
+  StrDelimQ                     -> StringStartsEndsQ,
   StrStartsQ                    -> StringStartsQ,
   StrEndsQ                      -> StringEndsQ,
   StrFreeQ                      -> StringFreeQ,
@@ -270,6 +293,7 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  DupFreeQ                      -> DuplicateFreeQ,
   AssocScanWhileQ               -> Association`ScanWhile,
   EmptyComplementQ              -> Language`EmptyComplementQ,
   EmptyIntersectionQ            -> Language`EmptyIntersectionQ,
@@ -283,11 +307,9 @@ DefineAliasRules[
   ListOrAssociationQ            -> Developer`ListOrAssociationQ,
   StringOrStringVectorQ         -> Developer`StringOrStringVectorQ,
   StringVectorQ                 -> Developer`StringVectorQ,
-  EmptyQ                        -> Developer`EmptyQ,
+  UnsafeEmptyQ                  -> Developer`EmptyQ, (* atoms count as not EmptyQ somehow, we define our own EmptyQ*)
   NotEmptyQ                     -> Developer`NotEmptyQ,
   NonEmptyQ                     -> Developer`NotEmptyQ,
-  ZeroLenQ                      -> Developer`EmptyQ,
-  NotZeroLenQ                   -> Developer`NotEmptyQ,
 
   SymbolQ                       -> Developer`SymbolQ,
   HoldSymbolQ                   -> Developer`HoldSymbolQ,
@@ -302,8 +324,12 @@ DefineAliasRules[
   MachineComplexQ               -> Developer`MachineComplexQ
 ]
 
+(* JoinOrFail issues this message, but it isn't defined *)
+Join::nonlist = "`` is not a list.";
+
 (* Internal` predicates *)
 DefineAliasRules[
+  ListJoin                      -> Internal`JoinOrFail,
   NaturalQ                      -> Internal`NonNegativeIntegerQ,
   PositiveIntegerQ              -> Internal`PositiveIntegerQ,
   NegativeIntegerQ              -> Internal`NegativeIntegerQ,
@@ -359,6 +385,10 @@ DefineAliasRules[
   SymbolUpEvaluationsQ          -> System`Private`HasUpEvaluationsQ
 ];
 
+DefineAliasRules[
+  NBObject                      -> NotebookObject
+];
+
 (*************************************************************************************************)
 
 DefineAliasRules[
@@ -410,8 +440,16 @@ DefineAliasRules[
   TryEval        -> RuleCondition,
   FailEval       -> Fail,
   Seq            -> Sequence,
+  Then           -> CompoundExpression,
   HoldC          -> HoldComplete,
-  Then           -> CompoundExpression
+  $Fail          -> $Failed
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  Inter                         -> Intersection,
+  Compl                         -> Complement
 ];
 
 (*************************************************************************************************)
@@ -432,19 +470,28 @@ DefineAliasRules[
   ConstTrueDict  -> ConstantTrueAssociation,
 
   PairsToDict    -> PairsToAssociation,
+  RulesToDict    -> RulesToAssociation,
   DictToPairs    -> AssociationToPairs,
+  DictToRules    -> AssociationToRules,
 
   LevelDict      -> LevelAssociation,
-  OccurenceDict  -> OccurenceAssociation,
-  ArgumentDict   -> ArgumentAssociation,
+  OccDict        -> OccurenceAssociation,
+  ArgDict        -> ArgumentAssociation,
   LeafDict       -> LeafAssociation,
   PartDict       -> PartAssociation
+];
+
+DefineAliasRules[
+  Occs           -> Occurences,
+  OccsPos        -> OccurencePositions
 ];
 
 DefineAliasRules[
   Vals           -> Values,
   ToVals         -> ToValues,
   KeysVals       -> KeysValues,
+  MapVals        -> MapValues,
+  MapValsP       -> MapValuesP,
 
   PosIndex       -> PositionIndex,
 
@@ -478,6 +525,7 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  Select1        -> SelectFirst,
   SelectIndex1   -> SelectFirstIndex,
   VectorIndex1   -> FirstVectorIndex,
   VectorIndex1Of -> FirstVectorIndexOf,
@@ -492,9 +540,6 @@ DefineAliasRules[
 DefineAliasRules[
   Make           -> Construct,
   (* TODO: remove these *)
-  F              -> First,
-  L              -> Last,
-  H              -> Head,
   HoldLen        -> HoldLength,
   Len            -> Length,
   Len2           -> Length2,
@@ -503,9 +548,10 @@ DefineAliasRules[
 
 DefineAliasRules[
   SeqLen         -> SequenceLength,
-  SeqFirst       -> SequenceFirst,
-  SeqSecond      -> SequenceSecond,
-  SeqLast        -> SequenceLast,
+  Seq1           -> SequenceFirst,
+  Seq2           -> SequenceSecond,
+  Seq3           -> SequenceThird,
+  SeqN           -> SequenceLast,
   SeqMost        -> SequenceMost,
   SeqRest        -> SequenceRest,
   SeqReverse     -> SequenceReverse
@@ -525,6 +571,14 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  Char1          -> StringFirst,
+  CharN          -> StringLast,
+  StrFirst       -> StringFirst,
+  StrRest        -> StringRest,
+  StrMost        -> StringMost,
+  StrLast        -> StringLast,
+  StrFirstRest   -> StringFirstRest,
+  StrMostLast    -> StringMostLast,
   StrCases       -> StringCases,
   StrDelete      -> StringDelete,
   StrDrop        -> StringDrop,
@@ -559,6 +613,7 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  RandInt        -> RandomInt,
   RandBit        -> RandomBit,
   RandNat        -> RandomNatural,
   RandBool       -> RandomBoolean,

@@ -60,10 +60,10 @@ sublimeExportText = CaseOf[
 
 (*************************************************************************************************)
 
-templateFile[name_]      := DataPath["SublimeSyntax", "TemplateFiles", name];
-systemSymbolFile[name_]  := DataPath["SublimeSyntax", "SystemSymbols", name];
-userSymbolFile[name_]    := DataPath["SublimeSyntax", "UserSymbols", name];
-staticFile[name_]        := DataPath["SublimeSyntax", "StaticFiles", name];
+templateFile[name_]      := DataPath["Sublime", "TemplateFiles", name];
+systemSymbolFile[name_]  := DataPath["Sublime", "SystemSymbols", name];
+userSymbolFile[name_]    := DataPath["Sublime", "UserSymbols", name];
+staticFile[name_]        := DataPath["Sublime", "StaticFiles", name];
 
 (*************************************************************************************************)
 
@@ -72,15 +72,17 @@ CoreToolsSymbolKinds[] := Locals[
   coreKinds = Prelude`Packages`PackageSymbolKinds["CoreTools`"];
   If[!symbolDictQ[coreKinds], ThrowErrorMessage["badSymbols", "CoreTools`"]];
 
-  privateKinds = GroupBy[
-    Last /@ StringSplit[Names["CoreTools`Private`*"], "`"],
+  privateSyms = Last /@ StringSplit[Names["CoreTools`Private`*"], "`"];
+  privateSyms = Complement[privateSyms, Catenate @ coreKinds];
+  privateKinds = GroupBy[privateSyms,
     If[StringContainsQ[#, "$"], "SpecialVariable", "SpecialFunction"]&
   ];
   If[!symbolDictQ[privateKinds], ThrowErrorMessage["badSymbols", "CoreTools`Private`"]];
 
   Block[{$preludeKindBag = Bag[],
     System`PackageExports = savePreludeExports,
-    System`SystemExports = savePreludeExports},
+    System`SystemExports = savePreludeExports,
+    System`PrivateExports = savePreludeExports},
     Get @ $PreludeInitFile;
     preludeKinds = Merge[Catenate] @ BagPart[$preludeKindBag, All];
   ];
@@ -265,6 +267,7 @@ groupToSyntaxScope = CaseOf[
   "PackageFunction"    := "meta.package.function.wolfram";
   "Symbol"          := "constant.language.symbol.wolfram";
   "Head"            := "constant.language.head.wolfram";
+  "ObjectHead"      := "support.function.object.wolfram";
   "Function"        := $$ @ "builtin";
   "OptionSymbol"    := "constant.language.symbol.option.wolfram";
   "BoxOptionSymbol" := "constant.language.symbol.option.box.wolfram";
@@ -306,6 +309,7 @@ $groupToSymbol = Association[
   "PatternHead"            -> "s",
   "OptionSymbol"           -> "\[RightArrow]",
   "BoxOptionSymbol"        -> "\[RightArrow]",
+  "ObjectHead"             -> "■",
   "FormHead"               -> "■",
   "FormSymbol"             -> "■",
   "BoxFunction"            -> "□",
@@ -319,7 +323,7 @@ $groupToSymbol = Association[
 
 groupToKindColorProxy = CaseOf[
   "Symbol" | "PatternSymbol" | "PatternHead"                        := "symbol";
-  "Object"                                                          := "function";
+  "ObjectHead"                                                      := "function";
   "Function" | "MutationFunction" | "ScopingFunction" | "ControlFlowFunction" := "function";
   "PackageFunction" | "PackageDeclaration" | "DebuggingFunction" | "SpecialFunction"    := "function";
   "Variable" | "SpecialVariable" | "CacheVariable"                  := "variable";

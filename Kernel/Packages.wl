@@ -36,7 +36,7 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   $publicContext = context;
   $privateContext = context <> "Private`";
   codePreprocFn = ApplyEchoSugar;
-  If[NotZeroLenQ[macroRules = OptionValue[MacroRules]],
+  If[NonEmptyQ[macroRules = OptionValue[MacroRules]],
     codePreprocFn = codePreprocFn /* ReplaceRepeated[macroRules]];
   $SessionCurrentEvaluationPrintCount = 0;
   DisableErrorHandler @ Prelude`Packages`LoadPackage[

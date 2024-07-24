@@ -1,16 +1,23 @@
+SystemExports[
+  "IOFunction",
+    MakeCoreBoxes
+];
+
 PackageExports[
   "BoxFunction",
     RBox,
-    RaiseBox, LowerBox, MarginBox, ColumnBox, TightBox, NiceTooltipBox, SkeletonBox,
-    FnRowBox, FnBracketRowBox, FnParenRowBox,
+    SpacerBox, RaiseBox, LowerBox, MarginBox, ColumnBox, TightBox, NiceTooltipBox, SkeletonBox,
+    FnRowBox, FnBracketRowBox, FnParenRowBox, FnBracketBoxOp, FnParenBoxOp,
     DelimitedRBox,   RiffledRBox,   SpaceRBox,   CommaRBox,   ColonRBox,   SColonRBox,   ArrowRBox,   BraceRBox,   AngleRBox,   ParenRBox,   BracketRBox,   PartRBox,   AssocRBox,
     DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, PartRowBox, AssocRowBox,
     DimmedBox, StatusAreaBox, CursorIconBox, LiteralStringBox,
     ApplyEndStyleBox, ApplyIndentBox,
     UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox, FontBox,
     VeryLargeBox, LargeBox, MediumBox, SmallBox, VerySmallBox, TinyBox,
-    ClickBox,
+    ClickBox, NoClickBox, EventHandlerBox,
     FlattenStyleBox, BuryStyleBox,
+    UnderBraceBox, OverBraceBox, UnderBracketBox, OverBracketBox, UnderParenBox, OverParenBox,
+    TextIconBox, NamedTextIconBox,
   "FormHead",
     RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
     DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, PartSeq,
@@ -20,20 +27,25 @@ PackageExports[
     VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm,
     ClickForm,
     FlattenStyle, BuryStyle,
+  "Operator",
+    FormBurrowing, BoxBurrowing,
+    StyleOp, StyleBoxOp,
   "IOFunction",
     CoreBoxes, SystemBoxes,
   "DebuggingFunction",
-    MakeCoreBoxes,
+    MakeCoreBoxesTraditional, MakeCoreBoxesModified,
   "FormHead",
     Unformatted, Uninteractive,
   "ScopingFunction",
     DisableCoreBoxFormatting, DisableCoreBoxInteractivity,
   "MetaFunction",
     DeclareCoreBoxes, DeclareCoreSubBoxes, MakeBoxDefinitions, DefineStyleFormBox, DefineSeqRowFormBox,
+  "Variable",
+    $BuryThroughForms, $BuryThroughBoxes,
   "SpecialVariable",
-    $UseCoreBoxFormatting, $UseCoreBoxInteractivity,
+    $UseCoreBoxFormatting, $UseCoreBoxInteractivity, $CurrentCoreBoxModifiers, $UseTraditionalForm,
   "Predicate",
-    HasCoreBoxesQ,
+    HasCoreBoxesQ, BurrowThroughHeadQ, BurrowThroughBoxHeadQ
   "MetaFunction"
 ];
 
@@ -51,13 +63,35 @@ HasCoreBoxesQ[s_] = Lookup[$coreBoxHead, Hold @ s, False];
 DeclareHoldAllComplete[MakeCoreBoxes, DisableCoreBoxFormatting, DisableCoreBoxInteractivity]
 
 (* we'll add to these definitions *)
-MakeCoreBoxes[e_] := FailEval;
+MakeCoreBoxes[_] := FailEval;
 
 DisableCoreBoxFormatting[body_]    := Block[{$UseCoreBoxFormatting = False}, body];
 DisableCoreBoxInteractivity[body_] := Block[{$UseCoreBoxInteractivity = False}, body];
 
-MakeBoxes[Unformatted[lhs_], form:StandardForm | TraditionalForm]   := DisableCoreBoxFormatting @ MakeBoxes[lhs, form];
-MakeBoxes[Uninteractive[lhs_], form:StandardForm | TraditionalForm] := DisableCoreBoxInteractivity @ MakeBoxes[lhs, form];
+(* TODO: make interactivity just a modifier *)
+
+MakeBoxes[Unformatted[lhs_], form:StandardForm | TraditionalForm] := Block[
+  {$UseTraditionalForm = form === TraditionalForm, $UseCoreBoxFormatting = False},
+  MakeBoxes[lhs, form]
+];
+
+MakeBoxes[Uninteractive[lhs_], form:StandardForm | TraditionalForm] := Block[
+  {$UseTraditionalForm = form === TraditionalForm, $UseCoreBoxInteractivity = False},
+  MakeBoxes[lhs, form]
+];
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[MakeCoreBoxesModified, MakeCoreBoxesTraditional]
+
+SetInitial[$UseTraditionalForm, False];
+SetInitial[$CurrentCoreBoxModifiers, UAssoc[TraditionalForm :> $UseTraditionalForm]]
+
+MakeCoreBoxesModified[rules_, expr_] :=
+  BlockAssociate[$CurrentCoreBoxModifiers, rules, MakeCoreBoxes @ expr];
+
+MakeCoreBoxesTraditional[expr_] :=
+  BlockTrue[$UseTraditionalForm, MakeCoreBoxes @ expr];
 
 (**************************************************************************************************)
 
@@ -75,8 +109,8 @@ DeclareCoreBoxes[sym_Symbol] := With[
   MakeBoxes[$LHS:sym | _sym, StandardForm] /; $UseCoreBoxFormatting :=
     TryEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
 
-  MakeBoxes[$LHS:sym | _sym, TraditionalForm] :=
-    TryEval @ MakeCoreBoxes @ $LHS;
+  MakeBoxes[$LHS:sym | _sym, TraditionalForm] /; $UseCoreBoxFormatting :=
+    TryEval @ MakeCoreBoxesTraditional @ $LHS;
 ];
 
 DeclareCoreSubBoxes[sym_Symbol] := With[
@@ -87,8 +121,8 @@ DeclareCoreSubBoxes[sym_Symbol] := With[
   MakeBoxes[$LHS:(_sym[___]), StandardForm] /; $UseCoreBoxFormatting :=
     TryEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
 
-  MakeBoxes[$LHS:(_sym[___]), TraditionalForm] :=
-    TryEval @ MakeCoreBoxes @ $LHS;
+  MakeBoxes[$LHS:(_sym[___]), TraditionalForm] /; $UseCoreBoxFormatting :=
+    TryEval @ MakeCoreBoxesTraditional @ $LHS;
 ];
 
 (**************************************************************************************************)
@@ -130,25 +164,21 @@ DeclareHoldRest[ClickBox, ClickForm]
 
 CoreBoxes[ClickForm[expr_, body_]] := ClickBox[MakeBoxes @ expr, body];
 
-ClickBox[box_, body_] := TagBox[
-  TagBox[box, EventHandlerTag[{
-    {"MouseClicked", 1} :> body,
-    Method -> "Preemptive",
-    PassEventsDown -> Automatic, PassEventsUp -> True
-    }]
-  ],
-  MouseAppearanceTag["LinkHand"]
-];
+ClickBox[box_, body_] := CursorIconBox["LinkHand"] @ EventHandlerBox[{"MouseClicked", 1} :> body] @ box;
+NoClickBox[box_]      := CursorIconBox["Arrow"]    @ EventHandlerBox[{"MouseClicked", 1} :> Null] @ box;
 
 (**************************************************************************************************)
 
-DeclareCurry2[CursorIconBox, StatusAreaBox]
+DeclareCurry2[CursorIconBox, StatusAreaBox, EventHandlerBox]
 
 CursorIconBox[boxes_, icon_Str] := TagBox[boxes, MouseAppearanceTag[icon]];
 
 StatusAreaBox[Fail, _] := Fail;
 StatusAreaBox[boxes_, label_String] := TagBox[boxes, Identity, TagBoxNote -> label];
 StatusAreaBox[boxes_, label_]       := TagBox[boxes, Identity, TagBoxNote -> ToString[label, InputForm]];
+
+EventHandlerBox[boxes_, rules_] := TagBox[boxes, EventHandlerTag @ ToList[rules, $eventHandlerRules]];
+$eventHandlerRules = {Method -> "Preemptive", PassEventsDown -> Automatic, PassEventsUp -> False};
 
 (**************************************************************************************************)
 
@@ -201,6 +231,13 @@ SkeletonBox[b_] := RBox["\[LeftGuillemet]", b, "\[RightGuillemet]"];
 
 (**************************************************************************************************)
 
+SpacerBox[s_] := TemplateBox[{s}, "Spacer1"];
+
+(**************************************************************************************************)
+
+MarginBox[boxes_, n:NumP] :=
+  If[n > 0, MarginBox[boxes, {n, n}, {0, 0}], boxes];
+
 MarginBox[boxes_, {l_, r_}] :=
   MarginBox[boxes, {l, r}, {0, 0}];
 
@@ -224,24 +261,31 @@ LowerBox[e_, n_] :=
 
 DeclareCurry1[FnRowBox, FnBracketRowBox, FnParenRowBox]
 
-FnRowBox[p_, RowBox[{a__}]] := RowBox[{p, a}];
-FnRowBox[p_, a_] := RowBox[{p, a}];
+FnRowBox[p_, RowBox[{a__}]]    := RowBox[{p, a}];
+FnRowBox[p_, a_]               := RowBox[{p, a}];
 
 FnBracketRowBox[f_, list_List] := FnRowBox[f, BracketRowBox[list]];
-FnParenRowBox[f_, list_List] := FnRowBox[f, ParenRowBox[list]];
+FnParenRowBox[f_, list_List]   := FnRowBox[f, ParenRowBox[list]];
+
+FnBracketBoxOp[f_][args___]    := FnRowBox[f, BracketRBox[args]];
+FnParenBoxOp[f_][args___]      := FnRowBox[f, ParenRBox[args]];
 
 (**************************************************************************************************)
 
 MakeBoxDefinitions[
-  DelimitedRow[l_, m_, r_][a_List] := RiffledRowBox[MakeBoxes @ l, MakeBoxes @ m, MakeBoxes @ r][MakeBoxes /@ a];
-  DelimitedSeq[l_, m_, r_][a___]   := MakeBoxes @ DelimitedRow[l, m, r] @ list @ a;
+  DelimitedRow[l_, m_, r_][a_List]       := RiffledRowBox[MakeBoxes @ l, MakeBoxes @ m, MakeBoxes @ r][MakeBoxes /@ a];
+  DelimitedSeq[l_, m_, r_][a___]         := MakeBoxes @ DelimitedRow[l, m, r] @ list @ a;
 ];
 
-DelimitedRBox[l_, m_, r_][]       := RowBox @ {l, r};
-DelimitedRBox[l_, m_, r_][bs__]   := RowBox @ {l, RiffledRBox[m][bs], r};
+DelimitedRBox[l_, m_, r_][]              := RowBox @ {l, r};
+DelimitedRBox[l_, m_, r_][bs__]          := RowBox @ {l, RiffledRBox[m][bs], r};
+DelimitedRBox[l_, m_, r_, n_][]          := RowBox @ {l, SpacerBox[n * 2], r};
+DelimitedRBox[l_, m_, r_, n_][bs__]      := RowBox @ {l, SpacerBox[n], RiffledRBox[m][bs], SpacerBox[n], r};
 
-DelimitedRowBox[l_, m_, r_][{}]      := RowBox @ {l, r};
-DelimitedRowBox[l_, m_, r_][bs_List] := RowBox @ {l, RiffledRowBox[m][bs], r};
+DelimitedRowBox[l_, m_, r_][{}]          := RowBox @ {l, r};
+DelimitedRowBox[l_, m_, r_][bs_List]     := RowBox @ {l, RiffledRowBox[m][bs], r};
+DelimitedRowBox[l_, m_, r_, n_][{}]      := RowBox @ {l, SpacerBox[n * 2], r};
+DelimitedRowBox[l_, m_, r_, n_][bs_List] := RowBox @ {l, SpacerBox[n], RiffledRowBox[m][bs], SpacerBox[n], r};
 
 (**************************************************************************************************)
 
@@ -250,8 +294,8 @@ MakeBoxDefinitions[
   RiffledSeq[r_][a___]   := RiffledRowBox[MakeBoxes @ r][MakeBoxes /@ {a}];
 ];
 
-RiffledRBox[r_][b_] := b;
-RiffledRBox[r_][b___] := RowBox @ Riffle[{b}, r];
+RiffledRBox[r_][b_]        := b;
+RiffledRBox[r_][b___]      := RowBox @ Riffle[{b}, r];
 
 RiffledRowBox[r_][{b_}]    := b;
 RiffledRowBox[r_][{bs___}] := RowBox @ Riffle[{bs}, r];
@@ -292,14 +336,38 @@ DefineStyleFormBox[
 
 (**************************************************************************************************)
 
-$BuryThroughForms = Alt[EventHandler, NiceTooltip, Style];
-$BuryThroughBoxes = Alt[_TagBox, _TooltipBox, _StyleBox];
+$BuryThroughForms = Alt[EventHandler, NiceTooltip, Style, RaiseForm, LowerForm, MarginForm, ClickForm, NiceTooltip];
+$BuryThroughBoxes = Alt[_TagBox, _TooltipBox, _StyleBox, _AdjustmentBox];
 
 s_BuryStyle[expr:$BuryThroughForms] := MapFirst[s, expr];
 s_BuryStyle[expr_]                  := Style[expr, Seq @@ s];
 
 s_BuryStyleBox[boxes:$BuryThroughBoxes] := MapFirst[s, boxes];
 s_BuryStyleBox[boxes_]                  := StyleBox[boxes, Seq @@ s];
+
+DeclarePredicateQ[BurrowThroughHeadQ];
+BurrowThroughHeadQ[head_Sym]    := MatchQ[head, $BuryThroughForms];
+BurrowThroughBoxHeadQ[head_Sym] := MatchQ[head, $BuryThroughBoxes];
+
+(**************************************************************************************************)
+
+fn_FormBurrowing[expr:$BuryThroughBoxes] := MapFirst[fn, expr];
+fn_FormBurrowing[expr_]                  := First[fn] @ expr;
+
+fn_BoxBurrowing[boxes:$BuryThroughBoxes] := MapFirst[fn, boxes];
+fn_BoxBurrowing[boxes_] := First[fn] @ boxes;
+
+(**************************************************************************************************)
+
+StyleOp[] = Id;
+StyleOp[None] = Id;
+StyleOp[spec___][Nothing] := Nothing;
+StyleOp[spec___][e_] := Style[e, spec];
+
+StyleBoxOp[] = Id;
+StyleBoxOp[None] = Id;
+StyleBoxOp[spec___][Nothing] := Nothing;
+StyleBoxOp[spec___][e_] := StyleBox[e, spec];
 
 (**************************************************************************************************)
 
@@ -407,3 +475,39 @@ ColumnBox[list_List, align:Except[_Rule]:Left, spacing:Except[_Rule]:Automatic, 
     GridBoxSpacings -> {"Rows" -> {{spacing}}}
   ];
 
+(**************************************************************************************************)
+
+UnderBraceBox[a_, b_] := UnderscriptBox[UnderscriptBox[a, "\[UnderBrace]"], b];
+OverBraceBox[a_, b_] := OverscriptBox[OverscriptBox[a, "\[OverBrace]"], b];
+
+UnderBracketBox[a_, b_] := UnderscriptBox[UnderscriptBox[a, "\[UnderBracket]"], b];
+OverBracketBox[a_, b_] := OverscriptBox[OverscriptBox[a, "\[OverBracket]"], b];
+
+UnderParenBox[a_, b_] := UnderscriptBox[UnderscriptBox[a, "\[UnderParenthesis]"], b];
+OverParenBox[a_, b_] := OverscriptBox[OverscriptBox[a, "\[OverParenthesis]"], b];
+
+(**************************************************************************************************)
+
+NamedTextIconBox["Times", opts_:{}, pad_:{{1,1}, {1,1}}] := TextIconBox[
+  StyleBox[LineBox[{{{-1, -1}, {1, 1}}, {{-1, 1}, {1, -1}}}], Seq @@ opts],
+  {{-1, 1}, {-1, 1}}, {1, 1} * .6, None, 10, pad
+];
+
+NamedTextIconBox["SquareUnion", opts_:{}, pad_:{{1,1}, {1,1}}] := TextIconBox[
+  StyleBox[LineBox[{{-1, 1}, {-1, -1}, {1, -1}, {1, 1}}], Seq @@ opts],
+  {{-1, 1}, {-1, 1}}, {0.7, .9}, None, 9, pad
+];
+
+TextIconBox[boxes_, bounds_, baseImageSize_, background_, bshift_, pad:{{l_, r_}, {b_, t_}}] :=
+  DynamicBox[AdjustmentBox[
+    Construct[
+      GraphicsBox,
+      boxes,
+      PlotRange -> bounds, PlotRangePadding -> 0, AspectRatio -> Full, PlotRangeClipping -> False,
+      ImageSize -> Ceiling[baseImageSize * Round @ CurrentValue[FontSize] + {l + r, b + t} , .5],
+      ImagePadding -> pad, BaselinePosition -> Axis, Background -> background
+    ],
+    BoxBaselineShift -> (-bshift / Round @ CurrentValue[FontSize])
+  ], TrackedSymbols :> {}
+];
+RawBoxes[RowBox @ {"A", $timesSymbol, "B"}]

@@ -20,15 +20,22 @@ MakeBoxes[NiceObject[head_String, args_, opts___Rule], StandardForm] := Locals[
   NiceObjectBoxes[head, argBoxes, opts]
 ];
 
-NiceObjectBoxes[head_, args_, opts___Rule] := StyleBox[
-  RowBox[{StyleBox[head, Bold], GridBox[
+NiceObjectBoxes[head_, args_, margin:Except[_Rule]:0, opts___Rule] := StyleBox[
+  RowBox[{StyleBox[head, FontWeight -> "SemiBold"], GridBox[
     List @ ToList[
       ItemBox["", Frame -> {{True, False}, {True, True}}, ItemSize -> {.2, All}],
-      If[ListQ[args], commaSep @ args, args],
+      If[EmptyQ[args], "", If[
+        ListQ[args],
+        If[SingleQ[args],
+          MarginBox[margin] /@ args,
+          MapFirstLast[MarginBox[{margin, 0}], MarginBox[{0, margin}], commaSep @ args]
+        ],
+        MarginBox[margin] @ args
+      ]],
       ItemBox["", Frame -> {{False, True}, {True, True}}, ItemSize -> {.2, All}]
     ],
-    opts, FrameStyle -> AbsoluteThickness[2],
-    ColumnSpacings -> 0, GridFrameMargins -> {{0.,0.},{0.,1.}},
+    opts, FrameStyle -> AbsoluteThickness[1],
+    ColumnSpacings -> 0, GridFrameMargins -> {{0.,0.},{0.,0.}},
     BaselinePosition -> {{1,2}, Baseline}, RowMinHeight -> 0.5
   ]}],
   LineBreakWithin -> False, AutoSpacing -> False
@@ -254,7 +261,7 @@ SmartArrayPlot[array_, OptionsPattern[]] := Locals[
     ColorFunction -> colFn, ImageSize -> {{20, w}, {20, h}}]&;
   iSplit = None;
   rank = Len @ dims;
-  If[insert = (F[dims] === 1 && rank > 1),
+  If[insert = (First[dims] === 1 && rank > 1),
     dims //= Rest; arr //= First; rank--];
   res = Switch[rank,
     1, cap @ {arr},

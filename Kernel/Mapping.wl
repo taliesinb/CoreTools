@@ -6,18 +6,21 @@ SystemExports[
     MapRow, MapRow1, MapRow2, MapRow3,
     ZipMap, ZipScan, Bimap, Comap,
     MaybeMap,
-    MapP, ScanP,
+    MapP, ScanP, ScanApply,
     RangeArray, Dimension, IndexArray, IndexList,
     MapLeaves, ApplyLastAxis, MapLastAxis, MapAxis, MapAxisP, ScanAxisP, ApplyAxis,
     MapSeq,
     VectorReplace,
     UniqueValue, UniqueValueBy,
-    MapValues
+    MapValues, MapValuesP,
+    ListDictMap,
+  "MutatingFunction",
+    PathScanP, PathMapP, PathScan, PathMap
 ];
 
 PackageExports[
   "Function",
-    Dim, ScanIndexed,
+    Map2, Dim, ScanIndexed,
   "Operator",
     SeqLens, RevLens, IfLens, FlipLens, AxisLens
 ];
@@ -37,11 +40,24 @@ iUniqueValue[else_, list_List] := Replace[Union @ list, {{u_} :> u, _ :> else}];
 
 (*************************************************************************************************)
 
-DeclareCurry1[MapValues]
+DeclareCurry1[MapValues, MapValuesP]
 
-MapValues[f_, expr_List]  := Map[f, expr];
-MapValues[f_, expr_Assoc] := Map[f, Values @ expr];
-MapValues[f_, expr_]      := Map[f, Level[expr, 1]];
+MapValues[f_, list_List] := Map[f, list];
+MapValues[f_, dict_Dict] := Map[f, Values @ dict];
+MapValues[f_, expr_]     := Map[f, Level[expr, 1]];
+
+MapValuesP[f_, list_List] := MapThread[f, {list, RangeLen @ list}];
+MapValuesP[f_, dict_Dict] := MapThread[f, {Values @ dict, Keys @ dict}];
+MapValuesP[f_, expr_]     := MapValuesP[f, Level[expr, 1]];
+
+(*************************************************************************************************)
+
+DeclareCurry12[ListDictMap]
+
+ListDictMap[fl_, fd_, expr_List] := Map[fl, expr];
+ListDictMap[fl_, fd_, expr_Dict] := KeyValueMap[fd, expr];
+ListDictMap[_, _, expr_] := ErrorMsg[ListDictMap::notListOrAssociation, expr];
+ListDictMap::notListOrAssociation = "`` must be a list or an association.";
 
 (*************************************************************************************************)
 
@@ -58,7 +74,7 @@ VectorReplace[vector_, rule_] := Replace[vector, rule, {1}];
 
 DeclareCurry12[AtIndices]
 
-AtIndices[_, _, expr_ ? ZeroLenQ] := expr;
+AtIndices[_, _, expr_ ? EmptyQ] := expr;
 
 AtIndices[f_, {}, expr_] := expr;
 
@@ -69,7 +85,7 @@ AtIndices[f_, indices_, expr_] := AtPart[f, List /@ indices, expr];
 * indices that don't exist are skipped.
 *)
 
-AtPart[_, _, expr_ ? ZeroLenQ] := expr;
+AtPart[_, _, expr_ ? EmptyQ] := expr;
 
 AtPart[f_, part_, expr_] := FastQuietCheck[MapAt[f, expr, part], expr];
 
@@ -91,6 +107,12 @@ DeclareCurry12[MapFirstRest, MapMostLast, MapFirstLast]
 MapFirstRest[f_, g_, expr_] := AtPart[g, 2;;-1, AtPart[f, 1, expr]];
 MapMostLast[f_, g_, expr_] := AtPart[f, 1;;-2, AtPart[g, -1, expr]];
 MapFirstLast[f_, g_, expr_] := MapFirst[f, If[Len[expr] === 1, g, MapLast[g, expr]]];
+
+(**************************************************************************************************)
+
+DeclareCurry1[Map2]
+
+Map2[f_, matrix_] := Map[f, matrix, {2}];
 
 (**************************************************************************************************)
 
@@ -143,9 +165,8 @@ DeclareCurry1[ScanIndexed]
 won't evaluate, and if they arne't, they *will* evaluate, with Nulls in them!
 *)
 
-ScanIndexed[f_, expr_] := Module[{i = 1}, Scan[v |-> f[v, {i++}], expr]]
-ScanIndexed[f_, assoc_Association] := Association`ScanWhile[assoc, scanIFnA[f]];
-scanIFnA[f_][k_ -> v_] := (f[v, {k}]; True)
+ScanIndexed[f_, expr_]      := Module[{i = 1}, Scan[v |-> f[v, {i++}], expr]]
+ScanIndexed[f_, assoc_Dict] := (AssocScanWhileQ[assoc, rule |-> Then[f[P2 @ rule, List @ P1 @ rule], True]];)
 
 ScanIndexed[f_, expr_, level_] := Module[
   {posList = Position[expr, _, level, Heads -> False], i = 1},
@@ -154,20 +175,35 @@ ScanIndexed[f_, expr_, level_] := Module[
 
 (**************************************************************************************************)
 
-DeclareCurry1[ScanP]
+DeclareCurry1[ScanP, MapP]
 
-ScanP[f_, elems_] := Module[{i = 1}, Scan[v |-> f[v, i++], elems]];
-ScanP[f_, assoc_Association] := (Association`ScanWhile[assoc, scanPFnA[f]];)
-scanPFnA[f_][k_ -> v_] := (f[v, k]; True)
+ScanP[f_, expr_]        := Module[{i = 1}, Scan[v |-> f[v, i++], expr]];
+ScanP[f_, dict_Dict]    := (AssocScanWhileQ[dict, kvFn[f]];)
+kvFn[f_][k_ -> v_] := Then[f[v, k], True];
+
+MapP[f_, expr_]         := MapIndexed[{v, i} |-> f[v, P1 @ i], expr];
+MapP[f_, dict_Dict]     := MapIndexed[{v, i} |-> f[v, P11 @ i], dict];
 
 (**************************************************************************************************)
 
-DeclareCurry1[MapP]
+DeclareCurry1[ScanApply]
 
-MapP[f_, elems_]            := MapIndexed[mapPFnE[f], elems];
-MapP[f_, assoc_Association] := MapIndexed[mapPFnA[f], assoc];
-mapPFnE[f_][v_, i_] := f[v, First @ i];
-mapPFnA[f_][v_, k_] := f[v, First @ First @ k];
+ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFunction @ f, expr];
+
+(**************************************************************************************************)
+
+DeclareHoldFirst @ DeclareCurry12[PathScanP, PathMapP, PathScan, PathMap]
+
+TopLevelEvaluateMacro[
+PathScanP[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[v, PN[s] = ++i], expr]];
+PathScanP[s_, f_, dict_Dict] := BlockAppend[s, Null, AssocScanWhileQ[dict, Apply[{k, v} |-> Then[PN[s] = k, f[v, k], True]]];];
+PathMapP[s_, f_, expr_]      := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[v, PN[s] = P1 @ i], expr]];
+PathMapP[s_, f_, dict_Dict]  := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[v, PN[s] = P11 @ i], dict]];
+PathScan[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[PN[s] = ++i; v], expr]];
+PathScan[s_, f_, dict_Dict] := BlockAppend[s, Null, AssocScanWhileQ[dict, Apply[{k, v} |-> Then[PN[s] = k, f[v], True]]];];
+PathMap[s_, f_, expr_]      := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s] = P1 @ i; v], expr]];
+PathMap[s_, f_, dict_Dict]  := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s] = P11 @ i; v], dict]];
+];
 
 (**************************************************************************************************)
 

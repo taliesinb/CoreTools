@@ -33,6 +33,11 @@ $PreludeInitFile = FileNameJoin[{$CoreToolsRootPath, "Prelude", "init.m"}];
 
 Begin["Init`Private`"];
 
+AssociationMap[f_][expr_] := AssociationMap[f, expr];
+AssociationMap[fn_, expr_List] := Association @ Map[z |-> Rule[z, fn[z]], expr];
+AssociationMap[fn_, assoc_Association ? AssociationQ] := Association @ Map[fn, Normal @ assoc];
+AssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr]; Fail];
+
 (*************************************************************************************************)
 
 System`$SymbolAliases = Data`UnorderedAssociation[];

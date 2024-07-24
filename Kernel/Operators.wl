@@ -1,6 +1,7 @@
 SystemExports[
   "Operator",
-    TakeOp, DropOp, ClipOp, DistanceOp, PartOp, ReplaceAllOp, ReplaceRepeatedOp,
+    PartOp, PartOfOp,
+    TakeOp, DropOp, ClipOp, DistanceOp, ReplaceAllOp, ReplaceRepeatedOp,
     TimesOp, DivideOp, PlusOp, SubtractOp,
     ThreadTimesOp, ThreadDivideOp, ThreadPlusOp, ThreadSubtractOp,
     DotOp, DotRightOp, AffineOp,
@@ -11,6 +12,7 @@ SystemExports[
     LookupOp,
     IfOp, ConstructOp,
     ConstOp,
+    RiffleOp,
   "Variable",
     $Operators,
   "PredicateOperator",
@@ -30,12 +32,23 @@ SystemExports[
 
 (**************************************************************************************************)
 
+(* operator form of MaybePart / SafePart *)
+PartOp::usage = "PartOp[p$$][e$] gives Part[e$, p$] or $Failed. It curries the part."
+PartOp[p___][e_] := FastQuietCheck @ Part[e, p];
+
+PartOfOp::usage =
+"PartOfOp[e$][p$] gives Part[e$, p$] or $Failed. It curries the expression.
+PartOfOp[e$, p1$$][p2$$] gives Part[e$, p1$$, p2$$]."
+PartOfOp[e_][p___]        := FastQuietCheck @ Part[e, p];
+PartOfOp[e_, p1__][p2___] := FastQuietCheck @ Part[p, p1, p2];
+
+(**************************************************************************************************)
+
 DefineOperator2Rules[
   TakeOp            -> Take,
   DropOp            -> Drop,
   ClipOp            -> Clip,
   DistanceOp        -> EuclideanDistance,
-  PartOp            -> Part,
   ReplaceAllOp      -> ReplaceAll,
   ReplaceRepeatedOp -> ReplaceRepeated,
   TimesOp           -> Times,
@@ -55,6 +68,8 @@ DefineOperator2Rules[
   IntersectionOp    -> Intersection
 ]
 
+(**************************************************************************************************)
+
 DeclareListableOperator[
   DotOp, DotRightOp,
   TimesOp, DivideOp, PlusOp, SubtractOp,
@@ -64,6 +79,10 @@ DeclareListableOperator[
 DefineOperator1Rules[
   DotRightOp -> Dot
 ]
+
+AffineOp[matrix_] := DotRightOp[Transpose @ ToPackedArray @ matrix];
+AffineOp[matrix_, {(0|0.)..}] := DotRightOp @ Transpose @ ToPackedArray @ matrix;
+AffineOp[matrix_, vector_] := DotRightOp[Transpose @ ToPackedArray @ matrix, vector];
 
 (**************************************************************************************************)
 
@@ -85,8 +104,9 @@ DefineOperator2Rules[
 
 (**************************************************************************************************)
 
+(* 2-arg DVs for AssociationOf, NonEmptyAssociationOf in addition to 1-arg ones from above *)
 AssociationOf[ktest_, vtest_][assoc_]         := KeysValuesTrue[assoc, ktest, vtest];
-NonEmptyAssociationOf[ktest_, vtest_][assoc_] := NotZeroLenQ[assoc] && KeysValuesTrue[assoc, ktest, vtest];
+NonEmptyAssociationOf[ktest_, vtest_][assoc_] := NonEmptyQ[assoc] && KeysValuesTrue[assoc, ktest, vtest];
 
 RuleVectorOf[vtest_][rules_]         := RuleValuesTrue[rules, vtest];
 RuleVectorOf[ktest_, vtest_][rules_] := RulesTrue[rules, ktest, vtest];
@@ -100,11 +120,11 @@ ArrayOf[test_, shape_][data_] := ArrayOfQ[data, test, shape];
 
 (**************************************************************************************************)
 
-PairOf[a_, b_]     := PairOf[{a, b}];
-PairOf[preds_][e_] := PairOfQ[e, preds];
+PairOf[a_, b_]             := PairOf[{a, b}];
+PairOf[preds_][e_]         := PairOfQ[e, preds];
 
-TupleOf[preds:Repeated[_, {2, Inf}]] := TupleOf[List[preds]];
-TupleOf[preds_List][e_]              := TupleOfQ[e, preds];
+TupleOf[preds:BlankSeq2]   := TupleOf[List[preds]];
+TupleOf[preds_List][e_]    := TupleOfQ[e, preds];
 
 RecordOf[preds__Rule]      := RecordOf @ UAssoc @ preds;
 RecordOf[preds_Assoc][e_]  := RecordOfQ[e, preds];
@@ -128,16 +148,10 @@ SubscriptOp[s_][e__] := Subscript[s, e];
 
 (**************************************************************************************************)
 
-AffineOp[matrix_] := DotRightOp[Transpose @ ToPackedArray @ matrix];
-AffineOp[matrix_, {(0|0.)..}] := DotRightOp @ Transpose @ ToPackedArray @ matrix;
-AffineOp[matrix_, vector_] := DotRightOp[Transpose @ ToPackedArray @ matrix, vector];
-
-(**************************************************************************************************)
-
 ModOp[n_][e_]      := If[NumericQ[e], Mod[e, n, 0], e];
 ModOp[n_, m_][e_]  := If[NumericQ[e], Mod[e, n, m], e];
-ModOp[Infinity]    = Identity;
-ModOp[Infinity, _] = Identity;
+ModOp[Infinity]    := Identity;
+ModOp[Infinity, _] := Identity;
 
 (**************************************************************************************************)
 
@@ -159,6 +173,10 @@ IfOp[test_, trueFn_, falseFn_, otherFn_][input_] := If[test[input], trueFn[input
 (**************************************************************************************************)
 
 ConstOp[c_][___] := c;
+
+(**************************************************************************************************)
+
+RiffleOp[r_][list_] := Riffle[list, r];
 
 (**************************************************************************************************)
 

@@ -3,16 +3,18 @@ SystemExports[
     Lerp, Avg, Multiply,
     PlusOne, MinusOne, OneMinus, OneOver,
     Unthread, SequenceLength, Birange, LengthRange, RangeLength,
-    SequenceFirst, SequenceSecond, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
-    FlatList, FirstRest, FirstLast,
+    SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
+    FlatList,
     DropWhile, CommonPrefix, CommonPrefixLength, CommonSuffix, CommonSuffixLength,
+    IndexOf,
     VectorIndices, FirstVectorIndex, VectorIndicesOf, FirstVectorIndexOf,
     ExtractIndices, SortedCounts, SortedCountsBy,
     DuplicateIndices, DuplicateIndicesBy,
     Duplicates, DuplicatesBy,
     DeleteNone, DeleteNull,
-    GatherAgainst,
+    GatherAgainst, CombineAgainst, CombineBy,
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
+    ListRiffle, ScalarRiffle,
   "Head",
     Unsequence
 ];
@@ -29,7 +31,7 @@ PackageExports[
     HoldLength,
     NewCollector, FromCollector,
   "ControlFlowFunction",
-    ThenNull, ThenPart, Then1, Then2, Then3,
+    ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3,
   "Head",
     CollectorFn,
   "Variable",
@@ -78,11 +80,6 @@ HoldArgs[_]                     := $Failed;
 
 FlatList[a_List] := Flatten @ a;
 FlatList[a___]   := Flatten @ List @ a;
-
-(*************************************************************************************************)
-
-FirstRest[list_List] := {First @ list, Rest @ list};
-FirstLast[thing_]    := {First @ thing, Last @ thing};
 
 (*************************************************************************************************)
 
@@ -209,10 +206,12 @@ Unthread /: head_Symbol[l___, Unthread[a_, n_Int], r___] := With[
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[ThenNull, ThenPart, Then1, Then2, Then3]
+DeclareHoldAllComplete[ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3]
 DeclareSequenceHold[Unsequence]
 
 ThenNull[e___] := Then[e, Null];
+ThenFail[e___] := Then[e, $Fail];
+ThenFailEval[e___] := Then[e, FailEval];
 ThenPart[n_Int, e___] := Part[Unsequence[e], n];
 
 Then1[e___] := P1 @ Unsequence[e];
@@ -223,6 +222,7 @@ Then3[e___] := P3 @ Unsequence[e];
 
 SequenceFirst[e_, ___] := e;
 SequenceSecond[_, e_, ___] := e;
+SequenceThird[_, _, e_, ___] := e;
 SequenceLast[___, e_]  := e;
 SequenceMost[e___, _]  := e;
 SequenceRest[_, e___]  := e;
@@ -236,17 +236,15 @@ SequenceLength[_, _]    := 2;
 SequenceLength[_, _, _] := 3;
 s_SequenceLength        := Length[Unevaluated @ s];
 
-(**************************************************************************************************
-`Birange[a, b]` gives `Range[a,b]` or `Range[b, a, -1]` as appropriate.
-*)
+(*************************************************************************************************)
+Birange::usage = "Birange[a, b]` gives `Range[a,b]` or `Range[b, a, -1]` as appropriate."
 
 Birange[a_, b_]     := Range[a, b, Sign[b - a]];
 Birange[a_, b_, d_] := Range[a, b, Sign[b - a] * d];
 
-(**************************************************************************************************
-`LengthRange[e]` gives `{ 1, 2, .., Length[e] }`.
-*)
+(*************************************************************************************************)
 
+LengthRange::usaage = "LengthRange[e]` gives `{ 1, 2, .., Length[e] }`."
 LengthRange[expr_] := Range @ Length @ expr;
 RangeLength[expr_] := Range @ Length @ expr;
 
@@ -306,23 +304,49 @@ commonPrefixSuffixLen[list_, mult_] := Module[
 
 (**************************************************************************************************)
 
+DeclareStrict[IndexOf];
+DeclareHoldRest[IndexOf];
+
+IndexOf[EmptyP, _, else_] := else;
+IndexOf[expr_ ? IntVecQ, elem_ ? IntQ, else_] := First[FastNumericIndices[expr, elem, 1], else];
+IndexOf[expr_ ? NonZeroDepthQ, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
+
+(**************************************************************************************************)
+
 DeclareCurry2[VectorIndicesOf, FirstVectorIndexOf]
 
-VectorIndicesOf[x_, n_Integer] := Replace[FastNumericIndices[x, n], _Failure | $Failed -> Fail]
+VectorIndicesOf[x_, n_Integer] := TryEval @ Replace[FastNumericIndices[x, n], _Failure | $Failed -> Fail]
 VectorIndicesOf[x_, n_] := Flatten @ Position[x, Verbatim[n], {1}];
 
-FirstVectorIndexOf[x_, n_Integer] := First[Replace[FastNumericIndices[x, n, 1], _Failure | $Failed -> {Fail}], None];
+FirstVectorIndexOf[x_, n_Integer] := TryEval @ First[Replace[FastNumericIndices[x, n, 1], _Failure | $Failed -> {Fail}], None];
 FirstVectorIndexOf[x_, n_] := First @ FirstPosition[x, Verbatim[n], {None}, {1}];
 
 (**************************************************************************************************)
 
 DeclareCurry2[VectorIndices, FirstVectorIndex]
+DeclareHoldRest[FirstVectorIndex, iFirstVectorIndex]
 
-VectorIndices[{}, _] := {};
-VectorIndices[x_, EqualTo[r_Integer]] /; IntegerVectorQ[x] := FastNumericIndices[x, r];
+VectorIndices::usage =
+"VectorIndices[list$, test$] returns the i$ for which test$[e$i] gives True.
+It uses special kernel code for common numeric predicates like Positive, Negative, EqualTo[$$], GreaterThan[$$], etc.
+VectorIndices[test$] is the operator form of VectorIndices.
+"
 
-FirstVectorIndex[{}, _] := None;
-FirstVectorIndex[x_, EqualTo[r_Integer]] /; IntegerVectorQ[x] := First[FastNumericIndices[x, r, 1], None];
+FirstVectorIndex::usage =
+"FirstVectorIndex[list$, test$] returns the i$ for which test[e$i] gives True.
+It uses special kernel code for common numeric predicates like Positive, Negative, EqualTo[$$], GreaterThan[$$], etc.
+FirstVectorIndex[list$, test$, def$] returns default$ if no element passes.
+FirstVectorIndex[test$] is the operator form of FirstVectorIndex.
+"
+
+VectorIndices[EmptyP, _] := {};
+VectorIndices[vec_, EqualTo[r_Integer]] /; IntegerVectorQ[vec] := FastNumericIndices[vec, r];
+
+FirstVectorIndex[vec_, pred_, def_:None] :=
+  iFirstVectorIndex[vec, Evaluate @ pred, def];
+
+iFirstVectorIndex[vec_, EqualTo[r_Integer], else_] /; IntegerVectorQ[vec] :=
+  First[FastNumericIndices[vec, r, 1], else];
 
 (**************************************************************************************************)
 
@@ -332,8 +356,11 @@ vecIndsDef[lhs_ :> numVecPred[rhs_, test_]] := Hold[
 ];
 
 vecFirstIndDef[lhs_ :> numVecPred[rhs_, test_]] := Hold[
-  FirstVectorIndex[$$_, lhs],
-  RuleCondition @ First[Replace[FastNumericIndices[rhs, test, 1], _Failure | $Failed -> {Fail}], None]
+  iFirstVectorIndex[$$_, lhs, else_],
+  RuleCondition @ First[
+    Replace[FastNumericIndices[rhs, test, 1], _Failure | $Failed -> {Fail}],
+    else
+  ]
 ];
 
 defineVectorPredicates[list_List] :=
@@ -353,23 +380,35 @@ GreaterEqualThan[r_?NumQ] :> numVecPred[$$ - r,      NonNegative],
    Between[{a_?NumQ, b_}] :> numVecPred[Clip[$$ - a, {0, b-a}, {-1,-1}], NonNegative]
 }];
 
+VectorIndices[expr_, test_] :=
+  Pick[Range @ Length @ expr, MapVals[test, expr], True];
+
+iFirstVectorIndex[expr_, test_, def_] := Module[{i = 0},
+  Scan[elem |-> If[i++; test @ elem, Return[i, Module], Null, Null], expr];
+  def
+];
+
 (**************************************************************************************************)
 
-   VectorIndices[x_, test_] := Pick[Range @ Length @ x, Map[test, x], True];
-FirstVectorIndex[x_, test_] := SelectFirstIndex[x, test];
+ExtractIndices::usage =
+"ExtractIndices[expr$, {i$1, i$2, $$}] gives a list of parts of expr$, where the i$ are non-negative integers.
+ExtractIndices[expr$, array$] assumes array$ is a structure whose leaves are non-negative integers."
 
-(**************************************************************************************************)
+ExtractIndices = CaseOf[
+
+  $[expr_, index_Int ? NonNegativeMachineIntegerQ] := Part[expr, index];
+
+  $[expr_, vector_List /; VectorQ[vector, NonNegativeMachineIntegerQ]] :=
+    Part[expr, vector];
+
+  $[expr_, matrix_List /; MatrixQ[matrix, NonNegativeMachineIntegerQ]] :=
+    Map[vector |-> Part[expr, vector], matrix];
+
+  $[expr_, listVec_ ? ListVecQ] :=
+    Map[list |-> $[expr, list], listVec];
+];
 
 DeclareStrict[ExtractIndices];
-
-ExtractIndices[array_, indices_List /; VecQ[indices, NonNegativeMachineIntegerQ]] :=
-  Part[array, indices];
-
-ExtractIndices[array_, indices_List /; MatrixQ[indices, NonNegativeMachineIntegerQ]] :=
-  Map[pos |-> Part[array, pos], indices];
-
-ExtractIndices[array_, indices_List] :=
-  Map[pos |-> Part[array, pos], indices, {-1}];
 
 (**************************************************************************************************)
 
@@ -388,14 +427,41 @@ DeleteNull[e_] := DeleteCases[e, Null];
 
 (**************************************************************************************************)
 
-GatherAgainst[list_List, against_List] :=
-  KeyValueMap[SameLenMsg[list, against], Part[list, #2]&, PositionIndex @ against];
+DeclareStrict[GatherAgainst]
+
+GatherAgainst::usage =
+"GatherAgainst[expr$, against$] gathers expr$ into sublists whose corresponding values in against$ are equal."
+
+GatherAgainst[expr_, against_] /; SameLenQ[expr, against] :=
+  KeyValueMap[indices |-> Part[expr, indices], PositionIndex @ against];
 
 (**************************************************************************************************)
 
+DeclareStrict[CombineAgainst]
+
+CombineAgainst::usage = "
+CombineAgainst[expr$, against$, f$] returns a list of f$[a$, {e$i, e$j, $$}], where the e$ are parts of \
+expr$ that correspond to the value a$ in against$.
 "
-ApplyWindowed[f$, {e$1, e$2, $$, e$n}] gives {f$[e$1, e$2], f$[e$2, e$3], $$, f$[e$(n-1), e$n]}.
+
+CombineAgainst[expr_, against_, fn_:Id] /; SameLenQ[expr, against] :=
+  KeyValueMap[{key, indices} |-> fn[key, Part[expr, indices]], PositionIndex @ against];
+
+(**************************************************************************************************)
+
+DeclareCurry23[CombineBy]
+
+CombineBy::usage =
+"CombineBy[expr$, f$, g$] returns a list of g$[k$, {e$i, e$j, $$}], where the e$ are parts of \
+expr$ for which f$[e$] gives k$.
+CombineBy[f$, g$] is the operator form of CombineBy.
 "
+
+CombineBy[expr_, f_, g_] := KeyValueMap[g, GroupBy[expr, f]];
+
+(**************************************************************************************************)
+
+ApplyWindowed::usage = "ApplyWindowed[f$, {e$1, e$2, $$, e$n}] gives {f$[e$1, e$2], f$[e$2, e$3], $$, f$[e$(n-1), e$n]}."
 
 MapWindowed[f_, list_]             := f /@ Partition[list, 2, 1];
 MapWindowed[f_, list_, n_]         := f /@ Partition[list, n, 1];
@@ -413,23 +479,23 @@ ApplyWindowedCyclic[f_, list_, n_] := f @@@ Partition[list, n, 1, 1];
 
 DeclareCurry1[ApplyTuples, MapTuples]
 
-MapTuples[f_, pairs_] := Map[f, Tuples @ pairs];
-MapTuples[f_, pairs_, n_] := Map[f, Tuples[pairs, n]];
+MapTuples[f_, pairs_]       := Map[f, Tuples @ pairs];
+MapTuples[f_, pairs_, n_]   := Map[f, Tuples[pairs, n]];
 
-ApplyTuples[f_, pairs_] := f @@@ Tuples[pairs];
+ApplyTuples[f_, pairs_]     := f @@@ Tuples[pairs];
 ApplyTuples[f_, pairs_, n_] := f @@@ Tuples[pairs, n];
 
 (**************************************************************************************************)
 
 (* TODO: is this meaningfully different from AtIndices? *)
 
-"
+(* "
 MapIndices[f$, {i$1, i$2, $$},  {e$1, e$2, $$}] applies f$ selectively on elements e$(i$1), e$(i$2), $$.
 MapIndices[f$, indices$] is the operator form of MapIndices.
 * indices that don't exist are skipped.
 "
 
-(* MapIndices[f_, {}, expr_] := expr;
+MapIndices[f_, {}, expr_] := expr;
 
 MapIndices[f_, indicesLists:{__List}, expr_] :=
   MapIndices[f, #, expr]& /@ indicesLists;
@@ -439,3 +505,14 @@ MapIndices[f_, indices_, expr_] :=
 
 MapIndices[f_, indices_][expr_] := MapIndices[f, indices, expr];
  *)
+
+(**************************************************************************************************)
+
+ListRiffle[list_List, {}] := list;
+ListRiffle[list_List, riffleList_List] := Locals[
+  riff = PadRight[riffleList, Len[list], L @ riffleList];
+  Most @ Catenate @ Transpose[{list, riff}]
+];
+
+ScalarRiffle[list_List, scalar_] :=
+  Most @ Catenate @ Transpose[{list, ConstList[scalar, Len @ list]}];

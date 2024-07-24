@@ -10,8 +10,19 @@ SystemExports[
 
 PackageExports[
   "Function",
-    KeyAbsentFn, LookupOption
+    KeyAbsentFn, LookupOption,
+    TakeOptions, NarrowOptions
 ];
+
+(*************************************************************************************************)
+
+DeclareCurry2[TakeOptions];
+
+TakeOptions[sym_Sym,   ref_Sym]  := TakeOptions[Options @ sym, ref];
+TakeOptions[opts_List, ref_Sym]  := Seq @@ FilterRules[Flatten @ {opts}, Options @ ref];
+
+NarrowOptions /: sym_[l___, NarrowOptions[m__], r___] := sym[l, TakeOptions[{m}, sym], r];
+NarrowOptions[] := Sequence[];
 
 (*************************************************************************************************)
 
@@ -122,8 +133,12 @@ lookupOpts[expr_, key_, fn_] := lookupOptKey[expr, key, fn];
 lookupOptKey[expr_, OptionKey[key_, def_], _] := lookupOptKey[expr, key, def&];
 lookupOptKey[expr_, (OptionKey|Key)[key_], fn_] := lookupOptKey[expr, key, fn];
 lookupOptKey[assoc_ ? HoldAssociationQ, key_, fn_] := Lookup[assoc, key, fn[key]];
-lookupOptKey[expr_, key_, fn_] :=
+lookupOptKey[expr_, key_, fn_] := lookupExprKey1[expr, key, fn];
+
+lookupExprKey1[expr_, key_, fn_] :=
   FirstCase[NoEval @ expr, (Rule|RuleDelayed)[Verbatim[key], val_] :> val, fn[key]];
+(* lookupExprKey1[g_Graph,  *)
+
 
 lookupOptKey[expr_ ? HAtomQ, _, _] := ErrorMsg[LookupOptions::notCompoundExpression, HoldForm @ expr];
 LookupOptions::notCompoundExpression = "Expression `` was not a compound expression or association."

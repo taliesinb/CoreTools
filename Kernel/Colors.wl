@@ -1,17 +1,19 @@
 SystemExports[
   "GraphicsDirective",
     OKColor, OKHue, ComplexHue, NiceHue, PastelHue, VibrantHue, RainbowHue, RedBlueColorFunction,
-    $Blue, $Red, $Yellow, $Green, $Pink, $Teal, $Orange, $Purple, $Gray, $White, $Black,
-    $DarkBlue, $DarkRed, $DarkYellow, $DarkGreen, $DarkPink, $DarkTeal, $DarkGray, $DarkOrange, $DarkPurple, $DarkWhite, $DarkBlack,
-    $LightRed, $LightBlue, $LightGreen, $LightOrange, $LightPurple, $LightTeal, $LightGray, $LightPink, $LightYellow, $LightWhite, $LightBlack,
   "Function",
     ColorPalette, ColorToHex, ColorListToHex, HexToColorList,
     ChooseNumericColorFunction, ApplyAutomaticColoring,
     HashToColor, UniqueColor,
   "Head",
-    NumericColorFunction, DiscreteColorFunction,
+    NumericColorFunction, DiscreteColorFunction, HashValue,
+  "GraphicsFunction",
+    PixelHash,
   "Variable",
-    $MediumColorPalette, $MediumColorPalette, $DarkColorPalette, $LightColorPalette, $BooleanColors
+    $MediumColorPalette, $MediumColorPalette, $DarkColorPalette, $LightColorPalette, $BooleanColors,
+    $Blue, $Red, $Yellow, $Green, $Pink, $Teal, $Orange, $Purple, $Gray, $White, $Black,
+    $DarkBlue, $DarkRed, $DarkYellow, $DarkGreen, $DarkPink, $DarkTeal, $DarkGray, $DarkOrange, $DarkPurple, $DarkWhite, $DarkBlack,
+    $LightRed, $LightBlue, $LightGreen, $LightOrange, $LightPurple, $LightTeal, $LightGray, $LightPink, $LightYellow, $LightWhite, $LightBlack
 ];
 
 PackageExports[
@@ -37,13 +39,27 @@ NeonColorGradient
 
 (**************************************************************************************************)
 
+CoreBoxes[HashValue[hash_Int]] := TagBox[ToBoxes @ PixelHash @ hash, Deploy];
+
+(**************************************************************************************************)
+
+splitHash[hash_Int] := Mod[BitShiftRight[hash, {0, 16, 32, 48}], 2^16];
+PixelHash[None] := Image[{{Gray, Gray}, {Gray, Gray}}, ImageSize -> {8, 8}*2];
+PixelHash[hash_Int] := Tooltip[Image[
+  Partition[Map[NiceHue, splitHash[hash] / 2^16], 2],
+  ImageSize -> {8, 8}*2
+], hash];
+
+(**************************************************************************************************)
+
+HashToColor[list_List] := Map[HashToColor, list];
 HashToColor[hash_, l_:0] := Locals[
   {c1, c2} = IntegerDigits[hash, 256, 2];
   NiceHue[Mod[c1 / 256., 1], 0.5 + 0.5*Mod[c2 / 256., 1], l]
 ]
 
 $goldenRatioConj = 0.618033988749895;
-UniqueColor[n_Int] := NiceHue @ Mod[n * $goldenRatioConj, 1];
+UniqueColor[n_Int] := ColorConvert[NiceHue @ Mod[n * $goldenRatioConj, 1], RGBColor];
 
 (*************************************************************************************************)
 
@@ -288,9 +304,9 @@ makeNumericColorFunction[values2_, colors_, opts_] := Locals[
 
   values = values2;
   If[MatchQ[values, Num2P -> _List],
-    ibound = MinMax @ F @ values;
-    obound = MinMax @ L @ values;
-    values = Rescale[L @ values, obound, ibound]
+    ibound = MinMax @ First @ values;
+    obound = MinMax @ Last @ values;
+    values = Rescale[Last @ values, obound, ibound]
   ];
 
   values = EnsurePackedReals[values, ThrowErrorMessage["nonNumericValues"]];
@@ -501,7 +517,7 @@ ApplyAutomaticColoring[data_List] := Locals[
   colorGroups = Merge[RuleThread[colorsValues, Values @ posIndex], Catenate];
   colorList = ConstList[White, Len @ data];
   (* invert the PositionIndex-like association *)
-  KeyValueMap[Set[Part[colorList, #2], F[#1]]&, colorGroups];
+  KeyValueMap[Set[Part[colorList, #2], First[#1]]&, colorGroups];
 
   (* {colorList, colorGroups, colorFunction} *)
   {colorList, colorFunction}
@@ -535,7 +551,7 @@ makeGradientRaster[{min_, max_}, fn_, size_, transposed_] := Locals[
 
 Clear[colorFunctionBoxes];
 colorFunctionBoxes[cf:NumericColorFunction[id_InternalData]] := Locals[
-  bounds = F @ id;
+  bounds = First @ id;
   fn = CompileColorFunction[cf, 1];
   raster = makeGradientRaster[bounds, fn, 100, False];
   graphics = Graphics[raster,

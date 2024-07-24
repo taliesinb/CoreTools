@@ -56,7 +56,7 @@ StepContinuable[e_] = step[e];
 step = CaseOf[
 
   Seq[CModule[_, sym_, body_], stack_] := Block[
-    {sym = F[stack, ConstList[CValue[None], n]]},
+    {sym = First[stack, ConstList[CValue[None], n]]},
     Prepend[sym] @ $[body, Rest @ stack]]
   ];
 

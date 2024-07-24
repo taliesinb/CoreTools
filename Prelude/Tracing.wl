@@ -8,24 +8,30 @@ System`Capture,
 System`RawPrintBoxes,
 System`CountUnpackings,
 System`TraceUnpackings,
-System`WithDebugPrinting,
+System`EnableDebugPrinting,
+System`FailureString,
 
 "IOFunction",
+System`CustomizedPrint,
 System`ErrorPrint,
 System`LogPrint,
 System`RawPrint,
+System`LabeledPrint,
 System`DebugPrint,
 System`WithRawPrintIndent,
 
 "SpecialVariable",
 System`$Captured,
 System`$RawPrintIndent,
+System`$RawPrintMaxRate,
 System`$CellPrintLabel,
 System`$DebugPrinting
 System`$CurrentlyTracingAutoloads,
 System`$CurrentPackageFile,
 System`$CurrentPackageExprCount,
-System`$CurrentPackageExpr
+System`$CurrentPackageExpr,
+System`$ShouldPrint,
+System`$LastTraceback
 ]
 
 (*************************************************************************************************)
@@ -34,87 +40,179 @@ Begin["`Private`"]
 
 (*************************************************************************************************)
 
-SetAttributes[{BlockPrint, WithRawPrintIndent, WithDebugPrinting}, HoldAll];
+SetAttributes[{BlockPrint, EnableDebugPrinting, WithRawPrintIndent}, HoldAll];
 
 BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
+
+EnableDebugPrinting[body_] := Block[{$DebugPrinting = True}, body];
+
 WithRawPrintIndent[body_] := Block[{$RawPrintIndent = $RawPrintIndent + 1}, body];
-WithDebugPrinting[body_] := Block[{$DebugPrinting = True}, body];
 
 (*************************************************************************************************)
 
 $RawPrintIndent = 0;
-
-RawPrintBoxes[boxes_, style_, opts___Rule] /; TrueQ[$shouldPrintReset; $rawPrintCount <= $rawPrintMaxRate; True] :=
-  CellPrint @ Cell[
-    BoxData @ ToString[{$rawPrintCount, $rawPrintMaxRate, $rawPrintThisTime, $rawPrintResetTime}, InputForm];
-    BoxData @ boxes
-    , style,
-    CellMargins -> {{66 + $RawPrintIndent * 20, 0}, {0, 0}},
-    CellAutoOverwrite -> True,
-    Sequence @@ If[$rawPrintCount < $rawPrintMaxRate, {},
-      Beep[];
-      {CellFrame -> {{False, False}, {True, False}}, CellFrameMargins -> {{0, 0}, {0, 0}}}
-    ],
-    Sequence @@ If[StringQ[$CellPrintLabel],
-      {CellFrameLabels -> {{None, $CellPrintLabel}, {None, None}}}, {}
-    ],
-    opts,
-    LineSpacing -> {1, 1}
-  ];
+$RawPrintMaxRate = 50;
 
 (*************************************************************************************************)
 
-$rawPrintMaxRate = 50;
 $rawPrintCount = 0;
 $rawPrintResetTime = 0;
 $rawPrintThisTime = 0;
 
-$shouldPrintReset := (
-  $rawPrintThisTime = SessionTime[];
-  If[$rawPrintThisTime >= $rawPrintResetTime,
-    $rawPrintCount = 0;
+$ShouldPrint := (
+  If[
+    ($rawPrintThisTime = SessionTime[]) >= $rawPrintResetTime,
     $rawPrintResetTime = $rawPrintThisTime + .5;
+    $rawPrintCount = 0
   ];
-);
-
-$shouldPrintQ := (
-  $shouldPrintReset;
-  If[$rawPrintCount <= $rawPrintMaxRate, True, False]; True
+  $rawPrintCount <= $RawPrintMaxRate
 );
 
 (*************************************************************************************************)
 
-ErrorPrint[args___] /; $shouldPrintQ := RawPrintBoxes[
-  ToBoxes[SequenceForm[args], StandardForm],
-  "Message",
+RawPrintBoxes[boxes_, style_, opts___Rule] := If[!$ShouldPrint, $TimedOut,
+  CellPrint @ Cell[
+    BoxData @ boxes, style,
+    Sequence @@ generateRawPrintOptions[{opts}],
+    LineSpacing -> {1, 1}
+  ]
+];
+
+generateRawPrintOptions[opts_] := Flatten @ {
+  If[KeyExistsQ[opts, CellLabel],
+    List[
+      ShowCellLabel  -> True,
+      CellLabel      -> StringJoin[Lookup[opts, CellLabel], ConstantArray["       ", $RawPrintIndent]],
+      CellLabelStyle -> Directive["CellLabel", Lookup[opts, CellLabelStyle, GrayLevel[0.5]]],
+      DeleteCases[opts, CellLabelStyle | CellLabel -> _]
+    ],
+    opts
+  ],
+  If[$rawPrintCount++ >= $RawPrintMaxRate,
+    List[
+      Beep[];
+      CellFrame -> {{False, False}, {True, False}},
+      CellFrameMargins -> {{0, 0}, {0, 0}}
+    ],
+    {}
+  ],
+  If[$RawPrintIndent > 0,
+    List[
+      CellGroupingRules -> {"GraphicsGrouping", $RawPrintIndent},
+      CellMargins -> {{66 + $RawPrintIndent * 20, 3}, {0, 0}},
+      CellLabelMargins -> {{12 + $RawPrintIndent * 20, Inherited}, {Inherited, Inherited}}
+    ],
+    List[
+      CellMargins -> {{Inherited, 1}, {1, 1}},
+      CellGroupingRules -> "GraphicsGrouping"
+    ]
+  ],
+  If[StringQ[$CellPrintLabel],
+    CellFrameLabels -> {{None, $CellPrintLabel}, {None, None}},
+    {}
+  ]
+};
+
+(*************************************************************************************************)
+
+(* TODO: investigate CellGroupingRules *)
+
+SetAttributes[CustomizedPrint, HoldRest];
+
+CustomizedPrint[opts_List, args___] := If[!$ShouldPrint, $TimedOut,
+  RawPrintBoxes[
+    printSeqBoxes @@ Map[printArgBoxes, {args}],
+    Lookup[opts, CellStyle, "Print"],
+    Sequence @@ DeleteCases[opts, CellStyle -> _]
+  ]
+];
+
+printSeqBoxes[e___] := RowBox @ Riffle[{e}, "\[InvisibleSpace]"];
+printSeqBoxes[e_] := e;
+
+printArgBoxes[e_] := ToBoxes @ e;
+printArgBoxes[HoldPattern[f:Failure[_, _Association ? Developer`HoldAtomQ]]] := ToBoxes @ FailureString[f];
+
+(*************************************************************************************************)
+
+FailureString[_] := "???";
+
+FailureString[HoldPattern[f:Failure[___]]] :=
+  "\[LeftGuillemet][\[Ellipsis]]\[RightGuillemet]";
+
+FailureString[HoldPattern[f:Failure[tag_, assoc_Association ? Developer`HoldAtomQ]]] := StringJoin[
+  "\[LeftGuillemet][",
+  TextString @ tag, fmtErrorCode @ assoc @ "ErrorCode", ": ",
+  msgPayloadStr @ f,
+  fmtTraceback[System`$LastTraceback = assoc @ "Traceback"],
+  "]\[RightGuillemet]"
+];
+
+msgPayloadStr[HoldPattern[Failure[_, <|"MessageTemplate" -> msg_String|>]]] := msg;
+msgPayloadStr[f_] := TextString[f];
+
+(*************************************************************************************************)
+
+fmtErrorCode[_Missing] := "";
+fmtErrorCode[sub_]     := TextString @ sub;
+
+fmtTraceback[_] := "";
+fmtTraceback[HoldPattern[stack_OpenerView]] := List[
+  " @ ", fmtFinalFrame @ getLastFrame @ stack
+];
+
+getLastFrame[stack_] := Module[{pos},
+  pos = Position[stack, _OpenerView, {5, Infinity}];
+  If[pos === {}, None, Extract[stack, Last @ pos]]
+];
+
+fmtFinalFrame[_] := "??";
+fmtFinalFrame[HoldPattern[frame_OpenerView]] := fmtFileLoc[
+  getFileLoc @ Part[frame, 1, 1],
+  FirstCase[frame, Item[line_String, ___] :> fmtFrameLine[line], None, Infinity]
+];
+
+getFileLoc[TemplateBox[{boxes_,  "\" in \"", fn_}, "RowDefault"]] := {getFileLoc2 @ boxes, ToExpression @ fn};
+getFileLoc[boxes_] := {getFileLoc2 @ boxes, None};
+getFileLoc2[path_String] := path;
+getFileLoc2[boxes_] := FirstCase[boxes, HoldPattern[FileExistsQ[path_String]] :> path, None, Infinity];
+
+fmtFileLoc[{path_String, fnName_String}, line_String] := {path, ":", line, ":", fnName};
+fmtFileLoc[{path_String, None}, line_String] := {path, ":", line};
+fmtFileLoc[_, _] := "???"
+
+fmtFrameLine[line_] := First[
+  StringCases[line, d:DigitCharacter.. ~~ ". " :> d, 1],
+  "???"
+];
+
+
+(*************************************************************************************************)
+
+$errorPrintOpts = {
+  CellStyle -> "Message",
   FontSize -> 13, FontColor -> Orange,
-  CellBracketOptions -> {"Color" -> Orange, "Thickness" -> 1.5}
-];
+  CellLabel -> "Error", CellLabelStyle -> Orange
+};
+
+ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
 
 (*************************************************************************************************)
 
-LogPrint[args___] /; $shouldPrintQ := RawPrintBoxes[
-  ToBoxes[SequenceForm[args], StandardForm],
-  "Print",
-  FontSize -> 13, FontColor -> GrayLevel[0.5],
-  CellBracketOptions -> {"Color" -> GrayLevel[0.5], "Thickness" -> 1.5}
-];
+$logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
+
+LogPrint[args___] := CustomizedPrint[$logPrintOpts, args];
 
 (*************************************************************************************************)
 
-DebugPrint[args___] /; $DebugPrinting && $shouldPrintQ := RawPrintBoxes[
-  ToBoxes[SequenceForm[args], StandardForm],
-  "Print",
-  FontSize -> 13, FontColor -> GrayLevel[0.5],
-  CellBracketOptions -> {"Color" -> GrayLevel[0.5], "Thickness" -> 1.5}
-];
+$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+
+DebugPrint[args___] /; $DebugPrinting := CustomizedPrint[$debugPrintOpts, args]
 
 (*************************************************************************************************)
 
-RawPrint[args___] /; $shouldPrintQ := RawPrintBoxes[
-  ToBoxes[SequenceForm[args], StandardForm],
-  "Print"
-];
+RawPrint[args___] :=
+  CustomizedPrint[{}, args];
 
 (*************************************************************************************************)
 
