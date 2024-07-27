@@ -7,10 +7,16 @@ SystemExports[
     LevelPositions,
     OccurencesWithin,
 
+    FindExprPaths, AllExprPaths, LeafExprPaths,
+    ToExprPaths, ExtractExprPaths,
+
     LevelAssociation, OccurenceAssociation, ArgumentAssociation, LeafAssociation,
     PartAssociation,
 
-    FullReplaceAll, FullReplaceRepeated
+    FullReplaceAll, FullReplaceRepeated,
+
+  "Head",
+    ExprPath
 ];
 
 (**************************************************************************************************)
@@ -51,11 +57,46 @@ PartAssociation[expr_, parts_ ? ListVectorQ, fn_:Id] := partAssoc[expr, parts, f
 partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[expr, parts]];
 partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[expr, parts, fn]];
 
+(**************************************************************************************************)
+
+CoreBoxes[ExprPath[path___]] := exprPathBoxes[path];
+
+$dimDot = DimmedBox @ ".";
+
+exprPathBoxes[] := $dimDot;
+exprPathBoxes[a_] := RowBox[{ToBoxes @ a, $dimDot}];
+exprPathBoxes[a__] := RowBox @ FlatList @ Map[z |-> {ToBoxes[z], $dimDot}, {a}];
+
 (*************************************************************************************************)
 
-DeclareCurry2[OccurenceMapP,  OccurenceScanP]
-DeclareCurry2[ScanOccurences, ScanArguments, ScanLevel]
+ToExprPaths[list_ ? ListVecQ] := Sort[ExprPath @@@ list];
 
+FindExprPaths[expr_, spec:BlankSeq2] := ToExprPaths @ Position[expr, spec, Heads -> False];
+
+AllExprPaths[expr_]  := FindExprPaths[expr, _];
+
+LeafExprPaths[expr_] := FindExprPaths[expr, _, {-1}];
+
+(*************************************************************************************************)
+
+ExtractExprPaths[expr_, paths_] := CatchError @ Block[{$expr = expr}, extractPaths @ paths];
+
+extractPaths = CaseOf[
+  {}                 := {};
+  ExprPath[]         := $expr;
+  paths:{__ExprPath} := Extract[$expr, List @@@ paths];
+  path_ExprPath      := Extract[$expr, List @@ path];
+  dict:ListDictP     := Map[$, dict];
+  other_             := ThrowMsg["notExprPath", other];
+];
+
+ExtractExprPaths::notExprPath = "Expected a (list or association of) ExprPath, not ``."
+
+(*************************************************************************************************)
+
+(* DeclareCurry2[OccurenceMapP,  OccurenceScanP]
+DeclareCurry2[ScanOccurences, ScanArguments, ScanLevel]
+ *)
 (*************************************************************************************************)
 
 OccurencesWithin[expr_, patt_, up_Int] := Locals[

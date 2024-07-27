@@ -31,8 +31,6 @@ PackageExports[
 
   "GraphicsFunction",
     CustomGraphDrawing, CustomGraphMakeBoxes,
-    CustomVertexLabelFunction, CustomEdgeLabelFunction,
-    CustomDynamicVertexLabelFunction, CustomDynamicEdgeLabelFunction,
     CustomSetGraphStyle,
     GraphVertexAnimate
 ];
@@ -91,80 +89,70 @@ fallbackGraphStyle[themeData_, prop_, args___] := GraphComputation`SetGraphStyle
 
 (*************************************************************************************************)
 
-patchMakeGraphBoxes[] := With[
-  {gmb := GraphComputation`GraphMakeBoxes,
-    gd := GraphComputation`GraphDrawing,
-    mb := GraphComputation`GraphBoxesDump`makeBoxes,
-    ivlf = GraphComputation`GraphLabelsDump`vertexLabelingFunction,
-    ielf = GraphComputation`GraphLabelsDump`edgeLabelingFunction,
-    idvlf = GraphComputation`GraphLabelsDump`dynamicVertexLabelingFunction,
-    idelf = GraphComputation`GraphLabelsDump`dynamicEdgeLabelingFunction,
-    vlf = GraphComputation`VertexLabelingFunction,
-    elf = GraphComputation`EdgeLabelingFunction,
-    dvlf = GraphComputation`DynamicVertexLabelingFunction,
-    delf = GraphComputation`DynamicEdgeLabelingFunction
-  },
-  Unprotect[gmb, vlf, elf, dvlf, delf, mb, setGStyle];
-
-  DownValues[vlf] = Prepend[
-    DownValues[vlf] /. ivlf -> CustomVertexLabelFunction,
-    HoldP[vlf[Placed[VertexAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
-      res = CustomVertexLabelFunction[f][VertexAnnotation[#5, k], pos, expr];
-      res /; UnsameQ[res, $Failed]
-    ]
-  ];
-  DownValues[elf] = Prepend[
-    DownValues[elf] /. ielf -> CustomEdgeLabelFunction,
-    HoldP[elf[Placed[EdgeAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
-      res = CustomEdgeLabelFunction[f][EdgeAnnotation[#3, k], pos, expr];
-      res /; UnsameQ[res, $Failed]
-    ]
-  ];
-  DownValues[dvlf] = Prepend[
-    DownValues[dvlf] /. idvlf -> CustomDynamicVertexLabelFunction,
-    HoldP[vlf[Placed[VertexAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
-      res = CustomDynamicVertexLabelFunction[f][VertexAnnotation[#5, k], pos, expr];
-      res /; UnsameQ[res, $Failed]
-    ]
-  ];
-  DownValues[delf] = Prepend[
-    DownValues[delf] /. idelf -> CustomDynamicEdgeLabelFunction,
-    HoldP[elf[Placed[EdgeAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
-      res = CustomDynamicEdgeLabelFunction[f][EdgeAnnotation[#3, k], pos, expr];
-      res /; UnsameQ[res, $Failed]
-    ]
-  ];
-  DownValues[gmb] = DownValues[gmb] /. {gd -> CustomGraphDrawing, mb -> CustomGraphMakeBoxes};
-  Protect[gmb, vlf, elf, mb, gThemes, setGStyle];
-]
-
-With[
-  {ivlf = GraphComputation`GraphLabelsDump`vertexLabelingFunction,
-   ielf = GraphComputation`GraphLabelsDump`edgeLabelingFunction,
-   idvlf = GraphComputation`GraphLabelsDump`dynamicVertexLabelingFunction,
-   idelf = GraphComputation`GraphLabelsDump`dynamicEdgeLabelingFunction,
-
-   (* gThemes := GraphComputation`$GraphThemes, *)
-   sgs := GraphComputation`SetGraphStyle},
-
-  Unprotect[sgs];
-  sgs[] := Join[$SystemGraphThemeNames, Keys @ $CustomGraphThemeData];
-  sgs[name_String ? CustomGraphThemeQ, prop_Symbol, args___] :=
-    TryEval @ CustomSetGraphStyle[$CustomGraphThemeData @ name, prop, args];
-  Protect[sgs];
-
-  CustomVertexLabelFunction[]   := ivlf[wrapUL @ $UserVertexLabelFunction];
-  CustomVertexLabelFunction[f_] := ivlf[wrapUL @ f];
-  CustomEdgeLabelFunction[]     := ielf[wrapUL @ $UserEdgeLabelFunction];
-  CustomEdgeLabelFunction[f_]   := ielf[wrapUL @ f];
-  CustomDynamicVertexLabelFunction[]   := idvlf[wrapUL @ $UserVertexLabelFunction];
-  CustomDynamicVertexLabelFunction[f_] := idvlf[wrapUL @ f];
-  CustomDynamicEdgeLabelFunction[]     := idelf[wrapUL @ $UserEdgeLabelFunction];
-  CustomDynamicEdgeLabelFunction[f_]   := idelf[wrapUL @ f];
+patchCustomGraphLabeling[] := Then[
+  patchGraphLabelFn[GraphComputation`VertexLabelingFunction,        GraphComputation`GraphLabelsDump`vertexLabelingFunction,        GraphComputation`CustomVertexLabelFunction,        $UserVertexLabelFunction, $newVertexLabelDVs],
+  patchGraphLabelFn[GraphComputation`EdgeLabelingFunction,          GraphComputation`GraphLabelsDump`edgeLabelingFunction,          GraphComputation`CustomEdgeLabelFunction,          $UserEdgeLabelFunction,   $newEdgeLabelDVs],
+  patchGraphLabelFn[GraphComputation`DynamicVertexLabelingFunction, GraphComputation`GraphLabelsDump`dynamicVertexLabelingFunction, GraphComputation`CustomDynamicVertexLabelFunction, $UserVertexLabelFunction, $newVertexLabelDVs],
+  patchGraphLabelFn[GraphComputation`DynamicEdgeLabelingFunction,   GraphComputation`GraphLabelsDump`dynamicEdgeLabelingFunction,   GraphComputation`CustomDynamicEdgeLabelFunction,   $UserEdgeLabelFunction,   $newEdgeLabelDVs]
 ];
 
-wrapUL[f_][Null|None] := Null;
-wrapUL[f_][e_]        := Replace[f[e], None -> Null];
+DeclareHoldAllComplete[patchGraphLabelFn];
+patchGraphLabelFn[gcFn_, internalFn_, customFn_, userFnVar_, rules_] := Then[
+  gcFn, internalFn,
+  Unprotect[gcFn],
+  DownValues[gcFn] = Join[rules /. {$1 -> gcFn, $2 -> customFn}, DownValues[gcFn] /. internalFn -> customFn],
+  customFn[]   := internalFn @ postProcLabelWith @ userFnVar,
+  customFn[f_] := internalFn @ postProcLabelWith @ f,
+  Protect[gcFn]
+];
+
+postProcLabelWith[f_][None|Null | Style[None|Null, ___]] := Null;
+postProcLabelWith[f_][e_]                                := Replace[f[e], None -> Null];
+
+$newVertexLabelDVs = {
+  HoldP[$1[Placed[VertexAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
+    res = $2[f][VertexAnnotation[#5, k], pos, expr];
+    res /; UnsameQ[res, $Failed]
+  ],
+  HoldP[$1[VertexAnnotation[k_], expr___]] :> Block[{res},
+    res = $2[][VertexAnnotation[#5, k], Automatic, expr];
+    res /; UnsameQ[res, $Failed]
+  ]
+};
+
+$newEdgeLabelDVs = {
+  HoldP[$1[Placed[EdgeAnnotation[k_], pos_, f___], expr___]] :> Block[{res},
+    res = $2[f][EdgeAnnotation[#2, k], pos, expr];
+    res /; UnsameQ[res, $Failed]
+  ],
+  HoldP[$1[EdgeAnnotation[k_], expr___]] :> Block[{res},
+    res = $2[][EdgeAnnotation[#2, k], Automatic, expr];
+    res /; UnsameQ[res, $Failed]
+  ]
+};
+
+(*************************************************************************************************)
+
+patchCustomGraphDrawing[] := With[
+  {gcGMb := GraphComputation`GraphMakeBoxes},
+  Unprotect[gcGMb];
+  DownValues[gcGMb] = DownValues[gcGMb] /. {
+    GraphComputation`GraphDrawing -> CustomGraphDrawing,
+    GraphComputation`GraphBoxesDump`makeBoxes -> CustomGraphMakeBoxes
+  };
+  Protect[gcGMb];
+];
+
+(*************************************************************************************************)
+
+patchCustomGraphPlotThemes[] := With[
+  {gcSGS := GraphComputation`SetGraphStyle},
+  Unprotect[gcSGS];
+  gcSGS[] := Join[$SystemGraphThemeNames, Keys @ $CustomGraphThemeData];
+  gcSGS[name_String ? CustomGraphThemeQ, prop_Symbol, args___] :=
+    TryEval @ CustomSetGraphStyle[$CustomGraphThemeData @ name, prop, args];
+  Protect[gcSGS];
+];
 
 (*************************************************************************************************)
 
@@ -200,6 +188,10 @@ CustomGraphDrawing[graph_] := Module[{vl, el, vlf, elf, pgf},
   ]
 ];
 
+(*************************************************************************************************)
+
+patchMakeGraphBoxes[] := Then[patchCustomGraphPlotThemes[], patchCustomGraphLabeling[], patchCustomGraphDrawing[]];
+
 RegisterPackagePatchFunctions[
   "Network`GraphBoxes`",
   "MakeGraphBoxes" -> patchMakeGraphBoxes
@@ -207,9 +199,19 @@ RegisterPackagePatchFunctions[
 
 (*************************************************************************************************)
 
+VertexAnnotation::usage =
+"VertexAnnotation[key$], when provided via VertexLabels -> VertexAnnotation[$$], will use \
+the vertex annotation named key$ as a label. It can also be wrapped in a Placed.
+";
+
 VertexAnnotation[v_, k_]                  := VertexAnnotation[v, k, Null];
 VertexAnnotation[v_Int, k_, d_]           := Lookup[PartOr[$CurrentVertexAnnotations, v, {}], k, d];
 VertexAnnotation[v:Except[_Slot], k_, d_] := Lookup[Lookup[$CurrentVertexAnnotations, v, {}], k, d];
+
+EdgeAnnotation::usage =
+"EdgeAnnotation[key$], when provided via EdgeLabels -> EdgeAnnotation[$$], will use \
+the edge annotation named key$ as a label. It can also be wrapped in a Placed.
+";
 
 EdgeAnnotation[e_, k_]                  := EdgeAnnotation[e, k, Null];
 EdgeAnnotation[e_Int, k_, d_]           := Lookup[PartOr[$CurrentEdgeAnnotations, e, {}], k, d];

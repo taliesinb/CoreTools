@@ -22,6 +22,7 @@ SystemExports[
 PackageExports[
   "Function",
     Args, HoldArgs,
+    Clip2,
   "MutatingFunction",
     JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
   "Function",
@@ -37,6 +38,12 @@ PackageExports[
   "Variable",
     $UnthreadEnabled
 ];
+
+(*************************************************************************************************)
+
+DeclareCurry23[Clip2]
+
+Clip2[x_, a_, b_] := Clip[x, {a, b}];
 
 (*************************************************************************************************)
 
@@ -307,7 +314,7 @@ commonPrefixSuffixLen[list_, mult_] := Module[
 DeclareStrict[IndexOf];
 DeclareHoldRest[IndexOf];
 
-IndexOf[EmptyP, _, else_] := else;
+IndexOf[EmptyDataP, _, else_] := else;
 IndexOf[expr_ ? IntVecQ, elem_ ? IntQ, else_] := First[FastNumericIndices[expr, elem, 1], else];
 IndexOf[expr_ ? NonZeroDepthQ, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
 
@@ -339,7 +346,7 @@ FirstVectorIndex[list$, test$, def$] returns default$ if no element passes.
 FirstVectorIndex[test$] is the operator form of FirstVectorIndex.
 "
 
-VectorIndices[EmptyP, _] := {};
+VectorIndices[EmptyDataP, _] := {};
 VectorIndices[vec_, EqualTo[r_Integer]] /; IntegerVectorQ[vec] := FastNumericIndices[vec, r];
 
 FirstVectorIndex[vec_, pred_, def_:None] :=
@@ -484,27 +491,6 @@ MapTuples[f_, pairs_, n_]   := Map[f, Tuples[pairs, n]];
 
 ApplyTuples[f_, pairs_]     := f @@@ Tuples[pairs];
 ApplyTuples[f_, pairs_, n_] := f @@@ Tuples[pairs, n];
-
-(**************************************************************************************************)
-
-(* TODO: is this meaningfully different from AtIndices? *)
-
-(* "
-MapIndices[f$, {i$1, i$2, $$},  {e$1, e$2, $$}] applies f$ selectively on elements e$(i$1), e$(i$2), $$.
-MapIndices[f$, indices$] is the operator form of MapIndices.
-* indices that don't exist are skipped.
-"
-
-MapIndices[f_, {}, expr_] := expr;
-
-MapIndices[f_, indicesLists:{__List}, expr_] :=
-  MapIndices[f, #, expr]& /@ indicesLists;
-
-MapIndices[f_, indices_, expr_] :=
-  SafeMapAt[f, expr, List /@ indices];
-
-MapIndices[f_, indices_][expr_] := MapIndices[f, indices, expr];
- *)
 
 (**************************************************************************************************)
 

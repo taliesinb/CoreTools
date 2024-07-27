@@ -1,5 +1,9 @@
 SystemExports[
   "Predicate",
+
+    ZeroQ, ZeroIntegerQ, NonZeroQ, NonZeroIntegerQ,
+    OnePartSpecQ, MultiPartSpecQ, ExtPartSpecQ,
+
     EmptyQ, AtomicQ, NonAtomicQ,
 
     SingleQ, DatumQ,
@@ -57,6 +61,39 @@ PackageExports[
     UserSymbolQ,
   "MetaFunction",
     DefinePatternPredicateRules, DefinePatternPredicates
+];
+
+(*************************************************************************************************)
+
+DeclarePredicate1[ZeroQ, ZeroIntegerQ, NonZeroQ, NonZeroIntegerQ]
+
+ZeroQ[ZeroP]          = True;
+ZeroIntegerQ[0]       = True;
+
+NonZeroQ[ZeroP]       = False;
+NonZeroQ[NumP]        = True;
+
+NonZeroIntegerQ[0]    = False;
+NonZeroIntegerQ[_Int] = True;
+
+(*************************************************************************************************)
+
+DeclarePredicate1[OnePartSpecQ, MultiPartSpecQ, ExtPartSpecQ]
+
+OnePartSpecQ[OnePartSpecP] = True;
+
+MultiPartSpecQ = CaseOf[
+  All                                := True;
+  Span[_Int|All]                     := True;
+  Span[_Int|All, _Int|All]           := True;
+  Span[_Int|All, _Int|All, _Int|All] := True;
+  List[OnePartSpecP..]                := True;
+];
+
+ExtPartSpecQ = CaseOf[
+  All                              := True;
+  (_Span | _List) ? MultiPartSpecQ := True;
+  _Integer | _Key | _String        := True;
 ];
 
 (*************************************************************************************************)

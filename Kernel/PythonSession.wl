@@ -25,7 +25,7 @@ PackageExports[
     DefaultPythonSession,
     InitializeTorch,
   "Function",
-    PyObjectGraph,
+    PythonObjectGraph,
   "Variable",
     $PythonPrintCallback,
     $PythonErrorCallback,
@@ -51,13 +51,25 @@ PrivateExports[
 
 (*************************************************************************************************)
 
-PyObjectGraph[expr_] := Locals[
-  assoc = OccurenceAssociation[expr, PyObject[_, _] | PyObjectRef[_, _]];
-  KeyMapValueMap[toPathExpr, ReplaceAll[PyObjectRef -> PyObject], assoc]
+PythonObjectGraph[expr_] := Locals[
+  paths = ToExprPaths @ Position[expr, _PyObject | _PyObjectRef];
+  paths //= ReplaceAll[ExprPath[e___, 0] :> ExprPath[e]];
+  exprs = ExtractExprPaths[expr, paths];
+  exprs = Replace[exprs, PyObject[n_, h_][___] :> PyObjectRef[n, h], {1, Infinity}];
+  igraph = IndexGraph @ PrefixGraph @ paths;
+  FromIndexGraph[igraph, exprs,
+    PlotTheme -> "CorePythonGraph",
+    GraphLayout -> {"LayeredDigraphEmbedding", "Orientation" -> Left}
+  ]
 ];
 
-toPathExpr[{pos___, 0}] := ExprPath[pos];
-toPathExpr[path_List] := ExprPath @@ path;
+DefineGraphTheme["CorePythonGraph", {
+  ThemeParent -> "Core",
+  EdgeShapeFunction -> {"ShortUnfilledArrow", "ArrowSize" -> Medium, "ArrowPositions" -> 0.7},
+  VertexLabels -> "Name",
+  EdgeLabels -> "EdgeTag",
+  Options -> {ImagePadding -> 60}
+}];
 
 (*************************************************************************************************)
 

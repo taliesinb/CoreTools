@@ -5,7 +5,8 @@ SystemExports[
 
 PackageExports[
   "Function",
-    StandardizePadding,
+    ParsePadding,
+    ParsePart,
     ParseListSpec,
     ParseCyclicSpec,
     LookupSide,
@@ -20,10 +21,10 @@ PackageExports[
 
 (**************************************************************************************************)
 
-StandardizePadding::usage =
-"StandardizePadding[spec$] standardizes a padding specification spec$.
-* StandardizePadding returns {{l$, r$}, {b$, t$}}.
-* StandardizePadding accepts the following forms:
+ParsePadding::usage =
+"ParsePadding[spec$] standardizes a padding specification spec$.
+* ParsePadding returns {{l$, r$}, {b$, t$}}.
+* ParsePadding accepts the following forms:
 | None | no padding |
 | n$ | pad by n$ on all sides |
 | {h$, v$} | pad by h$ horizontally and v$ vertically |
@@ -32,7 +33,7 @@ StandardizePadding::usage =
 * Sides can be Horizontal or Vertical to indicate both sides.
 "
 
-StandardizePadding = CaseOf[
+ParsePadding = CaseOf[
   All                          := All;
   None                         := {{0, 0}, {0, 0}};
   p:NumP                       := N @ {{p, p}, {p, p}};
@@ -108,6 +109,54 @@ $SideToRadians = <|
 DeclareStrict[BoundsToSize]
 
 BoundsToSize[{{x1_, x2_}, {y1_, y2_}}] := {x2 - x1, y2 - y1};
+
+(**************************************************************************************************)
+
+ParsePart::invalidPartSpecification = "`` is not a valid part specification.";
+With[{sp = sP = Except[0, _Int | All]},
+ParsePart = CaseOf[
+  $[_,                      0]     := {};
+  $[All,                    n_Int] := Range[n];
+  $[i_Int,                  n_Int] := spanL[n, {i}];
+  $[is_List ? IntVecQ,      n_Int] := spanL[n, is];
+  $[Span[a:sP],             n_Int] := span1[n, a];
+  $[Span[a:sP, b:sP],       n_Int] := span2[n, a, b];
+  $[Span[a:sP, b:sP, c:sP], n_Int] := span3[n, a, b, c];
+  $[spec_,                  n_Int] := (Message[ParsePart::invalidPartSpecification, spec]; {});
+]];
+
+spanL[n_, p_ ? PosIntVecQ] := Select[p, LessEqualThan[n]];
+spanL[n_, p_]              := Map[i |-> Which[-n <= i < 0, i + n + 1, 0 < i <= n, i, True, Nothing], p];
+
+span1[n_, All]            := Range[n];
+span1[n_, a_ ? Negative]  := Range[Max[n + a + 1, 1], n];
+span1[n_, a_ ? Positive]  := Range[1, Min[n, a]];
+
+span2[n_, a_, b_]         := clippedRange[n, clipL[n, a], clipR[n, b], 1];
+span3[n_, a_, b_, c_]     := clippedRange[n, clipL[n, a], clipR[n, b], c];
+
+clipL[n_, All]            := 1;
+clipL[n_, x_ ? Negative]  := n + x + 1;
+clipL[n_, x_ ? Positive]  := x;
+
+clipR[n_, All]            := n;
+clipR[n_, x_ ? Negative]  := n + x + 1;
+clipR[n_, x_ ? Positive]  := x
+
+(**************************************************************************************************)
+
+clippedRange[n_, a_, b_, All] :=
+  clippedRange[n, a, b, If[b < a, -1, 1]];
+
+clippedRange[n_, a_, b_, c_ ? Negative] := If[
+  a < b || a < 1 || b > n, {},
+  Range[Clip[a, {1, n}], Clip[b, {1, n}], c]
+];
+
+clippedRange[n_, a_, b_, c_] := If[
+  a > b || a > n || b < 1, {},
+  Range[Clip[a, {1, n}], Clip[b, {1, n}], c]
+];
 
 (**************************************************************************************************)
 

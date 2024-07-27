@@ -1,7 +1,7 @@
 SystemExports[
   "Function",
     ListAssociationParts,
-    InvertAssociation, ReverseRules, MapRules, KeyMapValueMap, KeysValues, ToValues,
+    InvertAssociation, InvertUnorderedAssociation, ReverseRules, MapRules, KeyMapValueMap, KeysValues, ToValues,
     RuleThread, RuleUnthread, UnorderedAssociationThread,
     RangeRules, RangeAssociation, RangeUnorderedAssociation,
     RulesRange, AssociationRange, UnorderedAssociationRange,
@@ -41,14 +41,20 @@ PadAssociation[assoc_, keys_, val_] := Join[
 
 (**************************************************************************************************)
 
-DeclareStrict[ReverseRules, InvertAssociation, PartIndex];
+DeclareStrict[ReverseRules, InvertAssociation, InvertUnorderedAssociation];
 
-ReverseRules[dict_Dict]                := Map[Reverse, dict];
+ReverseRules[dict_Dict]                := Dict @ Map[Reverse, Normal @ dict];
 ReverseRules[rules_ ? RuleLikeVectorQ] := Map[Reverse, rules];
 
 InvertAssociation::notUnique = "Cannot uniquely invert association ``.";
 InvertAssociation[assoc_ ? AssociationQ] := Module[
   {res = ReverseRules @ assoc},
+  If[Len[res] == Len[assoc], res,
+    ErrorMsg[InvertAssociation::notUnique, assoc]]];
+
+InvertUnorderedAssociation::notUnique = "Cannot uniquely invert association ``.";
+InvertUnorderedAssociation[assoc_ ? AssociationQ] := Module[
+  {res = UDict @ Reverse[Normal @ assoc, 2]},
   If[Len[res] == Len[assoc], res,
     ErrorMsg[InvertAssociation::notUnique, assoc]]];
 

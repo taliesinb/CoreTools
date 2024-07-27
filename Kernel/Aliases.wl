@@ -22,7 +22,7 @@ PackageExports[
   "DataHead",
     Bag, Dict, Assoc, UDict, UAssoc, UAssociation, UnorderedAssociation, RuleD, InternalData,
   "ControlFlowFunction",
-    Seq, Then, Eval, NoEval, TryEval, FailEval, FastQuietCheck,
+    Seq, Then, Eval, NoEval, TryEval, FailEval, FastQuietCheck, WithLocalSettings,
   "PatternHead",
     HoldP, Regex, Alt,
     VPattern, VCondition, VPatternTest, VBlank, VBlankSeq, VBlankNullSeq, VAlt, VRepeated, VExcept, VVerbatim, VHoldP,
@@ -30,15 +30,16 @@ PackageExports[
   "Symbol",
     Auto, Inf, Tau,
   "PatternSymbol",
-    AtomP, DatumP, BoolP, ZeroP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
+    AtomP, DatumP, BoolP, ZeroP, NonZeroP, NonZeroIntP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
     NumP, Num2P, Num3P, UnitNumP,
     ExtNumP, ExtNatP, ExtIntP, ExtPosIntP,
     PosNumP, ExtPosNumP, ColorP, SideP, ExtSideP,
+    OnePartSpecP, MultiPartSpecP, ExtPartSpecP,
     SymP, FormalSymP,
     SingleP, PairP, ListVecP, AssocVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
     RuleP, RuleLikeP, RuleVecP, RuleLikeVecP, RuleSeqP,
     AssocLikeP, ListDictP, AssocP,
-    EmptyP, EmptyAssoc, EmptyDict,
+    EmptyP, EmptyDataP, EmptyAssoc, EmptyDict,
     UserSymbolP, InertSymbolP, SystemSymbolP,
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
@@ -52,6 +53,7 @@ PackageExports[
     Make, Dist,
     Inter, Compl,
     Occs, OccsPos,
+    InvertDict, InvertUDict,
     ListDictParts, DictMap, DictThread, UDictThread, DictRange, RangeDict, UDictRange, RangeUDict,
     ConstDict, ConstUDict, ConstTrueDict, PairsToDict, RulesToDict, DictToPairs, DictToRules,
     LevelDict, OccDict, ArgDict, LeafDict, PartDict,
@@ -70,6 +72,8 @@ PackageExports[
     RandInt, RandBit, RandNat, RandBool, RandReal, RandNorm,
   "Predicate",
     AutoQ, InfQ, NotAutoQ, NotInfQ,
+    ZeroIntQ, NonZeroIntQ,
+    PosQ, NegQ, NonPosQ, NonNegQ, NonPosIntQ, NonNegIntQ,
     StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, ASCIIQ,
     BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ,
     AssocQ, VecQ, AssocVecQ, StrVecQ, PairVecQ, ListVecQ, BoolVecQ, SymVecQ, NatVecQ, IntVecQ, PosIntVecQ, RealVecQ,
@@ -163,6 +167,9 @@ DefinePatternRules[
   ColorP         -> Alternatives[_RGBColor, _GrayLevel, _CMYKColor, _Hue, _XYZColor, _LABColor, _LCHColor, _LUVColor, Opacity[_, _]],
   SideP          -> Left | Right | Bottom | Top,
   ExtSideP       -> Left | Right | Bottom | Top | BottomLeft | BottomRight | TopLeft | TopRight,
+  OnePartSpecP   -> _Integer | _Key | _String,
+  MultiPartSpecP -> (_Span | All | _List) ? MultiPartSpecQ,
+  ExtPartSpecP   -> (_Integer | _Key | _String | _Span | All | _List) ? ExtPartSpecQ,
   SymP           -> _Symbol ? Developer`HoldSymbolQ,
   FormalSymP     -> _Symbol ? HoldFormalSymbolQ,
   AssocP         -> _Association ? Developer`HoldAtomQ,
@@ -174,6 +181,7 @@ DefinePatternRules[
 With[
   {emptyAssoc = Association[], dirInf = DirectedInfinity[1], tau = 2. * Pi},
   DefinePatternRules[
+    EmptyP     -> _[],
     EmptyDataP -> Alternatives[{}, emptyAssoc],
     EmptyAssoc -> emptyAssoc,
     EmptyDict  -> emptyAssoc,
@@ -184,6 +192,8 @@ With[
 
 DefinePatternRules[
   ZeroP          -> 0 | 0.,
+  NonZeroP       -> Except[0 | 0., _Integer | _Real | _Rational],
+  NonZeroIntP    -> Except[0, _Integer],
   Zero2P         -> {0 | 0., 0 | 0.},
   NatP           -> _Integer ? NonNegative,
   Nat2P          -> {_Integer ? NonNegative, _Integer ? NonNegative},
@@ -271,6 +281,14 @@ DefineAliasRules[
 DefineAliasRules[
   BoolQ                         -> BooleanQ,
   IntQ                          -> IntegerQ,
+  ZeroIntQ                      -> ZeroIntegerQ,
+  NonZeroIntQ                   -> NonZeroIntegerQ,
+  PosQ                          -> Positive,
+  NegQ                          -> Negative,
+  NonPosQ                       -> NonPositive,
+  NonNegQ                       -> NonNegative,
+  NonPosIntQ                    -> Internal`NonPositiveIntegerQ,
+  NonNegIntQ                    -> Internal`NonNegativeIntegerQ,
   PosIntQ                       -> Internal`PositiveIntegerQ,
   NegIntQ                       -> Internal`NegativeIntegerQ,
   NatQ                          -> Internal`NonNegativeIntegerQ,
@@ -455,6 +473,9 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
+  InvertDict     -> InvertAssociation,
+  InvertUDict    -> InvertUnorderedAssociation,
+
   ListDictParts  -> ListAssociationParts,
   DictMap        -> AssociationMap,
   DictThread     -> AssocThread,
@@ -673,6 +694,7 @@ DefineAliasRules[
 (* Internal` functions *)
 DefineAliasRules[
   FastQuietCheck                -> Internal`UnsafeQuietCheck,
+  WithLocalSettings             -> Internal`WithLocalSettings,
   WithTimestampsPreserved       -> Internal`WithTimestampsPreserved,
   InheritedBlock                -> Internal`InheritedBlock,
   RepetitionFromMultiplicity    -> Internal`RepetitionFromMultiplicity,

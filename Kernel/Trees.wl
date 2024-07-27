@@ -1,9 +1,6 @@
 PackageExports[
   "Function",
     OrderedTreeLayout,
-    FindExprPaths,
-    AllExprPaths,
-    LeafExprPaths,
     NestedListsToTree,
     AllTreesDepth, AllTrees,
     DeclareTreeThread,
@@ -16,8 +13,11 @@ PackageExports[
     ExprTreePlot,
   "GraphicsBoxFunction",
     ExprTreePlotBoxes,
+  "PatternSymbol",
+    DecoratedExprP, AnyTreeExprP,
+  "Predicate",
+    TreeExprQ,
   "Head",
-    ExprPath,
     TreeNode, TreeLeaf, DecoratedNode, DecoratedLeaf, TreeSeed, FutureNode,
     Decorated,
   "SpecialVariable",
@@ -224,19 +224,11 @@ ptAlong[a_, b_, d_] := Which[d <= 0, a, d >= Dist[a, b], b, True, PointAlongLine
 
 (**************************************************************************************************)
 
-FindExprPaths[expr_, spec___] := Sort[ExprPath @@@ Position[expr, spec, Heads -> False]];
-
-AllExprPaths[expr_]  := FindExprPaths[expr, _];
-
-LeafExprPaths[expr_] := FindExprPaths[expr, _, {-1}];
-
-(**************************************************************************************************)
-
-DefinePatternPredicateRules[TreeExprQ -> AnyTreeExprP]
-
 DefinePatternRules[TreeExprP      -> _TreeNode | TreeLeaf]
 DefinePatternRules[DecoratedExprP -> _DecoratedNode[___] | _DecoratedLeaf]
 DefinePatternRules[AnyTreeExprP   -> _DecoratedNode[___] | _DecoratedLeaf | _TreeNode | TreeLeaf];
+
+DefinePatternPredicateRules[TreeExprQ -> AnyTreeExprP]
 
 (**************************************************************************************************)
 

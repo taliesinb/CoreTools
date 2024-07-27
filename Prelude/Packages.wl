@@ -475,7 +475,7 @@ extractExportsFromFileList[context_, sourceFiles_] := Block[
 General::badSymbolExportContext = "Bad symbol export context \"``\" in file \"``\".";
 General::badSymbolExportKind = "Bad symbol export kind \"``\" in file \"``\".";
 General::noHeader = "No header in file \"``\".";
-General::badHeaderLine = "Bad header line \"``\" in file \"``\".";
+General::badHeaderChunk = "Bad header line \"``\" in file \"``\".";
 
 extractExportsFromFile[path_] := Block[
   {header, chunks, pair, fn, args, context, sections, $path = path},
@@ -489,13 +489,13 @@ $chunkRegex = RegularExpression["\"([a-zA-Z]+)\",\\s*([$a-zA-Z0-9,\\s]+)"] :>
 
 extractExportsFromChunk[chunk_] := (
   pair = StringTrim @ StringSplit[chunk, "[", 2];
-  If[Length[pair] =!= 2, AbortPackageLoading["badHeaderChunk", chunk, path]];
+  If[Length[pair] =!= 2, AbortPackageLoading["badHeaderChunk", chunk, $path]];
   {fn, args} = pair;
   context = Switch[fn,
     "SystemExports", "System`",
     "PackageExports", $baseContext,
     "PrivateExports", $basePrivateContext,
-    _, AbortPackageLoading["badHeaderChunk", chunk, path]];
+    _, AbortPackageLoading["badHeaderChunk", chunk, $path]];
   sections = StringCases[args, $chunkRegex];
   Internal`StuffBag[$bag, {#1, $path, context, "{" <> #2 <> "}"}& @@@ sections, 1]
 );

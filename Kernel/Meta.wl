@@ -5,7 +5,8 @@ SystemExports[
     BlockSet, BlockAssociate, BlockJoin, BlockAppend,
     BlockIncrement, BlockDecrement,
     BlockTrue, BlockFalse,
-    BlockContext
+    BlockContext,
+    BlockUnprotect
 ];
 
 PackageExports[
@@ -128,8 +129,8 @@ DeclarationFunctionDefinitions[
 
 (*************************************************************************************************)
 
-DeclareStrict[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext];
-DeclareHoldAll[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext]
+DeclareStrict[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext, BlockUnprotect];
+DeclareHoldAll[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext, BlockUnprotect]
 
 BlockSet[var_Sym, val_, body_]         := Block[{var = val}, body];
 BlockSet[{v1_, v2_}, val_, body_]      := Block[{v1 = val, v2 = val}, body];
@@ -152,6 +153,9 @@ BlockFalse[{v1_, v2_, v3_}, body_] := Block[{v1 = False, v2 = False, v3 = False}
 
 BlockContext[context_, body_]               := Block[{$Context = context, $ContextPath = {"System`"}}, body];
 BlockContext[context_, contextPath_, body_] := Block[{$Context = context, $ContextPath = contextPath}, body];
+
+BlockUnprotect[var_Sym, body_]     := WithLocalSettings[Unprotect[var], body, Protect[var]];
+BlockUnprotect[{vars__Sym}, body_] := WithLocalSettings[Unprotect[vars], body, Protect[vars]];
 
 (*************************************************************************************************)
 

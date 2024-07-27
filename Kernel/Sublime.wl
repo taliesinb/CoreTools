@@ -20,7 +20,7 @@ LogToSublime[expr_] := Locals[
   path = NewTemporaryFilename["sublime_log#.txt"];
   $currentPath = path;
   $currentStream = None;
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     Null,
     Block[{CellPrint = streamCellPrint, Print = streamPrint},
       expr

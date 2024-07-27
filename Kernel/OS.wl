@@ -160,7 +160,7 @@ ExportUTF8[path2_String ? PrintableASCIIQ, string_String] := Module[
   {path = NormalizePath @ path2, stream},
   stream = OpenWrite[path, BinaryFormat -> True];
   If[FailureQ[stream], ReturnFailed["openFailure", path]];
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     Null,
     Check[
       BinaryWrite[path, StringToByteArray[string]],

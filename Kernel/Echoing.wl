@@ -87,7 +87,7 @@ DeclareHoldAllComplete[EchoBody];
 
 EchoBody[lhs_, body_] := Module[
   {res = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     res = body
@@ -104,7 +104,7 @@ DeclareHoldAllComplete[EchoH];
 
 EchoH[expr_] := Module[
   {res = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     res = expr
@@ -121,7 +121,7 @@ DeclareHoldAllComplete[EchoH0];
 
 EchoH0[fn_[args___]] := Module[
   {res = $Aborted, inner = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     inner = CoreToolsSequence[args];
@@ -139,7 +139,7 @@ DeclareHoldAllComplete[EchoH1];
 
 EchoH1[fn_[args___]] := Module[
   {res = $Aborted, inner = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     inner = Construct[CoreToolsSequence, args];
@@ -197,7 +197,7 @@ getFLabel[_]              := "\[FilledSquare]";
 
 EchoFL[fnl_, fn_][args___] := Module[
   {res = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     res = fn[args]
@@ -217,7 +217,7 @@ DeclareHoldAllComplete[EchoFLH];
 
 EchoFLH[fnl_, fn_, args___] := Module[
   {res = $Aborted},
-  Internal`WithLocalSettings[
+  WithLocalSettings[
     $RawPrintIndent++
   ,
     res = fn[args]

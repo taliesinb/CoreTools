@@ -29,8 +29,6 @@ Code.wl
 Patches.wl
 Random.wl
 Graphics.wl
-PythonSession.wl
-PythonExpr.wl
 Markdown.wl
 Geometry.wl
 Trees.wl
@@ -38,6 +36,9 @@ Data.wl
 Generators.wl
 GraphPlotting.wl
 GraphUtils.wl
+Multigraph.wl
+PythonSession.wl
+PythonExpr.wl
 Discrete.wl
 Specs.wl
 ToStr.wl

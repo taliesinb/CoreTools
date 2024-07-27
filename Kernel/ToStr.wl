@@ -302,7 +302,7 @@ gstackBlocks[rows2_List, OptionsPattern[]] := Locals[
   ];
   grid = Catenate @ Map[Flatten /@ Transpose[Col1[#]]&, items];
   block = StrBlock[grid, totalWidth, totalHeight];
-  framePadding //= StandardizePadding;
+  framePadding //= ParsePadding;
   block = blockPadding[block, framePadding];
 
   Switch[frame,
@@ -449,7 +449,7 @@ atomWidth = CaseOf[
 (**************************************************************************************************)
 
 padBlock[block:StrBlock[cols_List, w_, h_], pspec_] := Locals[
-  {{l, r}, {b, t}} = Round @ StandardizePadding @ pspec;
+  {{l, r}, {b, t}} = Round @ ParsePadding @ pspec;
   If[l == r == b == t == 0, Return @ block];
   w2 = w + l + r; h2 = h + b + t;
   StrBlock[
@@ -511,7 +511,7 @@ blockPadding[block_, None | 0] := block;
 
 blockPadding[block:StrBlock[elems2_, w2_, h2_], framePadding_] := Locals[
   elems = elems2; w = w2; h = h2;
-  {{l, r}, {b, t}} = Round @ StandardizePadding @ framePadding;
+  {{l, r}, {b, t}} = Round @ ParsePadding @ framePadding;
   If[l == r == b == t == 0, Return @ block];
   If[t > 0, PrependTo[elems, HSpace[w]]; h = h + t];
   If[b > 0, AppendTo[elems, HSpace[w]]; h = h + b];

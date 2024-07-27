@@ -1,12 +1,16 @@
 SystemExports[
   "Function",
-    PrefixGraph,
+    PrefixEdges, PrefixGraph,
+    FromIndexGraph,
+    VertexAssociation,
     VertexRange, VertexEdgeList, IndexVertexEdgeList,
     EdgePairs, EdgePairsT,
     VertexOutLists, IndexVertexOutLists,
     VertexInLists, IndexVertexInLists,
     IndexVertexSources, IndexVertexSinks, VertexSources, VertexSinks,
     GraphFold, GraphFoldList,
+  "Predicate",
+    IndexGraphQ,
   "SymbolicHead",
     Broadcast
 ];
@@ -20,31 +24,72 @@ PackageExports[
 
 (*************************************************************************************************)
 
-PrefixGraph[vertices_, opts___Rule] := Locals[
-  $verts = ConstUAssoc[vertices, True];
-  Graph[vertices, makeFirstParentEdge /@ vertices, opts]
+PrefixEdges[vertices_] := Locals[
+  verts = stripAnnos /@ vertices;
+  $verts = ConstUAssoc[verts, True];
+  makeFirstParentEdge /@ verts
+];
+
+stripAnnos = CaseOf[
+  Annotation[v_, _] := v;
+  v_                := v
 ];
 
 makeFirstParentEdge = CaseOf[
   expr_ ? EmptyQ := Nothing;
   expr_ := Locals[
     parent = Most @ expr;
+    i = -1;
     While[!KeyExistsQ[$verts, parent],
       If[Len[parent] === 0, FunctionReturn @ Nothing];
       parent //= Most;
+      i--;
     ];
-    DirectedEdge[parent, expr]
+    DirectedEdge[parent, expr, Part[expr, Span[i, -1]]]
   ]
 ];
 
 (*************************************************************************************************)
 
-DeclareStrict[VertexRange, VertexEdgeList, IndexVertexEdgeList]
+PrefixGraph[vertices_, opts___Rule] := Locals[
+  edges = PrefixEdges @ vertices;
+  Graph[vertices, edges, opts]
+];
+
+(*************************************************************************************************)
+
+DeclarePredicate1[IndexGraphQ]
+
+IndexGraphQ[g_Graph] := PermutedRangeQ @ VertexList @ g;
+
+(*************************************************************************************************)
+
+DeclareStrict[FromIndexGraph]
+
+FromIndexGraph::notIndexedGraph = "First argument was not an indexed graph."
+FromIndexGraph::badVertexCount = "Wrong number of provided vertices."
+
+FromIndexGraph[igraph_, vertexList_List, opts___Rule] := Locals[
+  If[!IndexGraphQ[igraph], ReturnFailed["notIndexedGraph"]];
+  {iverts, iedges} = VertexEdgeList @ igraph;
+  If[!SameLenQ[iverts, vertexList], ReturnFailed["badVertexCount"]];
+  vertices = Part[vertexList, iverts];
+  edges = MapPart[PartOfOp[vertexList], {All, 1;;2}, iedges];
+  Graph[
+    vertices, edges,
+    ToList[Options[igraph], opts]
+  ]
+];
+
+(*************************************************************************************************)
+
+DeclareStrict[VertexAssociation, VertexRange, VertexEdgeList, IndexVertexEdgeList]
 
 "VertexEdgeList[graph$] returns {vertices$, edges$}."
 
-VertexRange[graph_Graph] := Range @ VertexCount @ graph;
-VertexEdgeList[graph_Graph] := List[VertexList @ graph, EdgeList @ graph];
+VertexAssociation[graph_Graph]   := UDictRange @ VertexList @ graph;
+VertexRange[graph_Graph]         := Range @ VertexCount @ graph;
+VertexEdgeList[graph_Graph]      := List[VertexList @ graph, EdgeList @ graph];
 IndexVertexEdgeList[graph_Graph] := VertexEdgeList @ IndexGraph @ graph;
 
 DeclareStrict[EdgePairs, EdgePairsT]
