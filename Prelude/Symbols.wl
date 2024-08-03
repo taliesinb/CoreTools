@@ -10,6 +10,7 @@ System`SymbolNameFirst,
 System`SymbolNameLast,
 System`SymbolNameMost,
 System`SymbolNameMostLast,
+System`SymbolNamesGrouped,
 
 "Predicate",
 System`SymbolNameHasDefinitionsQ,
@@ -82,6 +83,11 @@ SymbolNameFirst[str_String]    := If[StringFreeQ[str, "`"], None,        StringT
 SymbolNameLast[str_String]     := If[StringFreeQ[str, "`"], str,         StringDrop[str, Max @ StringPosition[str, "`"]]];
 SymbolNameMost[str_String]     := If[StringFreeQ[str, "`"], None,        StringTake[str, Max @ StringPosition[str, "`"]]];
 SymbolNameMostLast[str_String] := If[StringFreeQ[str, "`"], {None, str}, StringTakeDrop[str, Max @ StringPosition[str, "`"]]];
+
+(*************************************************************************************************)
+
+SymbolNamesGrouped[list_List]  := Merge[Rule @@@ SymbolNameMostLast @ list, Identity];
+SymbolNamesGrouped[str_String] := SymbolNamesGrouped @ Names @ str;
 
 (*************************************************************************************************)
 

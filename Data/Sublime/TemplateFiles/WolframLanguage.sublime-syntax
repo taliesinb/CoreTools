@@ -150,17 +150,42 @@ contexts:
     - match: '.'
       scope: invalid.illegal
 
+  # metafunction_toplevel_definitions:
+  #   - match: '^\s*(?=Define[A-Za-z]+Rules(\[))'
+  #     push: defining_rules_metafunction_call
+  #   - match: '^\s*(?=Declare[A-Za-z]+(\[| @ ))'
+  #     push: declaring_metafunction_call
+  #   - match: '^\s*(?=[A-Za-z]+Definitions(\[)\s*\n)'
+  #     push: definitions_metafunction_call
+
   metafunction_toplevel_definitions:
-    - match: '^\s*(?=Define[A-Za-z]+Rules(\[))'
-      push: defining_rules_metafunction_call
-    # - match: '^\s*(?=Define[A-Za-z]+(\[))'
-    #   push: defining_metafunction_call
-    - match: '^\s*(?=Declare[A-Za-z]+(\[))'
+    - match: '^\s*{{defineMacroApplied}}'
+      push: defining_macro_call
+    - match: '^\s*{{declareFnApplied}}'
       push: declaring_metafunction_call
-    - match: '^\s*(?=[A-Za-z]+Definitions(\[)\s*\n)'
+    - match: '^\s*{{defineRulesFnApplied}}'
+      push: defining_rules_metafunction_call
+    - match: '^\s*{{definitionsFnApplied}}'
       push: definitions_metafunction_call
 
+  defining_macro_call:
+    - match: '({{LibraryMetaFunction}})(\[)'
+      captures:
+        1: support.function.meta.wolfram
+        2: punctuation.section.brackets.begin.wolfram
+      push: [end_bracket, single_expression, comma, defined_symbol_arg]
+      pop: true
+    - match: '[A-Za-z]+'
+      scope: invalid.inappropriate
+      pop: true
+
   definitions_metafunction_call:
+    - match: '({{LibraryMetaFunction}}) (@)'
+      captures:
+        1: support.function.meta.wolfram
+        2: keyword.operator.wolfram
+      push: [defined_symbol_arg]
+      pop: true
     - match: '({{LibraryMetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
@@ -183,18 +208,24 @@ contexts:
       scope: invalid.inappropriate
       pop: true
 
-  defining_metafunction_call:
-    - match: '({{LibraryMetaFunction}})(\[)'
-      captures:
-        1: support.function.meta.wolfram
-        2: punctuation.section.brackets.begin.wolfram
-      push: [end_bracket, single_expression, comma, defined_symbol_or_list]
-      pop: true
-    - match: '[A-Za-z]+'
-      scope: invalid.inappropriate
-      pop: true
+  # defining_metafunction_call:
+  #   - match: '({{LibraryMetaFunction}})(\[)'
+  #     captures:
+  #       1: support.function.meta.wolfram
+  #       2: punctuation.section.brackets.begin.wolfram
+  #     push: [end_bracket, single_expression, comma, defined_symbol_or_list]
+  #     pop: true
+  #   - match: '[A-Za-z]+'
+  #     scope: invalid.inappropriate
+  #     pop: true
 
   declaring_metafunction_call:
+    - match: '({{LibraryMetaFunction}}) (@)'
+      captures:
+        1: support.function.meta.wolfram
+        2: keyword.operator.wolfram
+      push: [defined_symbol_arg]
+      pop: true
     - match: '({{LibraryMetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
@@ -221,6 +252,17 @@ contexts:
     - match: ''
       pop: true
 
+  defined_symbol_arg:
+    - match: '\s+'
+    - match: '{{declareFnApplied}}'
+      push: declaring_metafunction_call
+    - match: '(?={{symbolSegment}})'
+      push: any_definition_target
+    # - match: ','
+    #   scope: keyword.operator.Comma.wolfram
+    - match: ''
+      pop: true
+
   defined_symbol_rule_sequence:
     - match: '\s+'
     - match: '(?={{symbolSegment}}\s*(->|:>))'
@@ -240,8 +282,10 @@ contexts:
 
   defined_symbol_sequence:
     - match: '\s+'
-    - match: '{{symbolSegment}}'
-      scope: entity.name.function.wolfram
+    # - match: '{{declareFnApplied}}'
+    #   push: declaring_metafunction_call
+    - match: '(?={{symbolSegment}})'
+      push: any_definition_target
     - match: ','
       scope: keyword.operator.Comma.wolfram
     - match: '(?=[}\]])'
@@ -708,12 +752,17 @@ contexts:
       scope: variable.global.unrecognized.wolfram
     - match: '[$]{{symbolSegment}}'
       scope: variable.global.wolfram
+    - match: '[a-z][A-Z0-9]+\$(?![`$[:alnum:]])'
+      scope: variable.local.pattern.wolfram
     - match: '{{symbolSegment}}(?=_|:[^:])'
       scope: variable.local.pattern.wolfram
     - match: '[A-Z]{{symbolSegment}}'
       scope: variable.local.unrecognized.wolfram
     - match: '{{symbolSegment}}'
       scope: variable.local.wolfram
+
+#symbolSegment: (?:[$[:alpha:]][$[:alnum:]]*)
+#  symbolEndBoundary: (?![`$[:alnum:]])
 
   invalid_symbols:
     - match: '{{symbolSegment}}`'
@@ -1012,3 +1061,16 @@ variables:
   precision: (?:`(?:(?:-|\+)?+(?:\d+(?:\.(?!\.)\d*)?+|\.(?!\.)\d+))?+)
   accuracy: (?:``(?:(?:-|\+)?+(?:\d+(?:\.(?!\.)\d*)?+|\.(?!\.)\d+)))
   exponent: (?:\*\^(?:-|\+)?+\d+)
+
+  applied:         '(?:\[| @ )'
+  mutilineApplied: '(?:\[\s*\n)'
+
+  defineMacro:   '(?:Define[A-Za-z]+Macro)'
+  declareFn:     '(?:Declare[A-Za-z]+)'
+  defineRulesFn: '(?:Define[A-Za-z]+Rules)'
+  definitionsFn: '(?:[A-Za-z]+Definitions)'
+
+  defineMacroApplied:   '(?={{defineMacro}}{{applied}})'
+  declareFnApplied:     '(?={{declareFn}}{{applied}})'
+  defineRulesFnApplied: '(?={{defineRulesFn}}{{applied}})'
+  definitionsFnApplied: '(?={{definitionsFn}}{{mutilineApplied}})'

@@ -203,12 +203,13 @@ ExportStringTable::invalidData = "`` is not an association from strings to lists
 
 Options[ExportStringTable] = {"Sort" -> False};
 
-ExportStringTable[path_Str, assoc_Assoc, OptionsPattern[]] := Locals[
+ExportStringTable[path_Str, assoc2_Assoc, OptionsPattern[]] := Locals[
   sort = OptionValue["Sort"];
+  assoc = KeyMap[ToStr, assoc2];
   len = Max @ StrLen @ Keys @ assoc;
   If[!IntQ[len], ReturnFailed["invalidData", assoc]];
   str = StrJoin @ KeyValueMap[
-    {StringPadRight[#1, len + 1], Riffle[#2, " "], "\n"}&,
+    {StringPadRight[#1, len + 1], Riffle[ToStr /@ #2, " "], "\n"}&,
     If[sort, KeySort /* Map[Sort], Id] @ assoc
   ];
   If[!StrQ[str], ReturnFailed["invalidData", assoc]];
@@ -229,7 +230,7 @@ NewTemporaryFilename[file_String] /; StringContainsQ[file, "#"] :=
 
 (**************************************************************************************************)
 
-uniqueSessionStr[] := StrJoin[IntStr[$ProcessID], "_", IntStr[UniqueSessionID[], 10, 5]];
+uniqueSessionStr[] := StrJoin[IntegerString[$ProcessID], "_", IntegerString[UniqueSessionID[], 10, 5]];
 
 (**************************************************************************************************)
 

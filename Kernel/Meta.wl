@@ -1,6 +1,8 @@
 SystemExports[
   "Function",
-    HoldSymbolName, MapHold, Ensure,
+    HoldSymbolName, Ensure,
+  "ControlFlowFunction",
+    HoldMap, EvaluateMap, HoldScan,
   "MutatingFunction",
     BlockSet, BlockAssociate, BlockJoin, BlockAppend,
     BlockIncrement, BlockDecrement,
@@ -11,8 +13,10 @@ SystemExports[
 
 PackageExports[
   "MetaFunction",
+    DeclaredHere,
     DeclareDeclare,
-    DeclareCurry1, DeclareCurry2, DeclareCurry12, DeclareCurry23,
+
+    DeclareCurry1, DeclareCurry2, DeclareCurry12, DeclareCurry23, DeclareCurry13,
     DeclarePredicate1, DeclarePredicate2, DeclarePredicate3,
     DeclareNotPredicate1, DeclareNotPredicate2, DeclareNotPredicate3,
     DeclareListableOperator, DeclareListable1,
@@ -21,6 +25,15 @@ PackageExports[
     DeclareHoldFirst, DeclareHoldRest, DeclareHoldAll, DeclareHoldAllComplete, DeclareSequenceHold, DeclareListable,
     DeclareStrict, DeclareSeqScan, DeclareThenScan,
     DeclarationFunctionDefinitions,
+
+    SetCurry1, SetCurry2, SetCurry12, SetCurry23, SetCurry13,
+    SetPred1, SetPred2, SetPred3,
+    SetHoldF, SetHoldR, SetHoldA, SetHoldC,
+    SetStrict, SetListable, SetListable1,
+  "Function",
+    Unmake, Remake,
+  "ControlFlowFunction",
+    HoldMake, HoldApply, HoldUnmake, HoldCompUnmake,
   "IOFunction",
     ToImplementationSymbol,
   "Head",
@@ -30,6 +43,26 @@ PackageExports[
 (*************************************************************************************************)
 
 SetAttributes[SymbolList, {HoldAll, Flat}]
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  SetCurry1    -> DeclareCurry1,
+  SetCurry2    -> DeclareCurry1,
+  SetCurry12   -> DeclareCurry1,
+  SetCurry23   -> DeclareCurry1,
+  SetCurry13   -> DeclareCurry1,
+  SetPred1     -> DeclarePredicate1,
+  SetPred2     -> DeclarePredicate2,
+  SetPred3     -> DeclarePredicate3,
+  SetHoldF     -> DeclareHoldFirst,
+  SetHoldR     -> DeclareHoldRest,
+  SetHoldA     -> DeclareHoldAll,
+  SetHoldC     -> DeclareHoldAllComplete,
+  SetStrict    -> DeclareStrict,
+  SetListable  -> DeclareListable,
+  SetListable1 -> DeclareListable1
+];
 
 (*************************************************************************************************)
 
@@ -97,11 +130,13 @@ DeclarationFunctionDefinitions[
 
 (*************************************************************************************************)
 
+(* TODO: auto making of held operator forms via appropriate AttributeFn *)
 DeclarationFunctionDefinitions[
    DeclareCurry1[sym_Sym] := SetDelayed[sym[arg1_][rest___],      sym[arg1, rest]],
    DeclareCurry2[sym_Sym] := SetDelayed[sym[arg2_][arg1_],        sym[arg1, arg2]],
   DeclareCurry12[sym_Sym] := SetDelayed[sym[arg1_, arg2_][arg3_], sym[arg1, arg2, arg3]],
-  DeclareCurry23[sym_Sym] := SetDelayed[sym[arg2_, arg3_][arg1_], sym[arg1, arg2, arg3]]
+  DeclareCurry23[sym_Sym] := SetDelayed[sym[arg2_, arg3_][arg1_], sym[arg1, arg2, arg3]],
+  DeclareCurry13[sym_Sym] := SetDelayed[sym[arg1_, arg3_][arg2_], sym[arg1, arg2, arg3]]
 ];
 
 (*************************************************************************************************)
@@ -197,14 +232,38 @@ DeclareHoldAllComplete[HoldSymbolName]
 HoldSymbolName[sym_Symbol ? Developer`HoldAtomQ] := SymbolName @ Unevaluated @ sym;
 HoldSymbolName[_] := $Failed;
 
+(*************************************************************************************************)
+
+DeclareHoldAll[HoldMake, HoldApply, HoldUnmake];
+DeclareHoldAllComplete[HoldCompUnmake];
+
+HoldMake[f_, a___]     := f[a];
+HoldApply[f_, _[a___]] := f[a];
+
+Unmake[h_[a___], w_:List]              := w[h, a];
+HoldUnmake[h_[a___], w_:Hold]          := w[h, a];
+HoldCompUnmake[h_[a___], w_:HoldComplete] := w[h, a];
+
+Remake[w_[h_, a___]] := w[h[a]];
+
 (**************************************************************************************************)
 
-MapHold::usage = "MapHold[fn$, args$] maps fn$ over args$ without evaluating args$.";
+HoldMap::usage = "HoldMap[fn$, args$] maps fn$ over args$ without evaluating args$.";
+HoldScan::usage = "HoldScan[fn$, args$] maps fn$ over args$ without evaluating args$.";
 
-DeclareHoldAllComplete[MapHold]
-MapHold[f_, args_]                     := Map[f, Unevaluated[args]];
-MapHold[Function[body_], args_]        := Map[Function[Null, body, HoldAllComplete], Unevaluated[args]];
-MapHold[Function[args_, body_], args_] := Map[Function[args, body, HoldAllComplete], Unevaluated[args]];
+DeclareStrict @ DeclareHoldAllComplete[HoldMap, HoldScan]
+
+HoldMap[f_, args_]                     := Map[f, Unevaluated[args]];
+HoldMap[Function[body_], args_]        := Map[Function[Null, body, HoldAllComplete], Unevaluated[args]];
+HoldMap[Function[args_, body_], args_] := Map[Function[args, body, HoldAllComplete], Unevaluated[args]];
+
+HoldScan[f_, args_]                     := Scan[f, Unevaluated[args]];
+HoldScan[Function[body_], args_]        := Scan[Function[Null, body, HoldAllComplete], Unevaluated[args]];
+HoldScan[Function[args_, body_], args_] := Scan[Function[args, body, HoldAllComplete], Unevaluated[args]];
+
+(* unlike Map, EvaluateMap[f, Hold[1,2,3]] actually does something *)
+EvaluateMap[f_, args:ListDictP] := Map[f, args];
+EvaluateMap[f_, h_[args___]]    := Apply[h, HoldMap[f, {args}]];
 
 (*************************************************************************************************)
 

@@ -1,20 +1,21 @@
 PackageExports[
-  "Function",
-    OptionKeys, OptionKeyQ,
-
   "MessageFunction",
     TopLevelEvaluationFunction, ThrowErrorMessage,
     ThrowError, CatchError, TryCatchError, CatchErrorAsFailure,
     MsgPrePrint, MsgHold,
     CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError,
     ThrowOptionError,
-    SameQOrThrow, SameLenQOrThrow, LookupOrThrow, LookupListOrThrow,
-    OptionError, ErrorMessage
+    SameQOrThrow, SameLenQOrThrow, SameSetOrThrow, LookupOrThrow, LookupListOrThrow,
+    OptionError, ErrorMessage,
+  "SpecialFunction",
+    Unimplemented
 ];
 
 PrivateExports[
   "MessageFunction",
-    CoreToolsErrorHandler, CoreToolsErrorMessage, $CoreToolsErrorTag, DisableErrorHandler
+    CoreToolsErrorHandler, CoreToolsErrorMessage, DisableErrorHandler,
+  "SpecialSymbol",
+    CoreToolsErrorTag
 ];
 
 (**************************************************************************************************)
@@ -44,10 +45,15 @@ ErrorMessage[msg_MessageName, args___] := (
 
 (**************************************************************************************************)
 
+General::unimplemented = "An unimplemented code path was encountered.";
+Unimplemented := ThrowMsg["unimplemented"];
+
+(**************************************************************************************************)
+
 declareHAC[TryCatchError, CoreToolsTryHandler];
 
 TryCatchError[body_, else_] := Block[{$willCatch = True},
-  Catch[body, $CoreToolsErrorTag, CoreToolsTryHandler[else]]
+  Catch[body, CoreToolsErrorTag, CoreToolsTryHandler[else]]
 ];
 
 CoreToolsTryHandler[else_][_, _] := else;
@@ -64,7 +70,7 @@ CatchError::usage = "CatchError[head, body] catches errors thrown by ThrowErrorM
 declareHAC[CatchError];
 
 $willCatch = False;
-CatchError[head_Symbol, body_] := Block[{$willCatch = True}, Catch[body, $CoreToolsErrorTag, CoreToolsErrorHandler[head]]];
+CatchError[head_Symbol, body_] := Block[{$willCatch = True}, Catch[body, CoreToolsErrorTag, CoreToolsErrorHandler[head]]];
 
 CatchError::noMsgDefined = "Caught an error, but no message with name `` is defined for catching symbol ``.";
 
@@ -98,9 +104,9 @@ CatchErrorAsFailure::usage =
 "CatchFailure[head, body] catches errors thrown by ThrowErrorMessage and ThrowError, returning a Failure object.
 CatchFailure[head, body, fn] applies fn to the failure."
 
-CatchErrorAsFailure[name_, body_, fn_:Identity] := Catch[body, $CoreToolsErrorTag, errorAsFailureHandler[name, fn]];
+CatchErrorAsFailure[name_, body_, fn_:Identity] := Catch[body, CoreToolsErrorTag, errorAsFailureHandler[name, fn]];
 
-errorAsFailureHandler[_, _][value_, _] := Failure[failureName, Association[]];
+errorAsFailureHandler[name_, _][value_, _] := Failure["UnknownFailure", Association[]];
 
 errorAsFailureHandler[name_, fn_][CoreToolsErrorMessage[msgName_String, msgArgs___], _] :=
   fn @ Failure[name, Association[
@@ -125,26 +131,13 @@ ThrowErrorMessage["quiet", ___] :=
 
 (**************************************************************************************************)
 
-DeclareStrict[SameQOrThrow, SameLenQOrThrow, LookupOrThrow, LookupListOrThrow];
+DeclareStrict[SameQOrThrow, SameLenQOrThrow, SameSetOrThrow, LookupOrThrow, LookupListOrThrow];
 
-SameQOrThrow[a_, b_, msg_Str, args___] :=
-  If[a === b, True, ThrowMsg[msg, a, b, args]];
-
-SameLenQOrThrow[a_, b_, msg_Str, args___] :=
-  If[Len[a] === Len[b], ThrowMsg[msg, Len[a], Len[b], args], True];
-
-LookupOrThrow[dict_, key_, msg_Str, args___] :=
-  Lookup[dict, Key @ key, ThrowMsg[msg, key, args]];
-
-LookupListOrThrow[dict_, keys_List, msg_Str, args___] :=
-  Lookup[dict, keys, ThrowMsg[msg, Compl[keys, Keys @ dict], args]];
-
-(**************************************************************************************************)
-
-DeclareStrict[OptionKeys, OptionKeyQ]
-
-OptionKeys[sym_Sym] := Keys @ Options @ sym;
-OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
+SameQOrThrow[a_, b_, msg_Str, args___]                := If[a === b, True, ThrowMsg[msg, a, b, args]];
+SameLenQOrThrow[a_, b_, msg_Str, args___]             := If[Len[a] === Len[b], True, ThrowMsg[msg, Len[a], Len[b], args]];
+SameSetOrThrow[a_, b_, msg_Str, args___]              := If[SameSetQ[a, b], True, ThrowMsg[msg, Compl[a, b], Compl[b, a], args]];
+LookupOrThrow[dict_, key_, msg_Str, args___]          := Lookup[dict, Key @ key, ThrowMsg[msg, key, args]];
+LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, ThrowMsg[msg, Compl[keys, Keys @ dict], args]];
 
 (**************************************************************************************************)
 
@@ -185,7 +178,7 @@ General::uncaughtMessage = "The message name \"``\" was thrown but not caught. A
 
 ThrowError[] := ThrowError @ $Failed;
 
-ThrowError[e_] /; $willCatch := Throw[e, $CoreToolsErrorTag];
+ThrowError[e_] /; $willCatch := Throw[e, CoreToolsErrorTag];
 
 ThrowError[CoreToolsErrorMessage[name_, args___]] := (
   If[StringQ[MessageName[General, name]],

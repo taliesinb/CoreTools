@@ -4,46 +4,54 @@ SystemExports[
     ZeroQ, ZeroIntegerQ, NonZeroQ, NonZeroIntegerQ,
     OnePartSpecQ, MultiPartSpecQ, ExtPartSpecQ,
 
-    EmptyQ, AtomicQ, NonAtomicQ,
+    UnorderedAssociationQ, OrderedAssociationQ,
 
-    SingleQ, DatumQ,
-    HeadedQ, VectorHeadedQ, AssociationHeadedQ,
-    HasKeysQ, HasLengthQ, HasDimensionsQ,
+    AtomicQ, NonAtomicQ,
+
+    SingleQ, DatumQ, HoldDatumQ,
+    HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
+    HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ,
+    HoldHasLengthQ,
 
     ElementQ, SameSetQ, SubsetOfQ, SupersetOfQ, IntersectsQ, NotIntersectsQ, PrefixListQ,
-    SameKeysQ, SameHeadQ, SameLengthQ, SamePartsQ,
+    SameKeysQ, SameOrderedKeysQ, SameHeadQ, SameLengthQ, SameShapeQ, SamePartsQ,
+    HoldSameHeadQ, HoldHasHeadQ, HoldSameLengthQ, HoldSameShapeQ,
 
     ExtendedNumberQ, UnitNumberQ, PositiveRealQ,
     PairQ, PairVectorQ, PairMatrixQ, PairArrayQ,
     RuleVectorQ, RuleLikeVectorQ, RuleDelayedVectorQ,
-    RangeQ, PermutedRangeQ, AssociationArrayQ,
+    RangeQ, PermutedRangeQ,
     ArrayDepthAtLeastQ, PackedArrayDepthAtLeastQ,
 
     BooleanVectorQ, IntegerVectorQ, NaturalVectorQ, PositiveIntegerVectorQ, SymbolVectorQ, RealVectorQ, NumberVectorQ, ListVectorQ, ColorVectorQ, ExtendedNumberVectorQ,
     BooleanMatrixQ, IntegerMatrixQ, NaturalMatrixQ, PositiveIntegerMatrixQ, SymbolMatrixQ, RealMatrixQ, NumberMatrixQ, ListMatrixQ, ColorMatrixQ, ExtendedNumberMatrixQ, AnyMatrixQ,
-    BooleanArrayQ,  IntegerArrayQ,  NaturalArrayQ,  PositiveIntegerArrayQ,  SymbolArrayQ,  RealArrayQ,  NumberArrayQ,  ListArrayQ,  ColorArrayQ,  ExtendedNumberArrayQ
+    BooleanArrayQ,  IntegerArrayQ,  NaturalArrayQ,  PositiveIntegerArrayQ,  SymbolArrayQ,  RealArrayQ,  NumberArrayQ,  ListArrayQ,  ColorArrayQ,  ExtendedNumberArrayQ,
+    StringMatrixQ,  AssociationMatrixQ
+    StringArrayQ,   AssociationArrayQ,
 
     NoneQ, AutomaticQ, InfinityQ,
     NotNoneQ, NotAutomaticQ, NotInfinityQ,
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
 
-    AllSameQ,        NonEmptyAllSameQ,
-    AllSameByQ,      NonEmptyAllSameByQ,
-
-    AllSameLengthQ,  NonEmptyAllSameLengthQ,
-    AllSameHeadsQ,   NonEmptyAllSameHeadsQ,
-    AllSamePartsQ,   NonEmptyAllSamePartsQ,
-    AllSameSetsQ,    NonEmptyAllSameSetsQ,
-    AllSameKeysQ,    NonEmptyAllSameKeysQ,
+    AllSameQ,            NonEmptyAllSameQ,
+    AllSameByQ,          NonEmptyAllSameByQ,
+    AllSameLengthQ,      NonEmptyAllSameLengthQ,
+    AllSameHeadsQ,       NonEmptyAllSameHeadsQ,
+    AllSamePartsQ,       NonEmptyAllSamePartsQ,
+    AllSameSetsQ,        NonEmptyAllSameSetsQ,
+    AllSameKeysQ,        NonEmptyAllSameKeysQ,
+    AllSameOrderedKeysQ, NonEmptyAllSameOrderedKeysQ,
 
     FalseQ, AllAreTrueQ, AnyAreTrueQ, NoneAreTrueQ, AllAreFalseQ, AnyAreFalseQ, NoneAreFalseQ,
 
     ListableFunctionQ,
-    ContainsQ, ContainsDuplicateQ, ContainsAssociationQ,
+    ContainsQ, ContainsWithinQ, FreeWithinQ, ContainsAssociationQ,
+    HoldFreeQ, HoldContainsQ, HoldFreeWithinQ, HoldContainsWithinQ,
     KeysTrue, ValuesTrue, KeysValuesTrue, RuleKeysTrue, RuleValuesTrue, RulesTrue,
     IntegerKeysQ, StringKeysQ, ListKeysQ, AssociationKeysQ, SymbolKeysQ,
     IntegerValuesQ, StringValuesQ, ListValuesQ, AssociationValuesQ, BooleanValuesQ, SymbolValuesQ,
+    HasDuplicatesQ,
     AnyMissingQ, NoneMissingQ, AnyFailedQ, NoneFailedQ, NotFailureQ,
     HoldAssociationQ, HoldPackedArrayQ,
 
@@ -55,11 +63,14 @@ SystemExports[
 
 PackageExports[
   "Predicate",
+    EmptyQ,
     Nat2Q, PosInt2Q, Num2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
     AutoQ,
     RuleLikeQ, RuleQ, RuleDelayedQ, PackedRealsQ, PackedIntsQ,
     UserSymbolQ,
+
   "MetaFunction",
+
     DefinePatternPredicateRules, DefinePatternPredicates
 ];
 
@@ -75,6 +86,16 @@ NonZeroQ[NumP]        = True;
 
 NonZeroIntegerQ[0]    = False;
 NonZeroIntegerQ[_Int] = True;
+
+(*************************************************************************************************)
+
+DeclarePredicate1[UnorderedAssociationQ, OrderedAssociationQ]
+
+UnorderedAssociationQ[UAssoc[]] := True;
+UnorderedAssociationQ[assoc_Assoc ? HoldAssociationQ] := NotEmptyQ @ Take[assoc, 0];
+
+OrderedAssociationQ[Assoc[]] := True;
+OrderedAssociationQ[assoc_Assoc ? HoldAssociationQ] := EmptyQ @ Take[assoc, 0];
 
 (*************************************************************************************************)
 
@@ -175,10 +196,13 @@ setPattPred[sym_, pattName_Str] := With[{patt = Symbol @ pattName},
 
 (*************************************************************************************************)
 
-DeclarePredicate1[SingleQ, DatumQ];
+DeclarePredicate1[SingleQ, DatumQ, HoldSingleQ, HoldDatumQ];
 
 SingleQ[e_] := Len[e] === 1;
 DatumQ[DatumP] := True;
+
+HoldSingleQ[_[_]] := True;
+HoldDatumQ[DatumP] := True;
 
 (*************************************************************************************************)
 
@@ -186,19 +210,19 @@ DefinePatternPredicates[Nat2Q, PosInt2Q, Num2Q, ExtNatQ, ExtIntQ, ExtPosIntQ];
 
 (*************************************************************************************************)
 
-HeadedQ[e_, h_]       := MatchQ[e, ToBlank @ h];
-HeadedQ[h_]           := MatchQ[ToBlank @ h];
+HasHeadQ[e_, h_]       := MatchQ[e, ToBlank @ h];
+HasHeadQ[h_]           := MatchQ[ToBlank @ h];
 
-VectorHeadedQ[e_, h_] := MatchQ[e, List @ ToBlankNullSequence @ h];
-VectorHeadedQ[h_]     := MatchQ[List @ ToBlankNullSequence @ h];
+VectorHasHeadsQ[e_, h_] := MatchQ[e, List @ ToBlankNullSequence @ h];
+VectorHasHeadsQ[h_]     := MatchQ[List @ ToBlankNullSequence @ h];
 
-DeclareCurry2 @ DeclarePredicate2 @ AssociationHeadedQ
+DeclareCurry2 @ DeclarePredicate2 @ AssociationHasHeadsQ
 
-AssociationHeadedQ[a_Association, h_] := MatchQ[Values @ a, List @ ToBlankNullSequence @ h];
+AssociationHasHeadsQ[a_Association, h_] := MatchQ[Values @ a, List @ ToBlankNullSequence @ h];
 
 (*************************************************************************************************)
 
-DeclareCurry2 @ DeclarePredicate2[HasKeysQ, HasLengthQ, HasDimensionsQ]
+DeclareCurry2 @ DeclarePredicate2[HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ]
 
 HasKeysQ[dict_Dict, keys_List] := Len[dict] === Len[key] && SameQ[Keys @ dict, keys];
 
@@ -206,6 +230,15 @@ HasLengthQ[expr_, n_Integer] := Len[expr] === n;
 
 HasDimensionsQ[_, {}] := True;
 HasDimensionsQ[expr_, dims_List] := MatchQ[Dimensions[expr, Len @ dims], dims];
+
+HasArrayDepthQ[expr_, depth_] := MatchQ[ArrayDepth @ expr, depth];
+
+HasDuplicatesQ[expr_] := Not @ DuplicateFreeQ @ expr;
+
+SetHoldC @ DeclarePredicate2 @ HoldHasLengthQ;
+
+HoldHasLengthQ[e_, n_] := Len[NoEval @ e] == n;
+HoldHasLengthQ[n_] := With[{n2 = n}, HoldCompFn[FmE, HoldHasLengthQ[FmE, n]]];
 
 (*************************************************************************************************)
 
@@ -272,7 +305,7 @@ ElementQ[elem_, set_] := MemberQ[set, Verbatim @ elem];
 
 (*************************************************************************************************)
 
-DeclarePredicate2[SameSetQ, SubsetOfQ, SupersetOfQ, IntersectsQ, NotIntersectsQ, PrefixListQ, SameKeysQ, SamePartsQ]
+DeclarePredicate2[SameSetQ, SubsetOfQ, SupersetOfQ, IntersectsQ, NotIntersectsQ, PrefixListQ, SameKeysQ, SameOrderedKeysQ, SamePartsQ]
 
 (* Note:
 SubsetQ is super slow! it does a lot of heads checking and doesn't special case SameTest etc.
@@ -287,17 +320,20 @@ NotIntersectsQ[a_List, b_List] := Language`EmptyIntersectionQ[a, b];
 
 PrefixListQ[a_List, b_List] := Length[a] <= Length[b] && a === Take[b, Length @ a];
 
-SameKeysQ[a_Dict, b_Dict] := Len[a] === Len[b] && SameSetQ[Keys @ a, Keys @ b];
+SameKeysQ[a_Dict, b_Dict]        := Len[a] === Len[b] && SameSetQ[Keys @ a, Keys @ b];
+SameOrderedKeysQ[a_Dict, b_Dict] := Len[a] === Len[b] && SameQ[Keys @ a, Keys @ b];
 
 SamePartsQ[a_List, b_List] := Len[a] === Len[b];
 SamePartsQ[a_Dict, b_Dict] := Len[a] === Len[b] && Keys[a] === Keys[b];
+SamePartsQ[a_, b_] := Head[a] === Head[b] && Len[a] === Len[b];
 
 (*************************************************************************************************)
 
-DeclareCurry1[SameHeadQ, SameLengthQ]
+DeclareCurry1[SameHeadQ, SameLengthQ, SameShapeQ]
 
 SameHeadQ[a_, b_] := Head[a] === Head[b];
 SameLengthQ[a_, b_] := Length[a] === Length[b];
+SameShapeQ[a_, b_] := SamePartsQ[a, b];
 
 (*************************************************************************************************)
 
@@ -314,7 +350,7 @@ DeclarePredicate1[PairQ, PairVectorQ, PairMatrixQ, PairArrayQ]
 PairQ[{_, _}] := True;
 PairVectorQ[arr_List] := Length2[arr] === 2;
 PairMatrixQ[arr_List] := MatrixQ[arr, PairQ];
-PairArrayQ[arr_List]  := LastDim[arr] === 2;
+PairArrayQ[arr_List]  := LengthN[arr] === 2;
 
 (*************************************************************************************************)
 
@@ -325,9 +361,9 @@ PermutedRangeQ[list_]         := VectorQ[list, IntegerQ] && MinMax[list] == {1, 
 
 DeclarePredicate1[RuleVectorQ, RuleDelayedVectorQ]
 
-RuleVectorQ[{___Rule}] := True;
+RuleVectorQ[{___Rule}]               := True;
 RuleDelayedVectorQ[{___RuleDelayed}] := True;
-RuleLikeVectorQ[e_] := VectorQ[e, RuleLikeQ];
+RuleLikeVectorQ[e_]                  := VectorQ[e, RuleLikeQ];
 
 (*************************************************************************************************)
 
@@ -348,6 +384,7 @@ BooleanMatrixQ[list_]         := MatrixQ[list, BooleanQ];
 IntegerMatrixQ[list_]         := MatrixQ[list, IntegerQ];
 NaturalMatrixQ[list_]         := MatrixQ[list, NaturalQ];
 PositiveIntegerMatrixQ[list_] := MatrixQ[list, PositiveIntegerQ];
+StringMatrixQ[list_]          := MatrixQ[list, StringQ];
 SymbolMatrixQ[list_]          := MatrixQ[list, SymbolQ];
 RealMatrixQ[list_]            := MatrixQ[list, RealQ];
 NumberMatrixQ[list_]          := MatrixQ[list, RealValuedNumberQ];
@@ -359,12 +396,15 @@ AnyMatrixQ[{} | {{}}]         := True;
 AnyMatrixQ[list_List]         := Length[Dimensions[list, 2]] == 2;
 AnyMatrixQ[_]                 := False;
 
+AssociationMatrixQ[list_]     := MatrixQ[list, AssociationQ];
+
 (*************************************************************************************************)
 
 BooleanArrayQ[list_]          := TensorQ[list, BooleanQ];
 IntegerArrayQ[list_]          := TensorQ[list, IntegerQ];
 NaturalArrayQ[list_]          := TensorQ[list, NaturalQ];
 PositiveIntegerArrayQ[list]   := TensorQ[list, PositiveIntegerQ];
+StringArrayQ[list_]           := TensorQ[list, StringQ];
 SymbolArrayQ[list_]           := TensorQ[list, SymbolQ];
 RealArrayQ[list_]             := TensorQ[list, RealQ];
 NumberArrayQ[list_]           := TensorQ[list, RealValuedNumberQ];
@@ -469,6 +509,7 @@ iAllSameHeadsQ = CaseOf[
 iAllSamePartsQ = CaseOf[
   list_List ? PackedQ := ArrayDepth[list] > 1;
   expr_ ? SingleQ     := NonAtomicQ @ First @ expr;
+  assocs_ ? AssocVecQ := Apply[SameQ, Len /@ assoc] && Apply[SameQ, Keys @ assocs];
   expr_               := rectQ @ expr;
 ];
 
@@ -496,33 +537,51 @@ sameKeysAssocVectorQ[assocs_] := And[
   Apply[SameQ, Sort /@ Keys[assocs]]
 ];
 
+iAllSameOrderedKeysQ = CaseOf[
+  expr_ ? SingleQ    := AssociationQ @ First @ expr;
+  {a_Assoc, b_Assoc} := SameOrderedKeysQ[a, b];
+  list_List          := sameOrderedKeysAssocVectorQ @ list;
+  dict_Dict          := sameOrderedKeysAssocVectorQ @ Values @ dict;
+  expr_              := sameOrderedKeysAssocVectorQ @ Level[expr, 1];
+];
+
+sameOrderedKeysAssocVectorQ[assocs_] := And[
+  AssociationVectorQ @ assocs,
+  Apply[SameQ, Len /@ assocs],
+  Apply[SameQ, Keys @ assocs]
+];
+
 (*************************************************************************************************)
 
-AllSameLengthQ[_ ? EmptyQ] := True;
-AllSameHeadsQ[_ ? EmptyQ]  := True;
-AllSamePartsQ[_ ? EmptyQ]  := True;
-AllSameSetsQ[_ ? EmptyQ]   := True;
-AllSameKeysQ[_ ? EmptyQ]   := True;
+AllSameLengthQ[_ ? EmptyQ]        := True;
+AllSameHeadsQ[_ ? EmptyQ]         := True;
+AllSamePartsQ[_ ? EmptyQ]         := True;
+AllSameSetsQ[_ ? EmptyQ]          := True;
+AllSameKeysQ[_ ? EmptyQ]          := True;
+AllSameOrderedKeysQ[_ ? EmptyQ]   := True;
 
 AllSameLengthQ[expr_]      := iAllSameLengthQ @ expr;
 AllSameHeadsQ[expr_]       := iAllSameHeadsQ @ expr;
 AllSamePartsQ[expr_]       := iAllSamePartsQ @ expr;
 AllSameSetsQ[expr_]        := iAllSameSetsQ @ expr;
 AllSameKeysQ[expr_]        := iAllSameKeysQ @ expr;
+AllSameOrderedKeysQ[expr_] := iAllSameOrderedKeysQ @ expr;
 
 (*************************************************************************************************)
 
-NonEmptyAllSameLengthQ[_ ? EmptyQ] := False;
-NonEmptyAllSameHeadsQ[_ ? EmptyQ]  := False;
-NonEmptyAllSamePartsQ[_ ? EmptyQ]  := False;
-NonEmptyAllSameSetsQ[_ ? EmptyQ]   := False;
-NonEmptyAllSameKeysQ[_ ? EmptyQ]   := False;
+NonEmptyAllSameLengthQ[_ ? EmptyQ]      := False;
+NonEmptyAllSameHeadsQ[_ ? EmptyQ]       := False;
+NonEmptyAllSamePartsQ[_ ? EmptyQ]       := False;
+NonEmptyAllSameSetsQ[_ ? EmptyQ]        := False;
+NonEmptyAllSameKeysQ[_ ? EmptyQ]        := False;
+NonEmptyAllSameOrderedKeysQ[_ ? EmptyQ] := False;
 
 NonEmptyAllSameLengthQ[expr_]      := iAllSameLengthQ @ expr;
 NonEmptyAllSameHeadsQ[expr_]       := iAllSameHeadsQ @ expr;
 NonEmptyAllSamePartsQ[expr_]       := iAllSamePartsQ @ expr;
 NonEmptyAllSameSetsQ[expr_]        := iAllSameSetsQ @ expr;
 NonEmptyAllSameKeysQ[expr_]        := iAllSameKeysQ @ expr;
+NonEmptyAllSameOrderedKeysQ[expr_] := iAllSameOrderedKeysQ @ expr;
 
 (*************************************************************************************************)
 
@@ -549,14 +608,20 @@ ListableFunctionQ[c_RightComposition | c_Composition] := AllTrue[c, ListableFunc
 DeclareCurry2[ContainsQ]
 
 ContainsQ[e_, p_] := !FreeQ[e, p];
-ContainsDuplicateQ[e_] := Not @ DuplicateFreeQ @ e;
 
-(*************************************************************************************************)
+ContainsAssociationQ[e_] := And[VContainsQ[e, Association], !FreeQ[e, _Association ? Developer`HoldAtomQ]];
 
-ContainsAssociationQ[expr_] := And[
-  VContainsQ[expr, Association],
-  !FreeQ[expr, _Association ? Developer`HoldAtomQ]
-];
+DeclareCurry2[FreeWithinQ, ContainsWithinQ]
+
+FreeWithinQ[e_, p_, n_:2]     :=  FreeQ[e, p, {n, Inf}];
+ContainsWithinQ[e_, p_, n_:2] := !FreeQ[e, p, {n, Inf}];
+
+DeclareHoldFirst[HoldFreeQ, HoldContainsQ, HoldFreeWithinQ, HoldContainsWithinQ]
+
+HoldFreeQ[e_, p_] := FreeQ[NoEval @ e, p];
+HoldContainsQ[e_, p_] := !FreeQ[NoEval @ e, p]
+HoldFreeWithinQ[e_, p_, n_:2]     :=  FreeQ[NoEval @ e, p, {n, Inf}];
+HoldContainsWithinQ[e_, p_, n_:2] := !FreeQ[NoEval @ e, p, {n, Inf}];
 
 (**************************************************************************************************)
 
@@ -573,9 +638,13 @@ NotFailureQ[_] := True;
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[HoldAssociationQ, HoldPackedArrayQ];
+DeclareHoldAllComplete[HoldSameQ, HoldAssociationQ, HoldPackedArrayQ, HoldHasHeadQ]
 DeclarePredicate1[HoldAssociationQ, HoldPackedArrayQ]
+DeclarePredicate2[HoldSameQ, HoldHasHeadQ]
 
+HoldSameQ[a_, a_] := True;
 HoldAssociationQ[_Assoc ? HoldAtomQ] := True;
 HoldPackedArrayQ[arr_List] := PackedArrayQ @ NoEval @ arr;
 
+HoldHasHeadQ[h_[___], h_] := True;
+HoldHasHeadQ[h_] := HoldCompFn[FmE, HoldHasHeadQ[FmE, h]];

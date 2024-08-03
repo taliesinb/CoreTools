@@ -14,6 +14,8 @@ SystemExports[
     PartAssociation,
 
     FullReplaceAll, FullReplaceRepeated,
+    ReplaceAllList,
+    ReplaceAllBelow,
 
   "Head",
     ExprPath
@@ -54,8 +56,9 @@ OccurenceAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Positi
      LeafAssociation[expr_, fn_:Id]                    := partAssoc[expr, Position[expr,    _, {-1},  Heads -> False], fn];
 
 PartAssociation[expr_, parts_ ? ListVectorQ, fn_:Id] := partAssoc[expr, parts, fn];
-partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[expr, parts]];
-partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[expr, parts, fn]];
+
+partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[EnsureOAssoc @ expr, parts]];
+partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[EnsureOAssoc @ expr, parts, fn]];
 
 (**************************************************************************************************)
 
@@ -71,7 +74,7 @@ exprPathBoxes[a__] := RowBox @ FlatList @ Map[z |-> {ToBoxes[z], $dimDot}, {a}];
 
 ToExprPaths[list_ ? ListVecQ] := Sort[ExprPath @@@ list];
 
-FindExprPaths[expr_, spec:BlankSeq2] := ToExprPaths @ Position[expr, spec, Heads -> False];
+FindExprPaths[expr_, spec:Blank12] := ToExprPaths @ Position[expr, spec, Heads -> False];
 
 AllExprPaths[expr_]  := FindExprPaths[expr, _];
 
@@ -114,3 +117,34 @@ DeclareCurry2[FullReplaceAll, FullReplaceRepeated]
 FullReplaceAll[expr_, rules_]      :=      First[ReplaceAll[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];
 FullReplaceRepeated[expr_, rules_] := First[ReplaceRepeated[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];
 
+(*************************************************************************************************)
+
+ReplaceAllBelow[expr_, rep_, n_] := Replace[expr, rep, {n,Infinity}, Heads -> True];
+
+(*************************************************************************************************)
+
+ReplaceAllList[expr_, rules_] := Locals[
+  positions = Position[expr, toRepLHS @ rules];
+  Switch[positions,
+    {},   {},
+    {_},  replaceListAt[expr, rules, P1 @ positions],
+    _,    Catenate @ Map[pos |-> replaceListAt[expr, rules, pos], positions]
+  ]
+];
+
+replaceListAt[expr_, rules_, {}] := ReplaceList[expr, rules];
+
+replaceListAt[expr_, rules_, pos_] := Locals[
+  Map[
+    result |-> ReplacePart[expr, pos -> result],
+    ReplaceList[Extract[expr, pos], rules]
+  ]
+];
+
+ReplaceAllList[rules_][expr_] := ReplaceAllList[expr, rules];
+
+toRepLHS = CaseOf[
+  rules_List := Alternatives @@ Map[toRepLHS, rules];
+  lhs_ -> _  := lhs;
+  lhs_ :> _  := lhs;
+];

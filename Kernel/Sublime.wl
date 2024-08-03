@@ -69,7 +69,7 @@ staticFile[name_]        := DataPath["Sublime", "StaticFiles", name];
 
 CoreToolsSymbolKinds[] := Locals[
 
-  coreKinds = Prelude`Packages`PackageSymbolKinds["CoreTools`"];
+  coreKinds = PackageSymbolKinds["CoreTools`"];
   If[!symbolDictQ[coreKinds], ThrowErrorMessage["badSymbols", "CoreTools`"]];
 
   privateSyms = Last /@ StringSplit[Names["CoreTools`Private`*"], "`"];
@@ -102,7 +102,7 @@ DeclareHoldAll[savePreludeExports];
 
 savePreludeExports[] := Null;
 savePreludeExports[kind_String, Longest[syms___Symbol], rest___] := (
-  StuffBag[$preludeKindBag, kind -> MapHold[HoldSymbolName, {syms}]];
+  StuffBag[$preludeKindBag, kind -> HoldMap[HoldSymbolName, {syms}]];
   savePreludeExports[rest]
 );
 
@@ -111,7 +111,7 @@ savePreludeExports[kind_String, Longest[syms___Symbol], rest___] := (
 cachePackageSymbolKinds["CoreTools`"] := Null;
 cachePackageSymbolKinds[context_] := Locals[
   filename = StringDelete[context, "`"] <> ".wl.txt";
-  symbolKinds = Prelude`Packages`PackageSymbolKinds[context];
+  symbolKinds = PackageSymbolKinds[context];
   ExportStringTable[userSymbolFile[filename], symbolKinds]
 ];
 
@@ -211,7 +211,7 @@ $symNotFound = "
 
 makeSingleContext[defs_] := StrJoin[StrRep[defs, $addPopRule], $symNotFound];
 
-makeGroup0[group:"Variable" | "SpecialVariable" | "CacheVariable", names_] :=
+makeGroup0[group:"Variable" | "SpecialVariable" | "CacheVariable" | "SlotVariable", names_] :=
   MapLast[
     StringReplace["- match: '{{" -> "- match: '\\${{"],
     If[!AllTrue[names, StringStartsQ["$"]],
@@ -237,7 +237,7 @@ makeGroup1[group2_, names2_] := Locals[
     defItems = StrJoin[subDefs, finalDef] // escapeDollars;
     parseItems = StrJoin @ Map[$parseItemT[scope, #]&, Keys @ grouped];
   ,
-    defItems = StrJoin["  ", group, ": ", makeRegexp[names], "\n"];
+    defItems = StrJoin["  ", group, ": ", makeRegexp[names], "\n"] // escapeDollars;
     parseItems = $parseItemT[scope, group];
   ];
   {defItems, parseItems}
@@ -265,12 +265,13 @@ makeLetterSubDef[subDefName_, strings_] :=
 groupToSyntaxScope = CaseOf[
   "PackageDeclaration" := "meta.package.declaration.wolfram";
   "PackageFunction"    := "meta.package.function.wolfram";
-  "Symbol"          := "constant.language.symbol.wolfram";
-  "Head"            := "constant.language.head.wolfram";
-  "ObjectHead"      := "support.function.object.wolfram";
-  "Function"        := $$ @ "builtin";
-  "OptionSymbol"    := "constant.language.symbol.option.wolfram";
-  "BoxOptionSymbol" := "constant.language.symbol.option.box.wolfram";
+  "Symbol"             := "constant.language.symbol.wolfram";
+  "SpecialSymbol"      := "constant.language.symbol.special.wolfram";
+  "Head"               := "constant.language.head.wolfram";
+  "ObjectHead"         := "support.function.object.wolfram";
+  "Function"           := $$ @ "builtin";
+  "OptionSymbol"       := "constant.language.symbol.option.wolfram";
+  "BoxOptionSymbol"    := "constant.language.symbol.option.box.wolfram";
   group_     := Which[
     StrEndsQ[group, "Symbol"],
       StrJoin["constant.language.symbol.", ToLowerCase @ StrDelete[group, "Symbol"], ".wolfram"],
@@ -306,6 +307,7 @@ $groupToSymbol = Association[
   "PackageFunction"        -> "p",
   "Symbol"                 -> "s",
   "PatternSymbol"          -> "s",
+  "SpecialSymbol"          -> "s",
   "PatternHead"            -> "s",
   "OptionSymbol"           -> "\[RightArrow]",
   "BoxOptionSymbol"        -> "\[RightArrow]",
@@ -322,7 +324,7 @@ $groupToSymbol = Association[
 ];
 
 groupToKindColorProxy = CaseOf[
-  "Symbol" | "PatternSymbol" | "PatternHead"                        := "symbol";
+  "Symbol" | "PatternSymbol" | "PatternHead" | "SpecialSymbol"      := "symbol";
   "ObjectHead"                                                      := "function";
   "Function" | "MutationFunction" | "ScopingFunction" | "ControlFlowFunction" := "function";
   "PackageFunction" | "PackageDeclaration" | "DebuggingFunction" | "SpecialFunction"    := "function";

@@ -34,6 +34,7 @@ PackageExports[
   "MetaFunction",
     DefineSeqRowStringForms,
   "Function",
+    StringSelect, StringDiscard, StringSelectDiscard,
     FnBracketStringRow, FnParenStringRow, FnBracketString, FnParenString,
     StrTake1, StrTakeN,
   "Variable",
@@ -80,7 +81,7 @@ StringReplaceRepeated[rules_][str_] := StringReplaceRepeated[str, rules];
 
 (**************************************************************************************************)
 
-Base36Hash[e_] := IntegerString[Hash @ e, 36, 13];
+Base36Hash[e_] := Hash[e, Automatic, "Base36String"];
 
 (**************************************************************************************************)
 
@@ -232,6 +233,19 @@ StringPositionRight[str_String, patt_, else_:None] := First[Last[StringPosition[
 
 (**************************************************************************************************)
 
+General::notStringVector1 = "First argument should be a list of strings.";
+DeclareCurry2[StringSelect, StringDiscard, StringSelectDiscard]
+
+StringSelect[list_ ? StrVecQ, patt_]        := Pick[list, StringMatchQ[list, patt], True];
+StringDiscard[list_ ? StrVecQ, patt_]       := Pick[list, StringMatchQ[list, patt], False];
+StringSelectDiscard[list_ ? StrVecQ, patt_] := PickTrueFalse[list, StringMatchQ[list, patt]];
+
+StringSelect[_, _] := ErrorMsg[General::notStringVector1];
+StringDiscard[_, _] := ErrorMsg[General::notStringVector1];
+StringSelectDiscard[_, _] := ErrorMsg[General::notStringVector1];
+
+(**************************************************************************************************)
+
 DeclareHoldRest[StringCaseFirst, StringCaseLast];
 DeclareCurry2[StringCaseFirst, StringCaseLast];
 DeclareListable1[StringCaseFirst, StringCaseLast];
@@ -355,7 +369,7 @@ toStr1[s_Str] := s;
 toStr1[e_]    := StrJoin @ toStr2 @ e
 
 toStr2[s_Str]     := s;
-toStr2[i_Int]     := If[Negative[i], "-" <> IntStr[i], IntStr[i]];
+toStr2[i_Int]     := IntStr @ i;
 toStr2[Null]      := {};
 toStr2[s_StrExpr] := Map[toStr2, s];
 toStr2[l_List]    := Map[toStr2, l]

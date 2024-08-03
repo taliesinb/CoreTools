@@ -10,7 +10,7 @@ PackageExports[
     RemoveTreeDecorations,
     VertexEdgeIndexGraph,
   "GraphicsFunction",
-    ExprTreePlot,
+    ExprTreePlot, NiceTreePlot,
   "GraphicsBoxFunction",
     ExprTreePlotBoxes,
   "PatternSymbol",
@@ -23,7 +23,91 @@ PackageExports[
   "SpecialVariable",
     $CurrentTreeDepth, $MaxTreeDepth,
   "OptionSymbol",
-    GraphScale, NodePattern, NodeColorRules
+    GraphScale,
+    NodePattern,
+    NodeColorRules,
+    VertexColorFunction
+];
+
+(**************************************************************************************************)
+
+Options[NiceTreePlot] = {
+  GraphScale          -> 10,
+  VertexSize          -> 4,
+  VertexColorFunction -> Inherited,
+  VertexColors        -> Inherited,
+  VertexTooltips      -> Inherited,
+  EdgeColor           -> Auto,
+  EdgeThickness       -> 1
+};
+
+NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals[
+  UnpackOptions[graphScale, vertexSize, vertexColors, vertexTooltips, vertexColorFunction, edgeColor, edgeThickness];
+
+  leafVertexSize = vertexSize;
+  nodeVertexSize = vertexSize - 0.5;
+
+  If[VertexCount @ g, Return @ Graphics[{}, ImageSize -> graphScale]];
+  {vertCoords, edgeCoords} = OrderedTreeLayout[graph, $treePlotLayoutOptions];
+  plotBounds = CoordinateBounds[vertCoords, {.5, .5}];
+  plotSize = Dist @@@ plotBounds;
+  imageSize = plotSize * graphScale;
+
+  edgeStyle = Directive[AbsoluteThickness @ edgeThickness];
+  vertexStyle = Directive[AbsolutePointSize @ vertexSize];
+
+  {graphVertexColorFn, graphVertexColors, graphVertexTooltips} =
+    GraphProperties[graph, {VertexColorFunction, VertexColors, VertexTooltips}];
+
+  SetInherited[vertexColorFunction, graphVertexColorFn];
+  SetInherited[vertexColors,        graphVertexColors];
+  SetInherited[vertexTooltips,      graphVertexTooltips]
+
+  SetNone[vertexColorFunction, None];
+  If[vertexColorFunction =!= Auto,
+    vertexColors = Map[vertexColorFunction, VertexList @ graph]];
+
+  SetAuto[vertexColors, GrayLevel[0.3]];
+
+  vertexPrims = Point @ vertCoords;
+  Which[
+    ColorQ @ vertexColors,
+      AppendTo[vertexStyle, vertexColors];
+    ,
+    ColorVectorQ @ vertexColors,
+      If[!SameLenQ[vertexColors, vertCoords], ReturnFailed[]];
+      SetAuto[edgeColor, GrayLevel[0.8]];
+      vertexPrims //= ZipPrims[Style, vertexColors],
+    True,
+      ReturnFailed[]
+  ];
+  SetAuto[edgeColor, GrayLevel[0.5]];
+  If[ListQ[vertexTooltips], vertexPrims //= ZipPrims[Tooltip, vertexTooltips]];
+
+  AppendTo[edgeStyle, edgeColor];
+
+  primitives = List[
+    Style[Line @ edgeCoords, edgeStyle],
+    Style[vertexPrims, vertexStyle]
+    (* List[GrayLevel[0.5], AbsolutePointSize[nodeVertexSize], Point @ Part[vertCoords, nodeIndices]] *)
+  ];
+
+  Graphics[primitives,
+    PlotRange -> plotBounds,
+    PlotRangePadding -> 0,
+    ImageSize -> imageSize
+  ]
+];
+
+(* TODO: expose this! *)
+ZipPrims[f_, rest__][l_List] := ZipMap[f, l, rest];
+ZipPrims[f_, rest__][prim_] := ZipMap[f, Thread @ prim, rest];
+
+$treePlotLayoutOptions = Seq[
+  "BendRadius"      -> 0.25,
+  "FanoutStyle"     -> "Top",
+  "LayerDepths"     -> 1,
+  "GlobalCentering" -> False
 ];
 
 (*************************************************************************************************)
@@ -63,6 +147,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     layerDepths, $globalCentering, $firstLastDelta
   ];
 
+  If[VertexCount[graph] === 0, Return @ {{}, {}}];
   indexGraph = VertexEdgeIndexGraph @ graph;
   edgePairs = {#1, #2}& @@@ EdgeList[indexGraph];
   vertexCount = VertexCount @ indexGraph;
@@ -256,21 +341,30 @@ AllTreesDepth[d_Int, b_Int] := AllTreesDepth[d, b] = Map[NestedListsToTree, Grou
 (**************************************************************************************************)
 
 ExprTreePlotBoxes[expr_, opts:OptionsPattern[]] := Which[
-  LeafCount[expr] > 256, FnBracketRowBox[ToBoxes @ Head @ expr, List @ SkeletonBox @ IntStr @ LeafCount @ expr],
+  LeafCount[expr] > 256, FnBracketRowBox[ToBoxes @ Head @ expr, List @ SkeletonBox @ NatStr @ LeafCount @ expr],
   Depth[expr] > 24,      ToBoxes @ ExprTreePlot[Replace[expr, _ -> TreeLeaf, {16}], opts],
   True,                  ToBoxes @ ExprTreePlot[expr, opts]
 ];
 
-Options[ExprTreePlot] = Options[ExprTreePlotBoxes] = {
-  GraphScale  -> 10,
-  VertexSize  -> 4,
-  NodePattern -> Auto,
-  EdgeColor   -> Auto,
-  NodeColorRules -> None,
-  EdgeThickness -> 1
-};
+Options[ExprTreePlot] = Options[ExprTreePlotBoxes] = JoinOptions[
+  {NodePattern -> Auto, NodeColorRules -> None},
+  Options @ NiceTreePlot
+];
 
-toColor = CaseOf[
+ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
+  UnpackOptions[nodePattern, nodeColorRules];
+  SetAuto[nodePattern, _];
+  paths = FindExprPaths[expr, nodePattern];
+  nodes = Extract[expr, List @@@ paths];
+  vertexColors = If[nodeColorRules === None,
+    Map[toNodeColor, nodes],
+    VectorReplace[nodes, ToList[nodeColorRules, _ -> Black]]
+  ];
+  graph = PrefixGraph @ paths;
+  NiceTreePlot[graph, VertexColors -> vertexColors, NarrowOptions @ opts]
+];
+
+toNodeColor = CaseOf[
   i:NatP            := Part[$MediumColorPalette, i + 1];
   c:ColorP          := c;
   TreeSeed[i_]      := $ @ i;
@@ -283,48 +377,6 @@ toColor = CaseOf[
   i_Real ? UnitNumberQ := GrayLevel[i];
   i_Real            := NiceHue @ i;
   e_                := HashToColor @ Hash @ Head @ e;
-];
-
-ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
-  UnpackOptions[graphScale, vertexSize, nodePattern, edgeColor, edgeThickness, nodeColorRules];
-  leafVertexSize = vertexSize;
-  nodeVertexSize = vertexSize - 0.5;
-  SetAuto[nodePattern, _];
-  paths = FindExprPaths[expr, nodePattern];
-  graph = PrefixGraph @ paths;
-  {vertCoords, edgeCoords} = OrderedTreeLayout[graph, $treePlotLayoutOptions];
-  plotBounds = CoordinateBounds[vertCoords, {.5, .5}];
-  plotSize = Dist @@@ plotBounds;
-  imageSize = plotSize * graphScale;
-  nodes = Extract[expr, List @@@ paths];
-  If[nodeColorRules =!= None,
-    nodes = VectorReplace[nodes, ToList[nodeColorRules, _ -> Black]]];
-  nodeColors = Map[toColor, nodes];
-  useColors = If[AllSameQ[nodeColors] && First[nodeColors] === Black, False, True];
-  If[useColors,
-    vertexSize += 1;
-    SetAuto[edgeColor, GrayLevel[0.8]];
-    pointPrims = ZipMap[Style[Point[#1], #2]&, vertCoords, nodeColors],
-    pointPrims = Point @ vertCoords
-  ];
-  SetAuto[edgeColor, GrayLevel[0.5]];
-  primitives = List[
-    List[AbsoluteThickness @ edgeThickness, edgeColor, Line @ edgeCoords],
-    List[AbsolutePointSize @ vertexSize, pointPrims]
-    (* List[GrayLevel[0.5], AbsolutePointSize[nodeVertexSize], Point @ Part[vertCoords, nodeIndices]] *)
-  ];
-  Graphics[primitives,
-    PlotRange -> plotBounds,
-    PlotRangePadding -> 0,
-    ImageSize -> imageSize
-  ]
-];
-
-$treePlotLayoutOptions = Seq[
-  "BendRadius"      -> 0.25,
-  "FanoutStyle"     -> "Top",
-  "LayerDepths"     -> 1,
-  "GlobalCentering" -> False
 ];
 
 (**************************************************************************************************)

@@ -6,13 +6,17 @@ SystemExports[
 PackageExports[
   "BoxFunction",
     RBox,
-    SpacerBox, RaiseBox, LowerBox, MarginBox, ColumnBox, TightBox, NiceTooltipBox, SkeletonBox,
+    SpacerBox, RaiseBox, LowerBox, MarginBox, ColumnBox,
+    SpanStyleBox, TightBox, NiceTooltipBox, SkeletonBox,
     FnRowBox, FnBracketRowBox, FnParenRowBox, FnBracketBoxOp, FnParenBoxOp,
-    DelimitedRBox,   RiffledRBox,   SpaceRBox,   CommaRBox,   ColonRBox,   SColonRBox,   ArrowRBox,   BraceRBox,   AngleRBox,   ParenRBox,   BracketRBox,   PartRBox,   AssocRBox,
-    DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, PartRowBox, AssocRowBox,
+    DelimitedRBox,   RiffledRBox,   SpaceRBox,   CommaRBox,   ColonRBox,   SColonRBox,   ArrowRBox,   BraceRBox,   AngleRBox,   ParenRBox,   BracketRBox,   DBracketRBox,   AssocRBox,
+    DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox, AssocRowBox,
     DimmedBox, StatusAreaBox, CursorIconBox, LiteralStringBox,
     ApplyEndStyleBox, ApplyIndentBox,
-    UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox, FontBox,
+    UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox,
+    FontColorBox, FontSizeBox, FontSizeDeltaBox,
+    FontBox, RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox,
+    RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont,
     VeryLargeBox, LargeBox, MediumBox, SmallBox, VerySmallBox, TinyBox,
     ClickBox, NoClickBox, EventHandlerBox,
     FlattenStyleBox, BuryStyleBox,
@@ -20,8 +24,8 @@ PackageExports[
     TextIconBox, NamedTextIconBox,
   "FormHead",
     RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
-    DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, PartSeq,
-    DelimitedRow, RiffledRow, SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow, BraceRow, AngleRow, ParenRow, BracketRow, PartRow,
+    DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
+    DelimitedRow, RiffledRow, SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow, BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow,
     Dimmed, LiteralStringForm,
     UnderlinedForm, ItalicForm, SemiBoldForm, BoldForm, PlainForm,
     VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm,
@@ -31,7 +35,7 @@ PackageExports[
     FormBurrowing, BoxBurrowing,
     StyleOp, StyleBoxOp,
   "IOFunction",
-    CoreBoxes, SystemBoxes,
+    CoreBoxes, SystemBoxes, MapMakeBoxes, MapMakeBoxesSeq,
   "DebuggingFunction",
     MakeCoreBoxesTraditional, MakeCoreBoxesModified,
   "FormHead",
@@ -48,6 +52,17 @@ PackageExports[
     HasCoreBoxesQ, BurrowThroughHeadQ, BurrowThroughBoxHeadQ
   "MetaFunction"
 ];
+
+(**************************************************************************************************)
+
+DeclareHoldAll[MapMakeBoxes, MapMakeBoxesSeq]
+
+MapMakeBoxes = CaseOf[
+  items_Dict := KeyMapValueMap[MakeBoxes, MakeBoxes, items]; (* KMVM preserves holdness *)
+  items_List := HoldMap[MakeBoxes, items];
+];
+
+MapMakeBoxesSeq[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
 
 (**************************************************************************************************)
 
@@ -107,10 +122,10 @@ DeclareCoreBoxes[sym_Symbol] := With[
   $coreBoxHead[Hold[sym]] = True;
 
   MakeBoxes[$LHS:sym | _sym, StandardForm] /; $UseCoreBoxFormatting :=
-    TryEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
+    MaybeEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
 
   MakeBoxes[$LHS:sym | _sym, TraditionalForm] /; $UseCoreBoxFormatting :=
-    TryEval @ MakeCoreBoxesTraditional @ $LHS;
+    MaybeEval @ MakeCoreBoxesTraditional @ $LHS;
 ];
 
 DeclareCoreSubBoxes[sym_Symbol] := With[
@@ -119,10 +134,10 @@ DeclareCoreSubBoxes[sym_Symbol] := With[
   $coreBoxHead[Hold[sym]] = True;
 
   MakeBoxes[$LHS:(_sym[___]), StandardForm] /; $UseCoreBoxFormatting :=
-    TryEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
+    MaybeEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
 
   MakeBoxes[$LHS:(_sym[___]), TraditionalForm] /; $UseCoreBoxFormatting :=
-    TryEval @ MakeCoreBoxesTraditional @ $LHS;
+    MaybeEval @ MakeCoreBoxesTraditional @ $LHS;
 ];
 
 (**************************************************************************************************)
@@ -150,6 +165,7 @@ Protect[SystemBoxes];
 
 DeclareThenScan[MakeBoxDefinitions]
 
+(* TODO: why not use CoreBoxes for this? *)
 MakeBoxDefinitions[SetDelayed[lhs_, rhs_]] := (
   MakeBoxes[lhs, StandardForm | TraditionalForm] := rhs;
 );
@@ -193,6 +209,12 @@ MakeBoxDefinitions[
 ]
 
 TightBox[e_] := StyleBox[e, AutoSpacing -> False, AutoIndent -> False, LineBreakWithin -> False];
+
+(**************************************************************************************************)
+
+DeclareCurry2[SpanStyleBox]
+
+SpanStyleBox[box_, {min_, max_}] := StyleBox[box, SpanMinSize -> min, SpanMaxSize -> max];
 
 (**************************************************************************************************)
 
@@ -320,6 +342,9 @@ DefineStyleFormBox[Then[boxSym_, formSym_, style_]] := (
   boxSym[boxes_]            := BuryStyleBox[style] @ boxes;
 );
 
+DeclaredHere[UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox, VeryLargeBox, LargeBox, MediumBox, SmallBox, VerySmallBox, TinyBox];
+DeclaredHere[UnderlinedForm, ItalicForm, SemiBoldForm, BoldForm, PlainForm, VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm];
+
 DefineStyleFormBox[
   UnderlinedBox; UnderlinedForm; Underlined,
   ItalicBox;     ItalicForm;     FontSlant -> Italic,
@@ -333,6 +358,21 @@ DefineStyleFormBox[
   VerySmallBox;  VerySmallForm;  Small,
   TinyBox;       TinyForm;       Tiny
 ];
+
+(**************************************************************************************************)
+
+DeclareCurry2[FontColorBox, FontSizeBox, FontSizeDeltaBox]
+
+FontColorBox::badColor = "Not a color: ``.";
+FontColorBox[boxes_, color_] := StyleBox[boxes, FontColor -> toFontColor[color]];
+toFontColor = CaseOf[
+  r_ ? NumQ   := GrayLevel[r];
+  c_ ? ColorQ := c;
+  e_          := (Message[FontColorBox::badColor, e]; Red)
+];
+
+FontSizeBox[boxes_, n_]      := StyleBox[boxes, FontSize -> n];
+FontSizeDeltaBox[boxes_, n_] := StyleBox[boxes, FontSize -> (Inherited + n)];
 
 (**************************************************************************************************)
 
@@ -350,6 +390,8 @@ BurrowThroughHeadQ[head_Sym]    := MatchQ[head, $BuryThroughForms];
 BurrowThroughBoxHeadQ[head_Sym] := MatchQ[head, $BuryThroughBoxes];
 
 (**************************************************************************************************)
+
+DeclaredHere[FormBurrowing, BoxBurrowing];
 
 fn_FormBurrowing[expr:$BuryThroughBoxes] := MapFirst[fn, expr];
 fn_FormBurrowing[expr_]                  := First[fn] @ expr;
@@ -375,6 +417,19 @@ StyleBoxOp[spec___][e_] := StyleBox[e, spec];
 DeclareCurry2[FontBox]
 FontBox[e_, f_] := BuryStyleBox[FontFamily -> f][e];
 
+declareFontBoxForm[boxSym_, formSym_, family_] := (
+  boxSym[boxes_] := BuryStyleBox[FontFamily -> family][boxes];
+  SystemBoxes[formSym[expr_]] := boxSym @ MakeBoxes @ expr;
+);
+
+MapApply[declareFontBoxForm, {
+  {RobotoFontBox,   RobotoFont,   "Roboto"},
+  {CodeFontBox,     CodeFont,     "Source Code Pro"},
+  {CodeSansFontBox, CodeSansFont, "Source Sans Code"},
+  {SansFontBox,     SansFont,     "Source Sans Pro"},
+  {SerifFontBox,    SerifFont,    "Source Serif Pro"}
+}];
+
 (**************************************************************************************************)
 
 FlattenStyle[Style[Style[expr_, s1___], s2___]] := FlattenStyle @ Style[expr, s1, s2];
@@ -385,25 +440,43 @@ FlattenStyleBox[boxes_] := boxes;
 
 (**************************************************************************************************)
 
-DefineSeqRowFormBox[fnSeq2_, fnRow2_, tuples__List] := MapApply[
-  {seqSym, rowSym, rboxSym, boxSym, data} |-> With[
-    {fnSeq = fnSeq2 @@ data, fnRow = fnRow2 @@ data},
-    MakeBoxDefinitions[
-      a_seqSym       := fnSeq @@ Map[MakeBoxes, Apply[List, Unevaluated @ a]];
-      rowSym[l_List] := fnRow @ Map[MakeBoxes, l];
-    ];
-    a_rboxSym        := fnSeq @@ Unevaluated[a];
-    boxSym[l_List]   := fnRow @ l;
+defSeqRowFormBox[fnSeq_, fnRow_][seqSym_, rowSym_, rboxSym_, boxSym_, {l_, c_, r_}] := Then[
+  MakeBoxDefinitions[
+    a_seqSym           := fnSeq[l, c, r] @@ Map[MakeBoxes, Apply[List, Unevaluated @ a]];
+    rowSym[e_List]     := fnRow[l, c, r] @ Map[MakeBoxes, e];
+    rowSym[e_List, m_] := fnRow[l, m, r] @ Map[MakeBoxes, e];
   ],
-  {tuples}
+  a_rboxSym            := fnSeq[l, c, r] @@ Unevaluated[a],
+  boxSym[e_List]       := fnRow[l, c, r] @ e,
+  boxSym[e_List, m_]   := fnRow[l, m, r] @ e
 ];
 
+defSeqRowFormBox[fnSeq_, fnRow_][seqSym_, rowSym_, rboxSym_, boxSym_, {x_}] := Then[
+  MakeBoxDefinitions[
+    a_seqSym           := fnSeq[x] @@ Map[MakeBoxes, Apply[List, Unevaluated @ a]];
+    rowSym[e_List]     := fnRow[x] @ Map[MakeBoxes, e];
+    rowSym[e_List, m_] := fnRow[x] @ Map[MakeBoxes, e];
+  ],
+  a_rboxSym            := fnSeq @@ Unevaluated[a],
+  boxSym[e_List]       := fnRow[x] @ e,
+  boxSym[e_List, m_]   := fnRow[x] @ e
+];
+
+defSeqRowFormBox[_, _][args___] := Print @ List[args];
+
+DefineSeqRowFormBox[fnSeq_, fnRow_, tuples__List] := MapApply[defSeqRowFormBox[fnSeq, fnRow], {tuples}];
+
+DeclaredHere[BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq];
+DeclaredHere[BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow];
+DeclaredHere[BraceRBox, AngleRBox, ParenRBox, BracketRBox, DBracketRBox];
+DeclaredHere[BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox];
+
 DefineSeqRowFormBox[DelimitedRBox, DelimitedRowBox,
-  {BraceSeq,   BraceRow,   BraceRBox,   BraceRowBox,   {"{", ",", "}"}},
-  {AngleSeq,   AngleRow,   AngleRBox,   AngleRowBox,   {"⟨", ",", "⟩"}},
-  {ParenSeq,   ParenRow,   ParenRBox,   ParenRowBox,   {"(", ",", ")"}},
-  {BracketSeq, BracketRow, BracketRBox, BracketRowBox, {"[", ",", "]"}},
-  {PartSeq,    PartRow,    PartRBox,    PartRowBox,    {"⟦", ",", "⟧"}}
+  {BraceSeq,    BraceRow,    BraceRBox,    BraceRowBox,    {"{", ",", "}"}},
+  {AngleSeq,    AngleRow,    AngleRBox,    AngleRowBox,    {"\[LeftAngleBracket]", ",", "\[RightAngleBracket]"}},
+  {ParenSeq,    ParenRow,    ParenRBox,    ParenRowBox,    {"(", ",", ")"}},
+  {BracketSeq,  BracketRow,  BracketRBox,  BracketRowBox,  {"[", ",", "]"}},
+  {DBracketSeq, DBracketRow, DBracketRBox, DBracketRowBox, {"\[LeftDoubleBracket]", ",", "\[RightDoubleBracket]"}}
 ];
 
 DefineSeqRowFormBox[RiffledRBox, RiffledRowBox,

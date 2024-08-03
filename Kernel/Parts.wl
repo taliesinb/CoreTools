@@ -1,6 +1,7 @@
 SystemExports[
   "Function",
     Second, Third, Fourth,
+    FirstSecond, SecondFirst,
     FirstLast, FirstRest, MostLast,
     MaybePart, PartOr, PartOf
 ];
@@ -19,7 +20,7 @@ Dup4[e_] := {e, e, e, e};
 
 (**************************************************************************************************)
 
-DeclareHoldRest[Second, Third, Fourth]
+DeclareHoldRest[Second, Third, Fourth, FirstSecond, SecondFirst]
 
 Second::usage = "Second[e$] gives Part[e, 2] or None.\nSecond[e$, else$] evaluates else if there is no second part.";
 Third::usage  =  "Third[e$] gives Part[e, 3] or None.\nThird[e$, else$] evaluates else if there is no third part.";
@@ -28,6 +29,9 @@ Fourth::usage = "Fourth[e$] gives Part[e, 4] or None.\nFourth[e$, else$] evaluat
 Second[e_, f_:None] := FastQuietCheck[Part[e, 2], f];
  Third[e_, f_:None] := FastQuietCheck[Part[e, 3], f];
 Fourth[e_, f_:None] := FastQuietCheck[Part[e, 4], f];
+
+FirstSecond[e_] := {First @ e, Second @ e};
+SecondFirst[e_] := {Second @ e, First @ e};
 
 (**************************************************************************************************)
 

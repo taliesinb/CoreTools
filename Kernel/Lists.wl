@@ -1,9 +1,11 @@
 SystemExports[
   "Function",
+    CountUnique, CountUniqueBy,
     Lerp, Avg, Multiply,
     PlusOne, MinusOne, OneMinus, OneOver,
     Unthread, SequenceLength, Birange, LengthRange, RangeLength,
-    SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
+    SequenceNothing, SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
+    SequenceFirstSecond, SequenceSecondFirst,
     FlatList,
     DropWhile, CommonPrefix, CommonPrefixLength, CommonSuffix, CommonSuffixLength,
     IndexOf,
@@ -15,19 +17,21 @@ SystemExports[
     GatherAgainst, CombineAgainst, CombineBy,
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
     ListRiffle, ScalarRiffle,
+    TrimRight, TrimLeft,
   "Head",
     Unsequence
 ];
 
 PackageExports[
   "Function",
-    Args, HoldArgs,
+    Args,
     Clip2,
+  "ControlFlowFunction",
+    HoldArgs,
   "MutatingFunction",
     JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
   "Function",
-    ReplaceAllList,
-    SelectDiscard, Discard, SelectFirstIndex,
+    SelectDiscard, Discard, SelectFirstIndex, PickTrueFalse,
     EnsurePair,
     HoldLength,
     NewCollector, FromCollector,
@@ -38,6 +42,26 @@ PackageExports[
   "Variable",
     $UnthreadEnabled
 ];
+
+(*************************************************************************************************)
+
+CountUnique[list_List] := Len @ Union @ list;
+CountUnique[expr_]     := Len @ Union @ HoldArgs @ expr;
+
+SetCurry2 @ CountUniqueBy;
+
+CountUniqueBy[list_List, fn_] := Len @ Union @ Map[fn, list];
+CountUniqueBy[expr_, fn_]     := Len @ Union @ MapApply[fn, HoldArgs @ expr];
+
+(*************************************************************************************************)
+
+DeclareCurry2[TrimRight, TrimLeft]
+
+TrimRight[e:EmptyP, _] := e;
+TrimRight[e_, d_]      := If[MatchQ[Last[e, $dummy], d], Most @ e, e];
+
+TrimLeft[e:EmptyP, _] := e;
+TrimLeft[e_, d_]      := If[MatchQ[First[e, $dummy], d], Rest @ e, e];
 
 (*************************************************************************************************)
 
@@ -62,7 +86,7 @@ CollectorFn[bag_][item_, n_Int] := StuffBag[bag, item, n];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[HoldLength];
+SetHoldC[HoldLength]
 
 HoldLength[e_] := Length @ NoEval @ e;
 
@@ -77,7 +101,7 @@ Args[list_List]             := list;
 Args[_[args___]]            := List[args];
 Args[_]                     := $Failed;
 
-DeclareHoldAllComplete[HoldArgs];
+SetHoldC[HoldArgs]
 
 HoldArgs[dict_Dict ? HoldAtomQ] := Level[dict, 1, HoldComplete];
 HoldArgs[_[args___]]            := HoldComplete[args];
@@ -92,10 +116,10 @@ FlatList[a___]   := Flatten @ List @ a;
 
 DeclareCurry2[SelectDiscard, Discard, Occurences, FirstOccurence]
 
-SelectDiscard[assoc_Assoc, fn_] := pickTF[assoc, Map[fn /* TrueQ, Values @ assoc]];
-SelectDiscard[list_List, fn_] := pickTF[list, Map[fn /* TrueQ, list]];
+SelectDiscard[assoc_Assoc, fn_] := PickTrueFalse[assoc, Map[fn /* TrueQ, Values @ assoc]];
+SelectDiscard[list_List, fn_] := PickTrueFalse[list, Map[fn /* TrueQ, list]];
 
-pickTF[thing_, mask_] := {Pick[thing, mask, True], Pick[thing, mask, False]};
+PickTrueFalse[thing_, mask_] := {Pick[thing, mask, True], Pick[thing, mask, False]};
 
 Discard[list_, crit_] := Select[list, Function[e, crit[e] =!= True]];
 
@@ -148,36 +172,6 @@ OneOver[e_] := 1 / e;
 
 (*************************************************************************************************)
 
-ExportFunction[ReplaceAllList]
-
-ReplaceAllList[expr_, rules_] := Locals[
-  positions = Position[expr, toRepLHS @ rules];
-  Switch[positions,
-    {},   {},
-    {_},  replaceListAt[expr, rules, P1 @ positions],
-    _,    Catenate @ Map[pos |-> replaceListAt[expr, rules, pos], positions]
-  ]
-];
-
-replaceListAt[expr_, rules_, {}] := ReplaceList[expr, rules];
-
-replaceListAt[expr_, rules_, pos_] := Locals[
-  Map[
-    result |-> ReplacePart[expr, pos -> result],
-    ReplaceList[Extract[expr, pos], rules]
-  ]
-];
-
-ReplaceAllList[rules_][expr_] := ReplaceAllList[expr, rules];
-
-toRepLHS = CaseOf[
-  rules_List := Alternatives @@ Map[toRepLHS, rules];
-  lhs_ -> _  := lhs;
-  lhs_ :> _  := lhs;
-];
-
-(*************************************************************************************************)
-
 DeclareHoldFirst[JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn];
 
 JoinTo[e_, r_]            := Set[e, Join[e, r]];
@@ -216,6 +210,8 @@ Unthread /: head_Symbol[l___, Unthread[a_, n_Int], r___] := With[
 DeclareHoldAllComplete[ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3]
 DeclareSequenceHold[Unsequence]
 
+(* NOTE: Unevaluated[1, 2] turns into Sequence[1, 2] when substituted, which is good *)
+
 ThenNull[e___] := Then[e, Null];
 ThenFail[e___] := Then[e, $Fail];
 ThenFailEval[e___] := Then[e, FailEval];
@@ -227,6 +223,7 @@ Then3[e___] := P3 @ Unsequence[e];
 
 (*************************************************************************************************)
 
+_SequenceNothing := Seq[];
 SequenceFirst[e_, ___] := e;
 SequenceSecond[_, e_, ___] := e;
 SequenceThird[_, _, e_, ___] := e;
@@ -234,6 +231,9 @@ SequenceLast[___, e_]  := e;
 SequenceMost[e___, _]  := e;
 SequenceRest[_, e___]  := e;
 SequenceReverse[e___]  := Seq @@ Reverse[{e}];
+
+SequenceFirstSecond[e1_, e2_, ___] := Seq[e1, e2];
+SequenceSecondFirst[e1_, e2_, ___] := Seq[e2, e1];
 
 (*************************************************************************************************)
 
@@ -322,10 +322,10 @@ IndexOf[expr_ ? NonZeroDepthQ, elem_, else_] := FirstPosition[expr, Verbatim[ele
 
 DeclareCurry2[VectorIndicesOf, FirstVectorIndexOf]
 
-VectorIndicesOf[x_, n_Integer] := TryEval @ Replace[FastNumericIndices[x, n], _Failure | $Failed -> Fail]
+VectorIndicesOf[x_, n_Integer] := MaybeEval @ Replace[FastNumericIndices[x, n], _Failure | $Failed -> FailEval]
 VectorIndicesOf[x_, n_] := Flatten @ Position[x, Verbatim[n], {1}];
 
-FirstVectorIndexOf[x_, n_Integer] := TryEval @ First[Replace[FastNumericIndices[x, n, 1], _Failure | $Failed -> {Fail}], None];
+FirstVectorIndexOf[x_, n_Integer] := MaybeEval @ First[Replace[FastNumericIndices[x, n, 1], _Failure | $Failed -> {FailEval}], None];
 FirstVectorIndexOf[x_, n_] := First @ FirstPosition[x, Verbatim[n], {None}, {1}];
 
 (**************************************************************************************************)
@@ -399,7 +399,8 @@ iFirstVectorIndex[expr_, test_, def_] := Module[{i = 0},
 
 ExtractIndices::usage =
 "ExtractIndices[expr$, {i$1, i$2, $$}] gives a list of parts of expr$, where the i$ are non-negative integers.
-ExtractIndices[expr$, array$] assumes array$ is a structure whose leaves are non-negative integers."
+ExtractIndices[expr$, array$] assumes array$ is a structure whose leaves are non-negative integers.
+Parts is an alias for ExtractIndices."
 
 ExtractIndices = CaseOf[
 

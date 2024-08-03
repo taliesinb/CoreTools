@@ -4,15 +4,46 @@ SystemExports[
     OptionRules, HoldOptionRules,
     LookupOptions, HoldLookupOptions,
     MissingApply,
+    OptionKeys, OptionValueRules, OptionValueList,
+    GraphOptions,
   "Head",
-    ChainedRules, OptionKey
+    ChainedRules, OptionKey,
+  "Predicate",
+    OptionKeyQ
 ];
 
 PackageExports[
+  "Operator",
+    DefaultOptionValueFn,
   "Function",
-    KeyAbsentFn, LookupOption,
+    JoinOptions,
+    LookupOption, KeyAbsentFn,
     TakeOptions, NarrowOptions
 ];
+
+(*************************************************************************************************)
+
+DeclareStrict[OptionKeys, OptionKeyQ]
+
+OptionKeys[sym_Sym] := Keys @ Options @ sym;
+OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
+
+(*************************************************************************************************)
+
+DeclareStrict[OptionValueRules, OptionValueList]
+
+(* TODO: head_Symbol -> inheritList *)
+OptionValueRules[head_Symbol, rules___] :=
+  DeleteDuplicatesBy[ToList[rules, Options @ head], First];
+
+OptionValueList[head_Symbol, rules___] :=
+  OptionValue[head, FlatList @ rules, OptionKeys @ head];
+
+(*************************************************************************************************)
+
+DeclareStrict @ JoinOptions;
+
+JoinOptions[args___List] := DeleteDuplicatesBy[Join[args], First];
 
 (*************************************************************************************************)
 
@@ -36,10 +67,6 @@ MissingApply[fn_, e_List] := VectorReplace[e, Missing[_, k_] :> fn[k]];
 (*************************************************************************************************)
 
 DeclareStrict[LookupKeys]
-
-LookupKeys::usage =
-"LookupKeys[assoc$, keys$, fn$] looks up keys in an association or list of rules, using fn$[key$] for any that are missing.
-";
 
 LookupKeys[assoc:AssocLikeP, keys_List, fn_] := MissingApply[fn, Lookup[assoc, keys]];
 
@@ -106,22 +133,31 @@ OptionKey[$$][obj$] will find the key in the obj$ if present and return its valu
 ";
 
 DeclareHoldRest[OptionKey];
-OptionKey[key_][expr_] := LookupOptions[expr, key];
+OptionKey[key_][expr_]       := LookupOptions[expr, key];
 OptionKey[key_, def_][expr_] := LookupOptions[expr, key, def&];
 
 (*************************************************************************************************)
 
+DefaultOptionValueFn[head_Symbol][key_] := OptionValue[head, key];
+
+(*************************************************************************************************)
+
 LookupOptions::usage = "
-LookupOptions[expr$, key$] looks up an option an expr$ with non-rule arguments.
+LookupOptions[expr$, key$] looks up an option in an expr$ with non-rule arguments.
 LookupOptions[expr$, {key$1, key$2, $$}] looks up multiple keys.
 LookupOptions[$$, fn$] uses fn$[key$] to obtain defaults for any keys not found.
 * expr$ can also be an association.
+* expr$ can also be a Graph, etc.
 * individual keys can also be Key[$$] or OptionKey[$$] expressions.
 "
+
+LookupOptions[graph_Graph, key_, fn_:DefaultOptionValueFn[Graph]] :=
+  LookupOptions[GraphOptions @ graph, key, fn];
 
 LookupOptions[expr_, key_, fn_:KeyAbsentFn] := lookupOpts[expr, key, fn];
 
 DeclareHoldFirst[HoldLookupOptions];
+
 HoldLookupOptions[expr_, key_, fn_:KeyAbsentFn] := lookupOpts[expr, key, fn];
 
 DeclareHoldAllComplete[lookupOpts, lookupOptKey];
@@ -139,6 +175,9 @@ lookupExprKey1[expr_, key_, fn_] :=
   FirstCase[NoEval @ expr, (Rule|RuleDelayed)[Verbatim[key], val_] :> val, fn[key]];
 (* lookupExprKey1[g_Graph,  *)
 
-
 lookupOptKey[expr_ ? HAtomQ, _, _] := ErrorMsg[LookupOptions::notCompoundExpression, HoldForm @ expr];
 LookupOptions::notCompoundExpression = "Expression `` was not a compound expression or association."
+
+(*************************************************************************************************)
+
+GraphOptions[g_Graph] := ToList @ Last @ g;

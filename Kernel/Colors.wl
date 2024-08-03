@@ -97,7 +97,7 @@ DeclareListable[ColorToHex]
 
 ColorToHex[c:ColorP] := toHexColor @ ColorToRGBArray @ c;
 
-toHexColor[c_List] := toHexColor[c] = StringJoin["#", IntStr[Floor[(255 * c) + 1 / 2], 16, 2]];
+toHexColor[c_List] := toHexColor[c] = StringJoin["#", NatStr[Floor[(255 * c) + 1 / 2], 16, 2]];
 
 (*************************************************************************************************)
 
@@ -614,7 +614,7 @@ DeclareHoldAllComplete[createColorFunction]
 cf_DiscreteColorFunction ? ExprEntryQ := createColorFunction[cf];
 cf_NumericColorFunction ? ExprEntryQ  := createColorFunction[cf];
 
-createColorFunction[e:_[_InternalData]] := HoldSetExprNoEntry @ e;
+createColorFunction[e:_[_InternalData]] := HoldSetNoEntryExpr @ e;
 
 createColorFunction[DiscreteColorFunction[args__, opts___Rule]] := makeCF[DiscreteColorFunction, makeDiscreteColorFunction, args, {opts}];
 createColorFunction[NumericColorFunction[args__, opts___Rule]]  := makeCF[NumericColorFunction,  makeNumericColorFunction,  args, {opts}];

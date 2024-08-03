@@ -1,15 +1,19 @@
 SystemExports[
   "Function",
-    Length2, LastDim, SumNormalize, ToStochasticArray,
+    Length2, LengthN, SumNormalize, ToStochasticArray,
     ToPackedReals, ToPackedInts, EnsurePacked, EnsurePackedReals, EnsurePackedInts,
     ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide, ThreadAnd, ThreadOr, ThreadNot, ThreadMin, ThreadMax,
     ThreadLess, ThreadLessEqual, ThreadGreater, ThreadGreaterEqual, ThreadEqual, ThreadUnequal, ThreadSame, ThreadUnsame,
     Zip, Flip,
-    MoveAxis, MoveToPermutation,
+    MoveAxis, DotAxis,
+    MoveToPermutation,
     FormalSymbolArray,
     SparseRules, SparseRows, SparseColumns,
     NDistMatrix, DistMatrix, NSqDistMatrix, SqDistMatrix, MinimumDistance,
-    Ones, Zeros, Eye
+    Ones, Zeros, Eye,
+    ToRowVector, ToColumnVector,
+  "ControlFlowFunction",
+    ArrayTable
 ];
 
 PackageExports[
@@ -20,10 +24,25 @@ PackageExports[
 
 (**************************************************************************************************)
 
-Ones[s__Integer]  := ConstantArray[1, {s}];
-Zeros[s__Integer] := ConstantArray[0, {s}];
-Dots[s__Integer]  := ConstantArray[SymbolicDot, {s}];
+DeclareStrict[ToRowVector, ToColumnVector]
+
+ToRowVector[e_List]    := List @ e;
+ToColumnVector[e_List] := Map[List, e];
+
+DeclareHoldFirst[ArrayTable]
+
+ArrayTable[body_]                 := body;
+ArrayTable[body_, shape__Int]     := Array[ThenOp[body], shape];
+ArrayTable[body_, shape:{___Int}] := Array[ThenOp[body], shape];
+
+(**************************************************************************************************)
+
+Ones[d___]  := makeConstArr[1, d];
+Zeros[d___] := makeConstArr[0, d];
+Dots[d___]  := makeConstArr[SymbolicDot, d];
 Eye = IdentityMatrix;
+
+makeConstArr[c_, args___] := ConstantArray[c, FlatList[args]];
 
 CoreBoxes[SymbolicDot] := "\[Bullet]";
 
@@ -54,9 +73,7 @@ Length2[{}]       := None;
 Length2[{a_List}] := Len @ a;
 Length2[arr_]     := FastQuietCheck[Part[Dims[arr, 2], 2], None];
 
-(**************************************************************************************************)
-
-LastDim[arr_] := Last[Dimensions @ arr, None];
+LengthN[arr_]     := Last[Dimensions @ arr, None];
 
 (*************************************************************************************************)
 
@@ -125,53 +142,57 @@ Flip = Transpose;
 
 DeclareCurry2[MoveAxis]
 
-MoveAxis[arr_, spec_] :=
-  Transpose[arr, moveToPerm0[spec, If[FreeQ[spec, _Integer ? Negative], 0, ArrayDepth @ spec]]];
+MoveAxis[arr_, s_ -> s_] := arr;
+MoveAxis[arr_, 1 -> -1]  := OutermostToInnermost @ arr;
+MoveAxis[arr_, -1 -> 1]  := InnermostToOutermost @ arr;
+MoveAxis[arr_, spec_]    := Transpose[arr, MoveToPermutation[spec, ArrayDepth @ spec]];
 
 (*************************************************************************************************)
 
-MoveToPermutation[spec_, n___Integer] :=
-  moveToPerm0[spec, n];
+(* TODO: rename to ArrayContract? *)
+DotAxis[a_, axisA_Int, axisB_Int, b_] := Dot[MoveAxis[a, axisA -> -1], MoveAxis[b, axisB -> 1]];
+
+(*************************************************************************************************)
+
+MoveToPermutation[spec_, n_Integer] :=
+  moveToPerm[n, spec];
 
 (*************************************************************************************************)
 
 General::invalidAxisMove = "`` is not a valid axis move specification.";
 
-moveToPerm0[spec_, n_] := moveToPerm0[spec /. i_Negative :> (d - i + 1), n];
+moveToPerm[n_, spec_] := moveToPerm0[n, spec /. i_Negative :> (d - i + 1)];
 
-moveToPerm0[s_Integer -> t_Integer, n_] := moveToPerm1[{{s}, {t}}, n];
-moveToPerm0[s_List -> t_List, n_]       := moveToPerm1[{s, t}, n];
-moveToPerm0[st:{__Rule}, n_]            := moveToPerm1[{Keys @ st, Values @ st}, n];
-
-moveToPerm0[e_, _] := (Message[MoveAxis::invalidAxisMove, e]; {});
-
-moveToPerm1[spec_, n_] := moveToPerm1[spec, n] =
-  moveToPerm2[spec /. i_ ? Negative :> (n + 1 - i), n];
-
-moveToPerm2[{{s_}, {s_}}, _] := {};
-
-moveToPerm2[{{n_}, {1}}, m_] /; m <= n :=
-  RotateRight @ Range @ n;
-
-moveToPerm2[{{1}, {n_}}, m_] /; m <= n :=
-  RotateLeft @ Range @ n;
-
-moveToPerm2[{{src_}, {tgt_}}, n_] := Locals[
-  inds = Range @ Max[src, tgt, n];
-  If[src < tgt,
-    Part[inds, src ;; tgt] //= RotateLeft,
-    Part[inds, tgt ;; src] //= RotateRight
-  ];
-  inds
+moveToPerm0 = CaseOf[
+  $[n_, s_Integer -> t_Integer] := moveToPerm1[n, {{s}, {t}}];
+  $[n_, s_List -> t_List]       := moveToPerm1[n, {s, t}];
+  $[n_, st:{__Rule}]            := moveToPerm1[n, {Keys @ st, Values @ st}];
+  $[_, e_]                      := Then[Message[MoveAxis::invalidAxisMove, e], {}];
 ];
 
-moveToPerm2[{src_, tgt_}, n_] := Locals[
-  max = Max[src, tgt, n];
-  inds = Delete[Range @ max, List /@ src];
-  inds = PadRight[inds, max];
-  inds = Insert[inds, 0, List /@ tgt];
-  Part[inds, tgt] = src;
-  Ordering @ Take[inds, max]
+moveToPerm1[n_, spec_] := moveToPerm1[n, spec] =
+  moveToPerm2[n, spec /. i_ ? Negative :> (n + 1 - i)];
+
+moveToPerm2 = CaseOf[
+  $[n_, {{s_}, {s_}}]           := {};
+  $[n_, {{s_}, {1 }}] /; s <= n := RotateLeft @ Range @ s;
+  $[n_, {{1 }, {s_}}] /; s <= n := RotateRight @ Range @ s;
+  $[n_, {{s_}, {t_}}] /; Max[s, t] <= n := Locals[
+    inds = Range @ Max[s, t, n];
+    If[s < t,
+      Part[inds, s ;; t] //= RotateLeft,
+      Part[inds, t ;; s] //= RotateRight
+    ];
+    inds
+  ];
+  $[n_, {s_, t_}] /; n > 0 := Locals[
+    max = Max[s, t, n];
+    inds = Delete[Range @ max, List /@ s];
+    inds = PadRight[inds, max];
+    inds = Insert[inds, 0, List /@ t];
+    Part[inds, t] = s;
+    Ordering @ Take[inds, max]
+  ]
 ];
 
 (*************************************************************************************************)

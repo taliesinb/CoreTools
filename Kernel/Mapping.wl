@@ -5,7 +5,7 @@ SystemExports[
     MapCol, MapCol1, MapCol2, MapCol3,
     MapRow, MapRow1, MapRow2, MapRow3,
     ZipMap, ZipMapP, ZipScan, ZipScanP, Bimap, Comap,
-    MaybeMap,
+    MaybeMap, MapFlip,
     MapP, ScanP, ScanApply,
     RangeArray, Dimension, IndexArray, IndexList,
     MapLeaves, ApplyLastAxis, MapLastAxis, MapAxis, MapAxisP, ScanAxisP, ApplyAxis,
@@ -250,7 +250,7 @@ EnsureNiceMessage[res_] := res;
 
 (**************************************************************************************************)
 
-DeclareCurry1[Comap, Bimap, MaybeMap]
+DeclareCurry1[Comap, Bimap, MaybeMap, MapFlip]
 
 Comap[fns_, arg_] := Map[fn |-> fn[arg], fns];
 Comap[fns_, arg_, level_] := Map[fn |-> fn[arg], fns, level];
@@ -260,6 +260,13 @@ Bimap[f_, a_]      := EnsureNiceMessage @ MapThread[Construct, {f, a}];
 
 MaybeMap[f_, a:ListDictP] := Map[f, a];
 MaybeMap[f_, a_]          := f @ a;
+
+(* this is morally the same as MapThread, but communicates a different intent,
+since it is not operating on a tuple of lists but a list of lists *)
+MapFlip[fn_, list_ ? AnyMatrixQ] := Map[f, Flip @ list];
+MapFlip[_, arg2_] := ErrorMsg[MapFlip::notRectangular, arg2];
+
+MapFlip::notRectangular = "The second argument was not rectangular: ``."
 
 (**************************************************************************************************)
 
@@ -274,7 +281,7 @@ ScanIndexed[f_, assoc_Dict] := (AssocScanWhileQ[assoc, rule |-> Then[f[P2 @ rule
 
 ScanIndexed[f_, expr_, level_] := Module[
   {posList = Position[expr, _, level, Heads -> False], i = 1},
-  Scan[f[#1, Part[posList, i++]]&, Level[expr, level, HoldComplete]]
+  Scan[elem |-> f[elem, Part[posList, i++]]&, Level[expr, level, HoldComplete]]
 ];
 
 (**************************************************************************************************)
@@ -298,6 +305,10 @@ ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFunction @ f, expr];
 
 DeclareHoldFirst @ DeclareCurry12[PathScanP, PathMapP, PathScan, PathMap]
 
+PathScanP::usage =
+"PathScanP[stackSymbol, fn, expr] is like ScanP, but appends the current part it is visiting onto stackSymbol."
+
+(* TODO: rename this to StackMap *)
 TopLevelEvaluateMacro[
 PathScanP[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[v, PN[s] = ++i], expr]];
 PathScanP[s_, f_, dict_Dict] := BlockAppend[s, Null, AssocScanWhileQ[dict, Apply[{k, v} |-> Then[PN[s] = k, f[v, k], True]]];];
@@ -348,10 +359,12 @@ MapAxisP[f_, n_, arr_]  := toAxis[MapIndexed[prep /* f, #, {-2}]&, n, arr];
 
 ApplyAxis[f_, n_, arr_] := toAxis[Apply[f, #, {-2}]&, n, arr];
 
+(* TODO: check if depth reduced, message if so.
+also, the old code was broken, so double check this now *)
 toAxis[fn_, n_, arr_] := Locals[
-  a = ArrayDepth[a];
-  t = MoveToPermutation[n -> a];
-  Transpose[fn @ Transpose[a, t], Ordering @ t]
+  d = ArrayDepth[arr];
+  t = MoveToPermutation[n -> d, d];
+  Transpose[fn @ Transpose[arr, t], Ordering @ t]
 ];
 
 ScanAxisP[f_, n_, arr_]  := toAxis[ScanIndexed[prep /* f, #, {-2}]&, n, arr];

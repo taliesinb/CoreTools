@@ -1,9 +1,11 @@
 PackageExports[
   "Function",
     ToBlank, ToBlankSequence, ToBlankNullSequence, ToAltPattern,
-    PatternHeadSymbol, PatternBoundSymbols,
+    PatternHeadSymbol, DefinitionHeadSymbol,
+    PatternBoundSymbols,
     ToLHSPattern,
-    RemovePatternSymbols, RemovePatternTests
+    RemovePatternSymbols, RemovePatternTests,
+    MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed
 ];
 
 (*************************************************************************************************)
@@ -46,11 +48,18 @@ RemovePatternTests[a_]   := ReplaceRepeated[a, {VPatternTest[p_, _] :> p, VCondi
 
 (*************************************************************************************************)
 
+DeclareStrict @ DeclareHoldAll[MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed]
+
+MakeSet[lhs_, rhs_]                     := Hold[Set[lhs, rhs]];
+MakeSetDelayed[lhs_, rhs_]              := Hold[SetDelayed[lhs, rhs]];
+MakeUpSetDelayed[lhs_, rhs_]            := Hold[UpSetDelayed[head, lhs, rhs]];
+MakeTagSetDelayed[head_Sym, lhs_, rhs_] := Hold[TagSetDelayed[head, lhs, rhs]];
+
 (*************************************************************************************************)
 
 PatternHeadSymbol::usage = "PatternHeadSymbol[patt$] gives the symbol head (or just the symbol) which the pattern will match.";
 
-SetAttributes[{PatternHeadSymbol, PatternBoundSymbols}, HoldAllComplete]
+SetAttributes[{DefinitionHeadSymbol, PatternHeadSymbol, PatternBoundSymbols}, HoldAllComplete]
 
 PatternHeadSymbol[VVerbatim[e_]]                := PatternHeadSymbol[e];
 PatternHeadSymbol[VHoldP[e_]]                   := PatternHeadSymbol[e];
@@ -62,5 +71,16 @@ PatternHeadSymbol[h_[___]]                      := PatternHeadSymbol[h];
 PatternHeadSymbol[s_Symbol ? HoldAtomQ]         := Hold[s];
 PatternHeadSymbol[___]                          := $Failed;
 
+DefinitionHeadSymbol[Set[l_, _]]              := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[SetDelayed[l_, _]]       := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[TagSetDelayed[_, l_, _]] := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[TagSet[_, l_, _]]        := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[RuleDelayed[l_, _]]      := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[Rule[l_, _]]             := PatternHeadSymbol @ l;
+DefinitionHeadSymbol[_UpSetDelayed]           := Unimplemented;
+DefinitionHeadSymbol[_UpSet]                  := Unimplemented;
+DefinitionHeadSymbol[___]                     := $Failed;
+
 PatternBoundSymbols[e_] := DeleteDuplicates @ Occurences[Hold[e], VPattern[s_Symbol ? HoldSymbolQ, _] :> Hold[s]];
 PatternBoundSymbols[___] := $Failed;
+

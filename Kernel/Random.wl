@@ -1,9 +1,13 @@
 SystemExports[
   "Function",
+    RandomAtom, RandomDatum,
     RandomSymbol,
-    RandomInt,
+    RandomInt, RandomRange,
     RandomLetter, RandomLowercaseString, RandomBase36String,
-    RandomBit, RandomBoolean, RandomUnitInteger, RandomUnitReal,
+    RandomBit, RandomBoolean,
+    RandomDecimal,
+    RandomGeometric, RandomSurvival,
+    RandomUnitInteger, RandomUnitReal,
     RandomUnitVectorND, RandomBallVectorND,
     RandomUnitVector2D, RandomBallVector2D,
     RandomUnitVector3D, RandomBallVector3D,
@@ -24,6 +28,7 @@ SystemExports[
 (*************************************************************************************************)
 
 DeclareHoldAll[CoinToss];
+
 CoinToss[a_]     := a;
 CoinToss[a_, b_] := If[RandomBoolean[], a, b];
 CoinToss[a__]    := RandomPart @ Hold[a];
@@ -61,21 +66,37 @@ Softmax[array_List] := Normalize[Abs @ Exp @ ToPackedReals @ N @ array, Total /*
 
 declareSimpleRandFn[head_] := (
   DeclareStrict[head];
-  head[dims___Integer]                         := head @ {dims};
-  head[dims_] /; !PositiveIntegerVectorQ[dims] := (Message[head::invalidRandomShape, dims]; $Failed);
+  head[dims___Integer]             := head @ {dims};
+  head[dims_] /; !PosIntVecQ[dims] := (Message[head::invalidRandomShape, dims]; $Failed);
 );
 
 Scan[declareSimpleRandFn, {
-  RandomSymbol, RandomLetter,
-  RandomBit, RandomBoolean, RandomUnitInteger, RandomUnitReal,
+  RandomAtom, RandomDatum, RandomSymbol, RandomLetter,
+  RandomBit, RandomBoolean,
+  RandomDecimal, RandomUnitInteger, RandomUnitReal,
   RandomUnitVector2D, RandomBallVector2D, RandomUnitVector3D, RandomBallVector3D,
   RandomUnitNormal, RandomUnitNormal2D, RandomUnitNormal3D
 }];
 
+$datumChoices := $datumChoices = FlatList[
+  False, True, None, Null,
+  CharRange["a", "f"],
+  Range[-1., 1., .5], Range[0, 4],
+  -1/2, -1/3, -1/4, 1/4, 1/3, 1/2
+];
+
+$atomChoices := $atomChoices = FlatList[$datumChoices, FormalSymbol @ Range[12]];
+
+RandomAtom[dims_]         := RandomChoice[$atomChoices, dims];
+RandomDatum[dims_]        := RandomChoice[$datumChoices, dims];
 RandomSymbol[dims_]       := RandomChoice[$lowerFormal, dims];
 RandomLetter[dims_]       := Map[FromCharacterCode, RandomInteger[{97, 122}, dims], {-1}];
+
 RandomBit[dims_]          := RandomInteger[1, dims];
 RandomBoolean[dims_]      := RandomChoice[{False, True}, dims];
+
+RandomDecimal[dims_]      := RandomInteger[9, dims];
+
 RandomUnitInteger[dims_]  := RandomInteger[1, dims]*2-1;
 RandomUnitReal[dims_]     := RandomReal[{0, 1}, dims];
 RandomUnitVector2D[dims_] := RandomUnitVectorND[2, dims];
@@ -86,6 +107,7 @@ RandomUnitNormal[dims_]   := RandomVariate[$unitNormal, dims];
 RandomUnitNormal2D[dims_] := RandomUnitNormalND[2, dims];
 RandomUnitNormal3D[dims_] := RandomUnitNormalND[3, dims];
 
+
 (*************************************************************************************************)
 
 declareSpecRandFn[head_] := (
@@ -93,23 +115,45 @@ declareSpecRandFn[head_] := (
   head[spec_, dims___Integer] := head[spec, {dims}];
 );
 
-Scan[declareSpecRandFn, {RandomInt, RandomLowercaseString, RandomUnitVectorND, RandomBallVectorND, RandomUnitNormalND}];
+Scan[
+  declareSpecRandFn,
+  {RandomInt, RandomLowercaseString, RandomUnitVectorND, RandomGeometric, RandomSurvival, RandomBallVectorND, RandomUnitNormalND}
+];
 
 (**************************************************************************************************)
 
-RandomInt[n_Int, shape_ ? PositiveIntegerVectorQ] := RandomInteger[n, shape];
-RandomLowercaseString[n_Int, shape_ ? PositiveIntegerVectorQ] := Map[FromCharacterCode, RandomInteger[{97, 122}, Append[shape, n]], {-2}];
-RandomBase36String[n_Integer] := Base36String[RandomInteger[36^n - 1], n];
+RandomRange[lo_, hi_, shape___Integer]                := RandomRange[lo, hi, {shape}];
+RandomRange[lo_Int, hi_Int, shape_ ? PosIntVecQ]      := RandomInteger[{lo, hi}, shape];
+RandomRange[lo_?NumQ, hi_?NumQ, shape_ ? PosIntVecQ]  := RandomReal[{lo, hi}, shape];
+RandomRange[-Inf, Inf, shape_ ? PosIntVecQ]           := Unimplemented;
+RandomRange[_, Inf, shape_ ? PosIntVecQ]              := Unimplemented;
+
+RandomInt[n_Int, shape_ ? PosIntVecQ]                 := RandomInteger[n, shape];
+
+RandomGeometric[mode:NumP, shape_ ? PosIntVecQ]       := RandomVariate[GeometricDistribution[1.0 / (1 + mode)], shape];
+RandomSurvival[lamb:NumP, shape_ ? PosIntVecQ]        := RandomVariate[ExponentialDistribution[1.0 / lamb], shape];
 
 (**************************************************************************************************)
 
-RandomUnitVectorND[d_Integer ? Positive, shape_List ? PositiveIntegerVectorQ] :=
+RandomLowercaseString = ExtendCaseOf[
+  $[n_Int, shape_ ? PosIntVecQ]          := codeToStrs @ randLowerCode[n, shape];
+  $[{m_Int, n_Int}, shape_ ? PosIntVecQ] := codeToStrs @ Array[randLowerCode[RandomInteger[{m, n}], {}]&, shape];
+];
+
+RandomBase36String[n:PosIntP] := Base36String[RandomInteger[36^n - 1], n];
+
+randLowerCode[len_, shape_] := RandomInteger[{97, 122}, Append[shape, len]];
+codeToStrs[code_] := Map[FromCharacterCode, code, {-2}];
+
+(**************************************************************************************************)
+
+RandomUnitVectorND[d_Integer ? Positive, shape_List ? PosIntVecQ] :=
   RandomVariate[Random`Private`InternalStandardSphereUniformDistribution[d], shape];
 
-RandomBallVectorND[d_Integer ? Positive, shape_List ? PositiveIntegerVectorQ] :=
+RandomBallVectorND[d_Integer ? Positive, shape_List ? PosIntVecQ] :=
   RandomVariate[Random`Private`InternalStandardBallUniformDistribution[d], shape];
 
-RandomUnitNormalND[d_Integer ? Positive, shape_List ? PositiveIntegerVectorQ] :=
+RandomUnitNormalND[d_Integer ? Positive, shape_List ? PosIntVecQ] :=
   RandomVariate[$unitNormal, Append[shape, d]];
 
 RandomUnitNormalND[d_Integer ? Positive, {}] :=
@@ -134,7 +178,7 @@ defineThreadingRandFn[head_, impl_] := (
 );
 
 DeclareHoldAll[rcheck];
-rcheck[head_, shape_, body_] := If[!PositiveIntegerVectorQ[shape],
+rcheck[head_, shape_, body_] := If[!PosIntVecQ[shape],
   Message[head::invalidRandomShape, shape]; $Failed,
   Block[{$rshape = shape}, Check[body, $Failed]]
 ];

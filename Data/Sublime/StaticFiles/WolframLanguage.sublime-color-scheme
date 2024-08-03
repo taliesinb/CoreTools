@@ -68,6 +68,7 @@
         "head": "hsl(250, 40%, 80%)",
         "plainhead": "color(var(head) blend(var(plain) 50%))",
         "slot": "hsl(50, 60%, 60%)",
+        "slot2": "hsl(40, 60%, 60%)",
         "operator": "var(blue7)",
         "predicate": "hsl(200, 55%, 66%)",
 
@@ -107,7 +108,24 @@
             "foreground": "var(slot)",
             "font_style": "bold"
         },
-
+        {
+            "name": "Slot",
+            "scope": "keyword.other.SlotSequence",
+            "foreground": "var(slot)",
+            "font_style": "bold"
+        },
+        {
+            "name": "Slot symbol",
+            "scope": "constant.language.symbol.slot",
+            "foreground": "var(slot2)",
+            "font_style": "bold"
+        },
+        {
+            "name": "Slot variable",
+            "scope": "support.function.slot.variable",
+            "foreground": "var(slot2)",
+            "font_style": "bold"
+        },
         {
             "name": "Local function",
             "scope": "entity.name.function",
@@ -148,6 +166,12 @@
         {
             "name": "Unrecognized local symbol",
             "scope": "variable.local.unrecognized",
+            "foreground": "var(usersymbol)",
+            "background": "var(unrecognizedBg)"
+        },
+        {
+            "name": "Unrecognized global symbol",
+            "scope": "symbol.unrecognized",
             "foreground": "var(usersymbol)",
             "background": "var(unrecognizedBg)"
         },

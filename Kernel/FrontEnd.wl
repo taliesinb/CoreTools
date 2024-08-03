@@ -10,9 +10,8 @@ PackageExports[
     Dark, Light,
   "IOFunction",
     DisableFloatingSymbolPopup,
-    (* PrintNextCellBoxData, PrintPreviousCellBoxData, *)
-    PrintInputCell, PrintOutputCell
-    (* NextCellOptionsData, PreviousCellOptionsData *)
+    PrintInputCell, PrintOutputCell,
+    PrintNextCellBoxData, PrintPreviousCellBoxData
 ];
 
 (*************************************************************************************************)

@@ -188,7 +188,7 @@ DeclareHoldFirst[truncateList];
 
 elideDimsBox[dims_, body_] := If[
   Apply[Times, dims] > $maxArrayElems,
-  BraceRBox @ RiffledRowBox["\[Times]"] @ Map[IntStr, dims],
+  BraceRBox @ RiffledRowBox["\[Times]"] @ Map[NatStr, dims],
   body
 ];
 
@@ -223,7 +223,7 @@ applyDataIndent[boxes_] := If[
 (*************************************************************************************************)
 
 exprBox = CaseOf[
-  $dropped[n_]     := StyleBox[RBox["«", IntStr @ n, "»"], $Red];
+  $dropped[n_]     := StyleBox[RBox["«", NatStr @ n, "»"], $Red];
   head_Symbol[___] := RBox[HoldSymbolName @ head, BracketRBox["[", "\[Ellipsis]", "]"]];
   _                := "?"
 ];
@@ -251,8 +251,11 @@ ConstrainedMakeBoxes[..., ..., dlimit] truncates elements deeper than dlimit.
 (* todo: make the character limit apply to both width and height, and make it image size based instead! *)
 ConstrainedMakeBoxes[e_, charLimit_, strTrunc_:Infinity, maxDepth_:5] := Block[
   {$cmMax = charLimit, $cmLeft = charLimit, $cmStrMax = strTrunc, $cmDepth = maxDepth},
-  cmAny @ e
+  trimNothing @ cmAny @ e
 ];
+
+trimNothing[Nothing] = RowBox[{}];
+trimNothing[e_] := e;
 
 (*
 TODO: optimization: if its a small expression free of weird heads, just call ToExpression and then check if the resulting length is
@@ -421,7 +424,8 @@ $boxTypesetP  = HoldPattern[_Image] | _Graph | _Grid | _NiceGrid | _Column | _Ni
 (* TODO: assume thing is square, and so typeset width and height will generate that (width * height) / font size chars *)
 With[{haq = Developer`HoldAtomQ, recurse1 = $boxRecurse1P, typeset = $boxTypesetP},
 cmFinal[CoreToolsSequence[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
-cmFinal[CoreToolsHold[a_]] := cmAny[a];
+cmFinal[CoreToolsHold[a_]]       := cmAny[a];
+cmFinal[CoreToolsHold[a___]]     := cmListSeq[{a}];
 cmFinal[(h_Symbol ? haq)[CoreToolsSequence[a___]]] := cmAny[h[a]];
 cmFinal[r_Ref ? ExprNoEntryQ] := MakeRefBoxes @ r;
 cmFinal[a:recurse1]         := ToBoxes @ MapAt[cmAny /* RawBoxes, Unevaluated @ a, 1];
@@ -439,7 +443,7 @@ cmFinal2[a_]                          := chowing[holdByteCount[a] / 4, Capture @
 
 cleanupManualBoxes[e_] := e //. {
   FractionBox[a_, b_] :> RowBox[{a, "/", b}],
-  RowBox[{TagBox[head_String, "SummaryHead"], ___}] :> TryEval[head <> "[\[Ellipsis]]"],
+  RowBox[{TagBox[head_String, "SummaryHead"], ___}] :> RuleEval[head <> "[\[Ellipsis]]"],
   InterpretationBox[b_, ___] :> b
 };
 

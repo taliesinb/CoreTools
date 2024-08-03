@@ -6,9 +6,10 @@ SystemExports[
     RangeRules, RangeAssociation, RangeUnorderedAssociation,
     RulesRange, AssociationRange, UnorderedAssociationRange,
     ConstantRules, ConstantAssociation, ConstantUnorderedAssociation, ConstantTrueAssociation,
+    UnorderedAssociationMapApply, UnorderedAssociationMapThread, UnorderedAssociationMap,
     AssociationMapThread, AssociationMapApply,
-    PairsToAssociation, AssociationToPairs,
-    RulesToAssociation, AssociationToRules,
+    PairsToAssociation, PairsToUnorderedAssociation, AssociationToPairs,
+    RulesToAssociation, RulesToUnorderedAssociation, AssociationToRules,
     GroupPairs, GroupAgainst, CombineBy, CombineAgainst, MergeAssocations,
     LevelIndex, PadAssociation
 ];
@@ -16,14 +17,20 @@ SystemExports[
 PackageExports[
   "MutatingFunction",
     CachedTo,
-    KeyApplyTo, KeyIncrement, KeyDecrement,
+    KeyApplyTo, KeyIncrement, KeyDecrement, KeyIndex, KeyIndexUnique,
     KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy,
     KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyAssociateTo,
   "MetaFunction",
     DefineKeywiseOperator1, DefineKeywiseOperator2,
   "Function",
-    AssocThread
+    AssocThread, EnsureOAssoc
 ];
+
+(**************************************************************************************************)
+
+(* because some functions like Extract don't work on UnorderedAssociation *)
+EnsureOAssoc[e_Assoc ? HAssocQ] := Assoc @ e;
+EnsureOAssoc[e_] := e;
 
 (**************************************************************************************************)
 
@@ -142,25 +149,37 @@ ConstantTrueAssociation[keys_List] := ConstantUnorderedAssociation[keys, True];
 ?*)
 
 DeclareCurry1[AssociationMapApply, AssociationMapThread]
+DeclareCurry1[UnorderedAssociationMapApply, UnorderedAssociationMapThread]
 
-AssociationMapApply[fn_, assoc_Association] :=
-  Association @ Map[fn, Normal @ assoc];
+AssociationMapApply[fn_, assoc_Assoc]          :=  Assoc @ Map[fn, Normal @ assoc];
+UnorderedAssociationMapApply[fn_, assoc_Assoc] := UAssoc @ Map[fn, Normal @ assoc];
 
-AssociationMapThread[fn_, assoc_Association] := With[
-  {keys = Keys @ assoc},
-  Map[val |-> fn[AssocThread[keys, val]], Transpose @ Values @ assoc]
-];
+AssociationMapThread[fn_, assoc_Assoc]          := With[{keys = Keys @ assoc}, Map[val |-> fn[ AssocThread[keys, val]], Transpose @ Values @ assoc]];
+UnorderedAssociationMapThread[fn_, assoc_Assoc] := With[{keys = Keys @ assoc}, Map[val |-> fn[UAssocThread[keys, val]], Transpose @ Values @ assoc]];
 
 (*************************************************************************************************)
 
-DeclareStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation]
+DeclareCurry1[UnorderedAssociationMap]
+
+UnorderedAssociationMap[fn_, expr_List] := UAssoc @ Map[z |-> Rule[z, fn[z]], expr];
+UnorderedAssociationMap[fn_, assoc_Assoc ? AssociationQ] := UAssoc @ Map[fn, Normal @ assoc];
+UnorderedAssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr]; Fail];
+
+(*************************************************************************************************)
+
+DeclareStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation, PairsToUnorderedAssociation, RulesToUnorderedAssociation]
 
 AssociationToRules[assoc_Assoc] := Normal @ assoc;
 AssociationToPairs[assoc_Assoc] := Transpose @ {Keys @ assoc, Values @ assoc};
+AssociationToRules::badArguments = AssociationToPairs::badArguments = "First argument was not an association: ``.";
 
-PairsToAssociation[list_ ? PairVectorQ] := AssociationThread @@ Transpose @ list;
-RulesToAssociation[list_ ? RuleVectorQ] := Ensure[AssociationQ, ErrorMsg[RulesToAssociation::notRules]] @ Association[list];
-RulesToAssociation::notRules = "Argument was not a list of rules.";
+         PairsToAssociation[list_ ? PairVectorQ] :=          AssociationThread @@ Transpose @ list;
+PairsToUnorderedAssociation[list_ ? PairVectorQ] := UnorderedAssociationThread @@ Transpose @ list;
+PairsToAssociation::badArguments = PairsToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
+
+         RulesToAssociation[list_List ? RuleVectorQ] := Association @ list;
+RulesToUnorderedAssociation[list_List ? RuleVectorQ] := UnorderedAssociation @ list;
+RulesToAssociation::badArguments = RulesToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
 
 (**************************************************************************************************)
 
@@ -203,7 +222,11 @@ LevelIndex[expr_, 1] := PositionIndex @ expr;
 LevelIndex[expr_, level:PosIntP] := Module[
   {index = Bag[]},
   ScanP[
-    {subExpr, part} |-> Scan[subSubExpr |-> StuffBag[index, subSubExpr -> part], subExpr, {level - 1}]
+    {subExpr, part} |-> Scan[
+      subSubExpr |-> StuffBag[index, subSubExpr -> part],
+      subExpr,
+      {level - 1}
+    ],
     expr
   ];
   Merge[BagPart[index, All], Id]
@@ -219,12 +242,25 @@ CachedTo[sym_, key2_, value_, test_:NotFailureQ] := Module[{key = key2, res},
 
 (**************************************************************************************************)
 
-DeclareHoldFirst[KeyApplyTo, KeyIncrement, KeyDecrement];
-   DeclareCurry1[KeyApplyTo, KeyIncrement, KeyDecrement];
+DeclareHoldFirst @ DeclareCurry1[KeyApplyTo, KeyIncrement, KeyDecrement];
 
 KeyApplyTo[lhs_, key_, def_, fn_] := Set[lhs[key], fn @ Lookup[lhs, key, def]];
 KeyIncrement[lhs_, key_] := Set[lhs[key], Lookup[lhs, key, 0] + 1];
 KeyDecrement[lhs_, key_] := Set[lhs[key], Lookup[lhs, key, 0] - 1];
+
+(**************************************************************************************************)
+
+DeclareHoldFirst @ DeclareCurry1 @ KeyIndex;
+DeclareHoldFirst @ DeclareCurry13 @ KeyIndexUnique;
+
+KeyIndex[lhs_, key_] := Lookup[lhs, key, addLenKey[lhs, key]];
+
+KeyIndexUnique[lhs_, key_, errorFn_] /; KeyExistsQ[lhs, key] := errorFn[key, lhs[key]];
+KeyIndexUnique[lhs_, key_, _] := addLenKey[lhs, key];
+
+DeclareHoldFirst @ addLenKey;
+addLenKey[lhs_, Auto] := With[{n = Len[lhs] + 1}, lhs[n] = n];
+addLenKey[lhs_, key_] := lhs[key] = Len[lhs] + 1;
 
 (**************************************************************************************************)
 

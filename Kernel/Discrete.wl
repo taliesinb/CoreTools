@@ -47,7 +47,7 @@ Relation[fromset, function, toset]
 *)
 
 CoreBoxes[DiscreteFunction[fwd_, bwd_, set_] ? HoldExprNoEntryQ] :=
-  NiceObjectBoxes["DiscreteFunction", {RiffledRowBox["\[Rule]"] @ Map[IntStr, {Len @ fwd, Len @ set}]}];
+  NiceObjectBoxes["DiscreteFunction", {RiffledRowBox["\[Rule]"] @ Map[NatStr, {Len @ fwd, Len @ set}]}];
 
 (*************************************************************************************************)
 
@@ -67,7 +67,7 @@ constructFSF[StochasticFunction[assoc_]] := Locals @ CatchError[StochasticFuncti
 
 CoreBoxes[StochasticFunction[a_] ? HoldExprNoEntryQ] :=
   NiceObjectBoxes["StochasticFunction",
-    {RiffledRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountDistinct @ Catenate @ a]}];
+    {RiffledRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountUnique @ Catenate @ a]}];
 
 evalFSF[StochasticFunction[a_], x_]     := RandomChoice @ Lookup[a, x, badKeyMsg2[a, x]];
 evalFSF[StochasticFunction[a_], x_List] := RandomChoiceArray @ Lookup[a, x, badKeyMsg2[a, x]];
@@ -86,7 +86,7 @@ constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchError[Stochas
 
 CoreBoxes[StochasticFunction[a_, t_] ? HoldExprNoEntryQ] :=
   NiceObjectBoxes["StochasticFunction",
-    {RiffledRBox["\[Rule]"][IntStr @ Len @ a, IntStr @ Len @ t]}];
+    {RiffledRBox["\[Rule]"][NatStr @ Len @ a, NatStr @ Len @ t]}];
 
 evalFSF[StochasticFunction[a_, o_], x_]     := RandomChoice @ Part[o, Lookup[a, x, badKeyMsg2[a, x]]];
 evalFSF[StochasticFunction[a_, o_], x_List] := RandomChoiceArray @ Part[o, Lookup[a, x, badKeyMsg2[a, x]]];

@@ -1,11 +1,13 @@
 SystemExports[
   "Function",
     P1, P2, P3, P4, P5, PN, P11, P1N, PNN, PN1, Col1, Col2, Col12, Col21, Col3, Col4, ColN,
+  "ControlFlowFunction",
+    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor,
-    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
     SetCached, SetInitial, SetDelayedInitial, PackAssociation, UnpackAssociation, UnpackTuple,
   "ScopingFunction",
+    IsMatchOf, IsNotMatchOf,
     CaseOf, ExtendCaseOf, CaseFn, Locals, SubWith, GlobalVar, LocalVar, InheritVar,
     CollectBegin, CollectEnd, Collecting,
   "MessageFunction",
@@ -98,14 +100,15 @@ DefineSimpleMacro[SetScaledFactor, SetScaledFactor[lhs_, rhs_] :> If[MatchQ[lhs,
 
 (*************************************************************************************************)
 
-DeclareHoldAll[SubAll, SubAuto, SubInherited, SubMissing, SubFailed]
+(* TODO: rename these IfAll, IfNone, etc *)
+DeclareHoldAll[SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed]
 
-DefineSimpleMacro[SubAll,          {SubAll      [rhs_] :> Rep[All       :> rhs], SubAll      [lhs_, rhs_] :> Rep[lhs, All        :> rhs]}];
-DefineSimpleMacro[SubNone,         {SubNone     [rhs_] :> Rep[None      :> rhs], SubNone     [lhs_, rhs_] :> Rep[lhs, None       :> rhs]}];
-DefineSimpleMacro[SubAuto,         {SubAuto     [rhs_] :> Rep[Auto      :> rhs], SubAuto     [lhs_, rhs_] :> Rep[lhs, Auto       :> rhs]}];
-DefineSimpleMacro[SubInherited,    {SubInherited[rhs_] :> Rep[Inherited :> rhs], SubInherited[lhs_, rhs_] :> Rep[lhs, Inherited  :> rhs]}];
-DefineSimpleMacro[SubMissing,      {SubMissing  [rhs_] :> Rep[_Missing  :> rhs], SubMissing  [lhs_, rhs_] :> Rep[lhs, _Missing   :> rhs]}];
-DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Rep[$Failed   :> rhs], SubFailed   [lhs_, rhs_] :> Rep[lhs, $Failed    :> rhs]}];
+DefineSimpleMacro[SubAll,          {SubAll      [rhs_] :> Replace[All       :> rhs], SubAll      [lhs_, rhs_] :> Replace[lhs, All        :> rhs]}];
+DefineSimpleMacro[SubNone,         {SubNone     [rhs_] :> Replace[None      :> rhs], SubNone     [lhs_, rhs_] :> Replace[lhs, None       :> rhs]}];
+DefineSimpleMacro[SubAuto,         {SubAuto     [rhs_] :> Replace[Auto      :> rhs], SubAuto     [lhs_, rhs_] :> Replace[lhs, Auto       :> rhs]}];
+DefineSimpleMacro[SubInherited,    {SubInherited[rhs_] :> Replace[Inherited :> rhs], SubInherited[lhs_, rhs_] :> Replace[lhs, Inherited  :> rhs]}];
+DefineSimpleMacro[SubMissing,      {SubMissing  [rhs_] :> Replace[_Missing  :> rhs], SubMissing  [lhs_, rhs_] :> Replace[lhs, _Missing   :> rhs]}];
+DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Replace[$Failed   :> rhs], SubFailed   [lhs_, rhs_] :> Replace[lhs, $Failed    :> rhs]}];
 
 (*************************************************************************************************)
 
@@ -255,9 +258,14 @@ procMutatingExpr[_[lhs_, args___]] := (
 );
 
 lhsSymbols[s_Symbol] := HoldPattern @ s;
-lhsSymbols[list_List] := MapHold[lhsSymbols, list];
+lhsSymbols[list_List] := HoldMap[lhsSymbols, list];
 lhsSymbols[(Set | SetDelayed)[lhs_, rhs_]] := lhsSymbols @ lhs;
 lhsSymbols[_] := {};
+
+(*************************************************************************************************)
+
+IsMatchOf::usage = "";
+IsNotMatchOf::usage = "";
 
 (*************************************************************************************************)
 
@@ -285,6 +293,11 @@ DefineComplexMacro[CaseOf, {
 DefineComplexMacro[ExtendCaseOf, {
   Set[sym_Symbol,                ExtendCaseOf[args___]] :> attachedCaseOf[sym, False, Hold[], args]
 }];
+
+(* TODO: IsMatchOf *)
+(* TODO: IsNotMatchOf *)
+(* TODO: Set OR SetDelayed *)
+(* TODO: complain about /; *)
 
 (*************************************************************************************************)
 
@@ -393,7 +406,7 @@ DefineComplexMacro[UnpackAssociation, UnpackAssociation[assoc_, syms__Symbol] :>
 DeclareHoldAllComplete[mPackAssociation, packAssocRule, mUnpackAssociation];
 
 mPackAssociation[syms_] :=
-  With[{rules = MapHold[packAssocRule, syms]}, MacroHold[Association[rules]]];
+  With[{rules = HoldMap[packAssocRule, syms]}, MacroHold[Association[rules]]];
 
 packAssocRule[s_Symbol] := ToUpperCase1[HoldSymbolName[s]] -> MacroHold[s];
 

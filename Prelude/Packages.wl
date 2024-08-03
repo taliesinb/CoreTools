@@ -75,6 +75,10 @@ System`PrivateExports,
 "MutatingFunction",
 System`UnprotectClearAll,
 
+"Function",
+System`PackageSymbolKinds,
+System`PackageSymbolNames,
+
 "IOFunction",
 System`GetHoldComplete,
 System`GetHidden,
@@ -121,7 +125,6 @@ PackageLoadShadowMessageHandler,
 PackageLoadUncaughtThrowHandler,
 
 "Function",
-PackageSymbolKinds,
 LoadedPackages,
 
 "IOFunction",
@@ -528,13 +531,16 @@ $KnownSymbolKinds = {
   "PredicateOperator",
   "BoxOptionSymbol",
   "OptionSymbol",
+  "SpecialSymbol",
   "PackageDeclaration",
   "PackageFunction",
   "Predicate",
   "SpecialVariable",
+  "SlotVariable",
   "CacheVariable",
   "Symbol",
   "FormSymbol",
+  "SlotSymbol",
   "PatternSymbol",
   "StrPatternSymbol",
   "FieldSymbol",
@@ -673,15 +679,25 @@ handleMessage[Message[msgName_, ___]] /; !TrueQ[$handlerRunning] := Quiet @ Modu
 
 (*************************************************************************************************)
 
+PackageSymbolNames[context_] := Module[
+  {table},
+  table = Lookup[$PackageSymbolTable, Key @ context, None];
+  (* ^ this is a list of {kind, path, context, str} *)
+  If[table === None, Return[$Failed]];
+  Flatten @ MapApply[
+    {kind, path, subcontext, str} |-> Map[StringJoin[subcontext, #]&, defToNames @ str],
+    table
+  ]
+];
+
+defToNames[def_] := StringSplit @ StringJoin @ StringReplace[def, {"{","}",","} -> " "];
+
 PackageSymbolKinds[context_] := Module[
   {table},
   table = Lookup[$PackageSymbolTable, Key @ context, None];
   (* ^ this is a list of {kind, path, context, str} *)
   If[table === None, Return[$Failed]];
-  Merge[Catenate] @ MapApply[
-    #1 -> StringSplit[StringJoin @ StringReplace[#4, {"{","}",","} -> " "]]&,
-    table
-  ]
+  Merge[Catenate] @ MapApply[#1 -> defToNames[#4]&, table]
 ];
 
 LoadedPackages[] := Keys @ $PackageSymbolTable;

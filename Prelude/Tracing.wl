@@ -9,6 +9,7 @@ System`RawPrintBoxes,
 System`CountUnpackings,
 System`TraceUnpackings,
 System`EnableDebugPrinting,
+System`DisableEchoPrinting,
 System`FailureString,
 
 "IOFunction",
@@ -18,6 +19,7 @@ System`LogPrint,
 System`RawPrint,
 System`LabeledPrint,
 System`DebugPrint,
+System`EchoPrint,
 System`WithRawPrintIndent,
 
 "SpecialVariable",
@@ -25,28 +27,59 @@ System`$Captured,
 System`$RawPrintIndent,
 System`$RawPrintMaxRate,
 System`$CellPrintLabel,
-System`$DebugPrinting
+System`$DebugPrinting,
+System`$EchoPrinting,
 System`$CurrentlyTracingAutoloads,
 System`$CurrentPackageFile,
 System`$CurrentPackageExprCount,
 System`$CurrentPackageExpr,
 System`$ShouldPrint,
-System`$LastTraceback
+System`$LastTraceback,
+System`$Disabled
 ]
 
 (*************************************************************************************************)
 
 Begin["`Private`"]
 
+Protect[$Disabled];
+
 (*************************************************************************************************)
 
-SetAttributes[{BlockPrint, EnableDebugPrinting, WithRawPrintIndent}, HoldAll];
+SetAttributes[{BlockPrint, EnableDebugPrinting, DisableEchoPrinting, WithRawPrintIndent}, HoldAll];
 
 BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
 
+$DebugPrinting = False;
+$EchoPrinting = True;
+
 EnableDebugPrinting[body_] := Block[{$DebugPrinting = True}, body];
+DisableEchoPrinting[body_] := Block[{$EchoPrinting = False}, body];
 
 WithRawPrintIndent[body_] := Block[{$RawPrintIndent = $RawPrintIndent + 1}, body];
+
+(*************************************************************************************************)
+
+SetAttributes[{RawPrint, LogPrint, ErrorPrint, EchoPrint, DebugPrint}, HoldAllComplete];
+
+(*************************************************************************************************)
+
+$errorPrintOpts = {
+  CellStyle -> "Message",
+  FontSize -> 13, FontColor -> Orange,
+  CellLabel -> "Error", CellLabelStyle -> Orange
+};
+
+$logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
+$echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
+$echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
+$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+
+RawPrint[args___]   := CustomizedPrint[{}, args];
+LogPrint[args___]   := CustomizedPrint[$logPrintOpts, args];
+ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
+EchoPrint[args___]  := If[$EchoPrinting, CustomizedPrint[$echoPrintOpts, args], $Disabled, $Disabled];
+DebugPrint[args___] := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
 
 (*************************************************************************************************)
 
@@ -98,7 +131,9 @@ generateRawPrintOptions[opts_] := Flatten @ {
   ],
   If[$RawPrintIndent > 0,
     List[
-      CellGroupingRules -> {"GraphicsGrouping", $RawPrintIndent},
+      CellDingbatMargin -> 5 + $RawPrintIndent * 20,
+      CellGroupingRules -> "GraphicsGrouping",
+      (* CellGroupingRules -> {"GraphicsGrouping", $RawPrintIndent}, *)
       CellMargins -> {{66 + $RawPrintIndent * 20, 3}, {0, 0}},
       CellLabelMargins -> {{12 + $RawPrintIndent * 20, Inherited}, {Inherited, Inherited}}
     ],
@@ -115,17 +150,23 @@ generateRawPrintOptions[opts_] := Flatten @ {
 
 (*************************************************************************************************)
 
-(* TODO: investigate CellGroupingRules *)
+(*
+TODO: investigate CellGroupingRules
+TODO: investigate CellDingbat as an alternative to using CellLabel
+*)
 
 SetAttributes[CustomizedPrint, HoldRest];
 
 CustomizedPrint[opts_List, args___] := If[!$ShouldPrint, $TimedOut,
   RawPrintBoxes[
-    printSeqBoxes @@ Map[printArgBoxes, {args}],
+    toPrintBoxes[args],
     Lookup[opts, CellStyle, "Print"],
     Sequence @@ DeleteCases[opts, CellStyle -> _]
   ]
 ];
+
+toPrintBoxes[RawBoxes[boxes_]] := boxes;
+toPrintBoxes[args___] := printSeqBoxes @@ Map[printArgBoxes, {args}];
 
 printSeqBoxes[e___] := RowBox @ Riffle[{e}, "\[InvisibleSpace]"];
 printSeqBoxes[e_] := e;
@@ -185,34 +226,6 @@ fmtFrameLine[line_] := First[
   StringCases[line, d:DigitCharacter.. ~~ ". " :> d, 1],
   "???"
 ];
-
-
-(*************************************************************************************************)
-
-$errorPrintOpts = {
-  CellStyle -> "Message",
-  FontSize -> 13, FontColor -> Orange,
-  CellLabel -> "Error", CellLabelStyle -> Orange
-};
-
-ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
-
-(*************************************************************************************************)
-
-$logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
-
-LogPrint[args___] := CustomizedPrint[$logPrintOpts, args];
-
-(*************************************************************************************************)
-
-$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
-
-DebugPrint[args___] /; $DebugPrinting := CustomizedPrint[$debugPrintOpts, args]
-
-(*************************************************************************************************)
-
-RawPrint[args___] :=
-  CustomizedPrint[{}, args];
 
 (*************************************************************************************************)
 

@@ -13,6 +13,8 @@ SystemExports[
     IfOp, ConstructOp,
     ConstOp,
     RiffleOp,
+    ArrayTableOp,
+    ThenOp,
   "Variable",
     $Operators,
   "PredicateOperator",
@@ -177,6 +179,16 @@ ConstOp[c_][___] := c;
 (**************************************************************************************************)
 
 RiffleOp[r_][list_] := Riffle[list, r];
+
+(**************************************************************************************************)
+
+DeclareHoldFirst[ArrayTableOp]
+
+ArrayTableOp[body_][args___] := ArrayTable[body, args];
+
+DeclareHoldAll[ThenOp]
+
+ThenOp[body___][___] := Then[body];
 
 (**************************************************************************************************)
 

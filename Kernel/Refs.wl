@@ -197,7 +197,7 @@ RefOrdering[refs_List] := refOrdering @ refs;
 refOrdering[ourRefs_] := Locals[
   graph = RefGraph[ourRefs, None];
   refs = VertexList @ graph;
-  shapeL = Map[val |-> KillRefs[val, ConstTrue], GetRefVal @ refs];
+  shapeL = Map[val |-> KillRefs[val, TrueFn], GetRefVal @ refs];
   hashL0 = Hash /@ shapeL;
   hashFn = {hash, subHashes} |-> If[subHashes === {}, hash, Hash @ {hash, subHashes}];
   iters = Len[refs] + 1;
@@ -208,12 +208,12 @@ refOrdering[ourRefs_] := Locals[
   Ordering @ Flip @ List[ourShapeL, ourHashL]
 ];
 
-hashInts[expr_] := expr /. (i_Int /; i > 1000) :> TryEval @ PixelHash @ i;
+hashInts[expr_] := expr /. (i_Int /; i > 1000) :> RuleEval @ PixelHash @ i;
 
 (**************************************************************************************************)
 
 KillRefs[expr_, test_] :=
-  Locals @ ReplaceAll[i = 1; expr, _Ref ? test :> TryEval @ RefGhost[i++]];
+  Locals @ ReplaceAll[i = 1; expr, _Ref ? test :> RuleEval @ RefGhost[i++]];
 
 (**************************************************************************************************)
 
@@ -227,7 +227,7 @@ echoHF[f_][a_, b_] := Locals[
   h
 ];
 
-toExprShape[ref_] := ReplaceAll[val, i = 0; _Ref ? knownRefQ :> TryEval @ RefGhost[i++]];
+toExprShape[ref_] := ReplaceAll[val, i = 0; _Ref ? knownRefQ :> RuleEval @ RefGhost[i++]];
 
 refOrdering2[refs_] := Locals[
   vals = GetRefVal @ refs;
@@ -252,7 +252,7 @@ extHash[h_, l_List] := Hash[{h, l}];
 zextHash[h_, _] := h;
 
 toINode[ref_, val_] := Locals[
-  shape = ReplaceAll[val, i = 1; _Ref ? knownRefQ :> TryEval @ RefGhost[i++]];
+  shape = ReplaceAll[val, i = 1; _Ref ? knownRefQ :> RuleEval @ RefGhost[i++]];
   hash = Hash @ shape;
   kids = Occs[val, _Ref ? knownRefQ];
   Print[ref -> kids];

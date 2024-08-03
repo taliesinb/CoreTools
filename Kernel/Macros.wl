@@ -6,7 +6,7 @@ SystemExports[
   "SpecialFunction",
     ExpandMacros, MacroHold, RefreshMacroRules,
   "SpecialVariable",
-    $, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS, $MacroParentSymbol, $DollarSymbols
+    $MacroParentSymbol, $DollarSymbols
 ];
 
 PackageExports[
@@ -31,8 +31,6 @@ PrivateExports[
 (*************************************************************************************************)
 
 $DollarSymbols = {$1, $2, $3, $4, $5, $6, $7, $8, $9};
-
-Protect[$, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS]
 
 $MacroSugarRules = Data`UnorderedAssociation[
   HoldPattern[Message] -> {
@@ -192,8 +190,8 @@ DefineComplexMacro[sym_Symbol, rule_RuleDelayed] := DefineComplexMacro[sym, List
 DefineComplexMacro[sym_Symbol, rules:{__RuleDelayed}] := (
   Clear[sym];
   UpValues[sym]                 = toUpRules[sym];
-  DownValues[sym]               = MapHold[toDownRule, rules];
-  $MacroRules[HoldPattern[sym]] = MapHold[toInnerRule, rules];
+  DownValues[sym]               = HoldMap[toDownRule, rules];
+  $MacroRules[HoldPattern[sym]] = HoldMap[toInnerRule, rules];
   invalidateMacroRules[];
 );
 

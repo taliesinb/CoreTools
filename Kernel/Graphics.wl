@@ -313,7 +313,7 @@ BinaryArrayPlot[array_, digits:(_Int|Auto), OptionsPattern[]] := Locals[
       array = IntDigits[array, 2, digits];
     ,
     MatrixQ[array, NonNegativeIntegerQ],
-      If[IntQ[digits] && LastDim[array] > digits,
+      If[IntQ[digits] && LengthN[array] > digits,
         array = Take[array, All, digits]];
       If[max > 1, ReturnFailed[]];
     ,

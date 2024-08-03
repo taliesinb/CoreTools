@@ -24,7 +24,7 @@ Attributes[ToStr] = {Flat, OneIdentity};
 ToStr = CaseOf[
   s_Str     := s;
   s_Symbol  := SymbolName @ s;
-  i_Int     := If[Negative[i], "-" <> IntStr[i], IntStr[i]];
+  i_Int     := IntStr @ i;
   r_Real    := RealString[r, 3];
   expr_     := StrJoin @ iToStr @ expr;
 ];
@@ -533,7 +533,7 @@ Options[StringBlockForm] = {
 }
 
 CoreBoxes[sb:StringBlockForm[_, ___Rule]] :=
-  TryEval @ Replace[stringBlockFormBoxes[sb], Except[_TemplateBox] :> Fail];
+  MaybeEval @ Replace[stringBlockFormBoxes[sb], Except[_TemplateBox] :> Fail];
 
 (* the first template slot is linear syntax for FE display,
 the second is HTML, which is ready to be inserted straight into markdown as-is. *)

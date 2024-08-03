@@ -1,27 +1,61 @@
 PackageExports[
   "FormHead",
-    ListView, LabeledFlipView, PickView, MapView, EitherView,
+    ListView,
+    NestedView,
+    RowView, ColumnView, RowColumnView,
+    LabeledFlipView,
+    PickView, MapView, EitherView,
   "BoxFunction",
     ClickAnimateBoxes, DynamicProgressBarBox,
     NiceClickBox, DeployBox,
     TightRowGridBox, TightColumnGridBox,
     OpenerColumnBox, DeployBox,
   "OptionSymbol",
-    ClickFunction
+    ClickFunction, ViewSize
+];
+
+PrivateExports[
+  "MetaFunction",
+    DefineViewForm
 ];
 
 (*************************************************************************************************)
 
-Options[ListView] = {
-  ClickFunction -> None
+$genericViewOptions = {
+  ClickFunction -> None,
+  ViewSize      -> 16,
+  MaxItems      -> Inf
 };
 
-MakeBoxes[ListView[list_List, opts___Rule], form_] := listBrowserBoxes[list, opts];
+$viewOption = UDict[];
 
-listBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
+DeclareHoldFirst[makeViewBoxesCommon]
+
+(* first apply the explicit options, then whatever we've inherited
+from higher up, then the defaults for this view *)
+makeViewBoxesCommon[body_, form_Symbol, rules___Rule] := Block[
+  {$currentViewDepth = $currentViewDepth + 1,
+   $viewOption = UDict @ ToList[rules, $viewOption, Options @ head]},
+  body
+];
+
+(*************************************************************************************************)
+
+DeclareStrict[DefineViewForm]
+
+DefineViewForm[RuleD[form_Symbol[lhs___], rhs_]] := Then[
+  Options[form] = $genericViewOptions,
+  CoreBoxes[form[lhs, opts___Rule]] := makeViewBoxesCommon[rhs, form, opts]
+];
+
+(*************************************************************************************************)
+
+DefineViewForm[ListView[list_List] :> listBrowserBoxes[list]];
+
+listBrowserBoxes[list_List] := With[
   {n$$ = Len @ list},
   {blue = $LightBlue, gray = GrayLevel[0.95], purple = $LightPurple},
-  {clickFn = OptionValue[ListView, {opts}, ClickFunction]},
+  {clickFn = $viewOption @ ClickFunction},
   {itemBox = FrameBox[
     DynamicBox[
       ClickBox[
@@ -47,10 +81,76 @@ listBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
   ]
 ];
 
+(*************************************************************************************************)
+
+Options[NestedView] = $genericViewOptions;
+
+NestedView::notNestedExpression = "Cannot use nesting for non-compound data with head ``.";
+NestedView[expr_, opts___Rule] := Locals[
+  $nestedViewOpts = opts;
+  If[ListDictQ[expr],
+    iNestedView @ expr
+  ,
+    Message[NestedView::notNestedExpression, Head @ expr];
+    expr
+  ]
+];
+
+iNestedView = CaseOf[
+  array_ ? PackedQ := DataForm @ array;
+  list:ListDictP   := RowColumnView[$ /@ list, $nestedViewOpts];
+  other_           := $Failed
+];
+
+$rowOrColumnDepth = 0;
+
+(*************************************************************************************************)
+
+DefineViewForm[RowColumnView[items:ListDictP] :> rowColumnViewBoxes @ items];
+
+DeclareHoldAllComplete[rowColumnViewBoxes, rowableQ];
+
+rowableQ[items_] := HoldLen[items] < 32 && AllTrue[items, DatumQ];
+
+rowColumnViewBoxes[items_ ? rowableQ] := rowViewBoxes @ list;
+rowColumnViewBoxes[items_]            := columnViewBoxes @ list;
+
+(*************************************************************************************************)
+
+DefineViewForm[RowView[items:ListDictP] :> rowViewBoxes @ items];
+
+DeclareHoldAllComplete[rowViewBoxes];
+
+rowViewBoxes[items_List] := GridBox[ToRowVec @ MapMakeBoxes @ items, $rowViewGridOpts];
+rowViewBoxes[items_Dict] := GridBox[KeysValues @ MapMakeBoxes @ items, $rowViewGridOpts];
+
+$rowViewGridOpts = Seq[
+  GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{None}}},
+  FrameStyle -> GrayLevel[0.5],
+  BaselinePosition -> {{1, 1}, Baseline},
+  RowMinHeight -> 1.2, ColumnSpacings -> 1.2
+];
+
+(*************************************************************************************************)
+
+DefineViewForm[ColumnView[items:ListDictP] :> columnViewBoxes @ items];
+
+DeclareHoldAllComplete[columnViewBoxes];
+
+columnViewBoxes[items_List] := GridBox[ToColVec /@ MapMakeBoxes @ items, $rowViewGridOpts];
+columnViewBoxes[items_Dict] := GridBox[DictToPairs @ MapMakeBoxes @ items, $rowViewGridOpts];
+
+$rowViewGridOpts = Seq[
+  GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{None}}},
+  FrameStyle -> GrayLevel[0.5],
+  BaselinePosition -> {{1, 1}, Baseline},
+  RowMinHeight -> 1.2, ColumnSpacings -> 1.2
+];
+
 (**************************************************************************************************)
 
 CoreBoxes[LabeledFlipView[items:ListDictP, opts___Rule]] :=
-  labeledFlipViewBoxes[items, opts];
+  blockView @ labeledFlipViewBoxes[items, opts];
 
 labeledFlipViewBoxes[items_Dict, opts___] :=
   labeledFlipViewBoxes[Normal @ items, opts];
@@ -86,8 +186,7 @@ LabeledFlipView::badLabelPos = "LabelPosition -> `` should be either Top or Left
 
 Options[PickView] = Options[ListView];
 
-CoreBoxes[PickView[list_List]] :=
-  pickBrowserBoxes[list];
+CoreBoxes[PickView[list_List]] := blockView @ pickBrowserBoxes[list];
 
 pickBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
   {n$$ = Len @ list},
@@ -134,7 +233,7 @@ pickBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
 
 MapView::usage = "MapView[f$, list$] maps f$ over list$, showing the results in an interactive browser."
 
-CoreBoxes[MapView[f_, list_List]] := mappedBrowserBoxes[f, list];
+CoreBoxes[MapView[f_, list_List]] := blockView @ mappedBrowserBoxes[f, list];
 
 mappedBrowserBoxes[f_, list_List] := With[
   {n$$ = Len @ list},
@@ -203,7 +302,7 @@ modDec[var_, n_] := Set[var, Mod[var - 1, n, 1]];
 
 (**************************************************************************************************)
 
-CoreBoxes[EitherView[a_, b_]] := eitherViewBoxes[MakeBoxes @ a, MakeBoxes @ b];
+CoreBoxes[EitherView[a_, b_]] := blockView @ eitherViewBoxes[MakeBoxes @ a, MakeBoxes @ b];
 
 eitherViewBoxes[a_, b_] :=
   DynamicModuleBox[

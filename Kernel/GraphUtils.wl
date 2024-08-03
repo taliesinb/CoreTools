@@ -1,10 +1,11 @@
 SystemExports[
   "Function",
     PrefixEdges, PrefixGraph,
+    EdgeTagIndex,
     FromIndexGraph,
-    VertexAssociation,
     VertexRange, VertexEdgeList, IndexVertexEdgeList,
     EdgePairs, EdgePairsT,
+    FromVertexOutLists,
     VertexOutLists, IndexVertexOutLists,
     VertexInLists, IndexVertexInLists,
     IndexVertexSources, IndexVertexSinks, VertexSources, VertexSinks,
@@ -53,7 +54,7 @@ makeFirstParentEdge = CaseOf[
 
 PrefixGraph[vertices_, opts___Rule] := Locals[
   edges = PrefixEdges @ vertices;
-  Graph[vertices, edges, opts]
+  ExtGraph[vertices, edges, opts]
 ];
 
 (*************************************************************************************************)
@@ -83,11 +84,15 @@ FromIndexGraph[igraph_, vertexList_List, opts___Rule] := Locals[
 
 (*************************************************************************************************)
 
-DeclareStrict[VertexAssociation, VertexRange, VertexEdgeList, IndexVertexEdgeList]
+DeclareStrict[EdgeTagIndices, VertexRange, VertexEdgeList, IndexVertexEdgeList]
 
 "VertexEdgeList[graph$] returns {vertices$, edges$}."
 
-VertexAssociation[graph_Graph]   := UDictRange @ VertexList @ graph;
+BlockUnprotect[VertexIndex,
+VertexIndex[graph_Graph] := UDictRange @ VertexList @ graph
+];
+
+EdgeTagIndices[graph_Graph]      := DelCases[Null] @ UDictRange @ EdgeTags @ graph;
 VertexRange[graph_Graph]         := Range @ VertexCount @ graph;
 VertexEdgeList[graph_Graph]      := List[VertexList @ graph, EdgeList @ graph];
 IndexVertexEdgeList[graph_Graph] := VertexEdgeList @ IndexGraph @ graph;
@@ -119,6 +124,16 @@ IndexVertexSources[g_Graph] := Pick[VertexRange @ g, VertexInDegree @ g, 0];
 IndexVertexSinks[g_Graph]   := Pick[VertexRange @ g, VertexOutDegree @ g, 0];
 VertexSources[g_Graph]      := Pick[VertexList @ g, VertexInDegree @ g, 0];
 VertexSinks[g_Graph]        := Pick[VertexList @ g, VertexOutDegree @ g, 0];
+
+(*************************************************************************************************)
+
+DeclareStrict[FromVertexOutLists]
+
+FromVertexOutLists[dict_Dict, opts___Rule] := ExtGraph[
+  DelDups @ Join[Keys @ dict, Catenate @ dict],
+  Flatten @ KeyValueMap[{src, tgts} |-> Map[tgt |-> DirectedEdge[src, tgt], tgts], dict],
+  opts
+];
 
 (*************************************************************************************************)
 

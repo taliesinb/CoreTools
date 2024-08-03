@@ -1,8 +1,13 @@
 SystemExports[
   "DebuggingFunction",
-    NiceEcho, EchoTest, EchoArrow,
-    EchoBy, EchoLen, EchoDims, EchoKeys, EchoHead,
-    EchoH, EchoH0, EchoH1, EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
+    NiceEcho,
+    EchoBy, EchoLen, EchoDims, EchoOpts, EchoKeys, EchoHead,
+    EchoTest,
+    EchoReplaceAll, EchoReplaceRepeated,
+    EchoingRules, EchoingSetDelayed,
+    EchoH, EchoH0, EchoH1,
+    EchoArrow,
+    EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
   "SpecialVariable",
     $EchoIndent,
   "FormHead",
@@ -12,71 +17,143 @@ SystemExports[
 PackageExports[
   "DebuggingFunction",
     EchoSet, EchoSetH, EchoSymbol, EchoBody,
+  "MessageFunction",
+    EchoBindingsBody, EchoBindingsCondition,
   "BoxFunction",
     NicePasterBoxes
 ];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[EchoTest]
-EchoTest[arg_] := (niceEchoPane @ CoreToolsHold @ arg; True);
+NiceEcho[arg_]    := (printEchoPane @ CoreToolsHold @ arg; arg);
+NiceEcho[args___] := (printEchoPane @ CoreToolsHold @ CoreToolsSequence[args]; Construct[Sequence, args]);
 
 (*************************************************************************************************)
 
-EchoBy[fn_, parts__][arg_] := With[{res = arg},
-  niceEchoPane @ Apply[fn] @ FastQuietCheck[Part[Hold @ arg, All, parts], Missing]; res];
+EchoBy[fn_, parts__][arg_] := With[{res = arg}, printEchoPane @ Apply[fn] @ FastQuietCheck[Part[Hold @ arg, All, parts], Missing]; res];
+EchoBy[fn_][arg_]          := With[{res = arg}, printEchoPane @ fn @ res; res];
+EchoBy[fn_][args___]       := Construct[Sequence, args];
 
-EchoBy[fn_][arg_] := With[{res = arg}, niceEchoPane @ fn @ res; res];
-EchoBy[fn_][args___] := Construct[Sequence, args];
+EchoLen[arg_]     := With[{res = arg}, printEchoPane @ Length @ res; res];
+EchoLen[args___]  := Construct[Sequence, args];
 
-(*************************************************************************************************)
-
-EchoDims[arg_] := With[{res = arg}, niceEchoPane @ Dimensions @ res; res];
+EchoDims[arg_]    := With[{res = arg}, printEchoPane @ Dimensions @ res; res];
 EchoDims[args___] := Construct[Sequence, args];
 
-(*************************************************************************************************)
+EchoOpts[arg_]    := With[{res = arg}, printEchoPane @ Options @ res; res];
+EchoOpts[args___] := Construct[Sequence, args];
 
-EchoHead[arg_] := With[{res = arg}, niceEchoPane @ Head @ res; res];
+EchoKeys[arg_]    := With[{res = arg}, printEchoPane @ Keys @ res; res];
+EchoKeys[args___] := Construct[Sequence, args];
+
+EchoHead[arg_]    := With[{res = arg}, printEchoPane @ Head @ res; res];
 EchoHead[args___] := Construct[Sequence, args];
 
 (*************************************************************************************************)
 
-EchoLen[arg_] := With[{res = arg}, niceEchoPane @ Length @ res; res];
-EchoLen[args___] := Construct[Sequence, args];
+DeclareHoldAllComplete[EchoTest]
+EchoTest[arg_] := (printEchoPane @ CoreToolsHold @ arg; True);
 
 (*************************************************************************************************)
 
-EchoKeys[arg_] := With[{res = arg}, niceEchoPane @ Keys @ res; res];
-EchoKeys[args___] := Construct[Sequence, args];
+EchoReplaceAll[body_, rules_]      := ReplaceAll[body, EchoingRules @ rules];
+EchoReplaceRepeated[body_, rules_] := ReplaceRepeated[body, EchoingRules @ rules];
 
 (*************************************************************************************************)
 
-NiceEcho[arg_] := (niceEchoPane @ CoreToolsHold @ arg; arg);
-NiceEcho[args___] := (niceEchoPane @ CoreToolsHold @ CoreToolsSequence[args]; Construct[Sequence, args]);
+(* TODO: how to deal with need to echo a RuleDelayed that *isn't* RuleEval? we might
+change the semantics. one option would be to *only* rewrite ruledelayes with a RuleEval! *)
+
+EchoingRules[rule_]      := ReleaseHold @ toEchoingRule[rule, 0];
+EchoingRules[rules_List] := ReleaseHold @ MapP[toEchoingRule, rules];
+
+EchoingRules::badRule = "Can't attach to ``.";
+toEchoingRule[rule:RuleLikeP, i_]  := attachBindingBody[rule, i];
+toEchoingRule[rule_, i_] := Then[Message[EchoingRules::badRule, rule], rule];
+
+DeclareHoldAllComplete[EchoingSetDelayed]
+
+EchoingSetDelayed[lhs_, rhs_] := ReleaseHold @ attachBindingBody[SetD, lhs, rhs, HoldSymbolName @@ PatternHeadSymbol @ lhs];
 
 (*************************************************************************************************)
 
-niceEchoPane[e_] /; $shouldPrint := printRawEchoCell @ ToBoxes @ CodePane[e, {{200, 300}, UpTo @ 100}];
+DeclareHoldAllComplete[attachBindingCondition, makeBindingCondition];
 
-$shouldPrint := !TrueQ[$SessionCurrentEvaluationPrintCount >= $SessionMaxEvaluationPrintCount];
+attachBindingCondition[head_, lhs_, rhs_, label_] := attachBindingCondition[head[lhs, rhs], label];
+attachBindingCondition[expr:(_[lhs_, _]), label_] := attachCondition[HoldC @ expr, makeBindingCondition[lhs, label]];
+attachCondition[HoldC[head_[lhs_, rhs_]], HoldC[cond_]] := HoldC[head[lhs /; cond, rhs]];
+(* TODO: make AttachCondition a proper utility *)
 
-printRawEchoCell[boxes_] /; $shouldPrint := (
-  $SessionCurrentEvaluationPrintCount++;
-  CellPrint @ Cell[
-    BoxData @ boxes, "Print",
-    CellMargins -> {{66 + $RawPrintIndent * $EchoIndent, 0}, {1, 1}},
-    "GeneratedCell" -> True, CellAutoOverwrite -> True,
-    CellBracketOptions -> {"Color" -> Orange, "Thickness" -> 1.5}
-  ];
-);
+makeBindingCondition[lhs_, label_] := With[
+  {syms = HoldC @@@ PatternBoundSymbols[lhs]},
+  {names = HoldSymbolName @@@ syms},
+  {label2 = label},
+  HoldC @ EchoBindingsCondition[label2, names, syms]
+];
 
-SetInitial[$EchoIndent, 12];
+(* names: list of strings, values: list of HoldCs with values subbed in *)
+EchoBindingsCondition[label_, names_, values_] := EchoPrint @ RawBoxes @ namesValuesBoxes[label, names, values];
 
 (*************************************************************************************************)
 
-AttachEchos[sym_Symbol] := (
-  DownValues[sym] = Map[attachEchoRule, DownValues @ sym];
-);
+DeclareHoldAllComplete[attachBindingBody, makeBindingBody]
+
+attachBindingBody[head_, lhs_, rhs_, label_] := attachBindingBody[head[lhs, rhs], label];
+attachBindingBody[expr:(_[lhs_, rhs_]), label_] := replaceBody[HoldC @ expr, makeBindingBody[lhs, rhs, label]];
+
+(* TODO: handle With[{}, ... /; ] idiom *)
+replaceBody[HoldC[(head:Rule|RuleDelayed)[lhs_, _]], HoldC[body:Except[_RuleEval]]] := HoldC[head[lhs, RuleEval @ body]];
+replaceBody[HoldC[head_[lhs_, _]], HoldC[body_]] := HoldC[head[lhs, body]];
+(* TODO: make ReplaceBody a proper utility *)
+
+makeBindingBody[lhs_, rhs_, label_] := With[
+  {syms = HoldC @@@ PatternBoundSymbols[lhs]},
+  {names = HoldSymbolName @@@ syms},
+  {label2 = label},
+  HoldC @ EchoBindingsBody[label2, names, syms, rhs]
+];
+
+DeclareHoldAllComplete[EchoBindingsBody]
+
+(* names: list of strings, values: list of HoldCs with values subbed in *)
+EchoBindingsBody[label_, names_, values_, body_] := Module[
+  {res = $Aborted},
+  WithLocalSettings[
+    $RawPrintIndent++,
+    res = body,
+    $RawPrintIndent--;
+    With[{res2 = res}, printEchoArrowRaw["\[RuleDelayed]",
+      namesValuesBoxes[label, names, values],
+      NicePasterBoxes[CodePaneBoxes[res2, {UpTo @ 500, UpTo @ 100}], res2]
+    ]]
+  ]
+];
+
+(*************************************************************************************************)
+
+namesValuesBoxes[label_, names_, values_] := TightBox @ FontSizeBox[12] @ RBox[
+  StyleBox[MakeBoxes @ label, Bold], StyleBox[": ", Gray],
+  If[names === {}, "", GridBox[
+    List @ ZipMap[nameValueEntryBox, names, values],
+    $namesValuesGridOpts
+  ]]
+];
+
+nameValueEntryBox[name_, HoldC[value___]] := RBox[
+  StyleBox[name, $DarkGreen], ":",
+  NicePasterBoxes[CodePaneBoxes[CoreToolsHold @ value, {UpTo[150], UpTo[30]}], Hold[value]]
+];
+
+$namesValuesGridOpts = Seq[
+  GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{None}}},
+  FrameStyle -> GrayLevel[0.5],
+  BaselinePosition -> {{1, 1}, Baseline},
+  RowMinHeight -> 1.2, ColumnSpacings -> 1.2
+];
+
+(*************************************************************************************************)
+
+AttachEchos[sym_Symbol] := (DownValues[sym] = Map[attachEchoRule, DownValues @ sym];);
 
 attachEchoRule[rule_] /; VContainsQ[rule, $EchoLHS$] := rule;
 attachEchoRule[lhs_ :> rhs_] := RuleDelayed[$EchoLHS:lhs, EchoBody[$EchoLHS, rhs]];
@@ -154,32 +231,38 @@ EchoH1[fn_[args___]] := Module[
 
 DeclareHoldAllComplete[EchoArrow]
 
-EchoArrow[a_, b_]                                 := echoArrow[a, b, True];
-EchoArrow[a_, b_, fill_]                          := echoArrow[a, b, fill];
+EchoArrow[a_, b_]                                 := printEchoArrow[a, b, True];
+EchoArrow[a_, b_, fill_]                          := printEchoArrow[a, b, fill];
 
 With[{patt = Apply[Alternatives, Blank /@ $MutatingSymbols]},
-EchoArrow[a:patt, b_] := echoArrow[a, b, False]];
+EchoArrow[a:patt, b_] := printEchoArrow[a, b, False]];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[echoArrow]
+printEchoPane[e_] /; $EchoPrinting := EchoPrint @ CodePane[e, {{200, 300}, UpTo @ 100}];
 
-echoArrow[lhs2_, rhs2_, fill_] := With[
-  {lhs = If[fill, fillImmediateVals, Identity] @ CoreToolsHold @ lhs2,
-   rhs = CoreToolsHold @ rhs2, width = 30 - $RawPrintIndent*0.9},
-  printRawEchoCell @ GridBox[{{
-    ToBoxes @ NicePaster[CodePane[lhs, {{200, 300}, UpTo @ 100}], lhs],
-    "\[Function]",
-    ToBoxes @ NicePaster[CodePane[rhs, {UpTo @ 500, UpTo @ 100}], rhs]
-  }},
-    GridFrameMargins -> 0,
-    GridBoxItemSize -> {"Columns" -> {width, 3, 500}},
-    GridBoxAlignment -> {"Columns" -> {Left, Left, Left}, "Rows" -> {Baseline}}
-]];
+(*************************************************************************************************)
+
+DeclareHoldAllComplete[printEchoArrow, printEchoArrowRaw]
+
+printEchoArrow[lhs2_, rhs_, fill_] := With[
+  {lhs = If[fill, fillImmediateVals, Identity] @ CoreToolsHold @ lhs2},
+  printEchoArrowRaw["\[Function]",
+    NicePasterBoxes[CodePaneBoxes[lhs, {{200, 300}, UpTo @ 100}], lhs],
+    NicePasterBoxes[CodePaneBoxes[rhs, {UpTo @ 500, UpTo @ 100}], rhs]
+  ]
+];
 
 (* avoid filling just a single value or list of these *)
 fillImmediateVals[e:CoreToolsHold[_Symbol | {__Symbol}]] := e;
 fillImmediateVals[e_] := ReplaceAll[e, s_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[s]];
+
+printEchoArrowRaw[arrow_, lhs_, rhs_] := EchoPrint @ RawBoxes @ GridBox[
+  List @ {lhs, arrow, rhs},
+  GridFrameMargins -> 0,
+  GridBoxItemSize  -> {"Columns" -> {30 - $RawPrintIndent*0.9, 3, 500}},
+  GridBoxAlignment -> {"Columns" -> {Left, Left, Left}, "Rows" -> {Baseline}}
+]
 
 (*************************************************************************************************)
 
@@ -230,7 +313,7 @@ EchoFLH[fnl_, fn_, args___] := Module[
 (*************************************************************************************************)
 
 NicePaster::usage =
-"NicePaster[display, paste] displays as display but when clicked pastes the held expression paste.
+"NicePaster[display$, paste$] displays as display$ but when clicked pastes the held expression paste$.
 ";
 
 DeclareHoldRest[NicePaster, NicePasterBoxes];
@@ -247,6 +330,7 @@ NicePasterBoxes[boxes_, paste_] := With[
   ]
 ];
 
+(* TODO: switch to PrintInputCell? *)
 pasteExpr[expr_String] := (
   (* the GeneratedCell -> False prevents the printed cell from mixing with echos and causing problems on re-evaluation *)
   CellPrint @ ExpressionCell[Uncompress @ expr, "Input", GeneratedCell -> False];

@@ -2,12 +2,14 @@ SystemExports[
   "OptionSymbol",
     LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction,
     EdgeColor, EdgeThickness, ThemeParent,
+    VertexColorFunction, VertexTooltips,
 
   "Head",
     VertexAnnotation, EdgeAnnotation, TimePart,
 
   "Function",
     GraphVertexAnnotations, GraphEdgeAnnotations, GraphAnnotationRules, AddSelfAnnotations,
+    GraphProperties,
 
   "GraphicsFunction",
     GraphAnimate
@@ -62,7 +64,11 @@ DefineGraphTheme["Core", {
 
 (*************************************************************************************************)
 
-$CustomGraphOptions = {LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction};
+$CustomGraphOptions = {
+  LabelFunction, VertexLabelFunction, EdgeLabelFunction,
+  PostGraphicsFunction, VertexColors,
+  VertexColorFunction, VertexTooltips
+};
 customGraphOptionQ = ConstTrueAssoc @ $CustomGraphOptions;
 
 DeclareStrict[ExtGraph]
@@ -150,7 +156,7 @@ patchCustomGraphPlotThemes[] := With[
   Unprotect[gcSGS];
   gcSGS[] := Join[$SystemGraphThemeNames, Keys @ $CustomGraphThemeData];
   gcSGS[name_String ? CustomGraphThemeQ, prop_Symbol, args___] :=
-    TryEval @ CustomSetGraphStyle[$CustomGraphThemeData @ name, prop, args];
+    MaybeEval @ CustomSetGraphStyle[$CustomGraphThemeData @ name, prop, args];
   Protect[gcSGS];
 ];
 
@@ -219,7 +225,10 @@ EdgeAnnotation[e:Except[_Slot], k_, d_] := Lookup[Lookup[$CurrentEdgeAnnotations
 
 (*************************************************************************************************)
 
-DeclareStrict[GraphAnnotationRules]
+DeclareStrict[GraphAnnotationRules, GraphProperties]
+
+GraphProperties[graph_Graph] := Lookup[graphAnnos @ graph, "GraphProperties", Assoc[]];
+GraphProperties[graph_Graph, syms_] := Lookup[GraphProperties @ graph, syms, Automatic];
 
 graphAnnos[graph_] := Part[Options[graph, AnnotationRules], 1, 2];
 
@@ -314,7 +323,7 @@ GraphAnimate[graph_Graph, vertexDataSpec_, edgeDataSpec_, opts:OptionsPattern[]]
   graphics = CustomGraphDrawing @ baseGraph;
   boxes = Map[
     t |-> RawBoxes @ ToBoxes @ ReplaceAll[
-      graphics, p_PartOfOp :> TryEval @ p @ t
+      graphics, p_PartOfOp :> RuleEval @ p @ t
     ],
     Range @ vTime
   ];

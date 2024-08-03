@@ -6,6 +6,7 @@ Messages.wl
 Macros.wl
 MacroDefs.wl
 Boxes.wl
+Formal.wl
 Colors.wl
 Predicates.wl
 Functions.wl
@@ -36,6 +37,7 @@ Data.wl
 Generators.wl
 GraphPlotting.wl
 GraphUtils.wl
+Bigraph.wl
 Multigraph.wl
 PythonSession.wl
 PythonExpr.wl
@@ -44,3 +46,5 @@ Specs.wl
 ToStr.wl
 Refs.wl
 Views.wl
+Domains.wl
+NArray.wl

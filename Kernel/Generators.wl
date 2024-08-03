@@ -29,19 +29,19 @@ freeze = CaseOf[
 
   Module[{vars__Symbol}, body_] := With[
     {sym = FormalSymbol @ Mod[$moduleId++, 52]},
-    {ivars = MapHold[HoldPattern, {vars}]},
+    {ivars = HoldMap[HoldPattern, {vars}]},
     {cvars = Thread @ CSymbol[sym, LenRange @ ivars]},
     {rules = RuleThread[ivars, cvars]},
     {cbody = $ @@ ReplaceAll[HoldComplete[body], rules]},
     CModule[Len @ ivars, id, cbody]
   ];
 
-  CompoundExpression[exprs___] := MapHold[$, CSequential[exprs]];
+  CompoundExpression[exprs___] := HoldMap[$, CSequential[exprs]];
   s:$mutP[lhs_CSymbol, rhs__]  := CMutate[s, rhs];
   c_CSymbol                    := c;
   c_Symbol                     := CLiteral[c];
   a_ ? HoldAtomQ               := CLiteral[a];
-  list_List                    := CList @@ MapHold[$, list];
+  list_List                    := CList @@ HoldMap[$, list];
   h_[]                         := CCall0[$ @ h];
   h_[a1_]                      := CCall1[$ @ h, $ @ a1];
   h_[a1_, a2_]                 := CCall2[$ @ h, $ @ a1, $ @ a2];
