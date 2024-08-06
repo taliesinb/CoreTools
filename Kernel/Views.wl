@@ -2,6 +2,7 @@ PackageExports[
   "FormHead",
     ListView,
     NestedView,
+    GroupedView,
     RowView, ColumnView, RowColumnView,
     LabeledFlipView,
     PickView, MapView, EitherView,
@@ -11,7 +12,9 @@ PackageExports[
     TightRowGridBox, TightColumnGridBox,
     OpenerColumnBox, DeployBox,
   "OptionSymbol",
-    ClickFunction, ViewSize
+    ClickFunction, ViewSize,
+  "Function",
+    LabelBy
 ];
 
 PrivateExports[
@@ -21,10 +24,17 @@ PrivateExports[
 
 (*************************************************************************************************)
 
+DeclareCurry2[LabelBy];
+
+LabelBy[list_List, fn_] := Map[item |-> Labeled[item, fn[item]], list];
+
+(*************************************************************************************************)
+
 $genericViewOptions = {
   ClickFunction -> None,
   ViewSize      -> 16,
-  MaxItems      -> Inf
+  MaxItems      -> Inf,
+  ItemFunction  -> None
 };
 
 $viewOption = UDict[];
@@ -35,7 +45,7 @@ DeclareHoldFirst[makeViewBoxesCommon]
 from higher up, then the defaults for this view *)
 makeViewBoxesCommon[body_, form_Symbol, rules___Rule] := Block[
   {$currentViewDepth = $currentViewDepth + 1,
-   $viewOption = UDict @ ToList[rules, $viewOption, Options @ head]},
+   $viewOption = UDict @ ToList[Options @ form, $viewOption, rules]},
   body
 ];
 
@@ -47,6 +57,69 @@ DefineViewForm[RuleD[form_Symbol[lhs___], rhs_]] := Then[
   Options[form] = $genericViewOptions,
   CoreBoxes[form[lhs, opts___Rule]] := makeViewBoxesCommon[rhs, form, opts]
 ];
+
+(*************************************************************************************************)
+
+DefineViewForm[GroupedView[list_List, fns_] :> groupedView[list, fns]];
+
+Options[GroupedView] = JoinOptions[{ViewSize -> 8, LabelFunction -> CodePane}, $genericViewOptions];
+
+groupedView[list_List, fns2_] := Locals[
+  fns = fns2;
+  If[RuleQ[fns],
+    {fns, $itemFn} = FirstLast @ fns,
+    $itemFn = $viewOption[ItemFunction];
+  ];
+  SetNone[$itemFn, Id];
+  fns = ToList @ fns;
+  depth = Len @ fns;
+  groups = GroupBy[list, fns];
+  $spanCol = ConstList["\[SpanFromLeft]", depth];
+  $lastPath = ConstList[$dummy, depth];
+  $labelPath = {};
+  $viewSize = $viewOption[ViewSize];
+  Collecting[$cols, PathScan[$labelPath, visitGroup[depth], KeySort @ groups]];
+  grid = GridBox[
+    Flip @ Prepend[Prepend[groupFnBox /@ Rev[fns], ""]] @ $cols,
+    FrameStyle -> GrayLevel[0.75],
+    Dividers -> All,
+    ColumnSpacings -> 2,
+    RowMinHeight -> {1.2, {1.3}},
+    GridBoxDividers -> {"Columns" -> {{True}}, "Rows" -> {{True}}},
+    GridFrameMargins -> {{1, 1}, {1, 1}}
+  ];
+  FrameBox[grid, Background -> GrayLevel[1], FrameStyle -> None]
+];
+
+visitGroup[1][items_] := Module[{labels},
+  noSplit = True;
+  labels = ZipMap[
+    {this, last} |-> If[noSplit && SameQ[this, last], "\[SpanFromLeft]", noSplit = False; groupLabelBox @ this],
+    $labelPath, $lastPath
+  ];
+  $lastPath = $labelPath;
+  boxes = MapFirstRest[
+    item |-> $cols @ Prepend[Rev @ labels, groupItemBox @ item],
+    item |-> $cols @ Prepend[$spanCol, dimLeftBox @ groupItemBox @ item],
+    Take[items, UpTo[$viewSize]]
+  ];
+  If[Len[items] > $viewSize,
+    $cols @ Prepend[$spanCol, groupEllipsisBox[Len[items] - $viewSize]]
+  ];
+];
+
+fnBoxes[fn_] := CodePaneBoxes[fn, {UpTo[200], UpTo[30]}];
+groupEllipsisBox[n_] := dimLeftBox @ OverscriptBox["\[Ellipsis]", NatStr[n]];
+groupFnBox[list_List]   := ColumnBox[fnBoxes /@ list, Left, 0];
+groupFnBox[f_RightComposition] := groupFnBox[List @@ f];
+groupFnBox[other_]     := fnBoxes @ other;
+groupItemBox[item_]    := ToBoxes @ $itemFn @ item;
+groupLabelBox[label_]  := ToBoxes @ $viewOption[LabelFunction] @ label;
+
+dimLeftBox[box_] := ItemBox[box, Frame -> {{GrayLevel[0.95], Auto}, {Auto, Auto}}];
+
+visitGroup[d_][dict_] := PathScan[$labelPath, visitGroup[d-1], KeySort @ dict];
+
 
 (*************************************************************************************************)
 

@@ -18,7 +18,7 @@ CoreBoxes[ed:ExprDelta[pos_List, crumbs_List, diff_]] :=
     Dividers -> All,
     ColumnSpacings -> 2,
     GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{}}},
-    FrameMargins -> {{5, 5}, {3, 10}}
+    GridFrameMargins -> {{5, 5}, {3, 10}}
   ];
 
 CoreBoxes[d_DeltaPos] := dposBoxes @@ d;

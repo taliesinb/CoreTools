@@ -1,6 +1,6 @@
 SystemExports[
   "Function",
-    HoldSymbolName, Ensure,
+    HoldSymbolName, Ensure, AssertThat,
   "ControlFlowFunction",
     HoldMap, EvaluateMap, HoldScan,
   "MutatingFunction",
@@ -280,7 +280,7 @@ StringListableFunctionDefs[sd:SetD[$LHS_, $RHS_]] := With[
   ReleaseHold @ ReplaceAll[Hold[sd] /. {mn_MessageName :> mn, head -> impl}];
   If[strImplNeedsSetupQ[head],
     strImplNeedsSetupQ[head] = False;
-    head[expr_ ? StringOrStringVectorQ, args___] := impl[expr, args];
+    head[expr_ ? StrOrStrVecQ, args___] := impl[expr, args];
     head[expr:ListDictP, args___]                := Map[elem |-> head[elem, args], expr];
     head[expr_, ___]                             := ErrorMsg[head::notStringOrStrings, expr];
     expr_impl                                    := badImplArgs[head, expr];

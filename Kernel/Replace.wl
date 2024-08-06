@@ -16,10 +16,25 @@ SystemExports[
     FullReplaceAll, FullReplaceRepeated,
     ReplaceAllList,
     ReplaceAllBelow,
+    FnRule,
 
   "Head",
     ExprPath
 ];
+
+(**************************************************************************************************)
+
+(* TODO: Handle Repeating *)
+
+(* FixedPointOp[fn_] :=
+FixedPointOp[fn_, doneFn_] :=
+FixedPointOp[{fn1_, fn2_, ...}, doneFn_] :=
+FixedPointOp[Repeated[fn1_, fn2_, fn3_], doneFn_]
+ *)
+(**************************************************************************************************)
+
+FnRule[_, Id]      := Nothing;
+FnRule[patt_, fn_] := RuleD[FmS:patt, fn[FmS]];
 
 (**************************************************************************************************)
 

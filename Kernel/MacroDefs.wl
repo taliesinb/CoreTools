@@ -20,7 +20,7 @@ PackageExports[
   "MessageFunction",
     ReturnFailed, ReturnMessage,
   "MutatingFunction",
-    UnpackOptions, UnpackOptionsAs,
+    UnpackOptions, UnpackOptionsAs, UnpackAnnotations,
   "PatternSymbol",
     StrMatchP, StrStartsP, StrContainsP, DeepStrContainsP
 ];
@@ -66,7 +66,7 @@ DefinePatternMacro[DeepStrContainsP,
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[SubWith]
+SetHoldC[SubWith]
 DeclareStrict[SubWith]
 
 SubWith[v_Symbol, body_] :=
@@ -166,7 +166,7 @@ issueMessage[msgSym_, msgName_String, args___] := Message[MessageName[msgSym, ms
 
 Locals::usage = "Locals foo.";
 
-DeclareHoldAllComplete[Locals, mLocals]
+SetHoldC[Locals, mLocals]
 
 DefineComplexMacro[Locals, Locals[args___] :> mLocals[args]]
 
@@ -205,7 +205,7 @@ findLocalVariables[expr_] := Block[{$lvBag = Internal`Bag[]},
   DeleteDuplicates @ Flatten @ Internal`BagPart[$lvBag, All]
 ];
 
-DeclareHoldAllComplete[collectLVs]
+SetHoldC[collectLVs]
 
 collectLVs[e_] := (ReplaceAll[e, $lvRules]; Null);
 
@@ -240,7 +240,7 @@ $lvRules = Dispatch @ Join[
   Map[head |-> RuleDelayed[m_head, RuleCondition @ procMutatingExpr @ m], $lvMutatingHeads]
 ];
 
-DeclareHoldAllComplete[procScopingExpr, procMutatingExpr, lhsSymbols]
+SetHoldC[procScopingExpr, procMutatingExpr, lhsSymbols]
 
 procScopingExpr[_Locals | _GeneralUtilities`Scope | _GeneralUtilities`ModuleScope] := Null;
 
@@ -308,7 +308,7 @@ CaseFn[CompoundExpression[args___SetDelayed, Null...]][arg_] :> appliedCaseOf[{a
 CaseFn[CompoundExpression[args___SetDelayed, Null...]]       :> standaloneCaseOf[{args, _ :> ThrowUnmatchedError[]}]
 }];
 
-DeclareHoldAllComplete[appliedCaseOf, standaloneCaseOf];
+SetHoldC[appliedCaseOf, standaloneCaseOf];
 
 appliedCaseOf[mh_, arg_]    := With[
   {rules = Apply[RuleDelayed, MacroHold @ mh, {2}]},
@@ -321,7 +321,7 @@ standaloneCaseOf[mh_] := Replace @ Apply[RuleDelayed, MacroHold @ mh, {2}];
 
 (* TODO: fix this not working: foo = Case[Seq[a_, b_] /; cond[a] := ...] *)
 
-DeclareHoldAllComplete[attachedCaseOf, procRewrites]
+SetHoldC[attachedCaseOf, procRewrites]
 
 attachedCaseOf[sym_, excl_, pre_, arg_SetDelayed]                := attachedCaseOf[sym, excl, pre, CompoundExpression[arg], {}];
 attachedCaseOf[sym_, excl_, pre_, arg_SetDelayed, rewrites_List] := attachedCaseOf[sym, excl, pre, CompoundExpression[arg], rewrites];
@@ -377,10 +377,12 @@ ThrowUnmatchedError[] := (
 UnpackOptions::usage = "UnpackOptions[sym$1, sym$2, $$] looks up options associated with capitalized versions of sym$i.";
 
 DefineComplexMacro[UnpackOptions, UnpackOptions[syms__Symbol] :> mUnpackOptions[{syms}]]
+SetHoldC[mUnpackOptions];
 
-DeclareHoldAllComplete[mUnpackOptions];
-mUnpackOptions[syms_] :=
-  With[{names = symsToCapStrings @ syms}, MacroHold[syms = OptionValue[names]]];
+mUnpackOptions[syms_] := With[
+  {names = symsToCapStrings @ syms},
+  MacroHold[syms = OptionValue[names]]
+];
 
 (**************************************************************************************************)
 
@@ -389,11 +391,22 @@ UnpackOptionsAs::usage =
 using head$ for default value."
 
 DefineComplexMacro[UnpackOptionsAs, UnpackOptionsAs[head_Symbol, opts_, syms__Symbol] :> mUnpackOptions[head, opts, {syms}]]
+SetHoldC[mUnpackOptionsAs]
 
-DeclareHoldAllComplete[mUnpackOptionsAs]
+mUnpackOptions[head_, opts_, syms_] := With[
+  {names = symsToCapStrings @ syms},
+  MacroHold[syms = OptionValue[head, {opts}, names]]
+];
 
-mUnpackOptions[head_, opts_, syms_] :=
-  With[{names = symsToCapStrings @ syms}, MacroHold[syms = OptionValue[head, {opts}, names]]];
+(**************************************************************************************************)
+
+DefineComplexMacro[UnpackAnnotations, UnpackAnnotations[obj_, syms__Symbol] :> mUnpackAnnos[obj, {syms}]]
+SetHoldC[mUnpackOptionsAs]
+
+mUnpackAnnos[obj_, syms_] := With[
+  {capSymbols = symsToCapSymbols @ syms},
+  MacroHold[syms = VectorReplace[AnnotationValue[obj, capSymbols], $Failed :> None]]
+];
 
 (**************************************************************************************************)
 
@@ -402,11 +415,12 @@ UnpackAssociation::usage = "UnpackAssociation[assoc$, sym$1, sym$2, $$] takes as
 
 DefineComplexMacro[PackAssociation, PackAssociation[syms__Symbol] :> mPackAssociation[{syms}]]
 DefineComplexMacro[UnpackAssociation, UnpackAssociation[assoc_, syms__Symbol] :> mUnpackAssociation[assoc, {syms}]]
+SetHoldC[mPackAssociation, packAssocRule, mUnpackAssociation];
 
-DeclareHoldAllComplete[mPackAssociation, packAssocRule, mUnpackAssociation];
-
-mPackAssociation[syms_] :=
-  With[{rules = HoldMap[packAssocRule, syms]}, MacroHold[Association[rules]]];
+mPackAssociation[syms_] := With[
+  {rules = HoldMap[packAssocRule, syms]},
+  MacroHold[Association[rules]]
+];
 
 packAssocRule[s_Symbol] := ToUpperCase1[HoldSymbolName[s]] -> MacroHold[s];
 
@@ -414,18 +428,17 @@ packAssocRule[s_Symbol] := ToUpperCase1[HoldSymbolName[s]] -> MacroHold[s];
 
 General::badAssociation = "One or more fields in `` were missing from the association.";
 
-mUnpackAssociation[assoc_, syms_] :=
-  With[{names = symsToCapStrings @ syms},
-    MacroHold[syms = Lookup[assoc, names, ThrowErrorMessage["badAssociation", names]]]
-  ];
+mUnpackAssociation[assoc_, syms_] := With[
+  {names = symsToCapStrings @ syms},
+  MacroHold[syms = Lookup[assoc, names, ThrowErrorMessage["badAssociation", names]]]
+];
 
 (**************************************************************************************************)
 
 General::badTuple = "Argument `` should be a single value or a list of `` values."
 
 DefineComplexMacro[UnpackTuple, UnpackTuple[val_, syms__Symbol] :> mUnpackTuple[val, syms]]
-
-DeclareHoldAllComplete[mUnpackTuple];
+SetHoldC[mUnpackTuple];
 
 mUnpackTuple[val_, s1_Symbol, s2_Symbol] :=
   MacroHold @ If[ListQ[val],
@@ -453,11 +466,26 @@ mUnpackTuple[val_, s1_Symbol, s2_Symbol, s3_Symbol, s4_Symbol, s5_Symbol] :=
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[symsToCapStrings]
+SetHoldC[symsToCapStrings, symsToCapSymbols]
 
 symsToCapStrings[syms_] := Map[
   Function[sym, toOptionNameStr @ HoldSymbolName @ sym, HoldAllComplete],
   Unevaluated @ syms
+];
+
+symsToCapSymbols[syms_] := Map[
+  Function[sym, toCapSymbol @ HoldSymbolName @ sym, HoldAllComplete],
+  Unevaluated @ syms
+];
+
+General::noCorrespondingSymbol = "No symbol found corresponding to ``.";
+toCapSymbol[str_String] := toCapSymbol[str] = Module[
+  {str2 = toOptionNameStr[str]},
+  Which[
+    NameQ[str2], Symbol[str2],
+    NameQ[str2 //= StringReplace["Fn" -> "Function"]], Symbol[str2],
+    True, ThrowErrorMessage["noCorrespondingSymbol", str]
+  ]
 ];
 
 toOptionNameStr[str_String] := toOptionNameStr[str] =
@@ -467,3 +495,5 @@ makeOptionNameStr[str_] := Which[
   StrStartsQ[str, "json"], "JSON" <> StringDrop[str, 4],
   True,                    ToUpperCase1 @ str
 ];
+
+

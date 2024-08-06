@@ -5,10 +5,10 @@ PackageExports[
     MsgPrePrint, MsgHold,
     CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError,
     ThrowOptionError,
-    SameQOrThrow, SameLenQOrThrow, SameSetOrThrow, LookupOrThrow, LookupListOrThrow,
-    OptionError, ErrorMessage,
+    SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
+    OptionError, ErrorMessage, AssertThat,
   "SpecialFunction",
-    Unimplemented
+    Unimplemented, InternalError
 ];
 
 PrivateExports[
@@ -46,7 +46,15 @@ ErrorMessage[msg_MessageName, args___] := (
 (**************************************************************************************************)
 
 General::unimplemented = "An unimplemented code path was encountered.";
+General::internalError = "An internal error occurred.";
+
 Unimplemented := ThrowMsg["unimplemented"];
+InternalError := ThrowMsg["internalError"];
+
+(**************************************************************************************************)
+
+AssertThat[True] := Null;
+AssertThat[_]    := InternalError;
 
 (**************************************************************************************************)
 
@@ -131,11 +139,12 @@ ThrowErrorMessage["quiet", ___] :=
 
 (**************************************************************************************************)
 
-DeclareStrict[SameQOrThrow, SameLenQOrThrow, SameSetOrThrow, LookupOrThrow, LookupListOrThrow];
+DeclareStrict[SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow];
 
 SameQOrThrow[a_, b_, msg_Str, args___]                := If[a === b, True, ThrowMsg[msg, a, b, args]];
 SameLenQOrThrow[a_, b_, msg_Str, args___]             := If[Len[a] === Len[b], True, ThrowMsg[msg, Len[a], Len[b], args]];
-SameSetOrThrow[a_, b_, msg_Str, args___]              := If[SameSetQ[a, b], True, ThrowMsg[msg, Compl[a, b], Compl[b, a], args]];
+SameSetQOrThrow[a_, b_, msg_Str, args___]             := If[SameSetQ[a, b], True, ThrowMsg[msg, Compl[a, b], Compl[b, a], args]];
+SubsetOfQOrThrow[a_, b_, msg_Str, args___]            := If[SubsetOfQ[a, b], True, ThrowMsg[msg, Compl[a, b], b, args]];
 LookupOrThrow[dict_, key_, msg_Str, args___]          := Lookup[dict, Key @ key, ThrowMsg[msg, key, args]];
 LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, ThrowMsg[msg, Compl[keys, Keys @ dict], args]];
 
@@ -224,6 +233,8 @@ General::uncaughtErrorMessage = "ThrowErrorMessage occurred without a surroundin
 
 declareHAC[MsgPrePrint, msgBoxes];
 
+MsgPrePrint[LiteralCommaStringForm[s:{__Str}]] := StringRiffle[s, ", "];
+MsgPrePrint[LiteralStringForm[s_Str]] := s;
 MsgPrePrint[$PrintLiteral[s_Str]] := s;
 MsgPrePrint[f_Failure]      := FailureString @ f;
 MsgPrePrint[b_RawBoxes]     := b;

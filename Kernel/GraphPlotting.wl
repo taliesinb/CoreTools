@@ -34,7 +34,9 @@ PackageExports[
   "GraphicsFunction",
     CustomGraphDrawing, CustomGraphMakeBoxes,
     CustomSetGraphStyle,
-    GraphVertexAnimate
+    GraphVertexAnimate,
+
+    GraphDiskFn, GraphTooltipFn
 ];
 
 (*************************************************************************************************)
@@ -140,13 +142,20 @@ $newEdgeLabelDVs = {
 (*************************************************************************************************)
 
 patchCustomGraphDrawing[] := With[
-  {gcGMb := GraphComputation`GraphMakeBoxes},
-  Unprotect[gcGMb];
+  {gcGMb := GraphComputation`GraphMakeBoxes,
+   gcS2DQ := GraphComputation`GraphElementDataDump`Shape2DVertexQ,
+   gcRNGD := GraphComputation`GraphElementDataDump`RawNetworkGraphData,
+   gcS2D  := GraphComputation`GraphElementDataDump`shape2d},
+  Unprotect[gcGMb, gcRNGD];
+  gcS2DQ["Disk"] = True;
+  (* With[{shapes = gcRNGD["VertexShapeFunction"]}, gcRNGD["VertexShapeFunction"] := Union[shapes, {"Disk"}]]; *)
+  gcS2D["Disk"][pos_, ex_]    := GraphDiskFn[pos, None, ex];
+  gcS2D["Disk"][_, ex_, pos_] := GraphDiskFn[pos, None, ex];
   DownValues[gcGMb] = DownValues[gcGMb] /. {
     GraphComputation`GraphDrawing -> CustomGraphDrawing,
     GraphComputation`GraphBoxesDump`makeBoxes -> CustomGraphMakeBoxes
   };
-  Protect[gcGMb];
+  Protect[gcGMb, gcRNGD];
 ];
 
 (*************************************************************************************************)
@@ -159,6 +168,8 @@ patchCustomGraphPlotThemes[] := With[
     MaybeEval @ CustomSetGraphStyle[$CustomGraphThemeData @ name, prop, args];
   Protect[gcSGS];
 ];
+
+patchCustomGraphPlotThemes[];
 
 (*************************************************************************************************)
 
@@ -178,25 +189,80 @@ $emptyGraphGraphics := Graphics[
   Frame -> True, FrameStyle -> Directive[{GrayLevel[0.5], Dotted}], FrameTicks -> None
 ];
 
-CustomGraphDrawing[graph_] := Module[{vl, el, vlf, elf, pgf},
-  If[VertexCount[graph] === 0, Return @ $emptyGraphGraphics];
-  {vl, el, lf, vlf, elf, pgf} = AnnotationValue[graph,
-    {VertexLabels, EdgeLabels, LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction}];
-  lf //= toLabelFn; vlf //= toLabelFn; elf //= toLabelFn;
-  vl = UAssoc @ If[RuleVectorQ[vl], vl, {}];
-  el = UAssoc @ If[RuleVectorQ[el], el, {}];
+CustomGraphDrawing[graph2_] := Locals[
+  vertexCount = VertexCount @ graph2;
+  If[vertexCount === 0, Return @ $emptyGraphGraphics];
+  UnpackAnnotations[graph2,
+    vertexLabels, edgeLabels, labelFn, vertexLabelFn, edgeLabelFn,
+    vertexColors, vertexColorFn, vertexTooltips,
+    postGraphicsFn
+  ];
+  labelFn //= toLabelFn; vertexLabelFn //= toLabelFn; edgeLabelFn //= toLabelFn;
+  vertexLabels = UAssoc @ If[RuleVectorQ[vertexLabels], vertexLabels, {}];
+  edgeLabels = UAssoc @ If[RuleVectorQ[edgeLabels], edgeLabels, {}];
+  newOptions = {};
+  vertexStyle = Which[
+    !MatchQ[vertexColorFn, None | Automatic], With[{vcf = vertexColorFn}, FmV :> vcf[FmV]],
+    ColorQ[vertexColors], vertexColors,
+    ColorVectorQ[vertexColors], makeVertexColorRules[graph2, vertexColors],
+    True, None
+  ];
+  If[vertexStyle =!= None, AppendTo[newOptions, VertexStyle -> vertexStyle]];
+  origShapeFn = vertexShapeFn = LookupOptions[graph2, VertexShapeFunction];
+  SetAuto[vertexShapeFn, "Disk"];
+  If[vertexTooltips =!= None,
+    vertexShapeFn = GraphTooltipFn[vertexShapeFn, UDictThread[VertexList @ graph2, vertexTooltips]]];
+  If[origShapeFn =!= vertexShapeFn, AppendTo[newOptions, VertexShapeFunction -> vertexShapeFn]];
+  With[{graph = If[newOptions === {}, graph2, Graph[graph2, Seq @@ newOptions]]},
   Block[{
-    $CurrentGraph = graph, $CurrentVertexLabels = vl, $CurrentEdgeLabels = el,
-    $UserVertexLabelFunction = vlf /* lf, $UserEdgeLabelFunction = elf /* lf,
+    $CurrentGraph = graph, $CurrentVertexLabels = vertexLabels, $CurrentEdgeLabels = edgeLabels,
+    $UserVertexLabelFunction = vertexLabelFn /* labelFn, $UserEdgeLabelFunction = edgeLabelFn /* labelFn,
     $CurrentVertexAnnotations := $CurrentVertexAnnotations = AddSelfAnnotations @ GraphVertexAnnotations[$CurrentGraph],
     $CurrentEdgeAnnotations   := $CurrentEdgeAnnotations   = AddSelfAnnotations @ GraphEdgeAnnotations[$CurrentGraph]},
-   If[pgf =!= $Failed, pgf, Identity] @ GraphComputation`GraphDrawing @ graph
-  ]
+    If[optSetQ[postGraphicsFn], postGraphicsFn, Id] @ GraphComputation`GraphDrawing @ graph
+  ]]
+];
+
+GraphDiskFn[pos_, _, size_] := Style[Disk[pos, Min @ size], EdgeForm @ GrayLevel[0, 0.3]];
+GraphTooltipFn[fn_, assoc_][pos_, vert_, size_] :=
+  graphicsTooltip[toShapeFn[dispatchVert[fn, vert, GraphDiskFn]][pos, vert, size], assoc[vert]];
+
+toShapeFn[str_Str] := Fn[GraphComputation`GraphElementDataDump`shape2d[str][#1, #3]];
+toShapeFn[fn_] := fn;
+
+dispatchVert[{str_Str}, vert_, def_] := str;
+dispatchVert[list_List, vert_, def_] := subDef[def] @ Replace[vert, Append[Select[list, RuleLikeQ], _ :> Auto]];
+dispatchVert[expr_, vert_, def_] := subDef[def] @ expr;
+
+subDef[def_][e_] := If[optSetQ[e], e, def];
+
+optSetQ[None | Auto | Inherited | $Failed] := False;
+optSetQ[_] := True;
+
+
+
+makeVertexColorRules[graph_, colorList_] := ZipMap[
+  {v, c} |-> Rule[v, c],
+  Take[VertexList @ graph, UpTo @ Len @ colorList],
+  Take[vertexColors, UpTo @ VertexCount @ graph]
+]
+
+graphicsTooltip[prim_, _Missing] := prim;
+graphicsTooltip[prim_, label_] := Tooltip[prim,
+  Pane[label,
+    ImageMargins -> {{5, 5}, {5, 5}},
+    ImageSize -> {{10, All}, {10, All}}
+  ],
+  TooltipStyle -> {Background -> GrayLevel[1], CellFrameColor -> None, CellFrame -> 0},
+  TooltipDelay -> 0
 ];
 
 (*************************************************************************************************)
 
-patchMakeGraphBoxes[] := Then[patchCustomGraphPlotThemes[], patchCustomGraphLabeling[], patchCustomGraphDrawing[]];
+patchMakeGraphBoxes[] := Then[
+  patchCustomGraphLabeling[],
+  patchCustomGraphDrawing[]
+];
 
 RegisterPackagePatchFunctions[
   "Network`GraphBoxes`",

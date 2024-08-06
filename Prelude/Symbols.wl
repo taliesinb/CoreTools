@@ -55,6 +55,7 @@ declareHeldPred[
   System`UserSymbolQ,
   System`InertSymbolQ,
   System`SystemSymbolQ,
+  System`CoreToolsSymbolQ,
   System`InertUserSymbolQ,
   System`InertSystemSymbolQ
 ];
@@ -62,6 +63,7 @@ declareHeldPred[
 UserSymbolQ[s_Symbol ? Developer`HoldAtomQ]        := Context[s] =!= "System`";
 InertSymbolQ[s_Symbol ? Developer`HoldAtomQ]       := System`Private`HasNoEvaluationsQ[s];
 SystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]      := Context[s] === "System`";
+CoreToolsSymbolQ[s_Symbol ? Developer`HoldAtomQ]   := Context[s] === "CoreTools`";
 InertUserSymbolQ[s_Symbol ? Developer`HoldAtomQ]   := System`Private`HasNoEvaluationsQ[s] && Context[s] =!= "System`";
 InertSystemSymbolQ[s_Symbol ? Developer`HoldAtomQ] := System`Private`HasNoEvaluationsQ[s] && Context[s] === "System`";
 

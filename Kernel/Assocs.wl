@@ -244,7 +244,7 @@ CachedTo[sym_, key2_, value_, test_:NotFailureQ] := Module[{key = key2, res},
 
 DeclareHoldFirst @ DeclareCurry1[KeyApplyTo, KeyIncrement, KeyDecrement];
 
-KeyApplyTo[lhs_, key_, def_, fn_] := Set[lhs[key], fn @ Lookup[lhs, key, def]];
+KeyApplyTo[lhs_, key_, fn_, mfn_:KeyAbsentFn] := Set[lhs[key], fn @ Lookup[lhs, key, mfn[key]]];
 KeyIncrement[lhs_, key_] := Set[lhs[key], Lookup[lhs, key, 0] + 1];
 KeyDecrement[lhs_, key_] := Set[lhs[key], Lookup[lhs, key, 0] - 1];
 

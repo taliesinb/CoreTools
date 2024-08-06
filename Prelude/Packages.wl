@@ -218,7 +218,8 @@ Options[LoadPackage] = {
   "PreLoadFunction"     -> None,
   "EvaluationFunction"  -> None,
   "BaseDirectory"       -> Automatic,
-  "PriorityRules"       -> {}
+  "PriorityRules"       -> {},
+  "SymbolAliasFiles"    -> {}
 };
 
 LoadPackage::invalid = "Invalid usage: ``.";
@@ -226,6 +227,7 @@ LoadPackage::invalidBaseContext = "Invalid base context: ``.";
 LoadPackage::invalidSourceSpec = "Invalid source spec: ``.";
 LoadPackage::invalidSymbolTable = "SymbolTableFunction returned invalid result: ``.";
 LoadPackage::unknownSymbolKinds = "One more unknown kinds encountered while loading ``: ``. See $KnownSymbolKinds.";
+LoadPackage::ignoredFile = "Ignoring file whose extension does not end with '.wl' or '.txt': ``.";
 
 g_LoadPackage := (Message[LoadPackage::invalid, HoldForm @ g]; False);
 
@@ -234,7 +236,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
   Block[{
    $NewSymbol,
    $baseContext, $baseDirectory, $basePrivateContext, $dontCleanContext, $contextPath,
-   $codePreprocessor, $priorityRules,
+   $codePreprocessor, $priorityRules, $aliasFiles,
    $fnBag, $varBag, $kindBag, $fileBag,
    $lazySymbolClearers, $lazyQueueEvaluators, $baseLen, $exprEvalFn,
    $CurrentPackageErrorMessageCount = 0,
@@ -252,6 +254,8 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
     $ptVerbose = TrueQ @ OptionValue["Verbose"];
 
     $priorityRules = procPriorityRules @ OptionValue["PriorityRules"];
+
+    $symbolAliasFiles = OptionValue["SymbolAliasFiles"];
 
     $codePreprocessor = OptionValue["CodePreprocessor"];
     If[$codePreprocessor === None, $codePreprocessor = Identity];
@@ -319,6 +323,10 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
 
     LoadPrint["Creating symbols."];
     $dontCleanContext = If[baseContext === "CoreTools`", "CoreTools`Private`", None];
+
+    (* would have to: find kinds for aliases (somewhere, maybe not here), but here
+    i could add an Alias kind to the symbol table when i process $symbolAliasFiles
+     *)
     kindToContextToDecls = GroupBy[symbolTable, {Extract[1], Extract[3] -> Extract[4]}];
     Quiet @ Internal`HandlerBlock[
       {"Message", PackageLoadShadowMessageHandler},
@@ -422,7 +430,7 @@ AbortPackageLoading[] := Throw[False, LoadPackage];
 
 (*************************************************************************************************)
 
-toSourceFiles[list_List] := list;
+toSourceFiles[list_List] := Map[expandFileSpec, list];
 
 toSourceFiles[dir_String] := Block[
   {fileList},
@@ -442,8 +450,15 @@ toSourceFiles[File[path_String]] := Module[{lines, base},
   base = FileNameDrop @ path;
   lines = ReadList[path, Record, RecordSeparators -> "\n", NullRecords -> False];
   If[!Developer`StringVectorQ[lines], Return[$Failed]];
-  FileNameJoin[{base, #}]& /@ lines
-]
+  expandFileSpec[FileNameJoin[{base, #}]& /@ lines]
+];
+
+expandFileSpec[list_List] := Map[expandFileSpec, list];
+expandFileSpec[other_] := (Message[LoadPackage::ignoredFile, other]; Nothing);
+expandFileSpec[path_String] /; StringEndsQ[path, ".wl"] := path;
+expandFileSpec[path_String] /; StringEndsQ[path, ".txt"] := Splice @ toSourceFiles @ File @ path;
+
+(*************************************************************************************************)
 
 toFileContext[file_] := StringJoin[$basePrivateContext, FileBaseName @ file, "`"];
 
@@ -618,10 +633,10 @@ PackageLoadUncaughtThrowHandler[value_, tag_] :=
 
 (*************************************************************************************************)
 
-PackageLoadShadowMessageHandler[Hold[Message[MessageName[sym_, "shdw"], ___], _]] := With[
+PackageLoadShadowMessageHandler[Hold[Message[MessageName[sym_, "shdw"], s1_, s2_, s3_], _]] := With[
   {name = "Global`" <> SymbolName[Unevaluated @ sym]},
-  LogPrint["Removing ", name];
-  Remove[name]
+  LogPrint["Shadowing: ", HoldForm[{s1, s2, s3}]];
+  If[NameQ[name], LogPrint["Removing ", name]; Remove[name]];
 ];
 
 PackageLoadShadowMessageHandler[h_] := Null;

@@ -121,6 +121,10 @@ generateRawPrintOptions[opts_] := Flatten @ {
     ],
     opts
   ],
+  If[StringQ[$CurrentPackageFile],
+    "CellFrameLabels" -> {{None, trimPath @ $CurrentPackageFile}, {None, None}},
+    {}
+  ],
   If[$rawPrintCount++ >= $RawPrintMaxRate,
     List[
       Beep[];

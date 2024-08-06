@@ -11,9 +11,7 @@ SystemExports[
     IndexVertexSources, IndexVertexSinks, VertexSources, VertexSinks,
     GraphFold, GraphFoldList,
   "Predicate",
-    IndexGraphQ,
-  "SymbolicHead",
-    Broadcast
+    IndexGraphQ
 ];
 
 PackageExports[

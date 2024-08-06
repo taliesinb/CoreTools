@@ -148,8 +148,7 @@ LookupOptions[expr$, {key$1, key$2, $$}] looks up multiple keys.
 LookupOptions[$$, fn$] uses fn$[key$] to obtain defaults for any keys not found.
 * expr$ can also be an association.
 * expr$ can also be a Graph, etc.
-* individual keys can also be Key[$$] or OptionKey[$$] expressions.
-"
+* individual keys can also be Key[$$] or OptionKey[$$] expressions."
 
 LookupOptions[graph_Graph, key_, fn_:DefaultOptionValueFn[Graph]] :=
   LookupOptions[GraphOptions @ graph, key, fn];
@@ -180,4 +179,4 @@ LookupOptions::notCompoundExpression = "Expression `` was not a compound express
 
 (*************************************************************************************************)
 
-GraphOptions[g_Graph] := ToList @ Last @ g;
+GraphOptions[g_Graph] := Options @ g;

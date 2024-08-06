@@ -26,7 +26,7 @@ PackageExports[
     ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved, HoldC, HoldComp, HoldSetNoEntryExpr, HoldSetValidExpr,
 
   "MutatingFunction",
-    StuffBag, SetD, TagSetD,
+    StuffBag, SetD, TagSetD, UpSetD,
 
   "TypeHead",
     Str, Int, Sym,
@@ -43,14 +43,18 @@ PackageExports[
     HoldP, Regex, Alt,
     VPattern, VCondition, VPatternTest, VBlank, VBlankSeq, VBlankNullSeq, VAlt, VRepeated, VExcept, VVerbatim, VHoldP,
     VFn, VFunction, VSet, VSetD, VTagSetD, VRule, VRuleD,
-    Blank2, Blank3, Blank12, Blank13, Blank23, BlankSeq2, BlankSeq3, BlankNullSeq, BlankSeq,
+    Blank1, Blank2, Blank3, Blank01, Blank02, Blank12, Blank13, Blank23, BlankSeq2, BlankSeq3, BlankNullSeq, BlankSeq,
 
   "Symbol",
-    Auto, Inf, Tau,
+    Auto, Inherit, Inf, Tau,
 
   "PatternSymbol",
     AtomP, DatumP, BoolP, ZeroP, NonZeroP, NonZeroIntP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
-    NumP, Num2P, Num3P, UnitNumP,
+    NumP, Num2P, Num23P, Num3P,
+    Pos2P, Pos2ListP, Pos2ListsP, Pos2PairP,
+    Pos3P, Pos3ListP, Pos3ListsP, Pos3PairP,
+    PosAP, PosAListP, PosAListsP, PosAPairP,
+    UnitNumP,
     ExtNumP, ExtNatP, ExtIntP, ExtPosIntP,
     PosNumP, ExtPosNumP, ColorP, SideP, ExtSideP,
     OnePartSpecP, MultiPartSpecP, ExtPartSpecP,
@@ -72,9 +76,13 @@ PackageExports[
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
 
+  "GraphicsDirective",
+    APointSize, AThickness, ADashing,
+
   "Function",
     PosIndex, RangeAssoc, AssocRange, UAssocRange, RangeUAssoc,
-    SeqLen, Seq1, Seq2, Seq3, SeqN, SeqMost, SeqRest, SeqReverse,
+    SeqLen,
+    Seq0, Seq1, Seq2, Seq3, SeqN, SeqMost, SeqRest, SeqReverse,
     Seq12, Seq21,
 
     LenRange, RangeLen, ConstAssoc, ConstRules, ConstList, ConstUAssoc, ConstTrueAssoc, PairsToAssoc, AssocToPairs,
@@ -82,9 +90,10 @@ PackageExports[
 
     Rep,  RepRep, RepAll,   VecRep,
     Vals, ToVals, KeysVals, MapVals, MapValsP,
+    MapF, MapL, MapM, MapR,
 
     DelCases, DelNone, DelNull, DelDups, DelDupsBy,
-    Make,
+    At, Make,
     MakeSet, MakeSetD, MakeTagSetD, MakeUpSetD,
     Dist,
     Inter, Compl,
@@ -128,8 +137,11 @@ PackageExports[
     FastNumericIndices,
     ContainedSymbols,
 
+  "MutatingFunction",
+    UnpackDict, PackDict, SetInherit,
+
   "Predicate",
-    AutoQ, InfQ, NotAutoQ, NotInfQ,
+    AutoQ, InheritQ, InfQ, NotAutoQ, NotInfQ,
     ZeroIntQ, NonZeroIntQ,
     PosQ, NegQ, NonPosQ, NonNegQ, NonPosIntQ, NonNegIntQ,
 
@@ -141,7 +153,7 @@ PackageExports[
     DictMatQ, PairMatQ, ListMatQ, BoolMatQ, SymMatQ, StrMatQ, NatMatQ, IntMatQ, PosIntMatQ, RealMatQ, NumMatQ, ExtNumMatQ,
     PairArrQ, ListArrQ, BoolArrQ, SymArrQ, StrArrQ, NatArrQ, IntArrQ, PosIntArrQ, RealArrQ, NumArrQ, ExtNumArrQ, DictArrQ,
 
-    ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, MaybeFunctionQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
+    ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, MaybeFunctionQ, MaybeFnQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
     SymbolAnyCodesQ, SymbolAnyEvaluationsQ, SymbolDelayedValueQ, SymbolDownCodeQ, SymbolDownEvaluationsQ, SymbolImmediateValueQ, SymbolNoCodesQ, SymbolNoEvaluationsQ, SymbolOwnEvaluationsQ, SymbolPrintCodeQ, SymbolSubCodeQ, SymbolSubEvaluationsQ, SymbolUpCodeQ, SymbolUpEvaluationsQ,
     Base64StringQ, IntegerPartitionQ,
     AssociationVectorQ, ListOrAssociationQ, StringOrStringVectorQ, StringVectorQ,
@@ -235,6 +247,12 @@ e_DefineAliasRules   := (Message[DefineAliasRules::notValidRule,   HoldForm @ e]
 e_DefinePatternRules := (Message[DefinePatternRules::notValidRule, HoldForm @ e]; $Failed)
 
 (*************************************************************************************************)
+
+DefineAliasRules[
+  APointSize -> AbsolutePointSize,
+  AThickness -> AbsoluteThickness,
+  ADashing   -> AbsoluteDashing
+];
 
 DefinePatternRules[
   VPattern       -> Verbatim[Pattern],
@@ -341,7 +359,25 @@ DefinePatternRules[
   ExtPosNumP     -> Alternatives[_Integer, _Real, _Rational, _DirectedInfinity] ? Positive,
   Num2P          -> {_ ? NumberQ, _ ? NumberQ},
   Num3P          -> {_ ? NumberQ, _ ? NumberQ, _ ? NumberQ}
+  Num23P         -> {Repeated[_ ? NumberQ, {2, 3}]}
 ];
+
+DefinePatternRules[
+  Pos2P          -> _List ? Pos2Q,
+  Pos3P          -> _List ? Pos3Q,
+  PosAP          -> _List ? PosAQ,
+  Pos2ListP      -> _List ? Pos2ListQ,
+  Pos3ListP      -> _List ? Pos3ListQ,
+  PosAListP      -> _List ? PosAListQ,
+  Pos2ListsP     -> _List ? Pos2ListsQ,
+  Pos3ListsP     -> _List ? Pos3ListsQ,
+  PosAListsP     -> _List ? PosAListsQ,
+  Pos2PairP      -> _List ? Pos2PairQ,
+  Pos3PairP      -> _List ? Pos3PairQ,
+  PosAPairP      -> _List ? PosAPairQ
+];
+
+(**************************************************************************************************)
 
 DefinePatternRules[
   SingleP        -> {_},
@@ -417,6 +453,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   AutoQ                         -> AutomaticQ,
+  InheritQ                      -> InheritedQ,
   NotAutoQ                      -> NotAutomaticQ,
   InfQ                          -> InfinityQ,
   NotInfQ                       -> NotInfinityQ,
@@ -460,6 +497,7 @@ DefineAliasRules[
   BoolVecQ                      -> BooleanVectorQ,
   SymVecQ                       -> SymbolVectorQ,
   StrVecQ                       -> Developer`StringVectorQ,
+  StrOrStrVecQ                  -> Developer`StringOrStringVectorQ,
   NatVecQ                       -> NaturalVectorQ,
   IntVecQ                       -> IntegerVectorQ,
   PosIntVecQ                    -> PositiveIntegerVectorQ,
@@ -507,13 +545,20 @@ DefineAliasRules[
   HPackedQ                      -> HoldPackedArrayQ
 ];
 
+DefineAliasRules[
+  UnpackDict                    -> UnpackAssociation,
+  PackDict                      -> PackAssociation,
+  SetInherit                    -> SetInherited
+];
+
 (* Developer` predicates *)
+(* atoms count as not EmptyQ somehow, we define our own EmptyQ*)
 DefineAliasRules[
   AssociationVectorQ            -> Developer`AssociationVectorQ,
   ListOrAssociationQ            -> Developer`ListOrAssociationQ,
   StringOrStringVectorQ         -> Developer`StringOrStringVectorQ,
   StringVectorQ                 -> Developer`StringVectorQ,
-  UnsafeEmptyQ                  -> Developer`EmptyQ, (* atoms count as not EmptyQ somehow, we define our own EmptyQ*)
+  UnsafeEmptyQ                  -> Developer`EmptyQ,
   NotEmptyQ                     -> Developer`NotEmptyQ,
   NonEmptyQ                     -> Developer`NotEmptyQ,
 
@@ -589,8 +634,11 @@ DefineAliasRules[
   HoldExprInvalidQ              -> System`Private`HoldNotValidQ,
   ExprMDataQ                    -> System`Private`MDataQ,
   MightEvaluateQ                -> System`Private`MightEvaluateQ,
-  MaybeFunctionQ                -> System`Private`MightEvaluateWhenAppliedQ
+  HoldMaybeFunctionQ            -> System`Private`MightEvaluateWhenAppliedQ,
+  MaybeFnQ                      -> MaybeFunctionQ
 ];
+
+MaybeFunctionQ[f_] := HoldMaybeFunctionQ[f];
 
 (* System`Private` symbol predicates *)
 DefineAliasRules[
@@ -613,7 +661,6 @@ DefineAliasRules[
 DefineAliasRules[
   ContainedSymbols              -> System`Utilities`SymbolList,
 
-  (* the first two are used by SummaryBox caching in the FE *)
   GlobalWeakTablePut            -> System`Utilities`ExprLookupAdd,
   GlobalWeakTableGet            -> System`Utilities`ExprLookup,
 
@@ -675,8 +722,11 @@ DefineAliasRules[
 ];
 
 DefinePatternRules[
+  Blank1         -> Optional[_],
   Blank2         -> Repeated[_, {2}],
   Blank3         -> Repeated[_, {3}],
+  Blank01        -> Repeated[_, {0,1}],
+  Blank02        -> Repeated[_, {0,2}],
   Blank12        -> Repeated[_, {1,2}],
   Blank13        -> Repeated[_, {1,3}],
   Blank23        -> Repeated[_, {2,3}],
@@ -688,6 +738,7 @@ DefinePatternRules[
 
 DefineAliasRules[
   Auto           -> Automatic,
+  Inherit        -> Inherited,
   SetD           -> SetDelayed,
   TagSetD        -> TagSetDelayed,
   UpSetD         -> UpSetDelayed
@@ -706,10 +757,12 @@ DefineAliasRules[
   EvalMap        -> EvaluateMap,
   Seq            -> Sequence,
   Then           -> CompoundExpression,
-  HoldC          -> HoldComplete, (* TODO: retire *)
+  HoldC          -> HoldComplete,
   HoldComp       -> HoldComplete,
   $Fail          -> $Failed
 ];
+
+(* TODO: retire HoldC *)
 
 (*************************************************************************************************)
 
@@ -770,6 +823,10 @@ DefineAliasRules[
   KeysVals       -> KeysValues,
   MapVals        -> MapValues,
   MapValsP       -> MapValuesP,
+  MapF           -> MapFirst,
+  MapL           -> MapLast,
+  MapM           -> MapMost,
+  MapR           -> MapRest,
 
   PosIndex       -> PositionIndex,
 
@@ -825,8 +882,8 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  At             -> Construct,
   Make           -> Construct,
-
   MakeSetD       -> MakeSetDelayed,
   MakeTagSetD    -> MakeTagSetDelayed,
   MakeUpSetD     -> MakeUpSetDelayed,
@@ -900,7 +957,6 @@ DefineAliasRules[
   StrSegment     -> StringSegment,
   StrSegmentL    -> StringSegmentBefore,
   StrSegmentR    -> StringSegmentAfter,
-  (* StrRepeat      -> StringRepeat, *)
   StrRep         -> StringReplace,
   StrRepPart     -> StringReplacePart,
   StrRev         -> StringReverse,

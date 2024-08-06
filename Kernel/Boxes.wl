@@ -26,7 +26,7 @@ PackageExports[
     RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
     DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
     DelimitedRow, RiffledRow, SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow, BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow,
-    Dimmed, LiteralStringForm,
+    Dimmed, LiteralStringForm, LiteralCommaStringForm,
     UnderlinedForm, ItalicForm, SemiBoldForm, BoldForm, PlainForm,
     VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm,
     ClickForm,
@@ -200,7 +200,9 @@ $eventHandlerRules = {Method -> "Preemptive", PassEventsDown -> Automatic, PassE
 
 (* even works in InputForm *)
 LiteralStringBox[s_Str] := $PrintLiteral[s];
+
 CoreBoxes[LiteralStringForm[s_Str]] := LiteralStringBox[s];
+CoreBoxes[LiteralCommaStringForm[s:{__Str}]] := LiteralStringBox @ StringRiffle[s, ", "];
 
 (**************************************************************************************************)
 
@@ -254,6 +256,7 @@ SkeletonBox[b_] := RBox["\[LeftGuillemet]", b, "\[RightGuillemet]"];
 (**************************************************************************************************)
 
 SpacerBox[s_] := TemplateBox[{s}, "Spacer1"];
+SpacerBox[w_, h_] := TemplateBox[{w, h}, "Spacer2"];
 
 (**************************************************************************************************)
 
@@ -545,6 +548,7 @@ ColumnBox[list_List, align:Except[_Rule]:Left, spacing:Except[_Rule]:Automatic, 
     List /@ list,
     opts,
     ColumnAlignments -> align,
+    BaselinePosition -> Scaled[0.5],
     GridBoxSpacings -> {"Rows" -> {{spacing}}}
   ];
 

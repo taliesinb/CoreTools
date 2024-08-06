@@ -10,11 +10,14 @@ SystemExports[
     UnionOp, ComplementOp, IntersectionOp,
     SubscriptOp,
     LookupOp,
-    IfOp, ConstructOp,
+    IfOp, ApplyIfOp, WhichOp,
+    ConstructOp,
     ConstOp,
     RiffleOp,
     ArrayTableOp,
     ThenOp,
+    OnArrayOp, FlipXOp, FlipYOp, Rot90LOp, Rot90ROp,
+
   "Variable",
     $Operators,
   "PredicateOperator",
@@ -34,6 +37,20 @@ SystemExports[
 
 (**************************************************************************************************)
 
+{$flipX, $flipY} = OnArrayOp /@ ThreadTimesOp /@ ToPacked /@ {{-1, 1}, {1, -1}};
+{$rot90R, $rot90L} = OnArrayOp /@ AffineOp /@ ToPacked /@ {{{0,1},{1,0}}, {{0,-1},{-1,0}}};
+
+OnArrayOp[f_][{}] := {};
+OnArrayOp[f_][arr_List ? ArrayQ] := f @ arr;
+f_OnArrayOp[arr_List] := Map[f, arr];
+
+FlipXOp[e_List] := $flipX @ e;
+FlipYOp[e_List] := $flipY @ e;
+Rot90ROp[e_List] := $rot90L @ e;
+Rot90LOp[e_List] := $rot90R @ e;
+
+(**************************************************************************************************)
+
 (* operator form of MaybePart / SafePart *)
 PartOp::usage = "PartOp[p$$][e$] gives Part[e$, p$] or $Failed. It curries the part."
 PartOp[p___][e_] := FastQuietCheck @ Part[e, p];
@@ -50,9 +67,12 @@ DefineOperator2Rules[
   TakeOp            -> Take,
   DropOp            -> Drop,
   ClipOp            -> Clip,
-  DistanceOp        -> EuclideanDistance,
   ReplaceAllOp      -> ReplaceAll,
-  ReplaceRepeatedOp -> ReplaceRepeated,
+  ReplaceRepeatedOp -> ReplaceRepeated
+];
+
+DefineOperator1Rules[
+  DistanceOp        -> EuclideanDistance,
   TimesOp           -> Times,
   DivideOp          -> Divide,
   PlusOp            -> Plus,
@@ -78,7 +98,7 @@ DeclareListableOperator[
   ThreadTimesOp, ThreadDivideOp, ThreadPlusOp, ThreadSubtractOp
 ]
 
-DefineOperator1Rules[
+DefineOperator2Rules[
   DotRightOp -> Dot
 ]
 
@@ -171,6 +191,15 @@ LookupOp[a__][key_] := ChainedLookup[{a}, key];
 IfOp[test_, trueFn_][input_] := If[test[input], trueFn[input], Null, Null];
 IfOp[test_, trueFn_, falseFn_][input_] := If[test[input], trueFn[input], falseFn[input], Null];
 IfOp[test_, trueFn_, falseFn_, otherFn_][input_] := If[test[input], trueFn[input], falseFn[input], otherFn[input]];
+
+(**************************************************************************************************)
+
+ApplyIfOp[test_, appFn_, rest___][input_] := If[test[input], appFn[input, rest], input, input];
+
+(**************************************************************************************************)
+
+WhichOp[][input_] := input;
+WhichOp[test1_, appFn_, rest___][input_] := If[test1[input], appFn @ input, WhichOp[rest][input]];
 
 (**************************************************************************************************)
 

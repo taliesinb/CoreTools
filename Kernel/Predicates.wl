@@ -8,7 +8,7 @@ SystemExports[
 
     AtomicQ, NonAtomicQ,
 
-    SingleQ, DatumQ, HoldDatumQ,
+    SingleQ, DatumQ, HoldDatumQ, HoldSingleQ,
     HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
     HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ,
     HoldHasLengthQ,
@@ -29,8 +29,8 @@ SystemExports[
     StringMatrixQ,  AssociationMatrixQ
     StringArrayQ,   AssociationArrayQ,
 
-    NoneQ, AutomaticQ, InfinityQ,
-    NotNoneQ, NotAutomaticQ, NotInfinityQ,
+    NullQ, NoneQ, AutomaticQ, InheritedQ, InfinityQ,
+    NotNullQ, NotNoneQ, NotAutomaticQ, NotInfinityQ,
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
 
@@ -64,14 +64,20 @@ SystemExports[
 PackageExports[
   "Predicate",
     EmptyQ,
-    Nat2Q, PosInt2Q, Num2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
+    Nat2Q, PosInt2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
+    Num2Q, Num23Q, Num3Q,
+    Pos2Q, Pos2ListQ, Pos2ListsQ, Pos2PairQ,
+    Pos3Q, Pos3ListQ, Pos3ListsQ, Pos3PairQ,
+    PosAQ, PosAListQ, PosAListsQ, PosAPairQ,
     AutoQ,
     RuleLikeQ, RuleQ, RuleDelayedQ, PackedRealsQ, PackedIntsQ,
     UserSymbolQ,
+    AutoNoneQ, NotAutoNoneQ,
 
   "MetaFunction",
 
-    DefinePatternPredicateRules, DefinePatternPredicates
+    DeclarePatternPredicates,
+    DefinePatternPredicateRules
 ];
 
 (*************************************************************************************************)
@@ -178,9 +184,9 @@ DefinePatternPredicateRules[sym_Symbol -> patt_] := (
   sym[_]    := False;
 );
 
-DefinePatternPredicates::notP = "Pattern symbols `` should end in Q.";
-DefinePatternPredicates::notQ = "Pattern symbols `` did not appear to exist.";
-DefinePatternPredicates[syms___Symbol] := Locals[
+DeclarePatternPredicates::notP = "Pattern symbols `` should end in Q.";
+DeclarePatternPredicates::notQ = "Pattern symbols `` did not appear to exist.";
+DeclarePatternPredicates[syms___Symbol] := Locals[
   predicateSyms = {syms};
   predicateNames = Map[FullSymbolName, predicateSyms];
   If[AnyAreFalseQ @ StringEndsQ[predicateNames, "Q"], ReturnMsg["notP", predicateNames]];
@@ -206,7 +212,30 @@ HoldDatumQ[DatumP] := True;
 
 (*************************************************************************************************)
 
-DefinePatternPredicates[Nat2Q, PosInt2Q, Num2Q, ExtNatQ, ExtIntQ, ExtPosIntQ];
+DeclarePatternPredicates[Nat2Q, PosInt2Q, ExtNatQ, ExtIntQ, ExtPosIntQ];
+DeclarePatternPredicates[Num2Q, Num3Q, Num23Q];
+
+(*************************************************************************************************)
+
+SetPred1[Pos2Q, Pos2ListQ, Pos2ListsQ, Pos2PairQ];
+SetPred1[Pos3Q, Pos3ListQ, Pos3ListsQ, Pos3PairQ];
+SetPred1[PosAQ, PosAListQ, PosAListsQ, PosAPairQ];
+
+Pos2Q[{NumP, NumP}] = True;
+Pos3Q[{NumP, NumP, NumP}] = True;
+PosAQ[{NumP, NumP, Optional @ NumP}] = True;
+
+Pos2ListQ[a_List] := MatrixQ[a, RealValuedNumberQ] && Last[Dims @ a] == 2;
+Pos3ListQ[a_List] := MatrixQ[a, RealValuedNumberQ] && Last[Dims @ a] == 3;
+PosAListQ[a_List] := MatrixQ[a, RealValuedNumberQ] && 2 <= Last[Dims @ a] <= 3;
+
+Pos2ListsQ[a_List] := (ArrayQ[a, 3, RealValuedNumberQ] && Last[Dims @ a] == 2) || VectorQ[a, Pos2ListQ];
+Pos3ListsQ[a_List] := (ArrayQ[a, 3, RealValuedNumberQ] && Last[Dims @ a] == 3) || VectorQ[a, Pos3ListQ];
+PosAListsQ[a_List] := (ArrayQ[a, 3, RealValuedNumberQ] && 2 <= Last[Dims @ a] <= 3) || VectorQ[a, Pos2ListQ] || VectorQ[a, Pos3ListQ];
+
+Pos2PairQ[a_List] := VectorQ[a, RealValuedNumberQ] && SameQ[dims @ a, {2, 2}];
+Pos3PairQ[a_List] := VectorQ[a, RealValuedNumberQ] && SameQ[dims @ a, {2, 3}];
+PosAPairQ[a_List] := VectorQ[a, RealValuedNumberQ] && MatchQ[dims @ a, {2, 2|3}];
 
 (*************************************************************************************************)
 
@@ -424,16 +453,21 @@ PackedArrayDepthAtLeastQ[arr_, n_]   := PackedArrayQ[arr] && Depth[arr] > n;
 
 (*************************************************************************************************)
 
-DeclarePredicate1[NoneQ, AutomaticQ, InfinityQ]
-DeclareNotPredicate1[NotNoneQ, NotAutomaticQ, NotInfinityQ]
+DeclarePredicate1[NullQ, NoneQ, AutomaticQ, InheritedQ, AutoNoneQ, InfinityQ]
+DeclareNotPredicate1[NotNullQ, NotNoneQ, NotAutomaticQ, NotAutoNoneQ, NotInfinityQ]
 
-NoneQ[None]            = True;
-AutomaticQ[Auto]       = True;
-InfinityQ[Infinity]    = True;
+NullQ[Null]               = True;
+NoneQ[None]               = True;
+AutomaticQ[Auto]          = True;
+InheritedQ[Inherited]     = True;
+AutoNoneQ[None | Auto]    = True;
+InfinityQ[Infinity]       = True;
 
-NotNoneQ[None]         = False;
-NotAutomaticQ[Auto]    = False;
-NotInfinityQ[Infinity] = False;
+NotNullQ[Null]            = False;
+NotNoneQ[None]            = False;
+NotAutomaticQ[Auto]       = False;
+NotAutoNoneQ[None | Auto] = False;
+NotInfinityQ[Infinity]    = False;
 
 (*************************************************************************************************)
 

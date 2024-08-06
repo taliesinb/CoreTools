@@ -47,6 +47,6 @@ printCellBoxData[cell_CellObject] := Locals[
 
 (*************************************************************************************************)
 
-PrintInputCell[e_]       := CellPrint @ ExpressionCell[e, "Input", "GeneratedCell" -> False];
-PrintInputCell[Hold[e_]] := CellPrint @ ExpressionCell[Defer @ e, "Input", "GeneratedCell" -> False];
+PrintInputCell[e_]       := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[e, "Input", "GeneratedCell" -> False];
+PrintInputCell[Hold[e_]] := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[Defer @ e, "Input", "GeneratedCell" -> False];
 PrintOutputCell[e_]      := CellPrint @ ExpressionCell[e, "Output", "GeneratedCell" -> False];

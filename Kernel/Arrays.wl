@@ -13,14 +13,172 @@ SystemExports[
     Ones, Zeros, Eye,
     ToRowVector, ToColumnVector,
   "ControlFlowFunction",
-    ArrayTable
+    ArrayTable,
+  "SymbolicHead",
+    Broadcast,
+  "Predicate",
+    BroadcastQ, BMatchQ, BTrueQ, strongDimsSeq,
+  "Function",
+    ToBroadcast, FromBroadcast,
+    ToBroadcastRows, FromBroadcastRows,
+    BroadcastAt, BroadcastMap
 ];
 
 PackageExports[
-  "MessageFunction", ThrowRealArrayMsg,
-  "Head", SymbolicDot,
-  "Function", Dots
+  "MessageFunction",     ThrowRealArrayMsg,
+  "Head",                SymbolicDot,
+  "Function",            Dots,
+  "SymbolicHead",        Broad,
+  "Predicate",           BroadQ, BSameShapeQ,
+  "Function",            BDims, LikeB, BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
+  "ControlFlowFunction", BSeq, BVal, BSeqN
 ];
+
+(**************************************************************************************************)
+
+DefineAliasRules[
+  Broad    -> Broadcast,
+  BroadQ   -> BroadcastQ,
+  FromB    -> FromBroadcast,
+  ToB      -> ToBroadcast,
+  BAt      -> BroadcastAt,
+  BMap     -> BroadcastMap
+];
+
+(**************************************************************************************************)
+
+SetPred1 @ BroadcastQ;
+
+BroadcastQ[_Broadcast] := True
+
+(**************************************************************************************************)
+
+ToBroadcast[list_List, fn_:Id]     := If[AllSameQ @ list, Broadcast[First @ list, Len @ list], fn @ list];
+ToBroadcast[b_Broadcast, Blank01]  := b;
+
+FromBroadcast[list_, Blank01]      := list;
+FromBroadcast[Broadcast[b_], n_]   := ConstList[b, n];
+FromBroadcast[Broadcast[b_, n_]]   := ConstList[b, n];
+
+(**************************************************************************************************)
+
+BSeq[]              := Seq[];
+BSeq[Broad[b_, n_]] := ConstList[b, n];
+BSeq[Broad[_]]      := InternalError;
+BSeq[Broad[b1_, n_], Broad[b2_, n_]] := Seq[ConstList[b1, n], ConstList[b2, n]];
+BSeq[Broad[b1_],     Broad[b2_, n_]] := Seq[ConstList[b1, n], ConstList[b2, n]];
+BSeq[Broad[b1_, n_], Broad[b2_]]     := Seq[ConstList[b1, n], ConstList[b2, n]];
+BSeq[a_List]        := a;
+BSeq[ms___]         := Map[ToBN[BLen @ ms], NoEval @ ms];
+
+(**************************************************************************************************)
+
+ToBN[n_][Broad[b_]]     := ConstList[b, n];
+ToBN[n_][Broad[b_, n_]] := ConstList[b, n];
+ToBN[n_][a_List] /; Len[a] == n := a;
+ToBN[n_][e_]            := e;
+
+(**************************************************************************************************)
+
+BVal[b_Broad]       := P1 @ b;
+BVal[b__Broad]      := SeqCol1 @ b;
+BVal[_]             := InternalError;
+
+BLen[Broad[_]]      := None;
+BLen[Broad[_, n_]]  := n;
+BLen[ms___]         := ToUnique[weakDimsSeq @ ms, InternalError, None];
+_BLen               := None;
+
+(**************************************************************************************************)
+
+SetPred1 @ BSameShapeQ;
+
+BSameShapeQ[]      := True;
+BSameShapeQ[_]     := True;
+BSameShapeQ[ms___] := ToUnique[weakDims @ {ms}, False, False];
+
+(**************************************************************************************************)
+
+weakDimsSeq[a_]   := List @ weakDims @ a;
+weakDimsSeq[a___] := Map[weakDims, {a}];
+weakDims = CaseOf[
+  Broad[_]     := Nothing;
+  Broad[_, n_] := n;
+  a_List       := Len @ a;
+  _            := InternalError
+];
+
+strongDimsSeq[a_]   := List @ strongDims @ a;
+strongDimsSeq[a___] := Map[strongDims, {a}];
+strongDims = CaseOf[
+  Broad[_]     := None;
+  Broad[_, n_] := n;
+  a_List       := Len @ a;
+  _            := InternalError
+];
+
+(**************************************************************************************************)
+
+BLike[d_, Broad[_]]     := Broad[d];
+BLike[d_, Broad[_, n_]] := Broad[d, n];
+BLike[d_, a_List]       := Broad[d, Len @ a];
+BLike[d_, ms__]         := Broad[d, BLen @ ms];
+BLike[d_]               := Broad[d];
+
+(**************************************************************************************************)
+
+SetPred1 @ BroadcastQ;
+
+BroadcastQ[_Broadcast] := True
+
+BAt = CaseOf[
+  $[f_Broad]            := MapF[At, f];
+  $[f_Broad, bs__Broad] := BLike[At @ BVal[f, bs], f, bs];
+  $[f_Broad, ms__]      := ZipMap[BVal @ f, BSeq @ ms];
+  $[f_, b1_Broad]       := MapF[f, b1];
+  $[f_, bs__Broad]      := BLike[f @ BVal @ bs, bs];
+  $[f_, bs__]           := Map[f, BSeq @ bs];
+];
+
+f_Broad[args___] := BAt[f, args];
+
+BMap = CaseOf[
+  $[f_Broad, as___]    := BAt[f, as];
+  $[f_List, as__List]  := ZipMap[At, f, as];
+  (* $[f_List, bs__Broad] := ZipMap[At, f, BSeq @ ms]; *) (* broadcasts second axis *)
+  $[f_List, ms__]      := ZipMap[At, f, BSeq @ ms];
+  $[f_, a1_List]       := Map[f, a1];
+  $[f_, as__List]      := ZipMap[f, as];
+  $[f_, b1_Broad]      := MapF[f, b1];
+  $[f_, bs__Broad]     := BLike[f @ BVal @ bs, bs];
+  $[f_, ms__]          := ZipMap[f, BSeq @ ms];
+];
+
+(**************************************************************************************************)
+
+SetCurry2[BMatchQ, BTrueQ]
+
+BMatchQ[list_, patt_]   := BTrueQ[MatchQ @ patt, list];
+BMatchQ[list_, b_Broad] := BTrueQ[MapF[MatchQ, b], list];
+
+BTrueQ = CaseOf[
+  $[f_, a_]            := TrueQ @ f @ a;
+  $[f_, b_Broad]       := TrueQ @ f @ BVal @ b;
+  $[f_Broad, b_Broad]  := TrueQ @ At[BVal @ f, BVal @ b];  (* TODO: test len *)
+  $[f_Broad, a_List]   := AllAreTrueQ @ Map[BVal @ f, a]; (* TODO: test len *)
+  $[f_List, a_List]    := AllAreTrueQ @ ZipMap[At, f, a];
+  $[f_List, m_]        := AllTrue[m, f];
+];
+
+(**************************************************************************************************)
+
+ToBroadcastRows[matrix_List, n:Blank01] := Catch[
+  Map[vec |-> ToBroadcast[vec, Throw[Null, Null]&], matrix],
+  Null, FromBroadcastRows[matrix, n]&
+];
+
+FromBroadcastRows[matrix_List, n:Blank01] :=
+  Map[vec |-> FromBroadcast[vec, n], matrix];
 
 (**************************************************************************************************)
 
@@ -85,7 +243,7 @@ SumNormalize[e_] := e / Total[e];
 ToPackedInts[arr_]  := ToPackedArray[arr, Integer];
 ToPackedReals[arr_] := ToPackedArray[N @ arr, Real];
 
-DeclareHoldRest[EnsurePackedReals, EnsuredPackedInts, EnsurePacked]
+DeclareHoldRest[EnsurePackedReals, EnsurePackedInts, EnsurePacked]
 
      EnsurePacked[arr_, else_] := Ensure[ToPackedArray[arr],           PackedQ, else];
  EnsurePackedInts[arr_, else_] := Ensure[ToPackedArray[arr, Integer],  PackedQ, else];

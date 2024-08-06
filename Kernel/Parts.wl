@@ -39,7 +39,7 @@ DeclareHoldRest[FirstLast]
 
 FirstLast::usage = "FirstLast[e$] gives {First[e], Last[e]}, or {None, None}.\nFirstLast[e$, else$] gives {else, else} in this case.";
 FirstLast[_ ? EmptyQ, f_:None] := Dup2 @ f;
-FirstLast[e_, _]               := {First @ e, Last @ e};
+FirstLast[e_, Blank01]         := {First @ e, Last @ e};
 
 DeclareStrict[FirstRest, MostLast]
 

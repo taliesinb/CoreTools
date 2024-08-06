@@ -1,6 +1,6 @@
 SystemExports[
   "Function",
-    CountUnique, CountUniqueBy,
+    CountUnique, CountUniqueBy, ToUnique,
     Lerp, Avg, Multiply,
     PlusOne, MinusOne, OneMinus, OneOver,
     Unthread, SequenceLength, Birange, LengthRange, RangeLength,
@@ -18,6 +18,7 @@ SystemExports[
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
     ListRiffle, ScalarRiffle,
     TrimRight, TrimLeft,
+    ReplaceIndices, ConstantReplaceIndices,
   "Head",
     Unsequence
 ];
@@ -37,11 +38,19 @@ PackageExports[
     NewCollector, FromCollector,
   "ControlFlowFunction",
     ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3,
+    SeqCol1, SeqCol2, SeqCol3,
   "Head",
     CollectorFn,
   "Variable",
     $UnthreadEnabled
 ];
+
+(*************************************************************************************************)
+
+SetHoldR @ ToUnique;
+
+ToUnique[list_List, else_] := ToUnique[list, else, else];
+ToUnique[list_List, notUnique_:None, isEmpty_:None] := If[SameQ @@ list, First[list, isEmpty], notUnique];
 
 (*************************************************************************************************)
 
@@ -172,6 +181,28 @@ OneOver[e_] := 1 / e;
 
 (*************************************************************************************************)
 
+ConstantReplaceIndices::usage =
+"ConstantReplaceIndices[expr$, indices$, value$]` replaces the parts at various indices with a single value value$.
+* indices can be All, Span[$$], or List[p$1, p$2, $$].";
+
+(* TODO: support Broadcast *)
+ConstantReplaceIndices[expr_, indices_, value_List] := ReplacePart[expr, Map[List, indices] -> value];
+ConstantReplaceIndices[expr_, indices_, value_]     := setParts[expr, indices, value];
+
+ReplaceIndices::usage =
+"ConstantReplaceIndices[expr$, indices$, value$]` replaces the parts at various indices with value$.
+* indices can be All, Span[$$], or List[p$1, p$2, $$].";
+
+SetStrict @ ReplaceIndices;
+
+General::replaceLengthMismatch = "List of indices to replace has length `` but values have length ``."
+ReplaceIndices[expr_, indices_List, values_List] /; SameLenQOrThrow[indices, values, "replaceLengthMismatch"] :=
+  setParts[expr, indices, values];
+
+setParts[expr_, parts_, value_] := Locals[expr2 = expr; Part[expr2, parts] = value; expr2];
+
+(*************************************************************************************************)
+
 DeclareHoldFirst[JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn];
 
 JoinTo[e_, r_]            := Set[e, Join[e, r]];
@@ -222,6 +253,12 @@ Then2[e___] := P2 @ Unsequence[e];
 Then3[e___] := P3 @ Unsequence[e];
 
 (*************************************************************************************************)
+
+DeclareSequenceHold[SeqCol1, SeqCol2, SeqCol3];
+
+SeqCol1[a___] := Part[NoEval @ a, All, 1];
+SeqCol2[a___] := Part[NoEval @ a, All, 2];
+SeqCol3[a___] := Part[NoEval @ a, All, 3];
 
 _SequenceNothing := Seq[];
 SequenceFirst[e_, ___] := e;
