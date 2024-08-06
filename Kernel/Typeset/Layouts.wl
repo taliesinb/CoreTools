@@ -1,8 +1,6 @@
 SystemExports[
-  "OptionSymbol",
-    MaxRows, MaxColumns, ItemLabels, ItemFunction, TooltipFunction, MaxWidth, MaxHeight,
-  "FormHead",
-    NiceMulticolumn, NiceGrid, NiceGridAll, CodePane, CodeTooltip, CodeTooltipBoxes, PlainGrid, NiceErrorBox
+  "OptionSymbol", MaxRows, MaxColumns, ItemLabels, ItemFunction, TooltipFunction, MaxWidth, MaxHeight,
+  "FormHead", NiceMulticolumn, NiceGrid, NiceGridAll, CodePane, CodeTooltip, CodeTooltipBoxes, PlainGrid, NiceErrorBox
 ];
 
 PackageExports[

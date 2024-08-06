@@ -15,7 +15,7 @@ SystemExports[
 
     ElementQ, SameSetQ, SubsetOfQ, SupersetOfQ, IntersectsQ, NotIntersectsQ, PrefixListQ,
     SameKeysQ, SameOrderedKeysQ, SameHeadQ, SameLengthQ, SameShapeQ, SamePartsQ,
-    HoldSameHeadQ, HoldHasHeadQ, HoldSameLengthQ, HoldSameShapeQ,
+    HoldSameQ, HoldHasHeadQ, HoldSameLengthQ,
 
     ExtendedNumberQ, UnitNumberQ, PositiveRealQ,
     PairQ, PairVectorQ, PairMatrixQ, PairArrayQ,

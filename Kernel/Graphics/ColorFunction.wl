@@ -1,26 +1,30 @@
 SystemExports[
   "GraphicsDirective",
-    OKColor, OKHue, ComplexHue, NiceHue, PastelHue, VibrantHue, RainbowHue, RedBlueColorFunction,
+    PastelHue, VibrantHue, RainbowHue, RedBlueColorFunction,
   "Function",
-    ColorPalette, ColorToHex, ColorListToHex, HexToColorList,
     ChooseNumericColorFunction, ApplyAutomaticColoring,
     HashToColor, UniqueColor,
   "Head",
     NumericColorFunction, DiscreteColorFunction, HashValue,
   "GraphicsFunction",
-    PixelHash,
-  "Variable",
-    $MediumColorPalette, $MediumColorPalette, $DarkColorPalette, $LightColorPalette, $BooleanColors,
-    $Blue, $Red, $Yellow, $Green, $Pink, $Teal, $Orange, $Purple, $Gray, $White, $Black,
-    $DarkBlue, $DarkRed, $DarkYellow, $DarkGreen, $DarkPink, $DarkTeal, $DarkGray, $DarkOrange, $DarkPurple, $DarkWhite, $DarkBlack,
-    $LightRed, $LightBlue, $LightGreen, $LightOrange, $LightPurple, $LightTeal, $LightGray, $LightPink, $LightYellow, $LightWhite, $LightBlack
+    PixelHash
 ];
 
 PackageExports[
   "Function",
-    RGBArrayToColor, ColorToRGBArray,
     CompileColorFunction, ApplyColorFunctionToArray
 ];
+
+(**************************************************************************************************)
+
+CoreBoxes[HashValue[hash_Int]] := TagBox[ToBoxes @ PixelHash @ hash, Deploy];
+
+splitHash[hash_Int] := Mod[BitShiftRight[hash, {0, 16, 32, 48}], 2^16];
+PixelHash[None] := Image[{{Gray, Gray}, {Gray, Gray}}, ImageSize -> {8, 8}*2];
+PixelHash[hash_Int] := Tooltip[Image[
+  Partition[Map[NiceHue, splitHash[hash] / 2^16], 2],
+  ImageSize -> {8, 8}*2
+], hash];
 
 (*************************************************************************************************)
 
@@ -36,141 +40,6 @@ SapphireGradient
 M10DefaultGradient
 NeonColorGradient
 *)
-
-(**************************************************************************************************)
-
-CoreBoxes[HashValue[hash_Int]] := TagBox[ToBoxes @ PixelHash @ hash, Deploy];
-
-(**************************************************************************************************)
-
-splitHash[hash_Int] := Mod[BitShiftRight[hash, {0, 16, 32, 48}], 2^16];
-PixelHash[None] := Image[{{Gray, Gray}, {Gray, Gray}}, ImageSize -> {8, 8}*2];
-PixelHash[hash_Int] := Tooltip[Image[
-  Partition[Map[NiceHue, splitHash[hash] / 2^16], 2],
-  ImageSize -> {8, 8}*2
-], hash];
-
-(**************************************************************************************************)
-
-HashToColor[list_List] := Map[HashToColor, list];
-HashToColor[hash_, l_:0] := Locals[
-  {c1, c2} = IntegerDigits[hash, 256, 2];
-  NiceHue[Mod[c1 / 256., 1], 0.5 + 0.5*Mod[c2 / 256., 1], l]
-]
-
-$goldenRatioConj = 0.618033988749895;
-UniqueColor[n_Int] := ColorConvert[NiceHue @ Mod[n * $goldenRatioConj, 1], RGBColor];
-
-(*************************************************************************************************)
-
-RGBArrayToColor::notArray = "Input was not an array: ``.";
-
-RGBArrayToColor[rgb_List ? NumberVectorQ] := RGBColor @ rgb;
-RGBArrayToColor[rgb_List ? NumberArrayQ]  := Map[RGBColor, rgb, {-2}];
-RGBArrayToColor[arr_]                         := (Message[RGBArrayToColor::notArray, arr]; $Failed);
-
-(*************************************************************************************************)
-
-ColorToRGBArray::notColors = "Input was not a color or an array of colors: ``.";
-
-ColorToRGBArray[colors_] := EnsurePackedReals[
-  ReplaceAll[colors, $toRGBRules],
-  Message[ColorToRGBArray::notColors, colors]; $Failed
-];
-
-(* ColorToRGBArray[colors_] := EnsurePackedReals[
-  ColorConvert[colors, "RGB"] /. RGBColor -> List,
-  Message[ColorToRGBArray::notColors, colors]; $Failed
-];
- *)
-
-$toRGBRules = Dispatch[{
-  RGBColor[r_, g_, b_, ___] :> {r, g, b},
-  RGBColor[{r_, g_, b_, ___}] :> {r, g, b},
-  c:(_GrayLevel | _XYZColor | _CMYKColor | _Hue | _XYZColor | _LABColor | _LCHColor | _LUVColor) :>
-    RuleCondition[List @@ ColorConvert[c, "RGB"]]
-}];
-
-(*************************************************************************************************)
-
-DeclareListable[ColorToHex]
-
-ColorToHex[c:ColorP] := toHexColor @ ColorToRGBArray @ c;
-
-toHexColor[c_List] := toHexColor[c] = StringJoin["#", NatStr[Floor[(255 * c) + 1 / 2], 16, 2]];
-
-(*************************************************************************************************)
-
-ColorListToHex[list_ ? ColorVectorQ] := StringRiffle[ColorToHex @ list, " "];
-HexToColorList[str_Str] := Map[RGBColor, StringSplit @ str];
-
-$MediumColorPalette = ColorPalette["Medium"] = HexToColorList @ "#e1432d #3e81c3 #4ea82a #dc841a #8b7ebe #47a5a7 #929292 #c74883 #f6e259 #f3f3f3 #404040";
-$DarkColorPalette = ColorPalette["Dark"]    = HexToColorList @ "#b50700 #165e9d #217f00 #ae5900 #665996 #0e7c7e #6b6b6b #9e1f61 #bba700 #b4b4b4 #2d2d2d";
-$LightColorPalette = ColorPalette["Light"]   = HexToColorList @ "#ff775e #6caff4 #82dd63 #ffbb5f #bbaff2 #7fdbdc #c5c5c5 #fb77b0 #ffffa9 #ffffff #595959";
-$DiscreteColorPalette = ColorPalette["Discrete"] = HexToColorList @ "#da3b26 #eebb40 #4ba526 #4aa59d #4184c6 #ca4a86 #6b6b6b #929292 #c5c5c5";
-
-{$Red, $Blue, $Green, $Orange, $Purple, $Teal, $Gray, $Pink, $Yellow, $White, $Black} = $MediumColorPalette;
-{$DarkRed, $DarkBlue, $DarkGreen, $DarkOrange, $DarkPurple, $DarkTeal, $DarkGray, $DarkPink, $DarkYellow, $DarkWhite, $DarkBlack} = $DarkColorPalette;
-{$LightRed, $LightBlue, $LightGreen, $LightOrange, $LightPurple, $LightTeal, $LightGray, $LightPink, $LightYellow, $LightWhite, $LightBlack} = $LightColorPalette;
-
-$BooleanColors = {GrayLevel[0.9], GrayLevel[0.1]};
-
-(*************************************************************************************************)
-
-OKColor[lab:{_, _, _}] := RGBColor @ OKArrayToRGBArray @ lab;
-OKColor[l_, a_, b_] := RGBColor @ OKArrayToRGBArray @ {l, a, b};
-
-(*************************************************************************************************)
-
-OKArrayToColor[arr_] := RGBArrayToColor @ OKArrayToRGBArray @ arr;
-ColorToOKArray[cols_] := RGBArrayToOKArray @ ColorToRGBArray @ cols;
-
-(*************************************************************************************************)
-
-OKArrayToRGBArray[lab_List] := Clip[convert$srgb$rgb @ convert$ok$srgb @ lab, {0., 1.}];
-RGBArrayToOKArray[rgb_List] := convert$srgb$ok @ convert$rgb$srgb @ rgb;
-
-OKArrayToRGBArray[_] := $Failed;
-RGBArrayToOKArray[_] := $Failed;
-
-(* TODO: transpose these so we don't have to map *)
-convert$ok$srgb[lab_List ? VectorQ] := Dot[$lms$srgb, Dot[$ok$lms, lab]^3];
-convert$ok$srgb[lab_List] := Map[convert$ok$srgb, lab, {-2}];
-
-convert$srgb$ok[srgb_List ? VectorQ] := Dot[$lms$ok, CubeRoot @ Dot[$srgb$lms, srgb]];
-convert$srgb$ok[srgb_List] := Map[convert$srgb$ok, srgb, {-2}];
-
-DeclareListable[convert$rgb$srgb, convert$srgb$rgb]
-convert$srgb$rgb[x_] := If[x >= 0.0031308, 1.055 * x^(1.0/2.4) - 0.055, 12.92 * x];
-convert$rgb$srgb[x_] := If[x >= 0.04045, ((x + 0.055)/(1 + 0.055))^2.4, x / 12.92];
-
-$ok$lms = ToPackedReals @ {
-  {+1, +0.3963377774, +0.2158037573},
-  {+1, -0.1055613458, -0.0638541728},
-  {+1, -0.0894841775, -1.2914855480}};
-
-$lms$srgb = ToPackedReals @ {
-  {+4.0767416621, -3.3077115913, +0.2309699292},
-  {-1.2684380046, +2.6097574011, -0.3413193965},
-  {-0.0041960863, -0.7034186147, +1.7076147010}};
-
-$srgb$lms = ToPackedReals @ {
-  {0.4122214708, 0.5363325363, 0.0514459929},
-  {0.2119034982, 0.6806995451, 0.1073969566},
-  {0.0883024619, 0.2817188376, 0.6299787005}};
-
-$lms$ok = ToPackedReals @ {
-  {+0.2104542553, +0.7936177850, -0.0040720468},
-  {+1.9779984951, -2.4285922050, +0.4505937099},
-  {+0.0259040371, +0.7827717662, -0.8086757660}};
-
-(*************************************************************************************************)
-
-(*************************************************************************************************)
-
-DeclareListable[ComplexHue]
-
-ComplexHue[c_Complex] := ComplexHue[Arg[c] / Tau, Min[Sqrt[Abs[c]]/1.2,1], .9];
 
 (*************************************************************************************************)
 
@@ -451,7 +320,7 @@ ApplyColorFunctionToArray[type:Automatic|None, array2_, depth1_] := Locals[
 
   If[colorFn === None,
     array,
-    ApplyColorFunction[colorFn, array, depth1]
+    ApplyColorFunctionToArray[colorFn, array, depth1]
   ]
 ];
 
@@ -581,31 +450,6 @@ defineNamedColorFunction[sym_Symbol -> name_String] := (
 defineNamedColorFunction[PastelHue  -> "PastelColorGradient"]
 defineNamedColorFunction[VibrantHue -> "VibrantColorGradient"]
 defineNamedColorFunction[RainbowHue -> "DarkColorGradient"]
-
-(**************************************************************************************************)
-
-NiceHue[arr_] := fastBalancedHue @ arr;
-NiceHue[arr_, s:NumP] := modifySat[s, fastBalancedHue @ arr];
-NiceHue[arr_, s:NumP, l:NumP] := modifySatLum[s, l, fastBalancedHue @ arr];
-
-DeclareListable[fastBalancedHue];
-
-fastBalancedHue[h_] := Blend["SoftBalancedHue", h];
-
-modifySat[sat_, expr_] :=
-  ReplaceAll[expr, LABColor[l_, a_, b_] :> LABColor[l, a * sat, b * sat]];
-
-modifySatLum[sat_, lbias_, expr_] := With[
-  {b1 = 1-Abs[lbias], b2 = UnitStep[lbias] * lbias},
-  ReplaceAll[expr, LABColor[l_, a_, b_] :> LABColor[l * b1 + b2, sat * a, sat * b]]
-];
-
-(*************************************************************************************************)
-
-LCHArrayToRGBArray[arr_] := EnsurePackedReals[
-  ToPackedReals[ColorConvert[arr, "LCH" -> "RGB"] /. RGBColor -> List],
-  $Failed
-];
 
 (**************************************************************************************************)
 
