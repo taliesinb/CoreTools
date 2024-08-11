@@ -1,13 +1,6 @@
 SystemExports[
   "Head",
-    Repeating, Under, Over,
-  "OptionSymbol",
-    ItemGroups,
-    GroupSettings,
-    Broadcasting,
-    UseBroadcast,
-    Canonicalization,
-    MethodResolution
+    Repeating, Under, Over
 ];
 
 PackageExports[
@@ -25,12 +18,7 @@ PackageExports[
     $CoordsToSide,
     $SideToRadians
     $SideToUnitCoords,
-    $SymbolicPointSizes,
-  "Head",
-    ItemSpec,
-  "Operator",
-    MethodResolutionFn,
-    CanonicalizationFn
+    $SymbolicPointSizes
 ];
 
 (**************************************************************************************************)

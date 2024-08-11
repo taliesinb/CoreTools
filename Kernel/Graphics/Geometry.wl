@@ -1,11 +1,6 @@
 SystemExports[
   "Function",
     BezierPoints, CurvePoints, LinePoints,
-    VectorRotate45, VectorRotate45CW,
-    VectorRotate60, VectorRotate60CW,
-    VectorRotate90, VectorRotate90CW,
-    VectorRotate120, VectorRotate120CW,
-    VectorRotate180,
     CosSin, ClockwisePoints, AnticlockwisePoints, SideToRadians,
     LineLength, PointAlongLine, TangentAlongLine,
   "Predicate",
@@ -18,6 +13,23 @@ PackageExports[
   "Function",
     PointPlus, PointTangent, PointDist,
     RemoveOffsets, SimplifyOffsets, ResolveOffsets, FromOffsetNum, ToOffsetNum, FromOffsetCoord, ToOffsetCoord,
+  "Function",
+    FromSpherical, ToSpherical, SphericalRotateVector,
+    RotateVectorTo, RotateVector,
+    ScaleRotateTranslateVector,
+    ScaleRotateVector,
+    TranslateVector,
+    RotateToMatrix,
+    PairAngle,
+    VectorRotate45, VectorRotate45CW,
+    VectorRotate60, VectorRotate60CW,
+    VectorRotate90, VectorRotate90CW,
+    VectorRotate120, VectorRotate120CW,
+    VectorRotate180,
+    VectorReflect,
+    VectorReflectVertical,
+    VectorReflectHorizontal,
+    VectorTranspose,
   "Variable",
     $SideToRadians
 ];
@@ -38,6 +50,106 @@ setupRotFunc @@@ {
   {VectorRotate120, 120, False}, {VectorRotate120CW, 120, True},
   {VectorRotate180, 180, False}
 };
+
+VectorReflect[v_, rv_] := Expand[v - (2 * Dot[rv, v] / Dot[rv, rv]) * rv];
+VectorReflect[rv_][v_] := VectorReflect[v, rv];
+
+VectorReflectHorizontal[v_] := Threaded[{-1, 1}] * v;
+VectorReflectVertical[v_]   := Threaded[{1, -1}] * v;
+VectorTranspose[v_?MatrixQ] := Rev[v, 2];
+VectorTranspose[v_List]     := Rev[v];
+
+(*************************************************************************************************)
+
+FromSpherical[{r_, a_, b_}] := {r Cos[b] Sin[a],r Sin[a] Sin[b],r Cos[a]};
+ToSpherical[{x_, y_, z_}] := {Sqrt[x^2 + y^2 + z^2], ArcTan[z, Sqrt[x^2 + y^2]], ArcTan[x, y]};
+
+(**************************************************************************************************)
+
+PairAngle[m_ ? NumMatQ] := Map[PairAngle, m];
+PairAngle[{x_, y_}] := ArcTan[x, y];
+PairAngle[{0|0., 0|0.}] := 0;
+
+(**************************************************************************************************)
+
+SphericalRotateVector[vecs:{___List}, t_] :=
+  Map[SphericalRotateVector[#, t]&, vecs];
+
+SphericalRotateVector[vec_List, t_] :=
+  Dot[{{Cos[t], -Sin[t], 0}, {Sin[t], Cos[t], 0}, {0, 0, 1}}, vec];
+
+SphericalRotateVector[t_][vec_] := SphericalRotateVector[vec, t];
+
+(**************************************************************************************************)
+
+DeclareVectorListableOp @ RotateVector;
+
+RotateVector[vec_List ? Pos2ListOrListsQ, t_] :=
+  Dot[vec, {{Cos[t], Sin[t]}, {-Sin[t], Cos[t]}}];
+
+RotateVector[vecs_List | vecs_Assoc, t_] :=
+  Map[RotateVector[#, t]&, vecs];
+
+RotateVector[t_][vec_] := RotateVector[vec, t];
+
+(**************************************************************************************************)
+
+DeclareVectorListableOp @ RotateVectorTo;
+
+RotateVectorTo[vec_List ? PosAListOrListsQ, to_] :=
+  Dot[vec, rotToTrans @ to];
+
+RotateVectorTo[vecs_List | vecs_Assoc, to_] :=
+  Map[RotateVectorTo[to], vecs];
+
+RotateVectorTo[t_] := DotRightOp @ rotToTrans @ t;
+
+rotToTrans[dirx_] := ToPackedReals @ List[dirx, VectorRotate90 @ dirx];
+
+(**************************************************************************************************)
+
+(* TODO: make these properly listable! *)
+
+ScaleRotateTranslateVector[scale_, angle_, trans_List, points_List] :=
+  TranslateVector[trans, ScaleRotateVector[scale, angle, points]];
+
+ScaleRotateTranslateVector[s_, a_, t_][points_] := ScaleRotateTranslateVector[s, a, t, points];
+
+(**************************************************************************************************)
+
+ScaleRotateVector[scale_, angle_List, points_List] :=
+  ScaleRotateVector[scale, PairAngle @ angle, points];
+
+ScaleRotateVector[scale_, angle_, points_List] :=
+  scale * Dot[points, rotationMatrix @ angle];
+
+ScaleRotateVector[s_, a_][points_] := ScaleRotateVector[s, a, points];
+
+(**************************************************************************************************)
+
+$pi = N[Pi];
+$tau = N[Tau];
+
+rotationMatrix[0|0.|Tau|$tau|(-Tau)|(-$tau)] := {{1, 0}, {0, 1}};
+rotationMatrix[Pi|$pi|(-Pi)|(-$pi)] := {{-1, 0}, {0, -1}};
+rotationMatrix[angle_] := Transpose @ ToPacked @ Chop @ RotationMatrix @ N @ angle;
+
+(**************************************************************************************************)
+
+(* TODO: fix me *)
+DeclareVectorListableOp @ TranslateVector;
+
+TranslateVector[trans_List, points_List] := Threaded[trans] + points;
+
+TranslateVector[t_][points_] := TranslateVector[t, points];
+
+(**************************************************************************************************)
+
+RotateToMatrix[dirx_] :=
+  ToPackedReals @ Transpose[{dirx, VectorRotate90 @ dirx}];
+
+RotateToMatrix[dirx_, {sx_, sy_}] :=
+  ToPackedReals @ Transpose[{dirx * sx, VectorRotate90 @ dirx * sy}];
 
 (*************************************************************************************************)
 

@@ -23,6 +23,7 @@ PackageExports[
     DefineOperator1Rules, DefineOperator2Rules,
     StringListableFunctionDefs,
     DeclareHoldFirst, DeclareHoldRest, DeclareHoldAll, DeclareHoldAllComplete, DeclareSequenceHold, DeclareListable,
+
     DeclareStrict, DeclareSeqScan, DeclareThenScan,
     DeclarationFunctionDefinitions,
 

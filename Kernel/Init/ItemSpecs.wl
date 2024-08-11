@@ -1,7 +1,5 @@
 SystemExports[
   "OptionSymbol",
-    ItemGroups,
-    ItemData,
     GroupSettings
 ];
 
@@ -10,6 +8,8 @@ PackageExports[
     ParseItemOptions,
     CanonicalizeSpec,
   "OptionSymbol",
+    ItemGroups,
+    ItemData,
     UseBroadcast,
     Canonicalization,
     MethodResolution,

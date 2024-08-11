@@ -1,3 +1,5 @@
 SystemPrims.wl
 EmptyPrims.wl
 FramedPrim.wl
+HalfPrims.wl
+NamedIcon.wl

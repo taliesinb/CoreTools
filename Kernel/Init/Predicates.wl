@@ -69,6 +69,7 @@ PackageExports[
     Pos2Q, Pos2ListQ, Pos2ListsQ, Pos2PairQ,
     Pos3Q, Pos3ListQ, Pos3ListsQ, Pos3PairQ,
     PosAQ, PosAListQ, PosAListsQ, PosAPairQ,
+    Pos2ListOrListsQ,
     AutoQ,
     RuleLikeQ, RuleQ, RuleDelayedQ, PackedRealsQ, PackedIntsQ,
     UserSymbolQ,
@@ -78,7 +79,8 @@ PackageExports[
   "MetaFunction",
 
     DeclarePatternPredicates,
-    DefinePatternPredicateRules
+    DefinePatternPredicateRules,
+    DeclareVectorListableOp
 ];
 
 (*************************************************************************************************)
@@ -239,6 +241,12 @@ PosAListsQ[a_List] := (ArrayQ[a, 3, RealValuedNumberQ] && 2 <= Last[Dims @ a] <=
 Pos2PairQ[a_List] := VectorQ[a, RealValuedNumberQ] && SameQ[dims @ a, {2, 2}];
 Pos3PairQ[a_List] := VectorQ[a, RealValuedNumberQ] && SameQ[dims @ a, {2, 3}];
 PosAPairQ[a_List] := VectorQ[a, RealValuedNumberQ] && MatchQ[dims @ a, {2, 2|3}];
+
+(*************************************************************************************************)
+
+SetPred1 @ Pos2ListOrListsQ;
+
+Pos2ListOrListsQ[a_List] := Pos2ListsQ[a] || Pos2ListQ[a];
 
 (*************************************************************************************************)
 
@@ -646,6 +654,12 @@ DeclarePredicate1[ListableFunctionQ]
 ListableFunctionQ[sym_Symbol] := ListableFunctionQ[sym] = MemberQ[Attributes @ sym, Listable];
 ListableFunctionQ[HoldPattern[Function[___, Listable | {___, Listable, ___}]]] := True;
 ListableFunctionQ[c_RightComposition | c_Composition] := AllTrue[c, ListableFunctionQ];
+
+(**************************************************************************************************)
+
+DeclareDeclare @ DeclareVectorListableOp;
+
+DeclareVectorListableOp[sym_Symbol] := ListableFunctionQ[_sym] = True;
 
 (**************************************************************************************************)
 

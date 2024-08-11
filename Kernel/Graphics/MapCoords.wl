@@ -57,7 +57,7 @@ $MapGPrimRules := With[{
   $posLists    = Alt @@ GSigToGPrims["PosLists?Radius"],
   $opaquePos   = Alt @@ GSigToGPrims["Opaque,Pos|Primitives,Pos"],
   $opaque      = Alt @@ GSigToGPrims["Opaque"],
-  $posRules    = Alt @@ GSigToGPrims["PosRules,Primitives"]}, EchoingRules @ {
+  $posRules    = Alt @@ GSigToGPrims["PosRules,Primitives"]}, {
 
   FmE:($opaque)    [___]                                :> FmE,
 
