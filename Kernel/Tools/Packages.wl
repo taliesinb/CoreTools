@@ -14,7 +14,7 @@ PackageExports[
 
 DeclareHoldAll[PackageTopLevelEvaluate]
 
-With[{ignoredSyms = Apply[Alt, Blank /@ Prelude`Packages`$PackageDeclarataionSymbols]},
+With[{ignoredSyms = Apply[Alt, Blank /@ Prelude`Packages`$PackageDeclarationSymbols]},
 PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
 PackageTopLevelEvaluate[HoldComplete[ignoredSyms;]] := Null;
 PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
@@ -74,7 +74,7 @@ extractLineExportsFromLine[str_] := Module[{tokens},
   {privacy, kind, decl} = StringSegment[str, {After["Export" | "Private"], "[", "]"}];
   If[!StringQ[decl], Return @ Nothing];
   decl = StrJoin["{", StringReplace[decl, "->" -> ","], "}"];
-  If[StrContainsQ[decl, "`"], AbortLoading["nonLocalExport", $path, decl]];
+  If[StrContainsQ[decl, "`"], AbortPackageLoading["nonLocalExport", $path, decl]];
   context = If[privacy === "Export", $publicContext, $privateContext];
   {kind, $path, context, decl}
 ];

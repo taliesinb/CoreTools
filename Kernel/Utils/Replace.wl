@@ -15,8 +15,9 @@ SystemExports[
 
     FullReplaceAll, FullReplaceRepeated,
     ReplaceAllList,
-    ReplaceAllBelow,
+    ReplaceAllWithin,
     FnRule,
+    MatchFn,
 
   "Head",
     ExprPath
@@ -24,13 +25,8 @@ SystemExports[
 
 (**************************************************************************************************)
 
-(* TODO: Handle Repeating *)
+MatchFn[rules___] := Replace @ ToList[rules, _ :> InternalError];
 
-(* FixedPointOp[fn_] :=
-FixedPointOp[fn_, doneFn_] :=
-FixedPointOp[{fn1_, fn2_, ...}, doneFn_] :=
-FixedPointOp[Repeated[fn1_, fn2_, fn3_], doneFn_]
- *)
 (**************************************************************************************************)
 
 FnRule[_, Id]      := Nothing;
@@ -134,7 +130,8 @@ FullReplaceRepeated[expr_, rules_] := First[ReplaceRepeated[Hold[expr] /. Associ
 
 (*************************************************************************************************)
 
-ReplaceAllBelow[expr_, rep_, n_] := Replace[expr, rep, {n,Infinity}, Heads -> True];
+(* unlike ReplaceAll, this is bottom up, not top down *)
+ReplaceAllWithin[expr_, rep_, n_:1] := Replace[expr, rep, {n,Infinity}, Heads -> True];
 
 (*************************************************************************************************)
 

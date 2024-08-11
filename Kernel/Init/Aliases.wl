@@ -26,7 +26,7 @@ PackageExports[
     ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved, HoldC, HoldComp, HoldSetNoEntryExpr, HoldSetValidExpr,
 
   "MutatingFunction",
-    StuffBag, SetD, TagSetD, UpSetD,
+    StuffBag, SetD, TagSetD, UpSetD, AssocTo,
 
   "TypeHead",
     Str, Int, Sym,
@@ -145,7 +145,7 @@ PackageExports[
     ZeroIntQ, NonZeroIntQ,
     PosQ, NegQ, NonPosQ, NonNegQ, NonPosIntQ, NonNegIntQ,
 
-    StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, ASCIIQ,
+    StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, StrHasQ, ASCIIQ,
     BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ, ExtNumQ,
 
     AssocQ, VecQ, AssocVecQ, RuleVecQ, RuleLVecQ,
@@ -464,6 +464,7 @@ DefineAliasRules[
   StrEndsQ                      -> StringEndsQ,
   StrFreeQ                      -> StringFreeQ,
   StrContainsQ                  -> StringContainsQ,
+  StrHasQ                       -> StringContainsQ,
   ASCIIQ                        -> PrintableASCIIQ
 ];
 
@@ -741,7 +742,8 @@ DefineAliasRules[
   Inherit        -> Inherited,
   SetD           -> SetDelayed,
   TagSetD        -> TagSetDelayed,
-  UpSetD         -> UpSetDelayed
+  UpSetD         -> UpSetDelayed,
+  AssocTo        -> AssociateTo
 ];
 
 (*************************************************************************************************)

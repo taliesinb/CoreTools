@@ -1,7 +1,8 @@
 SystemExports[
   "Function",
     FindFunctionSymbols, FindInertSymbols, FindDownEvaluationSymbols, FindSubEvaluationSymbols, FindUpEvaluationSymbols, FindOwnEvaluationSymbols, FindOperatorSymbols,
-    FindDefinitionsContaining, FindSymbolsContaining
+    FindDefinitionsContaining, FindSymbolsContaining,
+    FindUnresolvedSymbols
 ];
 
 PackageExports[
@@ -33,6 +34,14 @@ toOperatorFormSymbol[s_Symbol]         := Which[
 ];
 
 hasSubUsageQ[s_] := !StringQ[MessageName[s, "usage"]] || StringContainsQ[MessageName[s, "usage"], " operator "];
+
+(**************************************************************************************************)
+
+FindUnresolvedSymbols[context_String] := Locals[
+  capNames = Names @ StrJoin[context, "Private`*`*"];
+  capNames = Pick[capNames, UpperCase1Q @ SymbolNameLast @ capNames];
+  ToExpression[capNames, InputForm, toInertSymbol]
+];
 
 (**************************************************************************************************)
 

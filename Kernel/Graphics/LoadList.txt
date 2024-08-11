@@ -1,4 +1,10 @@
+Primitives.wl
+Primitives/LoadList.txt
+MapCoords.wl
+Transforms.wl
+PlotRange.wl
 Geometry.wl
 Colors.wl
 ColorFunction.wl
 Plots.wl
+Rasterization.wl

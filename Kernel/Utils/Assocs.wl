@@ -267,8 +267,8 @@ addLenKey[lhs_, key_] := lhs[key] = Len[lhs] + 1;
 DeclareHoldFirst[KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyAssociateTo];
    DeclareCurry1[KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyAppendTo, KeyPrependTo, KeyJoinTo];
 
-DefineKeywiseOperator1[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[Lookup[lhs, key, def], arg]]];
-DefineKeywiseOperator2[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[arg, Lookup[lhs, key, def]]]];
+DefineKeywiseOperator1[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[Lookup[lhs, Key @ key, def], arg]]];
+DefineKeywiseOperator2[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[arg, Lookup[lhs, Key @ key, def]]]];
 
 DefineKeywiseOperator1[KeyAddTo,        {0, Plus}]
 DefineKeywiseOperator1[KeySubtractFrom, {0, Subtract}]

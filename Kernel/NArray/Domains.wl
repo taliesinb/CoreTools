@@ -8,7 +8,7 @@ PackageExports[
     Strings, Symbols, Numbers, Probabilities, NegativeLogProbabilities, Expressions, Datums, Atoms,
     ExtendedReals, ExtendedNonNegativeReals,
     ExtendedIntegers, ExtendedNonNegativeIntegers,
-    ExtendedNumbers,
+    ExtendedNumbers, Lists,
   "TypeHead",
     ArraysOf, PackedArraysOf, SparseArraysOf, NumericArraysOf,
     ListsOf, TuplesOf, RecordsOf, DictsOf,
@@ -20,14 +20,14 @@ PackageExports[
   "Variable",
     $ScalarDomains,
   "PatternSymbol",
-    ScalarDomainP, ArrayDomainP, CompoundDomainP, DomainP
+    ScalarDomainP, ArrayDomainP, CompoundDomainP, DomainP,
+  "BoxFunction", DomainLetterBox
 ];
 
 PrivateExports[
   "TypeSymbol",
-    Any,
     Probs, NegLogProbs,
-    Nums, Ints, ExtNums,
+    Exprs, Nats, Nums, Ints, ExtNums, Bools,
     NegInts, NonPosInts, NonNegInts, PosInts,
     NegReals, NonPosReals, NonNegReals, PosReals,
     ExtReals, ExtInts, ExtNonNegReals, ExtNonNegInts,
@@ -51,14 +51,16 @@ DefinePatternRules[
 ];
 
 DefineAliasRules[
-  Any -> Expressions,
-  Probs -> Probabilities,
+  Exprs       -> Expressions,
+  Probs       -> Probabilities,
+  Bools       -> Booleans,
   NegLogProbs -> NegativeLogProbabilities
 ];
 
 DefineAliasRules[
   Ints           -> Integers,
   Nums           -> Numbers,
+  Nats           -> NonNegativeIntegers,
   NegInts        -> NegativeIntegers,
   NonPosInts     -> NonPositiveIntegers,
   NonNegInts     -> NonNegativeIntegers,
@@ -124,6 +126,7 @@ DomainQ = ExtendCaseOf[
   ScalarDomainP   := True;
   ArrayDomainP    := True;
   CompoundDomainP := True;
+  Lists           := True;
 ];
 
 CompoundDomainQ = ExtendCaseOf[
@@ -144,8 +147,39 @@ CoreBoxes[d_SparseArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
 CoreBoxes[d_PackedArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
 CoreBoxes[d_ArraysOf ? DomainQ]        := arrayDomainBoxes @ d;
 
-CoreBoxes[Strings]  := "\[DoubleStruckCapitalS]";
-CoreBoxes[Booleans] := "\[DoubleStruckCapitalB]";
+(*************************************************************************************************)
+
+$domainLetterDict = Dict[
+  Nats                -> "\[DoubleStruckCapitalN]",
+  Probs               -> "\[DoubleStruckCapitalP]",
+  Rationals           -> "\[DoubleStruckCapitalQ]",
+  Integers            -> "\[DoubleStruckCapitalZ]",
+  Reals               -> "\[DoubleStruckCapitalR]",
+  Strings             -> "\[DoubleStruckCapitalS]",
+  Booleans            -> "\[DoubleStruckCapitalB]",
+  Lists               -> "\[DoubleStruckCapitalL]"
+];
+
+BlockUnprotect[{NonNegativeIntegers, Reals, Ints, Rationals, Booleans},
+  FormatValues[NonNegativeIntegers] = {};
+  FormatValues[Reals] = {};
+  FormatValues[Integers] = {};
+  FormatValues[Rationals] = {};
+  FormatValues[Booleans] = {};
+  KeyValueMap[{sym, letter} |->
+    SetD[SystemBoxes[sym], MarginBox[DomainLetterBox[letter], {.1,.1},{.1,.1}]],
+    $domainLetterDict
+  ]
+];
+
+DomainLetterBox[letter_, opts___Rule] :=
+  StyleBox[letter,
+    opts,
+    FontWeight -> "SemiBold", FontSize -> Inherited + 2, ShowSyntaxStyles -> False,
+    FontFamily -> "Source Code Pro"
+  ];
+
+(*************************************************************************************************)
 
 arrayDomainBoxes = CaseOf[
   expr:(_[s:ScalarDomainP, dims_]) := NiceTooltipBox[DisableCoreBoxFormatting @ ToBoxes @ expr] @ StyleBox[
@@ -191,7 +225,7 @@ iRandArray = CaseOf[
 
 (* TODO: introduce clipping to ensure we hit zero for PositiveReals etc *)
 $typeToRandFn = UDict[
-  Any                 -> RandomDatum,
+  Exprs                 -> RandomDatum,
   Reals               -> RandomUnitReal,
   Booleans            -> RandomBoolean,
   Probs               -> RandomUnitReal,
@@ -292,13 +326,13 @@ scalarMeet[a_, a_] := a;
 scalarMeet[a_, b_] := latticeJoin[a, b] = Locals[
   {upA, upB} = latticeUpset /@ {a, b};
   upAB = Inter[upA, upB];
-  FirstCase[upA, Alt @@ upAB, Any]
+  FirstCase[upA, Alt @@ upAB, Exprs]
 ];
 
 (*************************************************************************************************)
 
 arrayElemType = CaseOf[
-  $[{},      _] := Any;
+  $[{},      _] := Exprs;
   $[v_List,  1] := commonType[v];
   $[a_List, d_] := commonArrType[a, d];
   $[{a_},   d_] := $[a, d - 1];
@@ -309,7 +343,7 @@ arrayElemType = CaseOf[
 (* TODO: my VectorQ funcs are insufficiently precise to capture NumberQ vs RealValuedNumericQ vs RealValuedNumberQ *)
 
 commonType = CaseOf[
-  {}                 := Any;
+  {}                 := Exprs;
   _ ? IntegerVectorQ := Integers;
   _ ? RealVectorQ    := Reals;
   _ ? NumberVectorQ  := Numbers;
@@ -341,7 +375,7 @@ commonArrType[array_List, depth_Int] := SubNone[
 ];
 
 commonArrScalarType = CaseOf[
-  {}                := Any;
+  {}                := Exprs;
   _ ? IntegerArrayQ := Integers;
   _ ? RealArrayQ    := Reals;
   _ ? NumberArrayQ  := Numbers;
@@ -374,7 +408,7 @@ missed some stuff! *)
 (*************************************************************************************************)
 
 commonCompoundType = CaseOf[
-  {}                := Any;
+  {}                := Exprs;
   vec_ ? RuleVecQ   := commonRuleType @ vec;
   vec_ ? DictVecQ   := commonDictType @ vec;
   vec_ ? ListVecQ   := commonListType @ vec;
@@ -383,7 +417,7 @@ commonCompoundType = CaseOf[
 
 (*************************************************************************************************)
 
-commonTypeByHead[{}] := Any;
+commonTypeByHead[{}] := Exprs;
 commonTypeByHead[e_] := Locals[
   heads = Head /@ e;
   If[AllSameQ[heads],
@@ -407,9 +441,9 @@ headToType = CaseOf[
   Rational := Numbers;
   Real     := Reals;
   Complex  := Complexes;
-  List     := ListsOf[Any];
-  Rule     := RulesOf[Any, Any];
-  Dict     := DictsOf[Any, Any];
+  List     := ListsOf[Exprs];
+  Rule     := RulesOf[Exprs, Exprs];
+  Dict     := DictsOf[Exprs, Exprs];
   $sym[Booleans] := Booleans;
   $sym[_]  := Symbols;
   other_   := HeadsOf[other];
@@ -436,7 +470,7 @@ headSetToType[heads2_] := Locals[
     SubsetOfQ[heads, $atomHeads],  Atoms,
     Len[heads] == 1,               headToType @ First @ heads,
     1 <= Len[heads] <= 4,          HeadsOf[hset2],
-    True,                          Any
+    True,                          Exprs
   ]
 ];
 
@@ -476,8 +510,8 @@ singleRecordType[dict_Dict]  := kvType[Id, Map[singleType], dict];
 (*************************************************************************************************)
 
 DeclareCurry1[tryHeteroType];
-tryHeteroType[list_, ListsOf[Any]]              := singleTupleType @ list;
-tryHeteroType[dict_, DictsOf[Strings|Any, Any]] := singleRecordType @ dict;
+tryHeteroType[list_, ListsOf[Exprs]]              := singleTupleType @ list;
+tryHeteroType[dict_, DictsOf[Strings|Exprs, Exprs]] := singleRecordType @ dict;
 tryHeteroType[_, type_] := type;
 
 (*************************************************************************************************)
@@ -485,7 +519,7 @@ tryHeteroType[_, type_] := type;
 commonRuleType[rules_List] := kvType[RulesOf, commonType, rules];
 singleRuleType[rule_Rule]  := kvType[RulesOf, singleType, rule];
 
-kvType[head_, __, EmptyP]          := head[Any, Any];
+kvType[head_, __, EmptyP]          := head[Exprs, Exprs];
 kvType[head_, fn_, object_]        := head[ fn @ Keys @ object, vfn @ Values @ object];
 kvType[head_, kfn_, vfn_, object_] := head[Keys @ kfn @ object, vfn @ Values @ object];
 

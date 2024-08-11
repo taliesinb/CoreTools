@@ -2,10 +2,10 @@ SystemExports[
   "Function",
     P1, P2, P3, P4, P5, PN, P11, P1N, PNN, PN1, Col1, Col2, Col12, Col21, Col3, Col4, ColN,
   "ControlFlowFunction",
-    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
+    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed, Initially,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor,
-    SetCached, SetInitial, SetDelayedInitial, PackAssociation, UnpackAssociation, UnpackTuple,
+    SetCached, SetInitial, SetDelayedInitial, SetSequence, PackAssociation, UnpackAssociation, UnpackTuple,
   "ScopingFunction",
     IsMatchOf, IsNotMatchOf,
     CaseOf, ExtendCaseOf, CaseFn, Locals, SubWith, GlobalVar, LocalVar, InheritVar,
@@ -15,14 +15,14 @@ SystemExports[
 ];
 
 PackageExports[
-  "SpecialVariable",
-    $MutatingSymbols,
-  "MessageFunction",
-    ReturnFailed, ReturnMessage,
-  "MutatingFunction",
-    UnpackOptions, UnpackOptionsAs, UnpackAnnotations,
-  "PatternSymbol",
-    StrMatchP, StrStartsP, StrContainsP, DeepStrContainsP
+  "SpecialVariable",  $MutatingSymbols,
+  "MessageFunction",  ReturnFailed, ReturnMessage,
+  "MutatingFunction", UnpackOptions, UnpackOptionsAs, UnpackAnnotations,
+  "PatternSymbol",    StrMatchP, StrStartsP, StrContainsP, DeepStrContainsP
+];
+
+PrivateExports[
+  "CacheVariable",    $InitializationHashes
 ];
 
 (**************************************************************************************************)
@@ -112,11 +112,43 @@ DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Replace[$Failed   :> r
 
 (*************************************************************************************************)
 
-DeclareHoldAll[SetCached, SetInitial, SetDelayedInitial]
+DeclareHoldAll[Initially];
+
+If[!System`Private`HasImmediateValueQ[$InitializationHashes],
+  $InitializationHashes = UAssoc[]
+];
+
+Initially[body___] := Which[
+  Lookup[$InitializationHashes, $CurrentPackageFile] === Prelude`Packages`$CurrentPackageFileHash,
+    "InitializationNotNeeded",
+  Check[Then[body], $Failed] === $Failed,
+    Lookup[$InitializationHashes, $CurrentPackageFile] = None;
+    "InitializationFailed",
+  True,
+    $InitializationHashes[$CurrentPackageFile] = Prelude`Packages`$CurrentPackageFileHash;
+    "Initialized"
+];
+
+(*************************************************************************************************)
+
+DeclareHoldAll[SetCached, SetInitial, SetDelayedInitial, SetSequence, setMultiInitial]
 
 DefineSimpleMacro[SetCached,                  SetCached[lhs_, rhs_] :> SetDelayed[lhs, Set[lhs, rhs]]]
-DefineSimpleMacro[SetInitial,                SetInitial[lhs_, rhs_] :> If[System`Private`HasNoEvaluationsQ[lhs], Set[lhs, rhs]]]
 DefineSimpleMacro[SetDelayedInitial,  SetDelayedInitial[lhs_, rhs_] :> If[System`Private`HasNoEvaluationsQ[lhs], SetDelayed[lhs, rhs]]]
+DefineSimpleMacro[SetInitial, {
+  SetInitial[lhs_Sym, rhs_]     :> If[System`Private`HasNoEvaluationsQ[lhs], Set[lhs, rhs]],
+  SetInitial[lhs__Sym, rhs_]    :> setMultiInitial[Hold[lhs], rhs]
+}];
+
+setMultiInitial[lhs_Hold, rhs2_] := Module[{rhs := (rhs = rhs2)},
+  Scan[
+    Function[sym, If[System`Private`HasNoEvaluationsQ[sym], Set[sym, rhs2]], HoldFirst],
+    lhs
+  ]
+];
+
+SetSequence[lhs1_, lhs2__, rhs_] := Set[lhs1, SetSequence[lhs2, rhs]];
+SetSequence[lhs1_, rhs_]         := Set[lhs1, rhs];
 
 (*************************************************************************************************)
 

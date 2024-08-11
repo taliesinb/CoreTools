@@ -14,7 +14,7 @@ PackageExports[
   "OptionSymbol",
     ClickFunction, ViewSize,
   "Function",
-    LabelBy
+    LabelBy, ViewSampling
 ];
 
 PrivateExports[
@@ -62,7 +62,7 @@ DefineViewForm[RuleD[form_Symbol[lhs___], rhs_]] := Then[
 
 DefineViewForm[GroupedView[list_List, fns_] :> groupedView[list, fns]];
 
-Options[GroupedView] = JoinOptions[{ViewSize -> 8, LabelFunction -> CodePane}, $genericViewOptions];
+Options[GroupedView] = JoinOptions[{ViewSize -> 8, LabelFunction -> CodePane, ViewSampling -> False}, $genericViewOptions];
 
 groupedView[list_List, fns2_] := Locals[
   fns = fns2;
@@ -101,11 +101,18 @@ visitGroup[1][items_] := Module[{labels},
   boxes = MapFirstRest[
     item |-> $cols @ Prepend[Rev @ labels, groupItemBox @ item],
     item |-> $cols @ Prepend[$spanCol, dimLeftBox @ groupItemBox @ item],
-    Take[items, UpTo[$viewSize]]
+    limitItems[items, $viewSize]
   ];
   If[Len[items] > $viewSize,
     $cols @ Prepend[$spanCol, groupEllipsisBox[Len[items] - $viewSize]]
   ];
+];
+
+limitItems[items_] := limitItems[items, $viewOption[ViewSize]];
+limitItems[items_, size_] := Which[
+  Len[items] <= size,        items,
+  $viewOption[ViewSampling], RandomChoice[items, size],
+  True,                      Take[items, $viewSize]
 ];
 
 fnBoxes[fn_] := CodePaneBoxes[fn, {UpTo[200], UpTo[30]}];
@@ -194,7 +201,7 @@ DefineViewForm[RowView[items:ListDictP] :> rowViewBoxes @ items];
 
 DeclareHoldAllComplete[rowViewBoxes];
 
-rowViewBoxes[items_List] := GridBox[ToRowVec @ MapMakeBoxes @ items, $rowViewGridOpts];
+rowViewBoxes[items_List] := GridBox[ToRowVec   @ MapMakeBoxes @ items, $rowViewGridOpts];
 rowViewBoxes[items_Dict] := GridBox[KeysValues @ MapMakeBoxes @ items, $rowViewGridOpts];
 
 $rowViewGridOpts = Seq[
@@ -210,7 +217,7 @@ DefineViewForm[ColumnView[items:ListDictP] :> columnViewBoxes @ items];
 
 DeclareHoldAllComplete[columnViewBoxes];
 
-columnViewBoxes[items_List] := GridBox[ToColVec /@ MapMakeBoxes @ items, $rowViewGridOpts];
+columnViewBoxes[items_List] := GridBox[ToColVec    @ MapMakeBoxes @ items, $rowViewGridOpts];
 columnViewBoxes[items_Dict] := GridBox[DictToPairs @ MapMakeBoxes @ items, $rowViewGridOpts];
 
 $rowViewGridOpts = Seq[

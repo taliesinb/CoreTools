@@ -147,7 +147,7 @@ PythonReload[] := PythonRun["reload_prelude()"];
 
 PythonRestart[] := Module[{path},
   path = If[StrQ @ $PythonPath, $PythonPath <> ":" <> DataPath["Python"]];
-  DebugPrint["Initializing $PythonSession with ", path];
+  DPrint["Initializing $PythonSession with ", path];
   SetEnvironment["PYTHONPATH" -> path];
   If[SymbolImmediateValueQ[$PythonSession], Quiet @ DeleteObject[$PythonSession]];
   $TorchInitialized = False;

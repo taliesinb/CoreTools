@@ -9,10 +9,16 @@ PackageExports[
   "Symbol",
     Dark, Light,
   "IOFunction",
+    CallFrontEnd,
     DisableFloatingSymbolPopup,
     PrintInputCell, PrintOutputCell,
     PrintNextCellBoxData, PrintPreviousCellBoxData
 ];
+
+(*************************************************************************************************)
+
+(* this allows MakeImage etc to work from the terminal *)
+CallFrontEnd[e_] := If[$Notebooks, MathLink`CallFrontEnd[e], System`ConvertersDump`Utilities`GetFromFE[e]];
 
 (*************************************************************************************************)
 

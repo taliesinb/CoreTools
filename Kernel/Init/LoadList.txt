@@ -8,5 +8,6 @@ MacroDefs.wl
 Patterns.wl
 Predicates.wl
 Specs.wl
+ItemSpecs.wl
 InitColors.wl
 CoreBoxes.wl

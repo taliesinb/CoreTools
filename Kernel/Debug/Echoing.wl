@@ -1,6 +1,7 @@
 SystemExports[
   "DebuggingFunction",
     NiceEcho,
+    Echo1, Echo2, Echo3, Echo4, Echo5,
     EchoBy, EchoLen, EchoDims, EchoOpts, EchoKeys, EchoHead,
     EchoTest,
     EchoReplaceAll, EchoReplaceRepeated,
@@ -26,7 +27,21 @@ PackageExports[
 (*************************************************************************************************)
 
 NiceEcho[arg_]    := (printEchoPane @ CoreToolsHold @ arg; arg);
-NiceEcho[args___] := (printEchoPane @ CoreToolsHold @ CoreToolsSequence[args]; Construct[Sequence, args]);
+NiceEcho[args___] := (printEchoPane @ CoreToolsSequence @ args; Construct[Sequence, args]);
+
+(*************************************************************************************************)
+
+Echo1[arg_] := Then[echoLabel["1:", arg], arg];
+Echo2[arg_] := Then[echoLabel["2:", arg], arg];
+Echo3[arg_] := Then[echoLabel["3:", arg], arg];
+Echo4[arg_] := Then[echoLabel["4:", arg], arg];
+Echo5[arg_] := Then[echoLabel["5:", arg], arg];
+
+SetHoldC @ echoLabel;
+
+echoLabel[lab_]         := labeledEchoPane[lab];
+echoLabel[lab_, arg_]   := labeledEchoPane[lab, CoreToolsHold @ arg];
+echoLabel[lab_, args__] := labeledEchoPane[lab, CoreToolsSequence @ args];
 
 (*************************************************************************************************)
 
@@ -240,6 +255,8 @@ EchoArrow[a:patt, b_] := printEchoArrow[a, b, False]];
 (*************************************************************************************************)
 
 printEchoPane[e_] /; $EchoPrinting := EchoPrint @ CodePane[e, {{200, 300}, UpTo @ 100}];
+
+labeledEchoPane[l_, e_] /; $EchoPrinting := EchoPrint[l, CodePane[e, {{200, 300}, UpTo @ 100}]];
 
 (*************************************************************************************************)
 

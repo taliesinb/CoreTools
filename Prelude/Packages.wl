@@ -16,6 +16,7 @@ System`ExportSpecialFunction,
 System`ExportGraphicsDirective,
 System`ExportGraphicsFunction,
 System`ExportGraphicsBoxFunction,
+System`ExportGraphicsPrimitive,
 System`ExportHead,
 System`ExportDataHead,
 System`ExportFormHead,
@@ -105,6 +106,8 @@ PackageExports[
 $CurrentPackageExpr,
 $CurrentPackageExprCount,
 $CurrentPackageErrorMessageCount,
+$CurrentPackageFileHash,
+$PackageFileCache,
 
 $PackageSymbolTable,
 $PackageLoadCompleteQ,
@@ -116,7 +119,7 @@ $PackageLoadFileTimings,
 $SymbolAliasesDirty,
 $LethalPackageMessages,
 
-$PackageDeclarataionSymbols,
+$PackageDeclarationSymbols,
 
 "MessageFunction",
 LoadPrint,
@@ -137,8 +140,8 @@ PackageLoadCompletedQ
 
 Begin["`Private`"]
 
-If[!ListQ[$PackageDeclarataionSymbols],
-  $PackageDeclarataionSymbols = Cases[$systemExports,
+If[!ListQ[$PackageDeclarationSymbols],
+  $PackageDeclarationSymbols = Cases[$systemExports,
     sym_Symbol /; StringStartsQ[SymbolName @ Unevaluated @ sym, {"Export", "Private"}]
   ];
 ];
@@ -154,6 +157,8 @@ g_GetHidden := (Message[GetHidden::badGetArgs, HoldForm @ g]; $Failed);
 
 GetHoldComplete[path_String] := Language`FullGet[path, Null, HoldComplete];
 g_GetHoldComplete := (Message[GetHoldComplete::badGetArgs, HoldForm @ g]; $Failed);
+
+(*************************************************************************************************)
 
 (* fix bug in FullGet, which I guess is never used? *)
 
@@ -175,6 +180,8 @@ $PackageSymbolTable = Data`UnorderedAssociation[];
 $PackagePreLoadActions = Association[];
 $PackagePostLoadActions = Association[];
 $CurrentPackageErrorMessageCount = 0;
+$CurrentPackageFileHash = None;
+$PackageFileCache = Data`UnorderedAssociation[];
 ];
 
 (*************************************************************************************************)
@@ -303,6 +310,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
     fileContextGlob = baseContext <> "*`*";
     LoadPrint["Clearing file private contexts: ", fileContextGlob];
     savedVariables = saveVariableValues @ Names[baseContext <> "Private`$*"];
+    LoadPrint["Saved values for ", Keys @ savedVariables];
     Construct[UnprotectClearAll, fileContextGlob];
     LoadPrint["Restoring values for ", Keys @ savedVariables];
     loadVariableValues @ savedVariables;
@@ -333,6 +341,9 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
       KeyValueMap[createPackageSymbolsIn, kindToContextToDecls]
     ];
 
+(*     LoadPrint["Restoring values for ", Keys @ savedVariables];
+    loadVariableValues @ savedVariables;
+ *)
     metaSymbolTable = Cases[symbolTable, {"MetaFunction", _, _, _}];
     If[metaSymbolTable =!= {},
       LoadPrint["Attaching enqueing definitions to metafunctions."];
@@ -533,6 +544,7 @@ $KnownSymbolKinds = {
   "GraphicsDirective",
   "GraphicsFunction",
   "GraphicsBoxFunction",
+  "GraphicsPrimitive",
   "Head",
   "ObjectHead",
   "SpecialHead",
@@ -605,20 +617,39 @@ runPackageFileExpr[expr_] := (
 General::coreToolsError = "Error loading file \"``\".";
 loadPackageFile[path_, context_] := Block[
   {$CurrentPackageFile = path, $CurrentPackageExprCount = 0, $priorAliases = $SymbolAliases,
-   $ContextPath = $contextPath, $Context = context, $CurrentPackageExpr = None,
+   $ContextPath = $contextPath, $Context = context, $CurrentPackageExpr = None, $CurrentPackageFileHash = None,
    $CellPrintLabel = trimPath @ path},
   $lazySymbolClearers @ path;
   LoadPrint["Getting ", path];
   catchPackageThrows[
     $SymbolAliasesDirty = False;
     $PackageLoadFileTimings[path] = First @ AbsoluteTiming[
-      Scan[runPackageFileExpr, $codePreprocessor @ ReplaceAll[
-        GetHoldComplete[path],
-        $SymbolAliases
-      ]];
+      Block[{packageExpr},
+        packageExpr = $codePreprocessor @ ReplaceAll[
+          getHoldCompleteCached[path],
+          $SymbolAliases
+        ];
+        $CurrentPackageFileHash := $CurrentPackageFileHash = Hash @ packageExpr;
+        Scan[runPackageFileExpr, packageExpr];
+      ];
     ];
     $lazyQueueEvaluators @ path;
   ];
+];
+
+(*************************************************************************************************)
+
+getHoldCompleteCached[path_] := Module[
+  {lastModTime, content, thisModTime},
+  {lastModTime, content} = Lookup[$PackageFileCache, path, {None, None}];
+  thisModTime = UnixTime @ FileDate @ path;
+  If[content === None || thisModTime =!= lastModTime,
+    content = GetHoldComplete @ path;
+    If[!FailureQ[content],
+      $PackageFileCache[path] = {thisModTime, content};
+    ];
+  ];
+  content
 ];
 
 (*************************************************************************************************)

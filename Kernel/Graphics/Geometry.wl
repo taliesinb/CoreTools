@@ -1,6 +1,11 @@
 SystemExports[
   "Function",
     BezierPoints, CurvePoints, LinePoints,
+    VectorRotate45, VectorRotate45CW,
+    VectorRotate60, VectorRotate60CW,
+    VectorRotate90, VectorRotate90CW,
+    VectorRotate120, VectorRotate120CW,
+    VectorRotate180,
     CosSin, ClockwisePoints, AnticlockwisePoints, SideToRadians,
     LineLength, PointAlongLine, TangentAlongLine,
   "Predicate",
@@ -16,6 +21,23 @@ PackageExports[
   "Variable",
     $SideToRadians
 ];
+
+(*************************************************************************************************)
+
+setupRotFunc[sym_, angle_, cw_] := With[
+  {matrix = RotationMatrix @ (If[cw, angle, -angle] * Degree)},
+  {nmatrix = ToPackedReals @ N @ matrix},
+  sym[vec_List]                          := Dot[vec, matrix];
+  sym[vec_List] /; ArrayQ[vec, _, RealQ] := Dot[ToPackedArray[vec, Real], nmatrix];
+];
+
+setupRotFunc @@@ {
+  {VectorRotate45,  45,  False}, {VectorRotate45CW,   45, True},
+  {VectorRotate60,  60,  False}, {VectorRotate60CW,   60, True},
+  {VectorRotate90,  90,  False}, {VectorRotate90CW,   90, True},
+  {VectorRotate120, 120, False}, {VectorRotate120CW, 120, True},
+  {VectorRotate180, 180, False}
+};
 
 (*************************************************************************************************)
 

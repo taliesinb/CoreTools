@@ -18,7 +18,7 @@ System`ErrorPrint,
 System`LogPrint,
 System`RawPrint,
 System`LabeledPrint,
-System`DebugPrint,
+System`DPrint,
 System`EchoPrint,
 System`WithRawPrintIndent,
 
@@ -60,7 +60,7 @@ WithRawPrintIndent[body_] := Block[{$RawPrintIndent = $RawPrintIndent + 1}, body
 
 (*************************************************************************************************)
 
-SetAttributes[{RawPrint, LogPrint, ErrorPrint, EchoPrint, DebugPrint}, HoldAllComplete];
+SetAttributes[{RawPrint, LogPrint, ErrorPrint, EchoPrint, DPrint}, HoldAllComplete];
 
 (*************************************************************************************************)
 
@@ -73,13 +73,13 @@ $errorPrintOpts = {
 $logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
 $echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
 $echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
-$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+$DPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
 
 RawPrint[args___]   := CustomizedPrint[{}, args];
 LogPrint[args___]   := CustomizedPrint[$logPrintOpts, args];
 ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
 EchoPrint[args___]  := If[$EchoPrinting, CustomizedPrint[$echoPrintOpts, args], $Disabled, $Disabled];
-DebugPrint[args___] := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
+DPrint[args___] := If[$DebugPrinting, CustomizedPrint[$DPrintOpts, args], $Disabled, $Disabled];
 
 (*************************************************************************************************)
 

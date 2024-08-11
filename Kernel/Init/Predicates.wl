@@ -47,7 +47,7 @@ SystemExports[
 
     ListableFunctionQ,
     ContainsQ, ContainsWithinQ, FreeWithinQ, ContainsAssociationQ,
-    HoldFreeQ, HoldContainsQ, HoldFreeWithinQ, HoldContainsWithinQ,
+    HoldFreeQ, HoldContainsQ, HoldArgsFreeQ, HoldArgsContainQ,
     KeysTrue, ValuesTrue, KeysValuesTrue, RuleKeysTrue, RuleValuesTrue, RulesTrue,
     IntegerKeysQ, StringKeysQ, ListKeysQ, AssociationKeysQ, SymbolKeysQ,
     IntegerValuesQ, StringValuesQ, ListValuesQ, AssociationValuesQ, BooleanValuesQ, SymbolValuesQ,
@@ -73,6 +73,7 @@ PackageExports[
     RuleLikeQ, RuleQ, RuleDelayedQ, PackedRealsQ, PackedIntsQ,
     UserSymbolQ,
     AutoNoneQ, NotAutoNoneQ,
+    HoldVFreeQ, HoldVContainsQ,
 
   "MetaFunction",
 
@@ -223,7 +224,9 @@ SetPred1[PosAQ, PosAListQ, PosAListsQ, PosAPairQ];
 
 Pos2Q[{NumP, NumP}] = True;
 Pos3Q[{NumP, NumP, NumP}] = True;
-PosAQ[{NumP, NumP, Optional @ NumP}] = True;
+PosAQ[{NumP, NumP}] = True;
+PosAQ[{NumP, NumP, NumP}] = True;
+PosAQ[{Repeated[_ ? RealValuedNumericQ, {2, 3}]}] := True;
 
 Pos2ListQ[a_List] := MatrixQ[a, RealValuedNumberQ] && Last[Dims @ a] == 2;
 Pos3ListQ[a_List] := MatrixQ[a, RealValuedNumberQ] && Last[Dims @ a] == 3;
@@ -325,6 +328,13 @@ ListValuesQ[assoc_Association]        :=        ListVectorQ @ Values @ assoc;
 AssociationValuesQ[assoc_Association] := AssociationVectorQ @ Values @ assoc;
 BooleanValuesQ[assoc_Association]     :=     BooleanVectorQ @ Values @ assoc;
 SymbolValuesQ[assoc_Association]      :=      SymbolVectorQ @ Values @ assoc;
+
+(*************************************************************************************************)
+
+SetHoldA[HoldVFreeQ, HoldVContainsQ]
+
+HoldVFreeQ[e_, h_]     := VFreeQ[NoEval @ e, NoEval @ h];
+HoldVContainsQ[e_, h_] := VContainsQ[NoEval @ e, NoEval @ h];
 
 (*************************************************************************************************)
 
@@ -650,12 +660,15 @@ DeclareCurry2[FreeWithinQ, ContainsWithinQ]
 FreeWithinQ[e_, p_, n_:2]     :=  FreeQ[e, p, {n, Inf}];
 ContainsWithinQ[e_, p_, n_:2] := !FreeQ[e, p, {n, Inf}];
 
-DeclareHoldFirst[HoldFreeQ, HoldContainsQ, HoldFreeWithinQ, HoldContainsWithinQ]
+DeclareHoldFirst[HoldFreeQ, HoldContainsQ, HoldArgsFreeQ, HoldArgsContainQ]
 
-HoldFreeQ[e_, p_] := FreeQ[NoEval @ e, p];
+HoldFreeQ[e_, p_]     :=  FreeQ[NoEval @ e, p];
 HoldContainsQ[e_, p_] := !FreeQ[NoEval @ e, p]
-HoldFreeWithinQ[e_, p_, n_:2]     :=  FreeQ[NoEval @ e, p, {n, Inf}];
-HoldContainsWithinQ[e_, p_, n_:2] := !FreeQ[NoEval @ e, p, {n, Inf}];
+
+HoldArgsFreeQ[_[a___], p_]    :=  FreeQ[NoEval @ a, p];
+HoldArgsContainQ[_[a___], p_] := !FreeQ[NoEval @ a, p];
+HoldArgsFreeQ[_, _] := True;
+HoldArgsContainQ[_, _] := True;
 
 (**************************************************************************************************)
 
