@@ -12,6 +12,7 @@ SystemExports[
     NDistMatrix, DistMatrix, NSqDistMatrix, SqDistMatrix, MinimumDistance,
     Ones, Zeros, Eye,
     ToRowVector, ToColumnVector,
+    FlatSum, FlatProduct,
   "ControlFlowFunction",
     ArrayTable,
   "SymbolicHead",
@@ -33,6 +34,11 @@ PackageExports[
   "Function",            BDims, LikeB, BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
   "ControlFlowFunction", BSeq, BVal, BSeqN
 ];
+
+(**************************************************************************************************)
+
+FlatSum[e_]     := Total[e, Infinity];
+FlatProduct[e_] := Apply[Times, e, All]
 
 (**************************************************************************************************)
 

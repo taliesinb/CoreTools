@@ -13,10 +13,11 @@ PackageExports[
     FontBox, RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox,
     RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont,
     VeryLargeBox, LargeBox, MediumBox, SmallBox, VerySmallBox, TinyBox,
-    ClickBox, NoClickBox, EventHandlerBox,
+    ClickBox, ClickBoxOp, NoClickBox, EventHandlerBox,
     FlattenStyleBox, BuryStyleBox,
     UnderBraceBox, OverBraceBox, UnderBracketBox, OverBracketBox, UnderParenBox, OverParenBox,
     TextIconBox, NamedTextIconBox,
+    CodeStyleBox,
   "FormHead",
     RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
     DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
@@ -24,8 +25,9 @@ PackageExports[
     Dimmed, LiteralStringForm, LiteralCommaStringForm,
     UnderlinedForm, ItalicForm, SemiBoldForm, BoldForm, PlainForm,
     VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm,
-    ClickForm,
+    ClickForm, ClickFormOp,
     FlattenStyle, BuryStyle,
+    CodeStyle,
   "Operator",
     FormBurrowing, BoxBurrowing,
     StyleOp, StyleBoxOp,
@@ -43,12 +45,17 @@ RBox[args___] := RowBox[{args}];
 
 (**************************************************************************************************)
 
-DeclareHoldRest[ClickBox, ClickForm]
+SetHoldR[ClickBox, ClickForm]
 
 CoreBoxes[ClickForm[expr_, body_]] := ClickBox[MakeBoxes @ expr, body];
 
 ClickBox[box_, body_] := CursorIconBox["LinkHand"] @ EventHandlerBox[{"MouseClicked", 1} :> body] @ box;
 NoClickBox[box_]      := CursorIconBox["Arrow"]    @ EventHandlerBox[{"MouseClicked", 1} :> Null] @ box;
+
+SetHoldF[ClickBoxOp, ClickFormOp]
+
+ClickBoxOp[body_][box_] := ClickBox[box, body];
+ClickFormOp[body_][expr_] := ClickForm[expr, body];
 
 (**************************************************************************************************)
 
@@ -283,6 +290,15 @@ StyleBoxOp[spec___][Nothing] := Nothing;
 StyleBoxOp[spec___][e_] := StyleBox[e, spec];
 
 (**************************************************************************************************)
+
+CoreBoxes[CodeStyle[expr_]] := CodeStyleBox @ DisableCoreBoxFormatting @ MakeBoxes @ expr;
+
+CodeStyleBox[box_, opts___] := StyleBox[box, opts, FontFamily -> "Roboto", AutoSpacing -> False];
+
+(**************************************************************************************************)
+
+DeclaredHere[RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox]
+DeclaredHere[RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont]
 
 (* CoreBoxes[formSym[expr_]] := BuryStyleBox[style] @ MakeBoxes @ expr; *)
 DeclareCurry2[FontBox]

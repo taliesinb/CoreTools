@@ -32,8 +32,21 @@ PackageExports[
     Str, Int, Sym,
 
   "DataHead",
-    Bag, Dict, Assoc, UDict, UAssoc, UAssociation, UnorderedAssociation, RuleD, InternalData,
+    Dict, Assoc, UDict, UAssoc, UAssociation, UnorderedAssociation,
+    RuleD, InternalData,
     DEdge, UEdge,
+    Bag,
+    PackedTree,
+
+  "Function",
+    AbsDelta,
+    ToPackedTree,
+    DimsTree,
+    DimsProd,
+    FlatProd,
+
+  "Function",
+    SplitLengths, Multisets, MultiSubsets, ReplaceSuccessive, SublistPosition,
 
   "ControlFlowFunction",
     Fn, Seq, Then, Eval, NoEval, RuleEval, MaybeEval, FailEval, FastQuietCheck, WithLocalSettings,
@@ -58,11 +71,13 @@ PackageExports[
     ExtNumP, ExtNatP, ExtIntP, ExtPosIntP,
     PosNumP, ExtPosNumP, ColorP, SideP, ExtSideP,
     OnePartSpecP, MultiPartSpecP, ExtPartSpecP,
-    SymP, FormalP, PosDollarP, DollarP,
+    SymP, SymStrP, FormalP, PosDollarP, DollarP,
     SingleP, PairP, ListVecP, AssocVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
-    RuleP, RuleLikeP, DefLikeP, RuleVecP, RuleLikeVecP, RuleSeqP,
-    RuleLikeSymP, DefLikeSymP,
-    AssocLikeP, ListDictP, AssocP,
+    ListDictP, DictLikeP,
+    RuleP,    RuleLP,    ORuleP     SetLP,    DelayP,
+    RuleSeqP, RuleLSeqP, ORuleSeqP, SetLSeqP, DelaySeqP
+    RuleVecP, RuleLVecP, ORuleVecP, SetLVecP, DelayVecP
+    RuleLSymP, SetLSymP, DelaySymP
     EmptyP, NonEmptyP, EmptyDataP, EmptyAssoc, EmptyDict,
     UserSymbolP, InertSymbolP, SystemSymbolP,
     AnonFnP,
@@ -146,15 +161,16 @@ PackageExports[
     PosQ, NegQ, NonPosQ, NonNegQ, NonPosIntQ, NonNegIntQ,
 
     StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, StrHasQ, ASCIIQ,
-    BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ, ExtNumQ,
+    BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ, ExtNumQ, ORuleQ,
 
-    AssocQ, VecQ, AssocVecQ, RuleVecQ, RuleLVecQ,
-    DictVecQ, PairVecQ, ListVecQ, BoolVecQ, SymVecQ, StrVecQ, NatVecQ, IntVecQ, PosIntVecQ, RealVecQ, NumVecQ, ExtNumVecQ,
+    AssocQ, VecQ, AssocVecQ, RuleVecQ, RuleLVecQ, ORuleVecQ, DictLQ,
+    StrOrVecQ, BoolOrVecQ, SymOrVecQ, IntOrVecQ, RuleOrVecQ, RuleLOrVecQ, ORuleOrVecQ,
+    DictVecQ, PairVecQ, ListVecQ, BoolVecQ, SymVecQ, StrVecQ, StrVecQ, NatVecQ, IntVecQ, PosIntVecQ, RealVecQ, NumVecQ, ExtNumVecQ,
     DictMatQ, PairMatQ, ListMatQ, BoolMatQ, SymMatQ, StrMatQ, NatMatQ, IntMatQ, PosIntMatQ, RealMatQ, NumMatQ, ExtNumMatQ,
     PairArrQ, ListArrQ, BoolArrQ, SymArrQ, StrArrQ, NatArrQ, IntArrQ, PosIntArrQ, RealArrQ, NumArrQ, ExtNumArrQ, DictArrQ,
 
-    ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, MaybeFunctionQ, MaybeFnQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
-    SymbolAnyCodesQ, SymbolAnyEvaluationsQ, SymbolDelayedValueQ, SymbolDownCodeQ, SymbolDownEvaluationsQ, SymbolImmediateValueQ, SymbolNoCodesQ, SymbolNoEvaluationsQ, SymbolOwnEvaluationsQ, SymbolPrintCodeQ, SymbolSubCodeQ, SymbolSubEvaluationsQ, SymbolUpCodeQ, SymbolUpEvaluationsQ,
+    ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, HoldMaybeFnQ, MaybeFQ, MaybeFnQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
+    HasAnyCodesQ, HasAnyDefsQ, HasDValueQ, HasDownCodeQ, HasDownDefsQ, HasIValueQ, HasNoCodesQ, HasNoDefsQ, HasOwnDefsQ, HasPrintCodeQ, HasSubCodeQ, HasSubDefsQ, HasUpCodeQ, HasUpDefsQ,
     Base64StringQ, IntegerPartitionQ,
     AssociationVectorQ, ListOrAssociationQ, StringOrStringVectorQ, StringVectorQ,
     UnsafeEmptyQ, NonEmptyQ, NotEmptyQ
@@ -291,6 +307,7 @@ DefinePatternRules[
   ExtPartSpecP   -> (_Integer | _Key | _String | _Span | All | _List) ? ExtPartSpecQ,
   SymP           -> _Symbol ? Developer`HoldSymbolQ,
   FormalP        -> _Symbol ? HoldFormalSymbolQ,
+  SymStrP        -> Alternatives[_Symbol, _String] ? Developer`HoldAtomQ,
   PosDollarP     -> Alternatives[$0, $1, $2, $3, $4, $5, $6, $7, $8, $9],
   DollarP        -> Alternatives[$1, $2, $3, $4, $5, $6, $7, $8, $9],
   AssocP         -> _Association ? Developer`HoldAtomQ,
@@ -396,18 +413,46 @@ DefinePatternRules[
   ExtNumVecP     -> _List ? ExtendedNumberVectorQ
 ];
 
+(**************************************************************************************************)
+
 DefinePatternRules[
-  RuleP          -> _Rule,
-  RuleLikeP      -> Alternatives[_Rule, _RuleDelayed],
-  RuleLikeSymP   -> Alternatives[Rule, RuleDelayed],
-  RuleVecP       -> _List ? RuleVectorQ,
-  RuleLikeVecP   -> {Alternatives[_Rule, _RuleDelayed]...},
-  RuleSeqP       -> Alternatives[__Rule, {__Rule}],
-  DefLikeP       -> Alternatives[_RuleDelayed, _SetDelayed],
-  DefLikeSymP    -> Alternatives[RuleDelayed, SetDelayed],
-  AssocLikeP     -> Alternatives[_Association ? AssociationQ,  {Alternatives[_Rule, _RuleDelayed]...}],
+  DictLikeP      -> Alternatives[_Association ? AssociationQ,  {Alternatives[_Rule, _RuleDelayed]...}],
   ListDictP      -> Alternatives[_List, _Association ? Developer`HoldAtomQ]
 ];
+
+(**************************************************************************************************)
+
+DefinePatternRules[
+    RuleP        -> _Rule,
+   RuleLP        -> Alternatives[_Rule, _RuleDelayed],
+   ORuleP        -> Alternatives[Rule|RuleDelayed][SymStrP, _],
+    SetLP        -> Alternatives[_Set, _SetDelayed],
+   DelayP        -> Alternatives[_RuleDelayed, _SetDelayed, _TagSetDelayed, _UpSetDelayed]
+];
+
+DefinePatternRules[
+   RuleSeqP      -> RuleP...,
+  RuleLSeqP      -> RuleLP...,
+  ORuleSeqP      -> ORuleP...,
+   SetLSeqP      -> SetLP...,
+  DelaySeqP      -> DelayP...
+];
+
+DefinePatternRules[
+   RuleVecP      -> {RuleSeqP},
+  RuleLVecP      -> {RuleLSeqP},
+  ORuleVecP      -> {ORuleSeqP},
+   SetLVecP      -> {SetLSeqP},
+  DelayVecP      -> {DelaySeqP}
+];
+
+DefinePatternRules[
+  RuleLSymP      -> Alternatives[Rule, RuleDelayed],
+   SetLSymP      -> Alternatives[Set, SetDelayed],
+  DelaySymP      -> Alternatives[RuleDelayed, SetDelayed, TagSetDelayed, UpSetDelayed]
+];
+
+(**************************************************************************************************)
 
 DefineAliasRules[
   DictQ                         -> AssociationQ,
@@ -483,7 +528,8 @@ DefineAliasRules[
   NegIntQ                       -> Internal`NegativeIntegerQ,
   NatQ                          -> Internal`NonNegativeIntegerQ,
   NumQ                          -> RealValuedNumberQ,
-  ExtNumQ                       -> ExtendedNumberQ
+  ExtNumQ                       -> ExtendedNumberQ,
+  ORuleQ                        -> OptionRuleQ
 ];
 
 DefineAliasRules[
@@ -491,6 +537,8 @@ DefineAliasRules[
   DictVecQ                      -> Developer`AssociationVectorQ,
   RuleVecQ                      -> RuleVectorQ,
   RuleLVecQ                     -> RuleLikeVectorQ,
+  ORuleVecQ                     -> OptionRuleVectorQ,
+  DictLikeQ                     -> AssociationLikeQ,
   AssocQ                        -> AssociationQ,
   VecQ                          -> VectorQ,
   PairVecQ                      -> PairVectorQ,
@@ -498,13 +546,22 @@ DefineAliasRules[
   BoolVecQ                      -> BooleanVectorQ,
   SymVecQ                       -> SymbolVectorQ,
   StrVecQ                       -> Developer`StringVectorQ,
-  StrOrStrVecQ                  -> Developer`StringOrStringVectorQ,
   NatVecQ                       -> NaturalVectorQ,
   IntVecQ                       -> IntegerVectorQ,
   PosIntVecQ                    -> PositiveIntegerVectorQ,
   RealVecQ                      -> RealVectorQ,
   NumVecQ                       -> NumberVectorQ,
   ExtNumVecQ                    -> ExtendedNumberVectorQ
+];
+
+DefineAliasRules[
+  StrOrVecQ                     -> Developer`StringOrStringVectorQ,
+  BoolOrVecQ                    -> BooleanOrVectorQ,
+  SymOrVecQ                     -> SymbolOrVectorQ,
+  IntOrVecQ                     -> IntegerOrVectorQ,
+  RuleOrVecQ                    -> RuleOrVectorQ,
+  RuleLOrVecQ                   -> RuleLikeOrVectorQ,
+  ORuleOrVecQ                   -> OptionRuleOrVectorQ
 ];
 
 DefineAliasRules[
@@ -623,6 +680,8 @@ DefineAliasRules[
   HashSameQ                     -> Internal`HashSameQ
 ];
 
+(*************************************************************************************************)
+
 (* System`Private` expression predicates *)
 DefineAliasRules[
   ExprEntryQ                    -> System`Private`EntryQ,
@@ -635,29 +694,34 @@ DefineAliasRules[
   HoldExprInvalidQ              -> System`Private`HoldNotValidQ,
   ExprMDataQ                    -> System`Private`MDataQ,
   MightEvaluateQ                -> System`Private`MightEvaluateQ,
-  HoldMaybeFunctionQ            -> System`Private`MightEvaluateWhenAppliedQ,
-  MaybeFnQ                      -> MaybeFunctionQ
+  HoldMaybeFnQ                  -> System`Private`MightEvaluateWhenAppliedQ
 ];
-
-MaybeFunctionQ[f_] := HoldMaybeFunctionQ[f];
 
 (* System`Private` symbol predicates *)
 DefineAliasRules[
-  SymbolAnyCodesQ               -> System`Private`HasAnyCodesQ,
-  SymbolAnyEvaluationsQ         -> System`Private`HasAnyEvaluationsQ,
-  SymbolDelayedValueQ           -> System`Private`HasDelayedValueQ,
-  SymbolDownCodeQ               -> System`Private`HasDownCodeQ,
-  SymbolDownEvaluationsQ        -> System`Private`HasDownEvaluationsQ,
-  SymbolImmediateValueQ         -> System`Private`HasImmediateValueQ,
-  SymbolNoCodesQ                -> System`Private`HasNoCodesQ,
-  SymbolNoEvaluationsQ          -> System`Private`HasNoEvaluationsQ,
-  SymbolOwnEvaluationsQ         -> System`Private`HasOwnEvaluationsQ,
-  SymbolPrintCodeQ              -> System`Private`HasPrintCodeQ,
-  SymbolSubCodeQ                -> System`Private`HasSubCodeQ,
-  SymbolSubEvaluationsQ         -> System`Private`HasSubEvaluationsQ,
-  SymbolUpCodeQ                 -> System`Private`HasUpCodeQ,
-  SymbolUpEvaluationsQ          -> System`Private`HasUpEvaluationsQ
+  HasAnyCodesQ                  -> System`Private`HasAnyCodesQ,
+  HasAnyDefsQ                   -> System`Private`HasAnyEvaluationsQ,
+  HasDownCodeQ                  -> System`Private`HasDownCodeQ,
+  HasDownDefsQ                  -> System`Private`HasDownEvaluationsQ,
+  HasIValueQ                    -> System`Private`HasImmediateValueQ,
+  HasDValueQ                    -> System`Private`HasDelayedValueQ,
+  HasNoCodesQ                   -> System`Private`HasNoCodesQ,
+  HasNoDefsQ                    -> System`Private`HasNoEvaluationsQ,
+  HasOwnDefsQ                   -> System`Private`HasOwnEvaluationsQ,
+  HasPrintCodeQ                 -> System`Private`HasPrintCodeQ,
+  HasSubCodeQ                   -> System`Private`HasSubCodeQ,
+  HasSubDefsQ                   -> System`Private`HasSubEvaluationsQ,
+  HasUpCodeQ                    -> System`Private`HasUpCodeQ,
+  HasUpDefsQ                    -> System`Private`HasUpEvaluationsQ
 ];
+
+MaybeFnQ[f_] := System`Private`MightEvaluateWhenAppliedQ[f];
+
+SetAttributes[HasUsageQ, HoldAllComplete];
+HasUsageQ[s_Symbol ? Developer`HoldAtomQ]  := StringQ[MessageName[s, "usage"]];
+HasUsageQ[_] := False;
+
+(*************************************************************************************************)
 
 DefineAliasRules[
   ContainedSymbols              -> System`Utilities`SymbolList,
@@ -1053,6 +1117,35 @@ DefineAliasRules[
   FastNumericIndices            -> Random`Private`PositionsOf
 ];
 
+(* ToPackedTree: packing of tree into a special expression, not sure how we map elements yet *)
+(* AbsDelta: auto-broadcasts Abs[#1 - #2]& *)
+DefineAliasRules[
+  AbsDelta                      -> NumericalMath`AbsoluteError,
+  PackedTree                    -> NumericalMath`Derivatives`PackedExpression,
+  ToPackedTree                  -> NumericalMath`Derivatives`ToPackedExpression,
+  DimsTree                      -> NumericalMath`Derivatives`RaggedDimensions,
+  DimsProd                      -> NumericalMath`Derivatives`NumberOfElements,
+  FlatProd                      -> FlatProduct
+];
+
+(* Multisets[list, k] or [n, k] *)
+DefineAliasRules[
+  SplitLengths                  -> GroupTheory`Tools`PartitionRagged,
+  Multisets                     -> GroupTheory`Tools`Multisets,
+  MultiSubsets                  -> GroupTheory`Tools`MultiSubsets,
+  ReplaceSuccessive             -> GroupTheory`Tools`ConsecutiveReplace,
+  SublistPosition               -> GroupTheory`Tools`SublistPosition
+];
+
+(* expr stePartitionRagged;
+expr steMultisets;
+expr steMultiSubsets;
+expr steGeneralizedTuples;
+expr steConsecutiveReplace;
+expr steIntegerPartitionCounts;
+expr steSublistPosition;
+
+ *)
 DefineAliasRules[
   ThrowMsg                      -> ThrowErrorMessage,
   ErrorMsg                      -> ErrorMessage,

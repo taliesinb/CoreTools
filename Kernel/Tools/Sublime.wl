@@ -9,8 +9,15 @@ PrivateExports[
   "Function",
     CoreToolsSymbolKinds
   "SpecialVariable",
-    $SublimePackagesPath
+    $SublimePackagesPath,
+    $SublimeKindColors
 ];
+
+(*************************************************************************************************)
+
+$SublimeKindColors := $SublimeKindColors = getSublimeKindColors[];
+
+(* CoreToolsSymbolKinds[]; *)
 
 (*************************************************************************************************)
 

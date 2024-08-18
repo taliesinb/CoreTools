@@ -27,7 +27,7 @@ SystemExports[
   "IOFunction",
     HoldToInputString, ToInputString, FromInputString,
   "Predicate",
-    CharQ, StringStartsEndsQ, UpperCase1Q, LowerCase1Q, PrintableASCIIQ
+    CharQ, StringStartsEndsQ, UpperCase1Q, LowerCase1Q
 ];
 
 PackageExports[
@@ -46,31 +46,8 @@ PackageExports[
 HoldToInputString[e_]   := ToString[NoEval @ e, InputForm];
 ToInputString[e_]       := ToString[e, InputForm];
 
-FromInputString[str_]     := ToExpression[str, InputForm];
+FromInputString[str_]        := ToExpression[str, InputForm];
 FromInputString[str_, head_] := ToExpression[str, InputForm, head];
-
-(**************************************************************************************************)
-
- System`StringPadLeft[list_List] :=  StringPadLeft[list, Automatic];
-System`StringPadRight[list_List] := StringPadRight[list, Automatic];
-
- System`StringPadLeft[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadLeft];
-System`StringPadRight[s_, n_, p_String:Null] := RuleCondition @ strPad[s, n, toPadCodes @ p, PadRight];
-
- s_StringPadLeft := RuleCondition[Message[StringPadLeft::strse, 1, HoldForm[s]]; Fail];
-s_StringPadRight := RuleCondition[Message[StringPadRight::strse, 1, HoldForm[s]]; Fail];
-
-toPadCodes[Null] = 32;
-toPadCodes[p_String] := ToCharCode @ p;
-
-strPad[{}, _, _, _] := {};
-strPad[s_String, n_Integer, p_, fn_] := FromCharCode @ fn[ToCharCode @ s, n, p];
-strPad[strs_List ? StringVectorQ, n_, p_, fn_] := strPadList[strs, n, p, fn];
-_strPad := Fail;
-
-strPadList[strs_, Automatic, p_, fn_] := strPadList[strs, Max @ StrLen @ strs, p, fn];
-strPadList[strs_, n_Integer, p_, fn_] := FromCharCode @ Map[fn[#, n, p]&, ToCharCode @ strs];
-_strPadList := Fail;
 
 (**************************************************************************************************)
 
@@ -304,18 +281,6 @@ strSegment[str2_, patts_List, fn_, off_] := Module[{str = str2, res},
 ];
 
 strSegment[str_, patt_, Null, _] := Replace[StringSplit[str, patt, 2], {_} :> {None, None}];
-
-(**************************************************************************************************)
-
-DeclareListable[PrintableASCIIQ];
-
-PrintableASCIIQ[""] := False;
-PrintableASCIIQ[str_String] := Block[{min, max},
-  {min, max} = MinMax @ ToCharacterCode @ str;
-  min >= 9 && max <= 127
-];
-
-PrintableASCIIQ[_] := False;
 
 (**************************************************************************************************)
 

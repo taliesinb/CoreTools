@@ -7,12 +7,15 @@ PrivateExports[
   "Predicate",    GPrimSymQ, GBoxSymQ,
   "IOFunction",   MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
   "GraphicsBoxFunction", EmptyRectangleBox, EmptyPolygonBox,
+  "MutatingFunction", BlockGStyles,
   "SpecialVariable",
+    $GStyle, $GDim,
     $GPrimFns,
     $GPrimSyms, $GBoxSyms,
     $GPrimToGBoxes, $GPrimToGSigs, $GSigToGPrims, $GSig1ToGPrims,
     $GBoxToGPrim,   $GBoxToGSigs,  $GSigToGBoxes, $GSig1ToGBoxes,
-  "SpecialSymbol",   PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius, PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
+  "SpecialSymbol",
+    PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius, PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
 ];
 
 (**************************************************************************************************)
@@ -37,11 +40,14 @@ EmptyPolygonBox[p_] := Make[JoinedCurveBox,
 
 (**************************************************************************************************)
 
-(*Initially[];*)
-SetInitial[$GPrimFns, UDict[]];
-SetInitial[$GPrimSyms, $GBoxSyms, {}];
-SetSequence[$GPrimToGBoxes, $GPrimToGSigs, $GSigToGPrims, $GSig1ToGPrims, UDict[]];
-SetSequence[$GBoxToGPrim,   $GBoxToGSigs,  $GSigToGBoxes, $GSig1ToGBoxes, UDict[]];
+Initially[
+  $GDim = 2;
+  $GStyle = UDict[];
+  $GPrimFns =  UDict[];
+  $GPrimSyms = $GBoxSyms = {};
+  $GPrimToGBoxes = $GPrimToGSigs = $GSigToGPrims = $GSig1ToGPrims = UDict[];
+  $GBoxToGPrim = $GBoxToGSigs = $GSigToGBoxes = $GSig1ToGBoxes = UDict[];
+];
 
 SetStrict @ DefineGPrim;
 
@@ -49,11 +55,23 @@ DefineGPrim[head_Symbol, signature_, fn_, dims_:{2}] := Then[
   $GPrimFns[head] = fn,
   DefineGPrimSig[signature, head],
   (* declareOptionableHead[head]; *)
-  If[MemberQ[dims, 2], Typeset`MakeBoxes[e_head, StandardForm | TraditionalForm, Graphics]   := MakeCoreGBoxes[e]],
-  If[MemberQ[dims, 3], Typeset`MakeBoxes[e_head, StandardForm | TraditionalForm, Graphics3D] := MakeCoreGBoxes[e]]
+  If[MemberQ[dims, 2], Typeset`MakeBoxes[e_head, StandardForm | TraditionalForm, Graphics]   := MakeCoreGBoxes[e]];
+  If[MemberQ[dims, 3], Typeset`MakeBoxes[e_head, StandardForm | TraditionalForm, Graphics3D] := Block[{$GDim = 3}, MakeCoreGBoxes[e]]];
 ];
 
 SetPred1[GPrimSymQ, GBoxSymQ];
+
+(**************************************************************************************************)
+
+SetHoldR @ BlockGStyle;
+
+BlockGStyle[{} | UDict[] | Dict[], body_] := body;
+BlockGStyle[rules_, body_]                := BlockAssociate[$GStyle, rules, body];
+
+(**************************************************************************************************)
+
+GStyleValue[head_Sym, key_Sym]   := Lookup[$GStyle, key, OptionValue[head, key]];
+GStyleValue[head_Sym, keys_List] := LookupKeys[$GStyle, keys, 1];
 
 (**************************************************************************************************)
 

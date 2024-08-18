@@ -10,7 +10,7 @@ SystemExports[
     EchoArrow,
     EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
   "SpecialVariable",
-    $EchoIndent,
+    $EchoIndent, $EchoLHS,
   "FormHead",
     NicePaster
 ];
@@ -25,6 +25,8 @@ PackageExports[
 ];
 
 (*************************************************************************************************)
+
+Protect[$EchoLHS];
 
 NiceEcho[arg_]    := (printEchoPane @ CoreToolsHold @ arg; arg);
 NiceEcho[args___] := (printEchoPane @ CoreToolsSequence @ args; Construct[Sequence, args]);
@@ -170,7 +172,7 @@ $namesValuesGridOpts = Seq[
 
 AttachEchos[sym_Symbol] := (DownValues[sym] = Map[attachEchoRule, DownValues @ sym];);
 
-attachEchoRule[rule_] /; VContainsQ[rule, $EchoLHS$] := rule;
+attachEchoRule[rule_] /; VContainsQ[rule, $EchoLHS] := rule;
 attachEchoRule[lhs_ :> rhs_] := RuleDelayed[$EchoLHS:lhs, EchoBody[$EchoLHS, rhs]];
 
 (*************************************************************************************************)

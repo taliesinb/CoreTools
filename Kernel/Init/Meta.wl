@@ -28,7 +28,7 @@ PackageExports[
     DeclarationFunctionDefinitions,
 
     SetCurry1, SetCurry2, SetCurry12, SetCurry23, SetCurry13,
-    SetPred1, SetPred2, SetPred3,
+    SetPred1, SetPred2, SetPred3, SetNPred1, SetNPred2, SetNPred3,
     SetHoldF, SetHoldR, SetHoldA, SetHoldC,
     SetStrict, SetFlat, SetListable, SetListable1,
   "Function",
@@ -56,6 +56,9 @@ DefineAliasRules[
   SetPred1     -> DeclarePredicate1,
   SetPred2     -> DeclarePredicate2,
   SetPred3     -> DeclarePredicate3,
+  SetNPred1    -> DeclareNotPredicate1,
+  SetNPred2    -> DeclareNotPredicate2,
+  SetNPred3    -> DeclareNotPredicate3,
   SetHoldF     -> DeclareHoldFirst,
   SetHoldR     -> DeclareHoldRest,
   SetHoldA     -> DeclareHoldAll,

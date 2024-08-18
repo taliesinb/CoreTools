@@ -37,7 +37,7 @@ ToAltPattern[_]         := $Failed;
 
 ToLHSPattern[lhs_Rule]          := RemovePatternSymbols @ First[lhs];
 ToLHSPattern[lhs_RuleDelayed]   := RemovePatternSymbols @ Extract[lhs, 1, HoldP];
-ToLHSPattern[list:RuleLikeVecP] := ToAltPattern @ RemovePatternSymbols @ Map[ToLHSPattern, list];
+ToLHSPattern[list:RuleLVecP]    := ToAltPattern @ RemovePatternSymbols @ Map[ToLHSPattern, list];
 ToLHSPattern[lhs:Assoc]         := ToLHSPattern @ Normal @ lhs;
 ToLHSPattern[_]                 := $Failed;
 

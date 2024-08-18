@@ -31,13 +31,13 @@ makeFSF[assoc_, set_] := ConstructNoEntryExpr[
 
 evalDF[DiscreteFunction[fwd_, bwd_, _], x_] := Lookup[fwd, Key @ x, Indeterminate];
 
-ImageFunction[HoldP @ DiscreteFunction[fwd_, bwd_, _]][x_List] := Lookup[fwd, x, Indeterminate];
+   ImageFunction[HoldP @ DiscreteFunction[fwd_, bwd_, _]][x_List] := Lookup[fwd, x, Indeterminate];
 PreimageFunction[HoldP @ DiscreteFunction[fwd_, bwd_, _]][x_List] := Catenate @ Lookup[bwd, x, Indeterminate];
 
 UniqueInverse[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := makeFSF[First /@ Select[bwd, SingleQ], Auto];
-InjectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := AllTrue[bwd, SingleQ];
-SurjectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := SameLengthQ[fwd, set];
-BijectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := SameLengthQ[fwd, set] && AllTrue[bwd, SingleQ];
+   InjectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := AllTrue[bwd, SingleQ];
+  SurjectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := SameLengthQ[fwd, set];
+   BijectiveQ[HoldP @ DiscreteFunction[fwd_, bwd_, set_]] := SameLengthQ[fwd, set] && AllTrue[bwd, SingleQ];
 
 (* util function to express a DF as a surjection then injection *)
 (*
@@ -114,9 +114,9 @@ constructFSF[StochasticFunction[ispec_, weights_, ospec_]] := Locals @ CatchErro
     ListQ[ispec],
       If[Len[ispec] =!= numRows, ThrowErrorMessage["rowMismatch", numRows, Len[ispec]]];
       UAssocRange @ ispec,
-    AutoQ[ispec],          Id,
-    MaybeFunctionQ[ispec], Id,
-    True,                  ThrowErrorMessage["badInputSpec", ispec]
+    AutoQ[ispec],     Id,
+    MaybeFnQ[ispec],  Id,
+    True,             ThrowErrorMessage["badInputSpec", ispec]
   ];
   outputs = Which[
     ListQ[ospec],

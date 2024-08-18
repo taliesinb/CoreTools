@@ -141,8 +141,8 @@ toSeedTree = CaseOf[
 
 toTreeSeedFn = CaseOf[
   dict_Dict           := KeyMapValueMap[toSeedTree, toSeedTree, dict];
-  rule:RuleLikeP      := $ @ List @ rule;
-  rules:RuleLikeVecP  := KeyMapValueMap[toTreePattern, expr];
+  rule:RuleLP         := $ @ List @ rule;
+  rules:RuleLVecP     := KeyMapValueMap[toTreePattern, expr];
   fn_                 := treeSeedFn @ fn
 ];
 

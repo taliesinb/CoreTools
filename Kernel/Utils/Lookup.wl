@@ -23,41 +23,72 @@ PackageExports[
 
 (*************************************************************************************************)
 
-DeclareStrict[OptionKeys, OptionKeyQ]
+SetStrict[OptionKeys, OptionKeyQ]
+
+OptionKeys::usage = "OptionKeys[sym$] yields the keys of Options[sym$]."
+OptionKeyQ::usage = "OptionKeyQ[sym$, key$] gives True if key$ is an option name of sym$."
 
 OptionKeys[sym_Sym] := Keys @ Options @ sym;
 OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
 
 (*************************************************************************************************)
 
-DeclareStrict[OptionValueRules, OptionValueList]
+SetStrict[OptionValueRules, OptionValueList]
+
+OptionValueRules::usage =
+"OptionValueRules[sym$, options$$] yields a list of rules by mering options for sym$ with explicit \
+options.
+* keys in options$$ override the defaults for sym$.
+* see OptionValueList."
 
 (* TODO: head_Symbol -> inheritList *)
 OptionValueRules[head_Symbol, rules___] :=
-  DeleteDuplicatesBy[ToList[rules, Options @ head], First];
+  JoinOptions[rules, Options @ head];
+
+
+OptionValueList::usage =
+"OptionValueList[sym$, options$$] yields the values for options of sym$ in their natural order.
+* values are obtained from options$$, but defaults come from Options[sym$].
+* see OptionValueRules."
 
 OptionValueList[head_Symbol, rules___] :=
-  OptionValue[head, FlatList @ rules, OptionKeys @ head];
+  OptionValue[head, ToRules @ rules, OptionKeys @ head];
 
 (*************************************************************************************************)
 
-DeclareStrict @ JoinOptions;
+SetStrict @ JoinOptions;
 
-JoinOptions[args___List] := DeleteDuplicatesBy[Join[args], First];
+JoinOptions::usage =
+"JoinOptions[opts$$] joins together multiple lists of option lists or single rules."
+
+JoinOptions[args___] := DeleteDuplicatesBy[ToList[args], First];
 
 (*************************************************************************************************)
 
-DeclareCurry2[TakeOptions];
+SetCurry2 @ TakeOptions;
+
+TakeOptions::usage =
+"TakeOptions[sym$, ref$] yields a Sequence of those options of sym$ that match an option for ref$.
+TakeOptions[{opts$$}, ref$] does the same for explicit options.
+* use NarrowOption[$$] to do this within a function application."
 
 TakeOptions[sym_Sym,   ref_Sym]  := TakeOptions[Options @ sym, ref];
 TakeOptions[opts_List, ref_Sym]  := Seq @@ FilterRules[Flatten @ {opts}, Options @ ref];
+
+TakeOptions::usage =
+"NarrowOptions[opts$$] yields a Sequence of options that are appropriate for an external function \
+application."
 
 NarrowOptions /: sym_[l___, NarrowOptions[m__], r___] := sym[l, TakeOptions[{m}, sym], r];
 NarrowOptions[] := Sequence[];
 
 (*************************************************************************************************)
 
-DeclareCurry1[MissingApply];
+SetCurry1 @ MissingApply;
+
+MissingApply::usage =
+"MissingApply[fn$, expr$] replaces a missing key with fn$[key$] at outer level or level 1, and \
+otherwise has no effect."
 
 MissingApply[fn_, e_] := e;
 MissingApply[fn_, Missing[_, k_]] := fn[k];
@@ -66,11 +97,17 @@ MissingApply[fn_, e_List] := VectorReplace[e, Missing[_, k_] :> fn[k]];
 
 (*************************************************************************************************)
 
-DeclareStrict[LookupKeys]
+SetStrict @ LookupKeys;
 
-LookupKeys[assoc:AssocLikeP, keys_List, fn_] := MissingApply[fn, Lookup[assoc, keys]];
+LookupKeys::usage =
+"LookupKeys[dict$, keys$, fn$] looks up a list of keys$, evaluating fn$[key$] for missing keys."
+
+LookupKeys[assoc:RuleDictP, keys_List, fn_] := MissingApply[fn, Lookup[assoc, keys]];
 
 (*************************************************************************************************)
+
+KeyAbsentFn::usage =
+"KeyAbsentFn[key$] returns Missing['KeyAbsent', key$]."
 
 KeyAbsentFn[key_] := Missing["KeyAbsent", key];
 
@@ -81,46 +118,49 @@ ChainedRules::usage =
 ChainedRules[$$][key$] performs a lookup of key$.
 ChainedRules[$$][{key$1, key$2, $$}] performs a lookup of all keys
 * a MissingFn[fn$] is also a valid object.
-* lookup is performed by ChainedLookup[{obj$1, obj$2, $$}, keys].
-";
+* lookup is performed by ChainedLookup[{obj$1, obj$2, $$}, keys].";
 
-a_ChainedRules[key_] := ChainedLookup[a, key];
+a_ChainedRules[key_]     := ChainedLookup[a, key];
 a_ChainedRules[key_List] := ChainedLookup[a, key];
 
 (*************************************************************************************************)
 
 ChainedLookup::usage =
-"ChainedLookup[objs$, key$] looks up key in each obj$ until a value is found.
+"ChainedLookup[{obj$1, obj$2, $$}, key$] looks up key in each successive obj$i until a value is found.
 ChainedLookup[objs$, {key$1, key$2, $$}] looks up multiple keys.
 ChainedLookup[$$, fn$] applies fn$[key$] to obtain values for keys not present in any object.
 * each obj$ can be an association, list of rules, a ChainedRules object.
 * values that are present but are Missing will also be chained.
-* the final object can be a Function that will be applied to missing keys.
-"
+* the final object can be a Function that will be applied to missing keys."
 
-DeclareStrict[ChainedLookup]
+SetStrict @ ChainedLookup;
 
-ChainedLookup[cr_ChainedRules, args__] := chainLookup[List @@ cr, args];
-ChainedLookup[objs_List, keys_] := chainLookup[objs, keys];
-ChainedLookup[objs_List, keys_, fn_] := chainLookup[Append[objs, Fn[z, fn[z]]], keys];
+ChainedLookup[cr_ChainedRules, args__] := chainLookup0[List @@ cr, args];
+ChainedLookup[objs_List, keys_]        := chainLookup0[objs, keys];
+ChainedLookup[objs_List, keys_, fn_]   := chainLookup0[Append[objs, Fn[z, fn[z]]], keys];
 
-chainLookup[objs_, keys_List]     := Apply[chainLookupN, objs][keys];
-chainLookupN[obj_, rest__][keys_] := MissingApply[chainLookup1[rest], Lookup[obj, keys]];
-chainLookupN[obj_Fn][keys_]       := Map[obj, keys];
-chainLookupN[obj_][keys_]         := Lookup[obj, keys];
+chainLookup0[objs_, keys_List]         := Apply[chainLookupN, objs][keys];
+chainLookupN[obj_, rest__][keys_]      := MissingApply[chainLookup1[rest], Lookup[obj, keys]];
+chainLookupN[obj_Fn][keys_]            := Map[obj, keys];
+chainLookupN[obj_][keys_]              := Lookup[obj, keys];
 
-chainLookup[objs_, Key[key_] | key_] := Apply[chainLookup1, objs][key]
-chainLookup1[obj_, rest__][key_]     := SubMissing[obj[key], chainLookup1[rest][key]];
-chainLookup1[obj_Fn][key_]           := obj[key];
-chainLookup1[obj_][key_]             := Lookup[obj, Key @ key];
+chainLookup0[objs_, Key[key_] | key_]  := Apply[chainLookup1, objs][key]
+chainLookup1[obj_, rest__][key_]       := SubMissing[obj[key], chainLookup1[rest][key]];
+chainLookup1[obj_Fn][key_]             := obj[key];
+chainLookup1[obj_][key_]               := Lookup[obj, Key @ key];
 
 (*************************************************************************************************)
 
-OptionRules[_[___, r:RuleLikeP...]] := {r};
+OptionRules::usage = "OptionRules[head$[$$, options$$]] yields {options$$}."
+
+OptionRules[_[___, r:RuleLP...]] := {r};
 OptionRules[_] := $Failed;
 
-DeclareHoldAllComplete[HoldOptionRules];
-HoldOptionRules[_[___, r:RuleLikeP...]] := HoldComplete[r];
+HoldOptionRules::usage = "HoldOptionRules[head$[$$, options$$]] yields HoldComplete[options$$]."
+
+SetHoldC @ HoldOptionRules;
+
+HoldOptionRules[_[___, r:RuleLP...]] := HoldComplete[r];
 HoldOptionRules[_] := $Failed;
 
 (*************************************************************************************************)
@@ -132,7 +172,8 @@ OptionKey[$$][obj$] will find the key in the obj$ if present and return its valu
 * the lookup is performed by LookupOptions.
 ";
 
-DeclareHoldRest[OptionKey];
+SetHoldR @ OptionKey;
+
 OptionKey[key_][expr_]       := LookupOptions[expr, key];
 OptionKey[key_, def_][expr_] := LookupOptions[expr, key, def&];
 
@@ -155,11 +196,7 @@ LookupOptions[graph_Graph, key_, fn_:DefaultOptionValueFn[Graph]] :=
 
 LookupOptions[expr_, key_, fn_:KeyAbsentFn] := lookupOpts[expr, key, fn];
 
-DeclareHoldFirst[HoldLookupOptions];
-
-HoldLookupOptions[expr_, key_, fn_:KeyAbsentFn] := lookupOpts[expr, key, fn];
-
-DeclareHoldAllComplete[lookupOpts, lookupOptKey];
+SetHoldC[lookupOpts, lookupOptKey];
 
 (* TODO: extract the rule sequence part to save multiple traversals *)
 lookupOpts[expr_, keys_List, fn_] := Map[key |-> lookupOptKey[expr, key, fn], keys];
@@ -176,6 +213,14 @@ lookupExprKey1[expr_, key_, fn_] :=
 
 lookupOptKey[expr_ ? HAtomQ, _, _] := ErrorMsg[LookupOptions::notCompoundExpression, HoldForm @ expr];
 LookupOptions::notCompoundExpression = "Expression `` was not a compound expression or association."
+
+(*************************************************************************************************)
+
+SetHoldF @ HoldLookupOptions;
+
+HoldLookupOptions::usage = "HoldLookupOptions[expr$, $$] is like LookupOptions but does not evaluate exrp$."
+
+HoldLookupOptions[expr_, key_, fn_:KeyAbsentFn] := lookupOpts[expr, key, fn];
 
 (*************************************************************************************************)
 

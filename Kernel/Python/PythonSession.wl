@@ -149,7 +149,7 @@ PythonRestart[] := Module[{path},
   path = If[StrQ @ $PythonPath, $PythonPath <> ":" <> DataPath["Python"]];
   DPrint["Initializing $PythonSession with ", path];
   SetEnvironment["PYTHONPATH" -> path];
-  If[SymbolImmediateValueQ[$PythonSession], Quiet @ DeleteObject[$PythonSession]];
+  If[HasIValueQ[$PythonSession], Quiet @ DeleteObject[$PythonSession]];
   $TorchInitialized = False;
   $PythonSession = StartExternalSession[
     addBestEval @ $PythonSessionParameters

@@ -250,10 +250,8 @@ EnsureNiceMessage[res_] := res;
 
 (**************************************************************************************************)
 
-DeclareCurry1[Comap, Bimap, MaybeMap, MapFlip]
-
-Comap[fns_, arg_] := Map[fn |-> fn[arg], fns];
-Comap[fns_, arg_, level_] := Map[fn |-> fn[arg], fns, level];
+(* goes along with Comap *)
+DeclareCurry1[Bimap, MaybeMap, MapFlip]
 
 Bimap[f_, a_, b__] := EnsureNiceMessage @ MapThread[Construct, {f, a, b}];
 Bimap[f_, a_]      := EnsureNiceMessage @ MapThread[Construct, {f, a}];

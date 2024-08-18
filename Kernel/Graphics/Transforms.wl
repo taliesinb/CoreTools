@@ -36,7 +36,7 @@ GeometricTransformPrimitives[g_, {m:PosAListP, t:PosAP}] :=
 GeometricTransformPrimitives[g_, m:PosAListP] :=
   AffineTransformPrimitives[g, m, None];
 
-GeometricTransformPrimitives[g_, fn_ ? MaybeFunctionQ] :=
+GeometricTransformPrimitives[g_, fn_ ? MaybeFnQ] :=
   MapGPrimCoords[onCoords[fn], g];
 
 onCoords[fn_][e_ ? PosAListsQ] := Map[fn, e];
