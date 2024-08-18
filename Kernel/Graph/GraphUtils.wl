@@ -25,7 +25,7 @@ PackageExports[
 
 PrefixEdges[vertices_] := Locals[
   verts = stripAnnos /@ vertices;
-  $verts = ConstUAssoc[verts, True];
+  $verts = TrueDict @ verts;
   makeFirstParentEdge /@ verts
 ];
 
@@ -109,7 +109,7 @@ edgeDictI[graph_] := Merge[ReverseRules @ EdgeRules @ graph, Id];
 edgeDictO[graph_] := Merge[EdgeRules @ graph, Id];
 
 padWithEmpty[dict_, g_] /; Len[dict] == VertexCount[g] := g;
-padWithEmpty[dict_, g_] := Join[ConstUAssoc[VertexList @ g, {}], dict];
+padWithEmpty[dict_, g_] := Join[ConstUDict[VertexList @ g, {}], dict];
 
 DeclareStrict[IndexVertexInLists, IndexVertexOutLists]
 
@@ -188,10 +188,10 @@ the vertex data is sent according to the edges of the graph.
   * EdgeLabelFunction -> fe$ shows the data on flowing along each edge."
 
 GraphFold[g_Graph, fn_, vdata_, n_Int] :=
-  CatchError @ genericGraphFold[g, fn, vdata, n, True];
+  CatchMessages @ genericGraphFold[g, fn, vdata, n, True];
 
 GraphFoldList[g_Graph, fn_, vdata_, n_Int] :=
-  CatchError @ Flip @ genericGraphFold[g, fn, vdata, n, False];
+  CatchMessages @ Flip @ genericGraphFold[g, fn, vdata, n, False];
 
 General::graphFoldMessages = "Messages occurred during ``'th iteration."
 

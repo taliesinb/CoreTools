@@ -45,17 +45,22 @@ RBox[args___] := RowBox[{args}];
 
 (**************************************************************************************************)
 
+NoClickBox[box_] := CursorIconBox["Arrow"]  @ EventHandlerBox[{"MouseClicked", _} :> Null] @ box;
+
 SetHoldR[ClickBox, ClickForm]
 
 CoreBoxes[ClickForm[expr_, body_]] := ClickBox[MakeBoxes @ expr, body];
+CoreBoxes[ClickForm[expr_, body1_, body2_]] := ClickBox[MakeBoxes @ expr, body1, body2];
 
 ClickBox[box_, body_] := CursorIconBox["LinkHand"] @ EventHandlerBox[{"MouseClicked", 1} :> body] @ box;
-NoClickBox[box_]      := CursorIconBox["Arrow"]    @ EventHandlerBox[{"MouseClicked", 1} :> Null] @ box;
+ClickBox[box_, body1_, body2_] := CursorIconBox["LinkHand"] @ EventHandlerBox[{{"MouseClicked", 1} :> body1, {"MouseClicked", 2} :> body2}] @ box;
 
-SetHoldF[ClickBoxOp, ClickFormOp]
+SetHoldA[ClickBoxOp, ClickFormOp]
 
-ClickBoxOp[body_][box_] := ClickBox[box, body];
-ClickFormOp[body_][expr_] := ClickForm[expr, body];
+ClickBoxOp[body_][box_]             := ClickBox[box, body];
+ClickBoxOp[body1_, body2_][box_]    := ClickBox[box, body1, body2];
+ClickFormOp[body_][expr_]           := ClickForm[expr, body];
+ClickFormOp[body1_, body2_][expr_]  := ClickForm[expr, body1, body2];
 
 (**************************************************************************************************)
 
@@ -291,9 +296,9 @@ StyleBoxOp[spec___][e_] := StyleBox[e, spec];
 
 (**************************************************************************************************)
 
-CoreBoxes[CodeStyle[expr_]] := CodeStyleBox @ DisableCoreBoxFormatting @ MakeBoxes @ expr;
+CoreBoxes[CodeStyle[expr_, opts___Rule]] := CodeStyleBox[DisableCoreBoxFormatting @ MakeBoxes @ expr, opts];
 
-CodeStyleBox[box_, opts___] := StyleBox[box, opts, FontFamily -> "Roboto", AutoSpacing -> False];
+CodeStyleBox[box_, opts___] := StyleBox[box, opts, FontFamily -> "Source Code Pro", AutoSpacing -> False];
 
 (**************************************************************************************************)
 

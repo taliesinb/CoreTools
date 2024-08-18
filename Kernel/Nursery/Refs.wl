@@ -20,7 +20,7 @@ PackageExports[
 
 PrivateExports[
   "BoxFunction",
-  MakeRefBoxes
+  makeRefBoxes
 ];
 
 (**************************************************************************************************)
@@ -51,9 +51,9 @@ PutRefVal::badArguments = "Incorrect PutRef: ``.";
 
 (**************************************************************************************************)
 
-CoreBoxes[ref_Ref ? ExprNoEntryQ] := MakeRefBoxes[ref];
+CoreBoxes[ref_Ref ? ExprNoEntryQ] := makeRefBoxes[ref];
 
-MakeRefBoxes[ref_] := If[!$UseCoreBoxFormatting,
+makeRefBoxes[ref_] := If[!$UseCoreBoxFormatting,
   FnBracketBoxOp["Ref"][hashBoxes @ ref],
   NiceTooltipBox[
     ClickBox[circleBox @ ref, printRefCell @ ref],
@@ -125,7 +125,7 @@ FindRefDepths[expr_] := internalScanRefs[Hold, expr];
 (**************************************************************************************************)
 
 internalScanRefs[fn_, expr_, root_] := Module[
-  {visitDepth = Assoc[], parent = root, visit, value, depth = 0, depth2},
+  {visitDepth = Dict[], parent = root, visit, value, depth = 0, depth2},
   visit = Function[
     If[ExprEntryQ[#1] || IntQ[Lookup[visitDepth, #1]],
       fn[#1, RefVisited, parent, depth]

@@ -67,7 +67,7 @@ applyGroupSpecs[assignOpt_Sym, settingsOpt_Sym, itemSpecs_] := Locals[
   DPrint["Parsing group specs"];
   If[MatchQ[assignSpec, noneOrEmptyP] || MatchQ[settingsSpec, noneOrEmptyP], Return[]];
   settingsDict = Dict[settingsSpec];
-  If[!DictQ[settingsDict], ThrowOptionError[settingsOpt, settingsDict]];
+  If[!DictQ[settingsDict], ThrowOptionMsg[settingsOpt, settingsDict]];
   $specKeys = Col1 @ itemSpecs; $specInd = DictThread[$specKeys, itemSpecs];
   AssociateTo[$ispecOpts, assignOpt -> assignSpec];
   assignItemSpec = ItemSpec[assignOpt, groupAssignmentQ, {}, ToList, UseBroadcast -> False];
@@ -196,7 +196,7 @@ General::missingItemDataKey = "No key `` present in provided item data.";
 
 (* TODO: Validated[...] head, i can use above in RuleLVecQ to avoid resolving the scalarResult twice *)
 finalCheck[test_, final_][value_] :=
-  If[test[value], final[value], ThrowOptionError[$ispecKey, value]];
+  If[test[value], final[value], ThrowOptionMsg[$ispecKey, value]];
 
 (**************************************************************************************************)
 

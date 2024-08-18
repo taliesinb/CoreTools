@@ -36,10 +36,12 @@ $emptyBounds = {{-$eps, $eps}, {-$eps, $eps}};
 (* This would be better called EnlargeRange, becuase it expects a PlotRange spec.
 the scaled variant matches what CoordinateBounds[..., Scaled[...]] would do
 *)
-EnlargeRange[range_, Scaled[p_]] := EnlargeRange[range, p * (Dist @@@ range)];
-EnlargeRange[range_, pad_ ? NumMatQ] := range + {{-1, 1}, {-1, 1}} * pad;
-EnlargeRange[range_, {h:NumP, v:NumP}] := range + {{-1, 1} * h, {-1, 1} * v};
-EnlargeRange[range_, n:NumP] := range + {{-1, 1}, {-1, 1}} * n;
+EnlargeRange = CaseOf[
+  $[range_, Scaled[p_]]       := $[range, p * (Dist @@@ range)];
+  $[range_, pad_ ? NumMatQ]   := range + {{-1, 1}, {-1, 1}} * pad;
+  $[range_, {h:NumP, v:NumP}] := range + {{-1, 1} * h, {-1, 1} * v};
+  $[range_, n:NumP]           := range + {{-1, 1}, {-1, 1}} * n;
+];
 
 (**************************************************************************************************)
 
@@ -49,42 +51,41 @@ boxPattern[str_] := ToAltPattern @ GSigToGBoxes[str];
 
 (* TODO: make this work in 3D, handle radii that are specified as Offset *)
 setupGPrimBoundDefs[] := With[{
-  $prims       = boxPattern["Pos"],
-  $pos         = boxPattern["Pos!Radius"],
-  $posPos      = boxPattern["Pos,Pos"],
-  $posRad      = boxPattern["Pos,Radius"],
-  $posList     = boxPattern["PosList!Radius"],
-  $posListRad  = boxPattern["PosList,Radius"],
-  $posLists    = boxPattern["PosLists!Radius"],
-  $posListsRad = boxPattern["PosLists,Radius"],
-  $dirP        = _Directive | _APointSize | Rule[FontSize | FontWeight | FontFamily | FontSlant | FontTracking, _],
-  $curvesP     = JoinedCurveBox|FilledCurveBox,
-  $insetP      = _TextBox | _Text3DBox | _InsetBox | _Inset3DBox},
+  prims       = boxPattern["Pos"],
+  pos         = boxPattern["Pos!Radius"],
+  posPos      = boxPattern["Pos,Pos"],
+  posRad      = boxPattern["Pos,Radius"],
+  posList     = boxPattern["PosList!Radius"],
+  posListRad  = boxPattern["PosList,Radius"],
+  posLists    = boxPattern["PosLists!Radius"],
+  posListsRad = boxPattern["PosLists,Radius"],
+  directive   = _Directive | _APointSize | Rule[FontSize | FontWeight | FontFamily | FontSlant | FontTracking, _],
+  curves      = JoinedCurveBox|FilledCurveBox,
+  inset       = _TextBox | _Text3DBox | _InsetBox | _Inset3DBox,
+  $ = boxBound},
 
-  Clear[boxBound]; With[{$ = boxBound},
+  Clear[boxBound];
 
-  $[PointBox[p_]]   /; $gs =!= None         := $ @ Make[DiskBox, p, $aps / $gs];
-  $[Point3DBox[p_]] /; $gs =!= None         := $ @ Make[SphereBox, p, $aps / $gs];
-  $[TagBox[_, "PlaneInset"|"NoBounds"]]     := Null; (* PlaneInset is meant to appear as a billboard *)
-  $[ib:$insetP]                             := insetBounds @ ib;
-  $[$prims[p_, ___]]                        := $ @ p;
-  $[$pos[v:PosAP]]                          := StuffBag[$p, $t @ v];
-  $[$posPos[v:PosAP, w:PosAP, ___]]         := StuffBag[$p, $t /@ {v, w}, 1];
-  $[$posRad[v:PosAP, r_:1, ___]]            := StuffBag[$p, $t @ vecBall[v, r]];
-  $[PolygonBox[Rule[m:PosAListP, _], ___]]  := StuffBag[$p, $t @ m, 1];
-  $[$posList[m:PosAListP, ___]]             := StuffBag[$p, $t @ m, 1];
-  $[$posListRad [m:PosAListP,   r_:1, ___]] := StuffBag[$p, $t @ matBall[m, r], 1];
-  $[$posLists   [ms:PosAListsP, ___]]       := StuffBag[$p, $t /@ ms, 2];
-  $[$posListsRad[ms:PosAListsP, r_:1, ___]] := StuffBag[$p, $t[matBall[#, r]& /@ ms], 2];
-  $[list_List]                              := styleBlock @ Scan[$, list];
-  $[d:$dirP]                                := applyDir[d];
-  $[StyleBox[p_, opts___]]                  := styleBlock[Scan[applyDir, {opts}]; $ @ p];
-  $[$curvesP[curves_List, ___]]             := multiCurveBound[curves];
-  $[GeometricTransformationBox[p_, t_]]     := transBoxBound[p, t];
-  (* $[e_]                                  := Message[PrimitiveBoxesRange::unrecogBox, e]; *)
-  $[_]                                      := Null;
-
-  ];
+  $[PointBox[p_]]   /; $gs =!= None        := $ @ Make[DiskBox, p, $aps / $gs];
+  $[Point3DBox[p_]] /; $gs =!= None        := $ @ Make[SphereBox, p, $aps / $gs];
+  $[TagBox[_, "PlaneInset"|"NoBounds"]]    := Null; (* PlaneInset is meant to appear as a billboard *)
+  $[ib:inset]                              := insetBounds @ ib;
+  $[prims[p_, ___]]                        := $ @ p;
+  $[pos[v:PosAP]]                          := StuffBag[$p, $t @ v];
+  $[posPos[v:PosAP, w:PosAP, ___]]         := StuffBag[$p, $t /@ {v, w}, 1];
+  $[posRad[v:PosAP, r_:1, ___]]            := StuffBag[$p, $t @ vecBall[v, r]];
+  $[PolygonBox[Rule[m:PosAListP, _], ___]] := StuffBag[$p, $t @ m, 1];
+  $[posList[m:PosAListP, ___]]             := StuffBag[$p, $t @ m, 1];
+  $[posListRad [m:PosAListP,   r_:1, ___]] := StuffBag[$p, $t @ matBall[m, r], 1];
+  $[posLists   [ms:PosAListsP, ___]]       := StuffBag[$p, $t /@ ms, 2];
+  $[posListsRad[ms:PosAListsP, r_:1, ___]] := StuffBag[$p, $t[matBall[#, r]& /@ ms], 2];
+  $[list_List]                             := styleBlock @ Scan[$, list];
+  $[d:directive]                           := applyDir @ d;
+  $[StyleBox[p_, opts___]]                 := styleBlock[Scan[applyDir, {opts}]; $ @ p];
+  $[curves[c_List, ___]]                   := multiCurveBound @ c;
+  $[GeometricTransformationBox[p_, t_]]    := transBoxBound[p, t];
+  (* $[e_]                                 := Message[PrimitiveBoxesRange::unrecogBox, e]; *)
+  $[_]                                     := Null;
 
   Clear[setupGPrimBoundDefs];
 ];
@@ -116,10 +117,10 @@ multiCurveBound[curves_] := boxBound @ ToGraphicsBoxes @ curves;
 (**************************************************************************************************)
 
 transBoxBound = CaseOf[
-  Seq[p_, v:PosAP]           := applyTrans[p, ThreadPlusOp[v]];
-  Seq[p_, m:PosAListP]           := applyTrans[p, AffineOp[m]];
+  Seq[p_, v:PosAP]                := applyTrans[p, ThreadPlusOp[v]];
+  Seq[p_, m:PosAListP]            := applyTrans[p, AffineOp[m]];
   Seq[p_, {m:PosAListP, v:PosAP}] := applyTrans[p, AffineOp[m, v]];
-  Seq[p_, {m:PosAListP, Center}] := With[
+  Seq[p_, {m:PosAListP, Center}]  := With[
     {v = N[Mean /@ gBoxesRange[p]]},
     applyTrans[p, ThreadPlusOp[-v] /* AffineOp[m] /* ThreadPlusOp[v]]
   ];
@@ -138,8 +139,8 @@ SetCached[$circ8, ToPackedReals @ N @ ClockwisePoints[8]];
 SetCached[$sphere26, Normalize /@ DelCases[{0.,0.,0.}] @ Tuples[N @ {-1, 0, 1}, 3]];
 
 vecBall[v:{_, _, _}, r_] := Threaded[v] + r * $sphere26;
-vecBall[v:{_, _}, r_] := Threaded[v] + r * $circ8;
-matBall[m_, r_] := vecBall[#, r]& /@ m;
+vecBall[v:{_, _}, r_]    := Threaded[v] + r * $circ8;
+matBall[m_, r_]          := vecBall[#, r]& /@ m;
 
 (**************************************************************************************************)
 

@@ -3,6 +3,7 @@ BeginPackage["Prelude`Sublime`"]
 System`PackageExports[
 "IOFunction",
 System`SublimeOpen,
+System`SublimeSeek,
 System`SublimeRun,
 
 "Head",
@@ -54,6 +55,36 @@ SublimeOpen[spec_, OptionsPattern[]] := Block[
   If[project === Automatic, project = findProjFile0 @ $lastSubPath];
   opts = Which[StringQ[project], {"--project", project}, newWindow, "-n", True, {}];
   SublimeRun[arg, opts]
+];
+
+(*************************************************************************************************)
+
+SublimeSeek[path_String, tcount_Integer] := Block[
+  {stream, pos1 = 1, pos2 = 1, count = 0, expr, chars1, chars2, $Context = "DummyContext`", $ContextPath = {"DummyContext`"}},
+  stream = OpenRead[path];
+  Off[General::shdw];
+  While[count < tcount,
+    pos1 = pos2;
+    expr = Read[stream, HoldComplete @ Expression];
+    pos2 = StreamPosition[stream];
+    If[expr =!= HoldComplete[Null], count += 1];
+    If[expr === $Failed, Break[]];
+    If[expr === EndOfFile, Break[]];
+  ];
+  Clear[expr];
+  Quiet @ Remove["DummyContext`*"];
+  On[General::shdw];
+  SetStreamPosition[stream, pos1];
+  While[
+    pos1 = StreamPosition[stream];
+    MemberQ[{32, 9, 10}, Read[stream, Byte]], Null];
+  SetStreamPosition[stream, 0];
+  chars2 = ReadList[stream, Byte, pos2 - 1];
+  Close[stream];
+  chars1 = Take[chars2, pos1];
+  iline = Ceiling[(Count[chars1, 10] + Count[chars2, 10])/2] + 1;
+  iline = Count[chars1, 10] + 1;
+  SublimeOpen[path -> iline]
 ];
 
 (*************************************************************************************************)

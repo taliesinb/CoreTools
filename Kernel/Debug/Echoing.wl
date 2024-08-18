@@ -85,7 +85,7 @@ EchoingRules[rule_]      := ReleaseHold @ toEchoingRule[rule, 0];
 EchoingRules[rules_List] := ReleaseHold @ MapP[toEchoingRule, rules];
 
 EchoingRules::badRule = "Can't attach to ``.";
-toEchoingRule[rule:RuleLikeP, i_]  := attachBindingBody[rule, i];
+toEchoingRule[rule:RuleLP, i_]  := attachBindingBody[rule, i];
 toEchoingRule[rule_, i_] := Then[Message[EchoingRules::badRule, rule], rule];
 
 DeclareHoldAllComplete[EchoingSetDelayed]
@@ -289,13 +289,15 @@ EchoF[fn_] := EchoFL[getFLabel @ fn, fn];
 
 DeclareHoldAllComplete[getFLabel];
 
-getFLabel[Function]       := "Fn";
-getFLabel[e_Symbol]       := SymbolName @ e;
-getFLabel[_Association]   := "\[LeftAssociation]\[Ellipsis]\[RightAssociation]";
-getFLabel[h_[]]           := getFLabel[h] <> "[]";
-getFLabel[h_[i_Integer]]  := getFLabel[h] <> "[" <> IntegerString[i] <> "]";
-getFLabel[h_[___]]        := getFLabel[h] <> "[\[Ellipsis]]";
-getFLabel[_]              := "\[FilledSquare]";
+getFLabel = CaseOf[
+  Fn        := "Fn";
+  e_Symbol  := SymbolName @ e;
+  _Dict     := "\[LeftAssociation]\[Ellipsis]\[RightAssociation]";
+  h_[]      := getFLabel[h] <> "[]";
+  h_[i_Int] := getFLabel[h] <> "[" <> IntegerString[i] <> "]";
+  h_[___]   := getFLabel[h] <> "[\[Ellipsis]]";
+  _         := "\[FilledSquare]";
+];
 
 EchoFL[fnl_, fn_][args___] := Module[
   {res = $Aborted},

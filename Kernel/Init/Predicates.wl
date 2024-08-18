@@ -8,7 +8,8 @@ SystemExports[
 
     AtomicQ, NonAtomicQ,
 
-    SingleQ, DatumQ, HoldDatumQ, HoldSingleQ,
+    SingleQ, DatumQ,
+    HoldDatumQ, HoldSingleQ, HoldEmptyQ, HoldNotEmptyQ,
     HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
     HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ,
     HoldHasLengthQ,
@@ -76,7 +77,6 @@ PackageExports[
     Pos2ListOrListsQ,
     AutoQ,
     RuleLikeQ, RuleQ, RuleDelayedQ, PackedRealsQ, PackedIntsQ,
-    UserSymbolQ,
     AutoNoneQ, NotAutoNoneQ,
     HoldVFreeQ, HoldVContainsQ,
 
@@ -104,11 +104,11 @@ NonZeroIntegerQ[_Int] = True;
 
 SetPred1[UnorderedAssociationQ, OrderedAssociationQ]
 
-UnorderedAssociationQ[UAssoc[]] := True;
-UnorderedAssociationQ[assoc_Assoc ? HoldAssociationQ] := NotEmptyQ @ Take[assoc, 0];
+UnorderedAssociationQ[EmptyUDict] := True;
+UnorderedAssociationQ[dict:DictP] := NotEmptyQ @ Take[dict, 0];
 
-OrderedAssociationQ[Assoc[]] := True;
-OrderedAssociationQ[assoc_Assoc ? HoldAssociationQ] := EmptyQ @ Take[assoc, 0];
+OrderedAssociationQ[EmptyDict] := True;
+OrderedAssociationQ[dict:DictP] := EmptyQ @ Take[dict, 0];
 
 (*************************************************************************************************)
 
@@ -136,11 +136,11 @@ EmptyQ[_ ? UnsafeEmptyQ]  = True;
 EmptyQ[_ ? NonEmptyQ]     = False;
 EmptyQ[_]                 = True;
 
-AtomicQ[_Assoc]           = False;
+AtomicQ[_Dict]           = False;
 AtomicQ[_ ? HoldAtomQ]    = True;
 AtomicQ[_]                = False;
 
-NonAtomicQ[_Assoc]        = True;
+NonAtomicQ[_Dict]        = True;
 NonAtomicQ[_ ? HoldAtomQ] = False;
 NonAtomicQ[_]             = True;
 
@@ -150,20 +150,19 @@ SetPred2[ListOfQ, AssociationOfQ, ListAssociationOfQ];
 SetPred1[NonEmptyListQ, NonEmptyAssociationQ, NonEmptyListAssociationQ];
 SetPred2[NonEmptyListOfQ, NonEmptyAssociationOfQ, NonEmptyListAssociationOfQ];
 
-           ListOfQ[data_List,              pred_] := VectorQ[data, pred];
-    AssociationOfQ[data_Assoc ? HoldAtomQ, pred_] := VectorQ[Values @ data, pred];
-ListAssociationOfQ[data_List,              pred_] := VectorQ[data, pred];
-ListAssociationOfQ[data_Assoc ? HoldAtomQ, pred_] := VectorQ[Values @ data, pred];
+           ListOfQ[data_List,  pred_] := VectorQ[data, pred];
+    AssociationOfQ[dict:DictP, pred_] := VectorQ[Values @ dict, pred];
+ListAssociationOfQ[data_List,  pred_] := VectorQ[data, pred];
+ListAssociationOfQ[dict:DictP, pred_] := VectorQ[Values @ dict, pred];
 
-           NonEmptyListQ[list_List ? NonEmptyQ]                 := True;
-    NonEmptyAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ] := True;
-NonEmptyListAssociationQ[list_List ? NonEmptyQ]                 := True;
-NonEmptyListAssociationQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ] := True;
+           NonEmptyListQ[NEListP]     = True;
+    NonEmptyAssociationQ[NEDictP]     = True;
+NonEmptyListAssociationQ[NEListDictP] = True;
 
-           NonEmptyListOfQ[list_List ? NonEmptyQ,                 pred_] := VectorQ[list, pred];
-    NonEmptyAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ, pred_] := VectorQ[Values @ assoc, pred];
-NonEmptyListAssociationOfQ[list_List ? NonEmptyQ,                 pred_] := VectorQ[list, pred];
-NonEmptyListAssociationOfQ[(assoc_Assoc ? HoldAtomQ) ? NonEmptyQ, pred_] := VectorQ[Values @ assoc, pred];
+           NonEmptyListOfQ[list:NEListP, pred_] := VectorQ[list, pred];
+    NonEmptyAssociationOfQ[dict:NEDictP, pred_] := VectorQ[Values @ dict, pred];
+NonEmptyListAssociationOfQ[list:NEListP, pred_] := VectorQ[list, pred];
+NonEmptyListAssociationOfQ[dict:NEDictP, pred_] := VectorQ[Values @ dict, pred];
 
 (*************************************************************************************************)
 
@@ -173,13 +172,13 @@ PairOfQ[{a_, b_}, {t1_, t2_}] := TrueQ[t1[a] && t2[b]];
 PairOfQ[{a_, b_}, t_]         := TrueQ[t[a] && t[b]];
 
 TupleOfQ[data_List, tests_List] /; SameLengthQ[data, tests]  := AllAreTrueQ @ Bimap[tests, data];
-RecordOfQ[data_Assoc, tests_Assoc] /; SameKeysQ[data, tests] := AllAreTrueQ @ Bimap[Vals @ tests, Lookup[data, Keys @ tests]];
+RecordOfQ[data_Dict, tests_Dict] /; SameKeysQ[data, tests] := AllAreTrueQ @ Bimap[Vals @ tests, Lookup[data, Keys @ tests]];
 
 StructureOfQ[data_List, tests_List]   := TupleOfQ[data, tests];
-StructureOfQ[data_Assoc, tests_Assoc] := RecordOfQ[data, tests];
+StructureOfQ[data_Dict, tests_Dict] := RecordOfQ[data, tests];
 
-ArrayOfQ[data_List, test_] := TensorQ[data, test];
-ArrayOfQ[data_, test_, {}] := test @ data;
+ArrayOfQ[data_List, test_]     := TensorQ[data, test];
+ArrayOfQ[data_, test_, {}]     := test @ data;
 ArrayOfQ[data_, test_, shape_] := HasDimensionsQ[data, shape] && TensorQ[data, test];
 
 (*************************************************************************************************)
@@ -195,7 +194,7 @@ DeclarePatternPredicates::notP = "Pattern symbols `` should end in Q.";
 DeclarePatternPredicates::notQ = "Pattern symbols `` did not appear to exist.";
 DeclarePatternPredicates[syms___Symbol] := Locals[
   predicateSyms = {syms};
-  predicateNames = Map[FullSymbolName, predicateSyms];
+  predicateNames = Map[HoldSymbolPath, predicateSyms];
   If[AnyAreFalseQ @ StringEndsQ[predicateNames, "Q"], ReturnMsg["notP", predicateNames]];
   patternNames = StringAppend[StringDrop[predicateNames, -1], "P"];
   If[!AllTrue[patternNames, NameQ], ReturnMsg["notQ", Select[patternNames, NameQ /* Not]]];
@@ -209,13 +208,19 @@ setPattPred[sym_, pattName_Str] := With[{patt = Symbol @ pattName},
 
 (*************************************************************************************************)
 
-SetPred1[SingleQ, DatumQ, HoldSingleQ, HoldDatumQ];
+SetPred1[SingleQ, DatumQ];
 
 SingleQ[e_] := Len[e] === 1;
 DatumQ[DatumP] := True;
 
-HoldSingleQ[_[_]] := True;
-HoldDatumQ[DatumP] := True;
+(*************************************************************************************************)
+
+SetHoldC @ SetPred1[HoldSingleQ, HoldDatumQ, HoldEmptyQ, HoldNotEmptyQ];
+
+HoldSingleQ[_[_]]        = True;
+HoldDatumQ[DatumP]       = True;
+HoldEmptyQ[EmptyP]       = True;
+HoldNotEmptyQ[NonEmptyP] = True;
 
 (*************************************************************************************************)
 
@@ -262,7 +267,7 @@ VectorHasHeadsQ[h_]     := MatchQ[List @ ToBlankNullSequence @ h];
 
 SetCurry2 @ SetPred2 @ AssociationHasHeadsQ
 
-AssociationHasHeadsQ[a_Association, h_] := MatchQ[Values @ a, List @ ToBlankNullSequence @ h];
+AssociationHasHeadsQ[a_Dict, h_] := MatchQ[Values @ a, List @ ToBlankNullSequence @ h];
 
 (*************************************************************************************************)
 
@@ -299,8 +304,8 @@ AssociationLikeQ[_List ? RuleVecQ] = True;
 
 SetCurry2 @ SetPred2[KeysTrue, ValuesTrue, RuleKeysTrue]
 
-KeysTrue[assoc_Association, kTest_]   := VectorQ[Keys @ assoc, kTest];
-ValuesTrue[assoc_Association, vTest_] := VectorQ[Values @ assoc, vTest];
+KeysTrue[dict_Dict, kTest_]   := VectorQ[Keys @ dict, kTest];
+ValuesTrue[dict_Dict, vTest_] := VectorQ[Values @ dict, vTest];
 
 RuleKeysTrue[rules:{___Rule}, kTest_]   := VectorQ[Keys @ rules, kTest];
 RuleValuesTrue[rules:{___Rule}, vTest_] := VectorQ[Values @ rules, vTest];
@@ -309,8 +314,8 @@ RuleValuesTrue[rules:{___Rule}, vTest_] := VectorQ[Values @ rules, vTest];
 
 SetCurry23 @ SetPred3[KeysValuesTrue, RulesTrue]
 
-KeysValuesTrue[assoc_Association, kTest_, vTest_] :=
-  VectorQ[Keys @ assoc, kTest] && VectorQ[Values @ assoc, vTest];
+KeysValuesTrue[dict_Dict, kTest_, vTest_] :=
+  VectorQ[Keys @ dict, kTest] && VectorQ[Values @ dict, vTest];
 
 RulesTrue[rules:{___Rule}, kTest_, vTest_] :=
   VectorQ[Keys @ rules, kTest] && VectorQ[Values @ rules, vTest];
@@ -320,29 +325,29 @@ UNLESS we expect an early fail, maybe we can have a head LikelyFalse or LikelyTr
 indicates this! *)
 
 (*
-KeysTrue[assoc_Association, kTest_] := AssocScanWhileQ[assoc, First /* kTest];
-ValuesTrue[assoc_Association, vTest_] := AssocScanWhileQ[assoc, Last /* vTest];
-KeysValuesTrue[assoc_Association, kTest_, vTest_] := AssocScanWhileQ[assoc, rule |-> kTest[First @ rule] && vTest[Last @ rule]];
+KeysTrue[dict_Dict, kTest_] := AssocScanWhileQ[dict, First /* kTest];
+ValuesTrue[dict_Dict, vTest_] := AssocScanWhileQ[dict, Last /* vTest];
+KeysValuesTrue[dict_Dict, kTest_, vTest_] := AssocScanWhileQ[dict, rule |-> kTest[First @ rule] && vTest[Last @ rule]];
 *)
 
 (*************************************************************************************************)
 
 SetPred1[IntegerKeysQ, StringKeysQ, ListKeysQ, AssociationKeysQ, SymbolKeysQ]
 
-IntegerKeysQ[assoc_Association]       :=     IntegerVectorQ @ Keys @ assoc;
-StringKeysQ[assoc_Association]        :=      StringVectorQ @ Keys @ assoc;
-ListKeysQ[assoc_Association]          :=        ListVectorQ @ Keys @ assoc;
-AssociationKeysQ[assoc_Association]   := AssociationVectorQ @ Keys @ assoc;
-SymbolKeysQ[assoc_Association]        :=      SymbolVectorQ @ Keys @ assoc;
+IntegerKeysQ[dict_Dict]       :=     IntegerVectorQ @ Keys @ dict;
+StringKeysQ[dict_Dict]        :=      StringVectorQ @ Keys @ dict;
+ListKeysQ[dict_Dict]          :=        ListVectorQ @ Keys @ dict;
+AssociationKeysQ[dict_Dict]   := AssociationVectorQ @ Keys @ dict;
+SymbolKeysQ[dict_Dict]        :=      SymbolVectorQ @ Keys @ dict;
 
 SetPred1[IntegerValuesQ, StringValuesQ, ListValuesQ, AssociationValuesQ, BooleanValuesQ]
 
-IntegerValuesQ[assoc_Association]     :=     IntegerVectorQ @ Values @ assoc;
-StringValuesQ[assoc_Association]      :=      StringVectorQ @ Values @ assoc;
-ListValuesQ[assoc_Association]        :=        ListVectorQ @ Values @ assoc;
-AssociationValuesQ[assoc_Association] := AssociationVectorQ @ Values @ assoc;
-BooleanValuesQ[assoc_Association]     :=     BooleanVectorQ @ Values @ assoc;
-SymbolValuesQ[assoc_Association]      :=      SymbolVectorQ @ Values @ assoc;
+IntegerValuesQ[dict_Dict]     :=     IntegerVectorQ @ Values @ dict;
+StringValuesQ[dict_Dict]      :=      StringVectorQ @ Values @ dict;
+ListValuesQ[dict_Dict]        :=        ListVectorQ @ Values @ dict;
+AssociationValuesQ[dict_Dict] := AssociationVectorQ @ Values @ dict;
+BooleanValuesQ[dict_Dict]     :=     BooleanVectorQ @ Values @ dict;
+SymbolValuesQ[dict_Dict]      :=      SymbolVectorQ @ Values @ dict;
 
 (*************************************************************************************************)
 
@@ -394,14 +399,14 @@ SameShapeQ[a_, b_] := SamePartsQ[a, b];
 SetPred1[ExtendedNumberQ];
 
 ExtendedNumberQ[ExtNumP] := True;
-UnitNumberQ[a_] := RealValuedNumberQ[a] && 0 <= a <= 1;
-PositiveRealQ[a_] := RealQ[a] && Positive[a];
+UnitNumberQ[a_]          := RealValuedNumberQ[a] && 0 <= a <= 1;
+PositiveRealQ[a_]        := RealQ[a] && Positive[a];
 
 (*************************************************************************************************)
 
 SetPred1[PairQ, PairVectorQ, PairMatrixQ, PairArrayQ]
 
-PairQ[{_, _}] := True;
+PairQ[{_, _}]         := True;
 PairVectorQ[arr_List] := Length2[arr] === 2;
 PairMatrixQ[arr_List] := MatrixQ[arr, PairQ];
 PairArrayQ[arr_List]  := LengthN[arr] === 2;
@@ -575,7 +580,7 @@ iAllSameHeadsQ = CaseOf[
 iAllSamePartsQ = CaseOf[
   list_List ? PackedQ := ArrayDepth[list] > 1;
   expr_ ? SingleQ     := NonAtomicQ @ First @ expr;
-  assocs_ ? AssocVecQ := Apply[SameQ, Len /@ assoc] && Apply[SameQ, Keys @ assocs];
+  dicts_ ? DictVecQ   := Apply[SameQ, Len /@ dicts] && Apply[SameQ, Keys @ dicts];
   expr_               := rectQ @ expr;
 ];
 
@@ -591,30 +596,30 @@ sameSetVectorQ[list_] := AnyMatrixQ[list] && Apply[SameQ, Sort /@ list];
 
 iAllSameKeysQ = CaseOf[
   expr_ ? SingleQ    := AssociationQ @ First @ expr;
-  {a_Assoc, b_Assoc} := SameKeysQ[a, b];
-  list_List          := sameKeysAssocVectorQ @ list;
-  dict_Dict          := sameKeysAssocVectorQ @ Values @ dict;
-  expr_              := sameKeysAssocVectorQ @ Level[expr, 1];
+  {a_Dict, b_Dict}   := SameKeysQ[a, b];
+  list_List          := sameKeysDictVecQ @ list;
+  dict_Dict          := sameKeysDictVecQ @ Values @ dict;
+  expr_              := sameKeysDictVecQ @ Level[expr, 1];
 ];
 
-sameKeysAssocVectorQ[assocs_] := And[
-  AssociationVectorQ @ assocs,
-  Apply[SameQ, Len /@ assocs],
-  Apply[SameQ, Sort /@ Keys[assocs]]
+sameKeysDictVecQ[dicts_] := And[
+  AssociationVectorQ @ dicts,
+  Apply[SameQ, Len /@ dicts],
+  Apply[SameQ, Sort /@ Keys[dicts]]
 ];
 
 iAllSameOrderedKeysQ = CaseOf[
   expr_ ? SingleQ    := AssociationQ @ First @ expr;
-  {a_Assoc, b_Assoc} := SameOrderedKeysQ[a, b];
+  {a_Dict, b_Dict}   := SameOrderedKeysQ[a, b];
   list_List          := sameOrderedKeysAssocVectorQ @ list;
   dict_Dict          := sameOrderedKeysAssocVectorQ @ Values @ dict;
   expr_              := sameOrderedKeysAssocVectorQ @ Level[expr, 1];
 ];
 
-sameOrderedKeysAssocVectorQ[assocs_] := And[
-  AssociationVectorQ @ assocs,
-  Apply[SameQ, Len /@ assocs],
-  Apply[SameQ, Keys @ assocs]
+sameOrderedKeysAssocVectorQ[dicts_] := And[
+  AssociationVectorQ @ dicts,
+  Apply[SameQ, Len /@ dicts],
+  Apply[SameQ, Keys @ dicts]
 ];
 
 (*************************************************************************************************)
@@ -681,7 +686,7 @@ SetCurry2[ContainsQ]
 
 ContainsQ[e_, p_] := !FreeQ[e, p];
 
-ContainsAssociationQ[e_] := And[VContainsQ[e, Association], !FreeQ[e, _Association ? Developer`HoldAtomQ]];
+ContainsAssociationQ[e_] := And[VContainsQ[e, Association], !FreeQ[e, _Dict ? Developer`HoldAtomQ]];
 
 SetCurry2[FreeWithinQ, ContainsWithinQ]
 
@@ -718,7 +723,7 @@ SetPred1[HoldAssociationQ, HoldPackedArrayQ]
 SetPred2[HoldSameQ, HoldHasHeadQ]
 
 HoldSameQ[a_, a_] := True;
-HoldAssociationQ[_Assoc ? HoldAtomQ] := True;
+HoldAssociationQ[_Dict ? HoldAtomQ] := True;
 HoldPackedArrayQ[arr_List] := PackedArrayQ @ NoEval @ arr;
 
 HoldHasHeadQ[h_[___], h_] := True;

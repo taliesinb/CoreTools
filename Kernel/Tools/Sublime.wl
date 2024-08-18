@@ -62,7 +62,7 @@ sublimeExportText = CaseOf[
   strs_ ? StrVecQ         := ExportLines[$path, strs];
   str_String              := ExportUTF8[$path, str];
   list_List ? RuleVectorQ := ExportUTF8[$path, TextString @ TableForm @ (List @@@ list)];
-  assoc_Assoc             := sublimeExportText @ Normal @ assoc;
+  assoc_Dict             := sublimeExportText @ Normal @ assoc;
 ];
 
 (*************************************************************************************************)
@@ -77,14 +77,14 @@ staticFile[name_]        := DataPath["Sublime", "StaticFiles", name];
 CoreToolsSymbolKinds[] := Locals[
 
   coreKinds = PackageSymbolKinds["CoreTools`"];
-  If[!symbolDictQ[coreKinds], ThrowErrorMessage["badSymbols", "CoreTools`"]];
+  If[!symbolDictQ[coreKinds], ThrowMsg["badSymbols", "CoreTools`"]];
 
   privateSyms = Last /@ StringSplit[Names["CoreTools`Private`*"], "`"];
   privateSyms = Complement[privateSyms, Catenate @ coreKinds];
   privateKinds = GroupBy[privateSyms,
     If[StringContainsQ[#, "$"], "SpecialVariable", "SpecialFunction"]&
   ];
-  If[!symbolDictQ[privateKinds], ThrowErrorMessage["badSymbols", "CoreTools`Private`"]];
+  If[!symbolDictQ[privateKinds], ThrowMsg["badSymbols", "CoreTools`Private`"]];
 
   Block[{$preludeKindBag = Bag[],
     System`PackageExports = savePreludeExports,
@@ -93,9 +93,9 @@ CoreToolsSymbolKinds[] := Locals[
     Get @ $PreludeInitFile;
     preludeKinds = Merge[Catenate] @ BagPart[$preludeKindBag, All];
   ];
-  If[!symbolDictQ[preludeKinds], ThrowErrorMessage["badSymbols", "prelude packages"]];
+  If[!symbolDictQ[preludeKinds], ThrowMsg["badSymbols", "prelude packages"]];
 
-  manualKinds = Assoc[
+  manualKinds = Dict[
     "SpecialVariable" -> {"$CoreToolsPath", "$CoreToolsRootPath", "$PreludeInitFile"},
     "SpecialFunction" -> {"ApplyEchoSugar"}
   ];
@@ -151,12 +151,12 @@ SublimeUpdateSyntax[] := Locals[
   (* generate strings *)
   res = Check[
     internalSymbols = ImportStringTable @ systemSymbolFile["InternalSymbols.wl.txt"];
-    preludeSymbols = GroupPairs[SymbolNameMostLast /@ Select[Names["Prelude`*`*"], StringFreeQ["`Private"]]];
+    preludeSymbols = GroupPairs[NameMostLast /@ Select[Names["Prelude`*`*"], StringFreeQ["`Private"]]];
     JoinTo[internalSymbols, preludeSymbols];
     {builtinRegexs, builtinDefs, builtinContext} = makeGroupsRegexpsDefs[builtinKinds, "Builtin"];
     {libraryRegexs, libraryDefs, libraryContext} = makeGroupsRegexpsDefs[libraryKinds, "Library"];
     internalDefs = KeyValueMap[makeInternalSymbolDefs, internalSymbols];
-    syntaxDefinition = $syntaxTemplate @ Assoc[
+    syntaxDefinition = $syntaxTemplate @ Dict[
       "variables"        -> StringRiffle[Join[builtinRegexs, libraryRegexs], "\n"],
       "library_symbols"  -> StringRiffle[libraryDefs, "\n"],
       "library_sym"      -> libraryContext,
@@ -170,7 +170,7 @@ SublimeUpdateSyntax[] := Locals[
     symbolKinds = Merge[{builtinKinds, libraryKinds}, Catenate];
     symbolKinds["InternalSymbol"] = Flatten @ KeyValueMap[StrPre[#1][#2]&, internalSymbols];
     completions = Flatten @ KeyValueMap[makeKindCompletions, symbolKinds];
-    completionsJSON = ToJSON[Assoc["scope" -> "source.wolfram", "completions" -> completions], 2];
+    completionsJSON = ToJSON[Dict["scope" -> "source.wolfram", "completions" -> completions], 2];
     If[!StringQ[completionsJSON], ReturnFailed["invalidResult"]];
     ExportUTF8[staticFile @ "WolframLanguage.sublime-completions", completionsJSON];
   ,

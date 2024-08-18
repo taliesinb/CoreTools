@@ -1,14 +1,17 @@
+SystemExports[
+  "OptionSymbol",        GraphScale, NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, RootPosition
+];
+
 PackageExports[
   "GraphicsDirective",   FaceEdge,
   "GraphicsFunction",    ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor,
-  "GraphicsBoxFunction", ExprTreePlotBoxes, TreeNodePlotBoxes,
-  "OptionSymbol",        GraphScale, NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, RootPosition
+  "GraphicsBoxFunction", ExprTreePlotBoxes, TreeNodePlotBoxes
 ];
 
 (**************************************************************************************************)
 
 InsetNode[content_, fn_:Id, opts___][pos_, size_, color_] :=
-  Inset[Style[fn[content], color, Background -> GrayLevel[1,1]], pos, Center, Alignment -> Center];
+  Inset[Style[fn[content], color, opts, Background -> GrayLevel[1,1]], pos, Center, Alignment -> Center];
 
 (**************************************************************************************************)
 
@@ -19,6 +22,7 @@ Options[NiceTreePlot] = {
   NodeSize          -> 5,
   NodeShape         -> "Disk",
   NodeData          -> None,
+  FontSize          -> Automatic,
   EdgeColor         -> Auto,
   EdgeThickness     -> 1,
   RootPosition      -> Top,
@@ -43,9 +47,9 @@ $treePlotVertexSpecs = {
   ItemSpec[NodeShape,    TrueFn, Inherit, MethodResolution -> $knownShapes]
 };
 
-NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchError[
+NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
 
-  UnpackOptions[graphScale, edgeColor, edgeThickness, rootPosition, baselinePosition];
+  UnpackOptions[graphScale, edgeColor, edgeThickness, rootPosition, baselinePosition, fontSize];
 
   vertexCount = VertexCount @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
@@ -64,9 +68,10 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchError[
   vertexPrims = makePrimitives[vertexSpecs, vertexCoords];
   SetAuto[edgeColor, GrayLevel[0.5]];
   AppendTo[edgeStyle, edgeColor];
+  SetAuto[fontSize, Inherited];
 
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
-  primitives = List[Style[Line @ edgeCoords, edgeStyle], vertexPrims];
+  primitives = {Style[Line @ edgeCoords, edgeStyle], Style[vertexPrims, FontSize -> fontSize]};
 
   basePos = Switch[baselinePosition,
     Root, Scaled[(Part[vertexCoords, 1, 2] - plotB - $meanSize/graphScale/1.25) / plotH],
@@ -74,7 +79,8 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchError[
     _,    Part @ VertexIndex[graph, baselinePosition] - graphScale
   ];
 
-  Graphics[primitives,
+  Graphics[
+    primitives,
     PlotRange -> plotBounds,
     PlotRangePadding -> 0,
     BaselinePosition -> basePos,
@@ -96,16 +102,16 @@ makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
 makeShape[fn_, pos_, size_, color_] := fn[pos, size, color];
 
 pointShape[pos_, size_, color_]  := Style[Point @ pos, APointSize @ size, color];
-diskShape[pos_, size_, color_]   := EdgedStyle[color, Disk[pos, size * $diskScale]];
-diskShape[pos_, size_, color_]   := EdgedStyle[color, Disk[pos, size * $diskScale]];
-squareShape[pos_, size_, color_] := EdgedStyle[color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
-openSquareShape[pos_, size_, color_] := FaceEdgeStyle[White, color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
-circleShape[pos_, size_, color_] := {NoEdgeStyle[White, Disk[pos, size * $diskScale]], Style[Circle[pos, size * $diskScale], color]};
+diskShape[pos_, size_, color_]   := edgedStyle[color, Disk[pos, size * $diskScale]];
+diskShape[pos_, size_, color_]   := edgedStyle[color, Disk[pos, size * $diskScale]];
+squareShape[pos_, size_, color_] := edgedStyle[color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
+openSquareShape[pos_, size_, color_] := faceEdgeStyle[White, color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
+circleShape[pos_, size_, color_] := {noEdgeStyle[White, Disk[pos, size * $diskScale]], Style[Circle[pos, size * $diskScale], color]};
 
-EdgedStyle[FaceEdge[f_, e_], prim_] := FaceEdgeStyle[f, e, prim];
-EdgedStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ Darker[c, .1]];
-NoEdgeStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ None];
-FaceEdgeStyle[f_, e_, prim_] := Style[prim, FaceForm @ f, EdgeForm[Directive[e, AbsoluteThickness[1.2]]]];
+edgedStyle[FaceEdge[f_, e_], prim_] := faceEdgeStyle[f, e, prim];
+edgedStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ Darker[c, .1]];
+noEdgeStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ None];
+faceEdgeStyle[f_, e_, prim_] := Style[prim, FaceForm @ f, EdgeForm[Directive[e, AbsoluteThickness[1.2]]]];
 
 $treePlotLayoutOptions = Seq[
   "BendRadius"      -> 0.25,
@@ -153,7 +159,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   ];
 
   If[VertexCount[graph] === 0, Return @ {{}, {}}];
-  indexGraph = VertexEdgeIndexGraph @ graph;
+  indexGraph = vertexEdgeIndexGraph @ graph;
   edgePairs = {#1, #2}& @@@ EdgeList[indexGraph];
   vertexCount = VertexCount @ indexGraph;
 
@@ -175,7 +181,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   Part[$ccount, rootVertex] = -1;
 
   vrange = Range @ vertexCount;
-  If[EdgeCount[indexGraph] == 0, $xs = vrange; Goto[Done]];
+  If[EdgeCount[indexGraph] == 0, $xs = vrange; Goto[done]];
   roots = Pick[vrange, $inDeg, 0];
 
   Scan[root |-> DepthFirstScan[indexGraph, root, {
@@ -192,7 +198,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   Part[$xs, mids] += $firstLastDelta;
   Part[$xs, roots] =
  *)
-  Label[Done];
+  Label[done];
   maxD = Max[$d] + 1;
   If[layerDepths =!= {},
     numDepths = Len @ layerDepths;
@@ -211,7 +217,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   coordFn = Switch[rootPosition, Bottom, FlipYOp, Top, Id, Left, Rot90LOp, Right, Rot90ROp,
     _, ReturnFailed["badRootPosition", rootPosition]];
 
-  $isInner = UAssocThread[vertexCoords, isInner];
+  $isInner = UDictThread[vertexCoords, isInner];
   edgePaths = ExtractIndices[vertexCoords, edgePairs];
   edgePaths = constructEdgePaths[edgePaths, bendRadius, fanoutStyle];
 
@@ -245,7 +251,7 @@ postvisitVertex[v_] := (
 
 (*************************************************************************************************)
 
-VertexEdgeIndexGraph[g_] := IndexEdgeTaggedGraph @ IndexGraph @ g;
+vertexEdgeIndexGraph[g_] := IndexEdgeTaggedGraph @ IndexGraph @ g;
 
 (*************************************************************************************************)
 

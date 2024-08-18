@@ -28,8 +28,6 @@ Options[GetPackageDirectory] = {
   MacroRules -> None
 };
 
-PrivateFunction[MakeTContext, TypeHash, ContextHash]
-
 GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   path = NormalizePath @ dir;
   $aliasBag = Bag[];
@@ -39,7 +37,7 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   If[NonEmptyQ[macroRules = OptionValue[MacroRules]],
     codePreprocFn = codePreprocFn /* ReplaceRepeated[macroRules]];
   $SessionCurrentEvaluationPrintCount = 0;
-  DisableErrorHandler @ Prelude`Packages`LoadPackage[
+  DisableHandleExceptions @ Prelude`Packages`LoadPackage[
     context, path,
     "CodePreprocessor"    -> codePreprocFn,
     "SymbolTableFunction" -> extractLineExportsFromFileList,

@@ -115,7 +115,7 @@ DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Replace[$Failed   :> r
 DeclareHoldAll[Initially];
 
 If[!System`Private`HasImmediateValueQ[$InitializationHashes],
-  $InitializationHashes = UAssoc[]
+  $InitializationHashes = UDict[]
 ];
 
 Initially[body___] := Which[
@@ -169,11 +169,6 @@ DefineSimpleMacro[Collecting,     {
 }];
 
 (*************************************************************************************************)
-
-DefinePartialMacro[ErrorMessage,
-  ErrorMessage[str_String, args___] :>
-    ErrorMessage[MessageName[$MacroParentSymbol, str], args]
-];
 
 SetAttributes[ReturnMessage, HoldFirst];
 
@@ -259,7 +254,7 @@ $lvMutatingHeads = {
 $MutatingSymbols = {
   Set, SetDelayed, AppendTo, PrependTo, AssociateTo, ApplyTo, AddTo, SubtractFrom,
   JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
-  KeyApplyTo, KeyIncrement, KeyDecrement, KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo,
+  KeyApplyTo, KeyIncrement, KeyDecrement, KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyBindTo, KeyUBindTo,
   TimesBy, DivideBy, KeyDropFrom, Increment, Decrement, PreIncrement, PreDecrement
 };
 
@@ -366,7 +361,8 @@ attachedCaseOf[sym_Symbol, excl_, pre_, CompoundExpression[args__SetDelayed, Nul
   holds = Hold @@@ Hold[args];
   If[pre =!= Hold[], holds //= Map[Join[pre, #]&]];
   holds = ReplaceRepeated[holds, procRewrites @ rewrites];
-  If[excl, PrependTo[holds, Hold[$LHS___, ThrowUnmatchedError[sym, $LHS]]]]; (* TODO: why not _sym ? *)
+  If[excl, PrependTo[holds, With[{sloc = SourceLocation[]},
+    Hold[$LHS___, WithSourceLocation[sloc, ThrowUnmatchedError[sym, $LHS]]]]]]; (* TODO: why not _sym ? *)
   (* holds = ReplaceAll[holds, HoldPattern[$$|$] :> sym]; *)
   Replace[List @@ holds, {
     Hold[lhs_$, rhs_]                     :> MacroHold @ SetDelayed[lhs, rhs],
@@ -388,21 +384,10 @@ attachedCaseOf[sym_, ___] := (Message[CaseOf::badCaseDefinition, HoldForm @ sym]
 (*************************************************************************************************)
 
 General::unmatchedCase = "Case unmatched: ``";
-ThrowUnmatchedError[head_Symbol, $LHS_] := (
-  Message[MessageName[head, "unmatchedCase"], HoldForm @ $LHS];
-  ThrowError[];
-);
-
-ThrowUnmatchedError[head_Symbol, $LHS___] := (
-  Message[MessageName[head, "unmatchedCase"], HoldForm @ $LHS];
-  ThrowError[];
-);
+ThrowUnmatchedError[head_Symbol, $LHS_] := ThrowMsg["unmatchedCase", HoldForm @ $LHS];
 
 CaseOf::unmatched = "Unmatched case in a CaseOf application.";
-ThrowUnmatchedError[] := (
-  Message[CaseOf::unmatched];
-  ThrowError[];
-);
+ThrowUnmatchedError[] := ThrowMsg["unmatched"];
 
 (**************************************************************************************************)
 
@@ -462,7 +447,7 @@ General::badAssociation = "One or more fields in `` were missing from the associ
 
 mUnpackAssociation[assoc_, syms_] := With[
   {names = symsToCapStrings @ syms},
-  MacroHold[syms = Lookup[assoc, names, ThrowErrorMessage["badAssociation", names]]]
+  MacroHold[syms = Lookup[assoc, names, ThrowMsg["badAssociation", names]]]
 ];
 
 (**************************************************************************************************)
@@ -474,25 +459,25 @@ SetHoldC[mUnpackTuple];
 
 mUnpackTuple[val_, s1_Symbol, s2_Symbol] :=
   MacroHold @ If[ListQ[val],
-    If[Length[val] != 2, ThrowErrorMessage["badTuple", val, 2]]; {s1, s2} = val,
+    If[Length[val] != 2, ThrowMsg["badTuple", val, 2]]; {s1, s2} = val,
     s1 = s2 = val
   ];
 
 mUnpackTuple[val_, s1_Symbol, s2_Symbol, s3_Symbol] :=
   MacroHold @ If[ListQ[val],
-    If[Length[val] != 3, ThrowErrorMessage["badTuple", val, 3]]; {s1, s2, s3} = val,
+    If[Length[val] != 3, ThrowMsg["badTuple", val, 3]]; {s1, s2, s3} = val,
     s1 = s2 = s3 = val
   ];
 
 mUnpackTuple[val_, s1_Symbol, s2_Symbol, s3_Symbol, s4_Symbol] :=
   MacroHold @ If[ListQ[val],
-    If[Length[val] != 4, ThrowErrorMessage["badTuple", val, 4]]; {s1, s2, s3, s4} = val,
+    If[Length[val] != 4, ThrowMsg["badTuple", val, 4]]; {s1, s2, s3, s4} = val,
     s1 = s2 = s3 = s4 = val
   ];
 
 mUnpackTuple[val_, s1_Symbol, s2_Symbol, s3_Symbol, s4_Symbol, s5_Symbol] :=
   MacroHold @ If[ListQ[val],
-    If[Length[val] != 5, ThrowErrorMessage["badTuple", val, 5]]; {s1, s2, s3, s4, s5} = val,
+    If[Length[val] != 5, ThrowMsg["badTuple", val, 5]]; {s1, s2, s3, s4, s5} = val,
     s1 = s2 = s3 = s4 = s5 = val
   ];
 
@@ -516,7 +501,7 @@ toCapSymbol[str_String] := toCapSymbol[str] = Module[
   Which[
     NameQ[str2], Symbol[str2],
     NameQ[str2 //= StringReplace["Fn" -> "Function"]], Symbol[str2],
-    True, ThrowErrorMessage["noCorrespondingSymbol", str]
+    True, ThrowMsg["noCorrespondingSymbol", str]
   ]
 ];
 

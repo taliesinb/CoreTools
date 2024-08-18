@@ -16,6 +16,7 @@ PackageExports[
     CodeBlock,
     ImageBlock,
     IndentBlock,
+    GroupedBlocks,
     InlineMathBlock,
     InlineCodeBlock,
     DecorationBlock,
@@ -60,7 +61,7 @@ renumberBlocks[blocks_] := Locals[
 
 General::invalidMarkdownBlock = "Not a valid markdown block: ``.";
 checkBlocks[b_] :=
-  Catch[testBlocks @ b; b, testBlocks, ThrowErrorMessage["invalidMarkdownBlock", #1]&];
+  Catch[testBlocks @ b; b, testBlocks, ThrowMsg["invalidMarkdownBlock", #1]&];
 
 ValidMarkdownBlocksQ[b_] :=
   Catch[testBlocks @ b; True, testBlocks, False&];
@@ -99,7 +100,7 @@ jupyterTemplate[filename_, args___] :=
     ReplaceAll[{args}] //
     ReplaceAll[{"StringJoin", s___} :> RuleCondition @ StringJoin[s]];
 
-ExportToJupyter[file_, blockData_, OptionsPattern[]] := Locals @ CatchError[ExportToJupyter,
+ExportToJupyter[file_, blockData_, OptionsPattern[]] := Locals @ CatchMessages[ExportToJupyter,
   UnpackOptions[
     globalStringReplacements,
     $tabSpacings, $maxItems, $forbiddenBlocks, $renumberItems, $blockRewriteRules
@@ -195,7 +196,7 @@ trimEmptyLines[s_Str] := StringReplace[s, Regex["\n\\s*\n"] -> "\n"];
 
 Options[ExportToMarkdown] = $commonExportOptions;
 
-ExportToMarkdown[blockData_, OptionsPattern[]] := Locals @ CatchError[ExportToMarkdown,
+ExportToMarkdown[blockData_, OptionsPattern[]] := Locals @ CatchMessages[ExportToMarkdown,
   UnpackOptions[$tabSpacings, $maxItems, $forbiddenBlocks, $renumberItems, $blockRewriteRules];
   blocks = toBlocksList @ blockData;
   toMdString @ blocks
@@ -225,7 +226,7 @@ indent4[s_Str] := StringRiffle[StringPrepend["    "] @ StringSplit[s, EndOfLine]
 
 Options[ExportToNotebook] = $commonExportOptions;
 
-ExportToNotebook[blockData_, OptionsPattern[]] := Locals @ CatchError[ExportToNotebook,
+ExportToNotebook[blockData_, OptionsPattern[]] := Locals @ CatchMessages[ExportToNotebook,
   UnpackOptions[$tabSpacings, $maxItems, $forbiddenBlocks, $renumberItems, $blockRewriteRules];
   blocks = toBlocksList @ blockData;
   cells = Flatten @ blocksToNotebookCells @ blocks;
@@ -286,7 +287,7 @@ ParseMarkdownString[md_Str] :=
 
 (*************************************************************************************************)
 
-With[{Newline = EndOfLine, LineFragment = Regex["[^\n]*"]},
+With[{newline = EndOfLine, lineFragment = Regex["[^\n]*"]},
   $linePatterns = {
     Shortest["$$\n" ~~ s___ ~~ "\n$$\n"] :>
       MathBlock[trimEmptyLines @ StringTrim @ s],
@@ -297,16 +298,16 @@ With[{Newline = EndOfLine, LineFragment = Regex["[^\n]*"]},
     "![" ~~ Except[{"]", "\n"}].. ~~ "](" ~~ path:Except[{")", "\n"}].. ~~ ")" :>
       ImageBlock[toRelPath @ path],
 
-    "- " ~~ title:LineFragment ~~ Newline ~~ lines:Regex["\n(    [^\n]*\n)+"] :>
+    "- " ~~ title:lineFragment ~~ newline ~~ lines:Regex["\n(    [^\n]*\n)+"] :>
       IndentBlock[title, parseLines @ StringDelete[lines, StartOfLine ~~ "    "]],
 
-    "- " ~~ line:LineFragment :>
+    "- " ~~ line:lineFragment :>
       ItemBlock[line],
 
-    h:Repeated["#", {1, 4}] ~~ " " ~~ title:LineFragment :>
+    h:Repeated["#", {1, 4}] ~~ " " ~~ title:lineFragment :>
       TitleBlock[StrLen[h], StrTrim @ title],
 
-    d:(DigitCharacter..) ~~ ". " ~~ rest:LineFragment :>
+    d:(DigitCharacter..) ~~ ". " ~~ rest:lineFragment :>
       NumberedBlock[FromDigits @ d, rest],
 
     "---" ~~ EndOfLine :>

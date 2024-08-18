@@ -45,12 +45,12 @@ NeonColorGradient
 
 General::badColorFunctionSpecification = "Bad color function specification: ``.";
 
-makeCF[head_, fn_, args___] := CatchError[head, Module[
+makeCF[head_, fn_, args___] := CatchMessages[head, Module[
   {res = fn[args]},
   Which[
     Head[res] === InternalData, ConstructNoEntryExpr[head, res],
     Head[res] === head, res,
-    True, ThrowErrorMessage["badColorFunctionSpecification", HoldForm[head[args]]]; $Failed
+    True, ThrowMsg["badColorFunctionSpecification", HoldForm[head[args]]]; $Failed
   ]
 ]];
 
@@ -60,15 +60,15 @@ General::badColors = "Color list contains non-colors.";
 General::badColorsValuesLength = "Value and color lists must be lists of the same length.";
 
 checkValuesColor[values_, colors_] := (
-  If[!SameLengthQ[values, colors], ThrowErrorMessage["badColorsValuesLength"]];
-  If[!ColorVectorQ[colors], ThrowErrorMessage["badColors"]];
+  If[!SameLengthQ[values, colors], ThrowMsg["badColorsValuesLength"]];
+  If[!ColorVectorQ[colors], ThrowMsg["badColors"]];
 );
 
 unpackRules = CaseOf[
   Rule[k_List, v_List] := {k, v};
   Rule[k_List, Auto]   := {k, Auto};
   kvs:{__Rule}         := {Keys @ k, Values @ v};
-  spec_                := ThrowErrorMessage["badColorFunctionSpecification", spec];
+  spec_                := ThrowMsg["badColorFunctionSpecification", spec];
 ];
 
 (*************************************************************************************************)
@@ -91,7 +91,7 @@ makeDiscreteColorFunction[values2_List, Auto, opts_] := Locals[
     values === {False, True},        $BooleanColors,
     count <= Len[$MediumColorPalette],     Take[$MediumColorPalette, count],
     count <= 2 * Len[$MediumColorPalette], Take[Join[$LightColorPalette, $DarkColorPalette], count],
-    True,                            ThrowErrorMessage["tooManyUniqueColors", count]
+    True,                            ThrowMsg["tooManyUniqueColors", count]
   ];
   makeDiscreteColorFunction[values, colors, opts]
 ]
@@ -110,8 +110,8 @@ makeDiscreteColorFunction[values2_, colors2_, opts_] := Locals[
   Part[rules, -1, 1] = _;
   dispatch = Dispatch @ rules;
 
-  colorAssoc = UAssoc @ AssocThread[values, colors];
-  rgbAssoc = UAssoc @ AssocThread[values, rgbValues];
+  colorAssoc = UDictThread[values, colors];
+  rgbAssoc = UDictThread[values, rgbValues];
 
   fn = If[MemberQ[values, _List],
     dcfSlowPath[colorAssoc],
@@ -178,10 +178,10 @@ makeNumericColorFunction[values2_, colors_, opts_] := Locals[
     values = Rescale[Last @ values, obound, ibound]
   ];
 
-  values = EnsurePackedReals[values, ThrowErrorMessage["nonNumericValues"]];
+  values = EnsurePackedReals[values, ThrowMsg["nonNumericValues"]];
 
   checkValuesColor[values, colors];
-  If[Len[values] < 2, ThrowErrorMessage["tooFewEntries"]];
+  If[Len[values] < 2, ThrowMsg["tooFewEntries"]];
 
   okLabArray = ColorToOKArray @ colors;
   fn = Interpolation[Transpose @ {values, okLabArray}, InterpolationOrder -> 1];
@@ -282,7 +282,7 @@ ApplyColorFunctionToArray[type:Automatic|None, array2_, depth1_] := Locals[
   rank = Len @ dims;
   If[MemberQ[dims, 0], Return @ None];
   If[!MatchQ[rank, depth1 | depth2],
-    ThrowErrorMessage["badColorRank", depth1, depth2, rank]];
+    ThrowMsg["badColorRank", depth1, depth2, rank]];
 
   If[!PackedQ[array] && ContainsQ[array, Real] && ContainsQ[array, Int],
     If[PackedRealsQ[nArrray = N @ array], array = narray]];
@@ -291,11 +291,11 @@ ApplyColorFunctionToArray[type:Automatic|None, array2_, depth1_] := Locals[
 
   Which[
     rank === depth2,
-      If[Last[dims] =!= 3, ThrowErrorMessage["badColorChannel", Last @ dims]];
-      If[!unitBoundsQ[bounds], ThrowErrorMessage["badColorRange"]];
+      If[Last[dims] =!= 3, ThrowMsg["badColorChannel", Last @ dims]];
+      If[!unitBoundsQ[bounds], ThrowMsg["badColorRange"]];
     ,
     type === None,
-      If[!unitBoundsQ[type], ThrowErrorMessage["badColorRange"]];
+      If[!unitBoundsQ[type], ThrowMsg["badColorRange"]];
       Null
     ,
     PackedQ[array] && unitBoundsQ[bounds],
@@ -336,7 +336,7 @@ ApplyColorFunctionToArray[colorFn_, array_, depth_] := Locals[
       rgbArray //= ColorToRGBArray];
   ];
   EnsurePackedReals[rgbArray,
-    ThrowErrorMessage["badColorFunctionValues", colorFn, firstNonRGB @ rgbArray]]
+    ThrowMsg["badColorFunctionValues", colorFn, firstNonRGB @ rgbArray]]
 ];
 
 General::badColorFunctionValues = "ColorFunction -> `` produced non-RGB values, first was: ``.";

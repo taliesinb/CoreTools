@@ -49,7 +49,7 @@ freeze = CaseOf[
 
 (*************************************************************************************************)
 
-$stepVars = UAssociation[];
+$stepVars = UDict[];
 
 StepContinuable[e_] = step[e];
 (*

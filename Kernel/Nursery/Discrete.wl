@@ -21,12 +21,12 @@ DeclareHoldAllComplete[constructDF, evalDF];
 
 DiscreteFunction::badArguments = "Expected an association or list of rules, and an optional set as a second argument.";
 constructDF[f_] := ReturnMsg[DiscreteFunction::badArguments, HoldForm @ f];
-constructDF[DiscreteFunction[rules:{__Rule}, set_List:Auto]]       := makeFSF[Assoc @ rules, set];
-constructDF[DiscreteFunction[assoc_Assoc ? AssocQ, set_List:Auto]] := makeFSF[assoc, set];
+constructDF[DiscreteFunction[rules:{__Rule}, set_List:Auto]] := makeFSF[Dict @ rules, set];
+constructDF[DiscreteFunction[assoc:DictP, set_List:Auto]]    := makeFSF[assoc, set];
 
 makeFSF[assoc_, set_] := ConstructNoEntryExpr[
   DiscreteFunction,
-  UAssoc @ assoc, UAssoc @ PositionIndex @ assoc, SubAuto[set, Union @ Vals @ assoc]
+  UDict @ assoc, UDict @ PositionIndex @ assoc, SubAuto[set, Union @ Vals @ assoc]
 ];
 
 evalDF[DiscreteFunction[fwd_, bwd_, _], x_] := Lookup[fwd, Key @ x, Indeterminate];
@@ -60,7 +60,7 @@ StochasticFunction::badArguments = "Expected either one arg (assoc), two args (a
 constructFSF[f_] := ReturnMsg[StochasticFunction::badArguments, HoldForm @ f];
 
 StochasticFunction::arg1notAssocList = "First argument was not an association of non-empty lists."
-constructFSF[StochasticFunction[assoc_]] := Locals @ CatchError[StochasticFunction,
+constructFSF[StochasticFunction[assoc_]] := Locals @ CatchMessages[StochasticFunction,
   If[!ListValuesQ[assoc] || MemberQ[assoc, {}], ReturnFailed["arg1notAssoc"]];,
   ConstructNoEntryExpr[StochasticFunction, assoc]
 ];
@@ -77,7 +77,7 @@ evalFSF[StochasticFunction[a_], x_List] := RandomChoiceArray @ Lookup[a, x, badK
 StochasticFunction::arg1notAssocParts = "First argument was not an association whose values are lists of parts."
 StochasticFunction::arg2notList = "Second argument was not a list of values."
 StochasticFunction::arg2badList = "Second argument was a list with too few values `` < ``."
-constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchError[StochasticFunction,
+constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchMessages[StochasticFunction,
   If[!ValuesTrue[assoc, PositiveIntegerVectorQ] || MemberQ[assoc, {}], ReturnFailed["arg1notAssocParts"]];
   If[!ListQ[values], ReturnFailed["arg2notList"]];
   If[(max = Max[assoc]) > (len = Len[values]), ReturnFailed["arg2notList", max, len]];
@@ -107,28 +107,28 @@ StochasticFunction::badInputSpec = "Input `` should be a list, Automatic, or a f
 StochasticFunction::badOutputSpec = "Output should be a list or Automatic.";
 StochasticFunction::rowMismatch = "Weight matrix row count `` didn't match input size ``.";
 StochasticFunction::colMismatch = "Weight matrix column count `` didn't match output size `` ";
-constructFSF[StochasticFunction[ispec_, weights_, ospec_]] := Locals @ CatchError[StochasticFunction,
-  If[!NumberMatrixQ[weights] || Min[weights] < 0, ThrowErrorMessage["badWeights"]];
+constructFSF[StochasticFunction[ispec_, weights_, ospec_]] := Locals @ CatchMessages[StochasticFunction,
+  If[!NumberMatrixQ[weights] || Min[weights] < 0, ThrowMsg["badWeights"]];
   {numRows, numCols} = Dims[weights];
   inputFn = Which[
     ListQ[ispec],
-      If[Len[ispec] =!= numRows, ThrowErrorMessage["rowMismatch", numRows, Len[ispec]]];
-      UAssocRange @ ispec,
+      If[Len[ispec] =!= numRows, ThrowMsg["rowMismatch", numRows, Len[ispec]]];
+      UDictRange @ ispec,
     AutoQ[ispec],     Id,
     MaybeFnQ[ispec],  Id,
-    True,             ThrowErrorMessage["badInputSpec", ispec]
+    True,             ThrowMsg["badInputSpec", ispec]
   ];
   outputs = Which[
     ListQ[ospec],
-      If[Len[ospec] =!= numCols, ThrowErrorMessage["colMismatch", numCols, Len[ospec]]];
+      If[Len[ospec] =!= numCols, ThrowMsg["colMismatch", numCols, Len[ospec]]];
       ospec,
     AutoQ[ispec], Range @ numCols,
-    True,         ThrowErrorMessage["badOutputSpec", ospec]
+    True,         ThrowMsg["badOutputSpec", ospec]
   ];
   ConstructNoEntryExpr[StochasticFunction, inputFn, weights, outputs]
 ];
 
-evalFSF[StochasticFunction[f_Assoc, w_, t_], x_] := WeightedRandomChoice[t, Part[w, Lookup[f, x, badKeyMsg1[x]]]]
+evalFSF[StochasticFunction[f_Dict, w_, t_], x_] := WeightedRandomChoice[t, Part[w, Lookup[f, x, badKeyMsg1[x]]]]
 badKeyMsg1[x_] := (Message[StochasticFunction::unknownInput2, x]; 1)
 StochasticFunction::unknownInput2 = "Input to StochasticFunction was not in the alphabet: ``.";
 

@@ -14,31 +14,35 @@ PackageExports[
 
 (*************************************************************************************************)
 
-MakeBoxes[NiceObject[head_String, args_, opts___Rule], StandardForm] := Locals[
+MakeBoxes[NiceObject[head_String, args_, opts___], StandardForm] := Locals[
   argBoxes = If[ListQ[args], ToBoxes /@ args, ToBoxes @ args];
   argBoxes /. InterpretationBox[b_, _] :> b;
   NiceObjectBoxes[head, argBoxes, opts]
 ];
 
-NiceObjectBoxes[head_, args_, margin:Except[_Rule]:0, opts___Rule] := StyleBox[
-  RowBox[{StyleBox[head, FontWeight -> "SemiBold"], GridBox[
+NiceObjectBoxes[head_, args2_, margin:Except[_Rule]:0, opts___Rule] := Locals[
+  cLines = TrueQ @ Lookup[{opts}, ColumnLines, False];
+  args = If[!cLines && ListQ[args2], commaSep @ args2, args2];
+  argItems = Which[
+    EmptyQ[args],  "",
+    SingleQ[args] || cLines, MarginBox[margin] /@ args,
+    ListQ[args],   MapFirstLast[MarginBox[{margin, 0}], MarginBox[{0, margin}], args],
+    True,          MarginBox[margin] @ args
+  ];
+  gridBox = GridBox[
     List @ ToList[
       ItemBox["", Frame -> {{True, False}, {True, True}}, ItemSize -> {.2, All}],
-      If[EmptyQ[args], "", If[
-        ListQ[args],
-        If[SingleQ[args],
-          MarginBox[margin] /@ args,
-          MapFirstLast[MarginBox[{margin, 0}], MarginBox[{0, margin}], commaSep @ args]
-        ],
-        MarginBox[margin] @ args
-      ]],
+      argItems,
       ItemBox["", Frame -> {{False, True}, {True, True}}, ItemSize -> {.2, All}]
     ],
+    ColumnLines -> If[cLines, {False, {LightGray}}, False],
     opts, FrameStyle -> AbsoluteThickness[1],
+    ColumnBackgrounds -> GrayLevel[1],
     ColumnSpacings -> 0, GridFrameMargins -> {{0.,0.},{0.,0.}},
     BaselinePosition -> {{1,2}, Baseline}, RowMinHeight -> 0.5
-  ]}],
-  LineBreakWithin -> False, AutoSpacing -> False
+  ];
+  headedBox = RowBox[{StyleBox[head, FontWeight -> "SemiBold"], gridBox}];
+  StyleBox[headedBox, LineBreakWithin -> False, AutoSpacing -> False]
 ];
 
 commaSep[list_] := Riffle[list, StyleBox[",\[ThinSpace]", Gray]];
@@ -58,7 +62,7 @@ Options[MeshImage] = {
   MeshStyle  -> GrayLevel[0.4]
 };
 
-MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchError[MeshImage,
+MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshImage,
 
   UnpackOptions[frame, mesh, frameStyle, meshStyle];
 
@@ -168,7 +172,7 @@ Options[CompactArrayPlot] = {
 
 CompactArrayPlot::badRank = "Array should be of rank 2 or 3, but had rank ``.";
 
-CompactArrayPlot[array_, OptionsPattern[]] := Locals @ CatchError[CompactArrayPlot,
+CompactArrayPlot[array_, OptionsPattern[]] := Locals @ CatchMessages[CompactArrayPlot,
 
   UnpackOptions[pixelConstrained, colorFunction, frame, mesh, meshStyle, imageSize];
 
@@ -259,7 +263,7 @@ SmartArrayPlot[array_, OptionsPattern[]] := Locals[
   colFn = RedBlueColorFunction[mag];
   cap = CompactArrayPlot[#, PixelConstrained -> pixelConstrained,
     ColorFunction -> colFn, ImageSize -> {{20, w}, {20, h}}]&;
-  iSplit = None;
+  isplit = None;
   rank = Len @ dims;
   If[insert = (First[dims] === 1 && rank > 1),
     dims //= Rest; arr //= First; rank--];
@@ -267,7 +271,7 @@ SmartArrayPlot[array_, OptionsPattern[]] := Locals[
     1, cap @ {arr},
     2, cap @ arr,
     3,
-        {iSplit, split} = splitAndSample[arr, dims];
+        {isplit, split} = splitAndSample[arr, dims];
         nSplit = Len[split];
         If[nSplit === 1,
           cap @ Part[split, 1, 2]
@@ -282,7 +286,7 @@ SmartArrayPlot[array_, OptionsPattern[]] := Locals[
   ];
   If[!showDimensions, Return @ res];
   If[insert, PrependTo[dims, 1]];
-  If[IntQ[iSplit], dims //= MapAt[Style[#, Red]&, iSplit]];
+  If[IntQ[isplit], dims //= MapAt[Style[#, Red]&, isplit]];
   dimsRow = Row[Riffle[dims, $timesStr], BaseStyle -> Bold];
   boundsRow = Row[RealString[#, 2]& /@ minMax, "\[VeryThinSpace]-\[VeryThinSpace]"];
   grid = Grid[

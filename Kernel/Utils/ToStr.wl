@@ -29,7 +29,7 @@ ToStr = CaseOf[
   expr_     := StrJoin @ iToStr @ expr;
 ];
 
-iToStr[e_] := CatchError[ToStr, StrJoin @ blockToStrs @ formToBlock @ e];
+iToStr[e_] := CatchMessages[ToStr, StrJoin @ blockToStrs @ formToBlock @ e];
 
 (**************************************************************************************************)
 
@@ -137,7 +137,7 @@ boxToBlock = CaseOf[
 
 (**************************************************************************************************)
 
-ToStrBlock[e_] := CatchError @ formToBlock @ e;
+ToStrBlock[e_] := CatchMessages @ formToBlock @ e;
 
 (**************************************************************************************************)
 
@@ -537,7 +537,7 @@ CoreBoxes[sb:StringBlockForm[_, ___Rule]] :=
 
 (* the first template slot is linear syntax for FE display,
 the second is HTML, which is ready to be inserted straight into markdown as-is. *)
-stringBlockFormBoxes[StringBlockForm[b_, opts___Rule]] := CatchError[StringBlockForm,
+stringBlockFormBoxes[StringBlockForm[b_, opts___Rule]] := CatchMessages[StringBlockForm,
   TemplateBox[{
     ToInputString @ fixExtensibleChars @ MakeStringBlock[b, StylingFunction -> "Linear", opts],
     (* StringBlock[b, StylingFunction -> "HTML", opts] *)
@@ -616,7 +616,7 @@ Options[StringTable] = {
   TableHeadingStyle -> $Gray
 }
 
-iStringTable[rows_List, OptionsPattern[]] := Locals @ CatchError[StringTable,
+iStringTable[rows_List, OptionsPattern[]] := Locals @ CatchMessages[StringTable,
   If[!AnyMatrixQ[rows], ThrowMsg["notmatrix", rows]];
   items = Map2[toStrBlock, rows];
   UnpackOptions[tableHeadings, tableHeadingStyle];
@@ -680,7 +680,7 @@ iStringMatrix[rows_List, opts___Rule] := Locals[
 StringBlockTemplate::badtemplate = "Template `` should be a string or list of strings."
 StringBlockTemplate::badtemplatearg = "`` reqeuested, but only `` available."
 
-toStrBlock[StringBlockTemplate[template:(_Str | {___String}), args___]] := Locals @ CatchError[StringBlockTemplate,
+toStrBlock[StringBlockTemplate[template:(_Str | {___String}), args___]] := Locals @ CatchMessages[StringBlockTemplate,
   lines = Switch[template,
     _Str,     StrSplit[template, "\n"],
     {___Str}, template,
@@ -1010,7 +1010,7 @@ hextTable = CaseOf[
   ")"                 := ext3[")", "⎞", "⎟", "⎠"];
 ];
 
-$hextTableNames = Assoc[
+$hextTableNames = UDict[
   "Round"        -> {"RoundLeft", "RoundRight"},
   "MidRound"     -> {"MidRoundLeft", "MidRoundRight"},
   "Square"       -> {"SquareLeft", "SquareRight"},
@@ -1064,7 +1064,7 @@ vextTable = CaseOf[
   "DoubleSquareBottom" := ext3["═", "╘", "═", "╛"];
 ];
 
-$vextTableNames = Assoc[
+$vextTableNames = UDict[
   "Round"        -> {"RoundTop", "RoundBottom"},
   "MidRound"     -> {"MidRoundTop", "MidRoundBottom"},
   "Square"       -> {"SquareTop", "SquareBottom"},

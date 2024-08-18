@@ -42,10 +42,10 @@ ParsePadding = CaseOf[
   c:Num2P                      := N @ c;
   s:{Num2P, Num2P}             := N @ s;
   rule_Rule                    := % @ {rule};
-  rules:{Rule[sideP, NumP]...} := N @ LookupSide[rules, {{Left, Right}, {Bottom, Top}}];
+  rules:{Rule[side, NumP]...}  := N @ LookupSide[rules, {{Left, Right}, {Bottom, Top}}];
   _                            := $Failed;
 ,
-  {sideP -> ExtSideP|Horizontal|Vertical|All}
+  {side -> ExtSideP|Horizontal|Vertical|All}
 ];
 
 (**************************************************************************************************)

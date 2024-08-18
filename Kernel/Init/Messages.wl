@@ -1,21 +1,43 @@
 PackageExports[
+  "ControlFlowFunction",
+    Try,
+
   "MessageFunction",
-    TopLevelEvaluationFunction, ThrowErrorMessage,
-    ThrowError, CatchError, TryCatchError, CatchErrorAsFailure,
-    MsgPrePrint, MsgHold,
-    CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError,
-    ThrowOptionError,
+    IssueMessage, GeneralMessage, ErrorMessage,
+
+    ThrowMessage,
+    CatchMessages,
+    TryElse, CatchAsFailure,
+
+    ThrowException,
+
+    CheckForUnknownOptions, UnknownOptionMsg,
+    ThrowUnknownOptionMsg, ThrowOptionMsg,
     SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
-    OptionError, ErrorMessage, AssertThat,
+    OptionMsg,
+    AssertThat,
+
+  "MetaFunction",
+    DefineException,
+
+  "FormHead",
+    ExceptionForm,
+
   "SpecialFunction",
-    Unimplemented, InternalError
+    Unimplemented, InternalError,
+    MsgPrePrint,
+
+  "Predicate",
+    GeneralMessageQ, SymbolMessageQ
 ];
 
 PrivateExports[
-  "MessageFunction",
-    CoreToolsErrorHandler, CoreToolsErrorMessage, DisableErrorHandler,
-  "SpecialSymbol",
-    CoreToolsErrorTag
+  "Function",             InsertWithSourceLocations, CreateFailure,
+  "SymbolicHead",         MessageException, FailureException, LiteralException,
+  "ControlFlowFunction",  WithSourceLocation, HandleExceptions, DisableHandleExceptions, UnhandledException,
+  "SpecialFunction",      TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
+  "SpecialSymbol",        ExceptionTag,
+  "SpecialVariable",      $HandlerSet, $SourceLocationStack
 ];
 
 (**************************************************************************************************)
@@ -24,24 +46,77 @@ PrivateExports[
 Ideas:
 ErrorMessage["Foo", 3, 4] issues a message, evals to $Failed.
 ErrorMessage["blah" -> "foo bar baz `` bam`", 3, 4, 5] attachs a message to General, then as above.
-ThrowErrorMessage[...] postpones this, throwing and catching at a CatchError, where the symbol is known.
+ThrowErrorMessage[...] postpones this, throwing and catching at a CatchMessages, where the symbol is known.
 *)
-
-declareHAC[e___] := SetAttributes[{e}, HoldAllComplete];
 
 (**************************************************************************************************)
 
-SetAttributes[ErrorMessage, HoldFirst];
+SetPred1 @ GeneralMessageQ;
 
-ErrorMessage /: SetDelayed[$LHS_, ErrorMessage[msgName_Str, args___]] := With[
-  {sym = First @ PatternHeadSymbol @ $LHS},
-  SetDelayed @@ Hold[$LHS, ErrorMessage[MessageName[sym, msgName], args]]
+GeneralMessageQ[name_Str] := StringQ[MessageName[General, name]];
+
+GeneralMessage[name_Str, args___] := Then[Message[MessageName[General, name], args], $Failed];
+
+(**************************************************************************************************)
+
+SetHoldF @ SetPred2 @ SymbolMessageQ;
+
+SymbolMessageQ[sym_Sym, name_Str] := !StringQ[MessageName[sym, name]] && GeneralMessageQ[name];
+
+(**************************************************************************************************)
+
+SetHoldR @ WithSourceLocation;
+
+WithSourceLocation[loc_, body_] := Block[{$SourceLocationStack = Append[$SourceLocationStack, loc]}, body];
+
+InsertWithSourceLocations[hc_] := With[
+  {loc = SourceLocation[]},
+  ReplaceAll[hc, {
+    e:($ExceptingSymbolP[___]) :> WithSourceLocation[loc, e],
+    u:HoldP[Unimplemented | InternalError] :> WithSourceLocation[loc, u]
+  }]
 ];
 
-ErrorMessage[msg_MessageName, args___] := (
-  Message[msg, args];
+$SourceLocationStack = {};
+
+(**************************************************************************************************)
+
+IssueMessage::usage =
+"IssueMessage[head$, 'name$', args$$] issues the message with name 'name$' against symbol head$.
+* if the message doesn't exist a fallback message will be issued."
+
+IssueMessage[head_ -> slocs_, args___] := Then[
+  If[slocs =!= {}, ErrorPrint @ Row[DelDups @ ToList[$SourceLocationStack, slocs], " > "]];
+  IssueMessage[head, args]
+];
+
+IssueMessage[msgHead_Sym, msgName_String, msgArgs___] := Then[
+  If[!SymbolMessageQ[msgHead, msgName],
+    Message[MessageName[msgHead, "missingMessage"], msgName, msgHead],
+    Message[MessageName[msgHead, msgName], msgArgs]
+  ],
   $Failed
-);
+];
+
+
+
+e_IssueMessage := GeneralMessage["invalidMessage", IssueMessage, HoldForm @ e];
+
+General::missingMessage = "No message with name `` is defined for symbol ``.";
+General::invalidMessage = "An invalid call to `` was encountered: ``.";
+
+(**************************************************************************************************)
+
+SetExcepting @ SetHoldF @ ErrorMessage;
+
+DefinePseudoMacro[ErrorMessage,
+ErrorMessage[msg_Str, args___] :> IssueMessage[$MacroParentSymbol, msg, args]
+];
+
+ErrorMessage[msg_Str, args___]                       := IssueMessage[General, msg, args];
+ErrorMessage[MessageName[sym_Sym, msg_Str], args___] := IssueMessage[sym, msg, args];
+
+e_ErrorMessage := GeneralMessage["invalidMessage", ErrorMessage, HoldForm @ e];
 
 (**************************************************************************************************)
 
@@ -53,93 +128,103 @@ InternalError := ThrowMsg["internalError"];
 
 (**************************************************************************************************)
 
+SetExcepting @ AssertThat;
+
 AssertThat[True] := Null;
 AssertThat[_]    := InternalError;
 
 (**************************************************************************************************)
 
-declareHAC[TryCatchError, CoreToolsTryHandler];
+SetHoldF[HandleExceptions, DisableHandleExceptions];
 
-TryCatchError[body_, else_] := Block[{$willCatch = True},
-  Catch[body, CoreToolsErrorTag, CoreToolsTryHandler[else]]
-];
+$HandlerSet = False;
 
-CoreToolsTryHandler[else_][_, _] := else;
+HandleExceptions[body_, handler_] := Block[{$HandlerSet = True},  Catch[body, ExceptionTag, exceptionHandler @ handler]];
+DisableHandleExceptions[body_]    := Block[{$HandlerSet = False}, body];
 
-(**************************************************************************************************)
-
-CatchError /: SetDelayed[$LHS_, CatchError[body_]] := With[
-  {head = First @ PatternHeadSymbol @ $LHS},
-  SetDelayed @@ Hold[$LHS, CatchError[head, body]]
-];
-
-CatchError::usage = "CatchError[head, body] catches errors thrown by ThrowErrorMessage and ThrowError."
-
-declareHAC[CatchError];
-
-$willCatch = False;
-CatchError[head_Symbol, body_] := Block[{$willCatch = True}, Catch[body, CoreToolsErrorTag, CoreToolsErrorHandler[head]]];
-
-CatchError::noMsgDefined = "Caught an error, but no message with name `` is defined for catching symbol ``.";
-
-CoreToolsErrorHandler[_][value_, _] := value;
-CoreToolsErrorHandler[msgHead_][CoreToolsErrorMessage[msgName_String, msgArgs___], _] := (
-  If[!StringQ[MessageName[msgHead, msgName]] && !StringQ[MessageName[General, msgName]],
-    Message[CatchError::noMsgDefined, msgName, msgHead],
-    Message[MessageName[msgHead, msgName], msgArgs]
-  ];
-  $Failed
-);
-
-CoreToolsErrorHandler[msgHead_][FunctionReturnValue[value_]] := value;
-
-DefinePartialMacro[CatchError,
-  CatchError[body_] :> CatchError[$MacroParentSymbol, body]
-];
-
+exceptionHandler[handler_][exception_, _] := handler[exception];
 
 (**************************************************************************************************)
 
-declareHAC[DisableErrorHandler];
+SetHoldC[TryElse, TryElseHandler];
 
-DisableErrorHandler[body_] := Block[{$willCatch = False}, body];
+TryElse[body_, else_] := HandleExceptions[body, TryElseHandler[else]];
+
+TryElseHandler[else_][_, _] := else;
 
 (**************************************************************************************************)
 
-declareHAC[CatchErrorAsFailure];
+Try::usage =
+"Try[body$] catches exceptions and displays them, returning $Failed."
 
-CatchErrorAsFailure::usage =
-"CatchFailure[head, body] catches errors thrown by ThrowErrorMessage and ThrowError, returning a Failure object.
-CatchFailure[head, body, fn] applies fn to the failure."
+SetHoldC @ Try;
 
-CatchErrorAsFailure[name_, body_, fn_:Identity] := Catch[body, CoreToolsErrorTag, errorAsFailureHandler[name, fn]];
+DefinePseudoMacro[Try, Try[body_] :> Try[$MacroParentSymbol, body]];
 
-errorAsFailureHandler[name_, _][value_, _] := Failure["UnknownFailure", Association[]];
+Try[head_Sym, body_] := HandleExceptions[body, TryHandler[head]];
 
-errorAsFailureHandler[name_, fn_][CoreToolsErrorMessage[msgName_String, msgArgs___], _] :=
-  fn @ Failure[name, Association[
-    "MessageTemplate" :> MessageName[General, msgName],
-    "MessageParameters" -> {msgArgs}
+TryHandler[head_][exception_] := TryHandler[head, exception];
+TryHandler[head_, LiteralException[sloc_, value_]]                       := value;
+TryHandler[head_, MessageException[sloc_, Inherited, name_Str, args___]] := IssueMessage[head -> sloc, name, args];
+TryHandler[head_, MessageException[sloc_, symbol_, name_Str, args___]]   := IssueMessage[symbol -> sloc, name, args];
+
+(**************************************************************************************************)
+
+CatchMessages::usage =
+"CatchMessages[head$, body$] catches errors thrown by ThrowMessage.
+CatchMessages[body$] uses the current head."
+
+SetHoldC @ CatchMessages;
+
+DefinePseudoMacro[CatchMessages,
+CatchMessages[body_] :> CatchMessages[$MacroParentSymbol, body]
+];
+
+CatchMessages[head_Symbol, body_] := HandleExceptions[body, CatchAsMessageHandler[head]];
+
+CatchAsMessageHandler[head_][exception_] := CatchAsMessageHandler[head, exception];
+CatchAsMessageHandler[head_, LiteralException[sloc_, value_]]                       := value;
+CatchAsMessageHandler[head_, MessageException[sloc_, Inherited, name_Str, args___]] := IssueMessage[head -> sloc, name, args];
+CatchAsMessageHandler[head_, MessageException[sloc_, symbol_, name_Str, args___]]   := IssueMessage[symbol -> sloc, name, args];
+cm:CatchAsMessageHandler[_, __] := (Print[HoldForm[cm]]);
+
+(**************************************************************************************************)
+
+SetHoldC @ CatchAsFailure;
+
+CatchAsFailure::usage =
+"CatchAsFailure['name$', body] catches exceptions thrown by ThrowMessage etc, returning a Failure object.
+CatchAsFailure['name$', body, fn] applies fn to the failure."
+
+CatchAsFailure[name_, body_, fn_:Identity] := HandleExceptions[body, CatchAsFailureHandler[name, fn]];
+
+CatchAsFailureHandler[name_, fn_][exception_] := CatchAsFailureHandler[name, fn, exception];
+CatchAsFailureHandler[name_, fn_, LiteralException[sloc_, value_]]                          := Failure["UnknownFailure", Dict["SourceLocation" -> sloc]];
+CatchAsFailureHandler[name_, fn_, MessageException[sloc_, Inherited, msgName_Str, args___]] := fn @ CreateFailure[sloc, General, name, msgName, args];
+CatchAsFailureHandler[name_, fn_, MessageException[sloc_, head_, msgName_Str, args___]]     := fn @ CreateFailure[sloc, head, name, msgName, args];
+
+CreateFailure[sloc_, failureName_, symbol_, msgName_, msgArgs___] :=
+  Failure[failureName, Dict[
+    "MessageTemplate" :> MessageName[symbol, msgName],
+    "MessageParameters" -> {msgArgs},
+    "SourceLocation"  -> sloc
   ]];
 
 (**************************************************************************************************)
 
-$willCatch = False;
+ThrowMessage::usage =
+"ThrowMessage['name', body] throws a message to CatchMessages where it is issued.
+ThrowMessage['quiet', ...] is equivalent to RaiseException[]."
 
-ThrowErrorMessage::usage = "
-ThrowErrorMessage['name', body] throws a message to CatchError where it is issued.
-ThrowErrorMessage['quiet', ...] is equivalent to ThrowError[].
-"
+SetExcepting @ ThrowMessage;
 
-ThrowErrorMessage[msgName_String, msgArgs___] :=
-  ThrowError @ CoreToolsErrorMessage[msgName, msgArgs];
-
-ThrowErrorMessage["quiet", ___] :=
-  ThrowError[];
+ThrowMessage[sym_Symbol -> msgName_String, msgArgs___] := ThrowException @ MessageException[$SourceLocationStack, sym, msgName, msgArgs];
+ThrowMessage[msgName_String, msgArgs___] := ThrowException @ MessageException[$SourceLocationStack, Inherited, msgName, msgArgs];
+ThrowMessage["quiet", ___]               := ThrowException @ LiteralException[$SourceLocationStack, $Failed];
 
 (**************************************************************************************************)
 
-DeclareStrict[SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow];
+SetExcepting @ SetStrict[SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow];
 
 SameQOrThrow[a_, b_, msg_Str, args___]                := If[a === b, True, ThrowMsg[msg, a, b, args]];
 SameLenQOrThrow[a_, b_, msg_Str, args___]             := If[Len[a] === Len[b], True, ThrowMsg[msg, Len[a], Len[b], args]];
@@ -150,89 +235,84 @@ LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, Thro
 
 (**************************************************************************************************)
 
-DeclareStrict[CheckForUnknownOptions, UnknownOptionError, ThrowUnknownOptionError];
+SetExcepting @ SetStrict[CheckForUnknownOptions, UnknownOptionMsg, ThrowUnknownOptionMsg];
 
 CheckForUnknownOptions[head_Symbol] := Null;
 
 CheckForUnknownOptions[head_Symbol, key_ -> _] :=
-  If[!OptionKeyQ[head, key], ThrowUnknownOptionError[head, key]];
+  If[!OptionKeyQ[head, key], ThrowUnknownOptionMsg[head, key]];
 
 CheckForUnknownOptions[head_Symbol, opts___] := Locals[
   validKeys = OptionKeys @ head;
   actualKeys = Keys @ FlatList @ opts;
   badKeys = Compl[actualKeys, validKeys];
-  If[NonEmptyQ[badKeys], ThrowUnknownOptionError[head, First @ badKeys]];
+  If[NonEmptyQ[badKeys], ThrowUnknownOptionMsg[head, First @ badKeys]];
 ];
 
 General::unknownOption = "`` is not a known option to ``. Available options are ``.";
-UnknownOptionError[head_, key_] := ErrorMessage["unknownOption", key, head, OptionKeys @ head];
-ThrowUnknownOptionError[head_, key_] := ThrowErrorMessage["unknownOption", key, head, OptionKeys @ head];
+UnknownOptionMsg[head_, key_]      := ErrorMessage["unknownOption", key, head, OptionKeys @ head];
+ThrowUnknownOptionMsg[head_, key_] := ThrowMessage["unknownOption", key, head, OptionKeys @ head];
 
 (**************************************************************************************************)
 
-DeclareStrict[OptionError, ThrowOptionError]
+SetExcepting @ SetStrict[OptionMsg, ThrowOptionMsg]
 
-OptionError[opt_, val_] := ErrorMessage["invalidOption", opt, val];
-ThrowOptionError[opt_, val_] := ThrowErrorMessage["invalidOption", opt, val];
+OptionMsg[opt_, val_]      := ErrorMessage["invalidOption", opt, val];
+ThrowOptionMsg[opt_, val_] := ThrowMessage["invalidOption", opt, val];
 General::invalidOption = "The setting `` -> `` is not valid.";
 
 (**************************************************************************************************)
 
-ThrowError::usage = "
-ThrowError[] returns a $Failed from the containing CatchError.
-ThrowError[expr$] returns $expr from the containing CatchError.
-"
+ThrowException::usage =
+"ThrowException[] returns a $Failed from the containing CatchMessages.
+ThrowException[expr$] returns $expr from the containing CatchMessages."
 
 General::uncaughtMessage = "The message name \"``\" was thrown but not caught. Aborting.";
 
-ThrowError[] := ThrowError @ $Failed;
+ThrowException[] := ThrowException @ LiteralException[$Failed];
+ThrowException[e_] /; $HandlerSet := Throw[e, ExceptionTag];
+ThrowException[e_]                := UnhandledException @ e;
 
-ThrowError[e_] /; $willCatch := Throw[e, CoreToolsErrorTag];
-
-ThrowError[CoreToolsErrorMessage[name_, args___]] := (
-  If[StringQ[MessageName[General, name]],
-    Message[MessageName[General, name], args]];
-  Message[General::uncaughtMessage, name]; Abort[]
-);
-
-ThrowError[_] :=
-  (Message[General::uncaughtError]; Abort[]);
-
-ThrowError::invalidThrowError = "Invalid call to ThrowError.";
-t_ThrowError := (Message[ThrowError::invalidThrowError, HoldForm[t]]; ThrowError[]);
+ThrowException::invalidThrowException = "Invalid call to ThrowException.";
+t_ThrowException := Then[Message[ThrowException::invalidThrowException, HoldForm[t]], ThrowException[]];
 
 (**************************************************************************************************)
 
-declareHAC[TopLevelEvaluationFunction];
+UnhandledException[MessageException[sloc_, Inherited, args___]] :=
+  UnhandledException @ MessageException[sloc, General, args];
 
-TopLevelEvaluationFunction[body_] := CatchError[TopLevelEvaluationFunction, body];
-TopLevelEvaluationFunction[bodies___] := TopLevelEvaluationFunction[CompoundExpression[bodies]];
+UnhandledException[MessageException[sloc_, sym_, name_, args___]] := Then[
+  If[SymbolMessageQ[sym, name], IssueMessage[sym, name, args]];
+  GeneralMessage["uncaughtException", sloc],
+  Abort[]
+];
 
-(* this relies on a customized stylesheet that contains e.g.:
-Cell[StyleData["Code"],
-  CellEvaluationFunction -> Function[boxes,
-    If[DownValues[System`TopLevelEvaluationFunction] === {},
-      ToExpression @ boxes,
-      ToExpression[boxes, StandardForm, System`TopLevelEvaluationFunction]]]
-]
-*)
+UnhandledException[LiteralException[sloc_, value_]] := Then[
+  GeneralMessage["uncaughtException", sloc],
+  Abort[]
+];
 
-CoreToolsErrorHandler[TopLevelEvaluationFunction][value_, _] := (
-  Message[General::uncaughtError];
-  value
-);
-General::uncaughtError = "ThrowError occurred without a surrounding CatchError.";
+UnhandledException[e_] := Then[
+  GeneralMessage["uncaughtException", {}],
+  Abort[]
+];
 
-CoreToolsErrorHandler[TopLevelEvaluationFunction][msg:CoreToolsErrorMessage[msgName_String, msgArgs___], tag_] := (
-  Message[General::uncaughtErrorMessage];
-  CoreToolsErrorHandler[General][msg, tag];
-);
-General::uncaughtErrorMessage = "ThrowErrorMessage occurred without a surrounding CatchError.";
+General::uncaughtException = "Exception occurred without a handler set. Source location: ``.";
 
 (**************************************************************************************************)
 
-declareHAC[MsgPrePrint, msgBoxes];
+MakeBoxes[sl:SourceLocation[_Str, _Int], StandardForm] := ToBoxes @ fmtSourceLoc[sl];
+MakeBoxes[sl:SourceLocation[_Str, _Int], TraditionalForm] := ToBoxes @ fmtSourceLoc[sl];
 
+fmtSourceLoc[SourceLocation[path_Str, int_Int]] :=
+  ClickForm[CodeStyle["../" <> FileNameTake[path]], Print[path]; SublimeSeek[path, int]];
+
+(**************************************************************************************************)
+
+SetHoldC[MsgPrePrint, msgBoxes];
+
+MsgPrePrint[loc_SourceLocation] := fmtSourceLoc @ loc;
+MsgPrePrint[locs:{___SourceLocation}] := Row[fmtSourceLoc /@ DelDups[locs], ", "];
 MsgPrePrint[LiteralCommaStringForm[s:{__Str}]] := StringRiffle[s, ", "];
 MsgPrePrint[LiteralStringForm[s_Str]] := s;
 MsgPrePrint[$PrintLiteral[s_Str]] := s;

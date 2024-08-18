@@ -30,7 +30,7 @@ $InstalledCoreToolsStyleSheetsDirectory = PathJoin[$UserStyleSheetsDirectory, "C
 
 General::coreToolsSheetsNotInstalled = "CoreTools stylesheets not installed to ``."
 
-InstallCoreToolsStyleSheets[] := Locals @ CatchError[
+InstallCoreToolsStyleSheets[] := Locals @ CatchMessages[
   sourcePath = $CoreToolsStyleSheetsDirectory;
   targetPath = $InstalledCoreToolsStyleSheetsDirectory;
   If[!FileExistsQ[targetPath], CreateDirectory @ targetPath];
@@ -44,7 +44,7 @@ InstallCoreToolsStyleSheets[] := Locals @ CatchError[
 
 (*************************************************************************************************)
 
-UninstallCoreToolsStyleSheets[] := Locals @ CatchError[
+UninstallCoreToolsStyleSheets[] := Locals @ CatchMessages[
   If[!DirectoryQ[$InstalledCoreToolsStyleSheetsDirectory],
     ReturnFailed["coreToolsSheetsNotInstalled", $InstalledCoreToolsStyleSheetsDirectory]];
   Quiet @ SetDefaultStylesheet["Default.nb"];
@@ -74,8 +74,8 @@ GetNotebookStylesheet = CaseOf[
 
 SetNotebookStylesheet = CaseOf[
   $[sheet_]              := SetNotebookStylesheet[EvaluationNotebook[], sheet];
-  $[All, sheet_]         := CatchError @ Scan[setSheet[toFrontEndSheet @ sheet], UserNotebooks[]];
-  $[nb_NBObject, sheet_] := CatchError @ setSheet[toFrontEndSheet @ sheet] @ nb;
+  $[All, sheet_]         := CatchMessages @ Scan[setSheet[toFrontEndSheet @ sheet], UserNotebooks[]];
+  $[nb_NBObject, sheet_] := CatchMessages @ setSheet[toFrontEndSheet @ sheet] @ nb;
 ];
 
 setSheet[sheet_][nb_] := SetOptions[nb, StyleDefinitions -> sheet];
@@ -122,7 +122,7 @@ toFrontEndFile = CaseOf[
 
 SetDefaultStylesheet::sheetChangeRequiresRestart = "Restart Mathematica to observe changes to default stylesheet to ``.";
 SetDefaultStylesheet::noSheetChange = "Default stylesheet already set to target value ``.";
-SetDefaultStylesheet[sheet_] := Locals @ CatchError[
+SetDefaultStylesheet[sheet_] := Locals @ CatchMessages[
   newDefault = toFrontEndSheet @ sheet;
   currentDefault = CurrentValue[$FrontEnd, DefaultStyleDefinitions];
   If[currentDefault === newDefault,
@@ -161,9 +161,9 @@ $DefaultStyleSheetStyleNames = {
   "Reference", "Author", "Affiliation", "Abstract"
 };
 
-StyleSheetData[name_, stylePatt_] := Assoc @ Occurences[
+StyleSheetData[name_, stylePatt_] := Dict @ Occurences[
   GetStyleSheet[name],
-  Cell[StyleData[styleName:stylePatt], rules___] :> Rule[styleName, Assoc @ rules]
+  Cell[StyleData[styleName:stylePatt], rules___] :> Rule[styleName, Dict @ rules]
 ];
 
 PrimaryStyleData[] := PrimaryStyleData[] = Join[

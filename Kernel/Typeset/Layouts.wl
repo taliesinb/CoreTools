@@ -423,7 +423,7 @@ toRowsColsEntries[{}] := $tableError["{}"];
 toRowsColsEntries[<||>] := $tableError["\[LeftAssociation]\[RightAssociation]"];
 
 (* assoc of assocs *)
-toRowsColsEntries[data:{__Association ? Developer`HoldAtomQ}] := Module[{data2, keys, cols},
+toRowsColsEntries[data:{__Dict ? Developer`HoldAtomQ}] := Module[{data2, keys, cols},
   data2 = KeyUnion[data];
   keys = Keys @ First @ data2;
   cols = Lookup[data2, Key[#]]& /@ keys;
@@ -463,7 +463,7 @@ heldKeysVals[rules_List] := Transpose @ Map[heldKeyValPair, rules];
 heldKeyValPair[key_ -> val_] := {key, val};
 heldKeyValPair[key_ :> val_] := {key, CoreToolsHold @ val};
 
-toRowsColsEntries[data_Association ? Developer`HoldAtomQ] := Module[
+toRowsColsEntries[data_Dict ? Developer`HoldAtomQ] := Module[
   {keys, vals}, {keys, vals} = heldKeysVals @ Normal @ data;
   If[AllTrue[vals, ListQ] && Apply[Equal, Length /@ vals],
     {$rawKEY, keys, rangeLabels @ First @ vals, vals},
@@ -495,7 +495,7 @@ Options[NiceMulticolumn] = {
 MakeBoxes[NiceMulticolumn[data_, opts___Rule], StandardForm] := RuleCondition @ niceMulticolumnBoxes[data, opts];
 
 DeclareHoldAllComplete[niceMulticolumnBoxes];
-niceMulticolumnBoxes[items2:(_List | _Association), opts___Rule] := Block[
+niceMulticolumnBoxes[items2:ListDictP, opts___Rule] := Block[
   {items = items2,
    maxWidth, maxHeight, itemSize, $maxCols, $maxRows, itemFunction, tooltipFunction, itemLabels,
    $maxPaneW, $maxPaneH, $paneSize, $availableSize,
@@ -653,7 +653,7 @@ processItemSize[_] := (
 
 Unprotect[Grid, Column];
 
-With[{dataPatt = (_Association | {___Association} | Rule[_List, _List])},
+With[{dataPatt = (_Dict | {___Dict} | Rule[_List, _List])},
   Grid[a:dataPatt, opts___Rule] := System`NiceGrid[a, opts];
 Column[a:dataPatt, opts___Rule] := System`NiceGrid[a, opts];
 ];

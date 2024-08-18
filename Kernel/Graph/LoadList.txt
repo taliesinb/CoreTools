@@ -1,4 +1,5 @@
 GraphPlotting.wl
 GraphUtils.wl
+TreePlotting.wl
 Bigraph.wl
 Trees.wl

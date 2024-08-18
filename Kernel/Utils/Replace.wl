@@ -68,8 +68,8 @@ OccurenceAssociation[expr_, patt_, level_:All, fn_:Id] := partAssoc[expr, Positi
 
 PartAssociation[expr_, parts_ ? ListVectorQ, fn_:Id] := partAssoc[expr, parts, fn];
 
-partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[EnsureOAssoc @ expr, parts]];
-partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[EnsureOAssoc @ expr, parts, fn]];
+partAssoc[expr_, parts_, Id]  := AssociationThread[parts, Extract[EnsureODict @ expr, parts]];
+partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[EnsureODict @ expr, parts, fn]];
 
 (**************************************************************************************************)
 
@@ -93,7 +93,7 @@ LeafExprPaths[expr_] := FindExprPaths[expr, _, {-1}];
 
 (*************************************************************************************************)
 
-ExtractExprPaths[expr_, paths_] := CatchError @ Block[{$expr = expr}, extractPaths @ paths];
+ExtractExprPaths[expr_, paths_] := CatchMessages @ Block[{$expr = expr}, extractPaths @ paths];
 
 extractPaths = CaseOf[
   {}                 := {};
@@ -125,8 +125,8 @@ OccurencesWithin[expr_, patt_, up_Int] := Locals[
 
 DeclareCurry2[FullReplaceAll, FullReplaceRepeated]
 
-FullReplaceAll[expr_, rules_]      :=      First[ReplaceAll[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];
-FullReplaceRepeated[expr_, rules_] := First[ReplaceRepeated[Hold[expr] /. Association -> $Assoc, rules] /. $Assoc -> Association];
+FullReplaceAll[expr_, rules_]      :=      First[ReplaceAll[Hold[expr] /. Association -> assocDummy, rules] /. assocDummy -> Association];
+FullReplaceRepeated[expr_, rules_] := First[ReplaceRepeated[Hold[expr] /. Association -> assocDummy, rules] /. assocDummy -> Association];
 
 (*************************************************************************************************)
 

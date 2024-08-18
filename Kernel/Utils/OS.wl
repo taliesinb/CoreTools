@@ -189,7 +189,7 @@ ImportStringTable::invalidSymbolTable = "`` does not contain a valid symbol tabl
 ImportStringTable[path_Str] := Locals[
   text = ImportUTF8 @ path;
   If[!StrQ[text], ReturnFailed["invalidSymbolTable", path]];
-  PairsToAssoc @ Map[
+  PairsToDict @ Map[
     StringSplit /* FirstRest,
     StringLines @ text
   ]
@@ -203,7 +203,7 @@ ExportStringTable::invalidData = "`` is not an association from strings to lists
 
 Options[ExportStringTable] = {"Sort" -> False};
 
-ExportStringTable[path_Str, assoc2_Assoc, OptionsPattern[]] := Locals[
+ExportStringTable[path_Str, assoc2_Dict, OptionsPattern[]] := Locals[
   sort = OptionValue["Sort"];
   assoc = KeyMap[ToStr, assoc2];
   len = Max @ StrLen @ Keys @ assoc;
@@ -271,7 +271,7 @@ RunCommand[binary:(_String | File[_String]), rawArgs___] := Locals[
   False          := "false";
   True           := "true";
   File[f_]       := % @ NormalizePath @ f;
-  v_             := (Message[General::badCommandArgument, v]; ThrowError[]);
+  v_             := (Message[General::badCommandArgument, v]; ThrowException[]);
 ,
   {ignored -> Automatic | None}
 ]; *)

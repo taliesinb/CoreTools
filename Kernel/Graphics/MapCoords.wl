@@ -44,41 +44,43 @@ $mapGBoxesDispatch := $mapGBoxesDispatch = Dispatch @ $MapGBoxRules;
 
 (**************************************************************************************************)
 
+primPattern[str_] := ToAltPattern @ GSigToGPrims[str];
+
 (* TODO: handle rotating a rectangle *)
 (* TODO: handle rotating curves! *)
 $MapGPrimRules := With[{
-  $posPos      = Alt @@ GSigToGPrims["Pos,Pos"],
-  $posDel      = Alt @@ GSigToGPrims["Pos,PosDelta"],
-  $posRad      = Alt @@ GSigToGPrims["Pos,Radius"],
-  $posIRad     = Alt @@ GSigToGPrims["Pos?Radius"],
-  $pos         = Alt @@ GSigToGPrims["Pos!Radius"],
-  $posListRad  = Alt @@ GSigToGPrims["PosList,Radius | PosPair,Radius | Curve,Radius"],
-  $posList     = Alt @@ GSigToGPrims["PosList!Radius | PosPair!Radius | Curve!Radius"],
-  $posLists    = Alt @@ GSigToGPrims["PosLists?Radius"],
-  $opaquePos   = Alt @@ GSigToGPrims["Opaque,Pos|Primitives,Pos"],
-  $opaque      = Alt @@ GSigToGPrims["Opaque"],
-  $posRules    = Alt @@ GSigToGPrims["PosRules,Primitives"]}, {
+  posPos      = primPattern["Pos,Pos"],
+  posDel      = primPattern["Pos,PosDelta"],
+  posRad      = primPattern["Pos,Radius"],
+  posIRad     = primPattern["Pos?Radius"],
+  pos         = primPattern["Pos!Radius"],
+  posListRad  = primPattern["PosList,Radius | PosPair,Radius | Curve,Radius"],
+  posList     = primPattern["PosList!Radius | PosPair!Radius | Curve!Radius"],
+  posLists    = primPattern["PosLists?Radius"],
+  opaque      = primPattern["Opaque"],
+  posRules    = primPattern["PosRules,Primitives"],
+  opaquePos   = primPattern["Opaque,Pos|Primitives,Pos"]}, {
 
-  FmE:($opaque)    [___]                                :> FmE,
+  (FmE:opaque)    [FmA___]                              :> FmE[FmA],
 
-  (FmH:$posPos)    [FmV:PosAP,      FmW:PosAP,  FmA___] :> RuleEval @ Make[FmH, $posFn @ FmV, $posFn @ FmW,       FmA],
-  (FmH:$posDel)    [FmV:PosAP,      FmD:PosAP,  FmA___] :> RuleEval @ Make[FmH, Seq @@      posDeltaFn[FmV, FmD], FmA],
-  (FmH:$posRad)    [FmV:PosAP,      FmR_,       FmA___] :> RuleEval @ Make[FmH, $posFn @ FmV, posRadFn[FmV, FmR], FmA],
-  (FmH:$posIRad)   [FmV:PosAP]                          :> RuleEval @ Make[FmH, $posFn @ FmV                         ],
-  (FmH:$pos)       [FmV:PosAP,                  FmA___] :> RuleEval @ Make[FmH, $posFn @ FmV,                     FmA],
+  (FmH:posPos)    [FmV:PosAP,      FmW:PosAP,  FmA___]  :> RuleEval @ Make[FmH, $posFn @ FmV, $posFn @ FmW,       FmA],
+  (FmH:posDel)    [FmV:PosAP,      FmD:PosAP,  FmA___]  :> RuleEval @ Make[FmH, Seq @@      posDeltaFn[FmV, FmD], FmA],
+  (FmH:posRad)    [FmV:PosAP,      FmR_,       FmA___]  :> RuleEval @ Make[FmH, $posFn @ FmV, posRadFn[FmV, FmR], FmA],
+  (FmH:posIRad)   [FmV:PosAP]                           :> RuleEval @ Make[FmH, $posFn @ FmV                         ],
+  (FmH:pos)       [FmV:PosAP,                  FmA___]  :> RuleEval @ Make[FmH, $posFn @ FmV,                     FmA],
 
-  (FmH:$posListRad)[FmM:PosAListP,  FmR_,       FmA___] :> RuleEval @ Make[FmH, $posListFn  @ FmM, posRadFn[P1 @ FmM, FmR], FmA],
-  (FmH:$posList)   [FmM:PosAListP,              FmA___] :> RuleEval @ Make[FmH, $posListFn  @ FmM, fixupNestedCurves @ FmA],
+  (FmH:posListRad)[FmM:PosAListP,  FmR_,       FmA___]  :> RuleEval @ Make[FmH, $posListFn  @ FmM, posRadFn[P1 @ FmM, FmR], FmA],
+  (FmH:posList)   [FmM:PosAListP,              FmA___]  :> RuleEval @ Make[FmH, $posListFn  @ FmM, fixupNestedCurves @ FmA],
 
-  (FmH:$posLists)  [FmN:PosAListsP,             FmA___] :> RuleEval @ Make[FmH, $posListFn /@ FmN,                            FmA],
-  (FmH:$posRules)  [FmR_List,       FmP_,       FmA___] :> RuleEval @ Make[FmH, posRulesFn  @ FmR, FmP /. $mapGPrimsDispatch, FmA],
+  (FmH:posLists)  [FmN:PosAListsP,             FmA___]  :> RuleEval @ Make[FmH, $posListFn /@ FmN,                            FmA],
+  (FmH:posRules)  [FmR_List,       FmP_,       FmA___]  :> RuleEval @ Make[FmH, posRulesFn  @ FmR, FmP /. $mapGPrimsDispatch, FmA],
 
    Text[FmT_, FmV:PosAP, FmO_,       FmD:PosAP, FmA___] :> RuleEval @ With[{FmQ = posDeltaFn[FmV, FmD]},  Make[Text, FmT, P1 @ FmQ, FmO,      P2 @ FmQ, FmA]],
   Inset[FmT_, FmV:PosAP, FmO_, FmP_, FmD:PosAP, FmA___] :> RuleEval @ With[{FmQ = posDeltaFn[FmV, FmD]}, Make[Inset, FmT, P1 @ FmQ, FmO, FmP, P2 @ FmQ, FmA]],
 
-  (FmH:$opaquePos) [FmO_, FmV:PosAP, FmA___]            :> RuleEval @ Make[FmH, FmO, $posFn @ FmV, FmA]
+  (FmH:opaquePos) [FmO_, FmV:PosAP, FmA___]             :> RuleEval @ Make[FmH, FmO, $posFn @ FmV, FmA]
 
-}] // simplifyRules;
+}];
 
 (* we set up this dispatch so that we know (and test) whether to call
 $posFn or $posListFn for heads that are dual-use, e.g.
@@ -100,8 +102,6 @@ ignoreIntFn[fn_][i_Int] := i;
 ignoreIntFn[fn_][e_] := fn[e];
 
 (**************************************************************************************************)
-
-simplifyRules[rules_] := ReplaceAll[rules, VAlt[a_] :> a];
 
 posRulesFn[e_] := VectorReplace[e, Rule[c:PosAP, o_] :> Rule[$posFn[c], o]];
 posDeltaFn[a_, d_] := With[{a1 = $posFn[a]}, {a1, $posFn[a + d] - a1}];

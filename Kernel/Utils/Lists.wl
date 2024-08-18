@@ -125,7 +125,7 @@ FlatList[a___]   := Flatten @ List @ a;
 
 DeclareCurry2[SelectDiscard, Discard, Occurences, FirstOccurence]
 
-SelectDiscard[assoc_Assoc, fn_] := PickTrueFalse[assoc, Map[fn /* TrueQ, Values @ assoc]];
+SelectDiscard[assoc_Dict, fn_] := PickTrueFalse[assoc, Map[fn /* TrueQ, Values @ assoc]];
 SelectDiscard[list_List, fn_] := PickTrueFalse[list, Map[fn /* TrueQ, list]];
 
 PickTrueFalse[thing_, mask_] := {Pick[thing, mask, True], Pick[thing, mask, False]};
@@ -166,11 +166,11 @@ General::notPair = "Expected a single item or a pair, not ``.";
 EnsurePair = CaseOf[
   a:Except[_List] := {a, a};
   {a_, b_}        := {a, b};
-  a_              := ThrowErrorMessage["notPair", a];
+  a_              := ThrowMsg["notPair", a];
 ];
 
 General::badPairValue = "Value of item or pair `` did not satisfy ``.";
-EnsurePair[a_, test_] := Ensure[EnsurePair @ a, VectorOf[test], ThrowErrorMessage["badPairValue", a, test]];
+EnsurePair[a_, test_] := Ensure[EnsurePair @ a, VectorOf[test], ThrowMsg["badPairValue", a, test]];
 
 (*************************************************************************************************)
 
@@ -297,7 +297,7 @@ RangeLength[expr_] := Range @ Length @ expr;
 DeclareHoldRest[SelectFirstIndex]
 DeclareCurry2[SelectFirstIndex]
 
-SelectFirstIndex[assoc_Association, fn_, default_:None] := Module[{fn2 = fn},
+SelectFirstIndex[assoc_Dict, fn_, default_:None] := Module[{fn2 = fn},
   Association`ScanWhile[assoc, Function[z, If[fn2 @ Last @ z, Return[First @ z, Module], True, True]]];
   default
 ];
@@ -353,7 +353,7 @@ DeclareHoldRest[IndexOf];
 
 IndexOf[EmptyDataP, _, else_] := else;
 IndexOf[expr_ ? IntVecQ, elem_ ? IntQ, else_] := First[FastNumericIndices[expr, elem, 1], else];
-IndexOf[expr_ ? NonZeroDepthQ, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
+IndexOf[expr_, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
 
 (**************************************************************************************************)
 
@@ -458,11 +458,11 @@ DeclareStrict[ExtractIndices];
 (**************************************************************************************************)
 
 Duplicates[list_List] := DeleteCases[{_}] @ Gather[list];
-DuplicateIndices[list_List | list_Assoc] := DeleteCases[{_}] @ Values @ PositionIndex @ list;
+DuplicateIndices[list:ListDictP] := DeleteCases[{_}] @ Values @ PositionIndex @ list;
 
 DeclareCurry2[DuplicateIndicesBy, DuplicatesBy]
 
-DuplicateIndicesBy[list_List | list_Assoc, fn_] := DuplicateIndices @ Map[fn, list];
+DuplicateIndicesBy[list:ListDictP, fn_] := DuplicateIndices @ Map[fn, list];
 DuplicatesBy[list_List, fn_] := DeleteCases[{_}] @ GatherBy[list, fn];
 
 (**************************************************************************************************)
@@ -534,7 +534,7 @@ ApplyTuples[f_, pairs_, n_] := f @@@ Tuples[pairs, n];
 
 ListRiffle[list_List, {}] := list;
 ListRiffle[list_List, riffleList_List] := Locals[
-  riff = PadRight[riffleList, Len[list], L @ riffleList];
+  riff = PadRight[riffleList, Len[list], Last @ riffleList];
   Most @ Catenate @ Transpose[{list, riff}]
 ];
 

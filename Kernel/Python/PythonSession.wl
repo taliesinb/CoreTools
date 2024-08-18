@@ -86,22 +86,26 @@ WolframClientForPython", "--installpath",
  *)
 (*************************************************************************************************)
 
-SetInitial[$PythonPath, None];
-SetInitial[$PythonSessionName, "Python"];
-SetInitial[$PythonSessionParameters, Dict[
-  "Name"                   :> $PythonSessionName,
-  "System"                 -> "Python",
-  "StandardOutputFunction" -> PythonSessionPrint,
-  "StandardErrorFunction"  -> PythonSessionError,
-  "SessionProlog"          -> File @ DataPath["Python", "ct_prelude.py"],
-  "ID"                     :> $PythonSessionName
-]];
-SetInitial[$PythonPrintCallback, PythonRawPrint];
-SetInitial[$PythonErrorCallback, PythonErrorPrint];
-SetInitial[$PythonResultPostProcessor, Id];
+Initially[
+  SetInitial[$PythonPath, None];
+  SetInitial[$PythonSessionName, "Python"];
+  SetInitial[$TorchInitialized, False];
+  $PythonSessionParameters = Dict[
+    "Name"                   :> $PythonSessionName,
+    "System"                 -> "Python",
+    "StandardOutputFunction" -> PythonSessionPrint,
+    "StandardErrorFunction"  -> PythonSessionError,
+    "SessionProlog"          -> File @ DataPath["Python", "ct_prelude.py"],
+    "ID"                     :> $PythonSessionName
+  ];
+  $PythonPrintCallback = PythonRawPrint;
+  $PythonErrorCallback = PythonErrorPrint;
+  $PythonResultPostProcessor = Id;
+  SetCached[$PythonSession, DefaultPythonSession[]];
+  SetCached[$WolframClientPath, findWolframClient[]];
+];
 
-SetDelayedInitial[$PythonSession, DefaultPythonSession[]];
-SetDelayedInitial[$WolframClientPath, $WolframClientPath = First[PacletFind["WolframClientForPython"]]["Location"]];
+findWolframClient[] := First[PacletFind["WolframClientForPython"]]["Location"];
 
 (*************************************************************************************************)
 
@@ -145,19 +149,19 @@ PythonSessionError[e___] := $PythonErrorCallback[e];
 
 PythonReload[] := PythonRun["reload_prelude()"];
 
-PythonRestart[] := Module[{path},
-  path = If[StrQ @ $PythonPath, $PythonPath <> ":" <> DataPath["Python"]];
-  DPrint["Initializing $PythonSession with ", path];
-  SetEnvironment["PYTHONPATH" -> path];
+PythonRestart[] := Module[{pythonPath},
+  pythonPath = StrJoin @ Riffle[DelNone @ ToList[$PythonPath, DataPath["Python"]], ":"];
+  DPrint["Initializing $PythonSession with ", pythonPath];
+  SetEnvironment["PYTHONPATH" -> pythonPath];
   If[HasIValueQ[$PythonSession], Quiet @ DeleteObject[$PythonSession]];
   $TorchInitialized = False;
   $PythonSession = StartExternalSession[
-    addBestEval @ $PythonSessionParameters
+    Dict @ MapApply[Rule] @ Normal @ addBestEval @ $PythonSessionParameters
   ]
 ];
 
 addBestEval[params_] :=
-  Join[params, KeyDrop["Registered"] @ First[PythonEvaluators["Registered" -> True], Assoc[]]];
+  Join[params, KeyDrop["Registered"] @ First[PythonEvaluators["Registered" -> True], Dict[]]];
 
 (*************************************************************************************************)
 
@@ -179,7 +183,7 @@ $sessionNormUpdate = HoldP[s:Switch[#Name, ___]] :> If[StringQ[#Name] && StringQ
 
 (*************************************************************************************************)
 
-RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
+Prelude`Symbols`RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
 
 PythonVariable[name_String] := Block[{$NewSymbol, res},
   res = ExternalEvaluate[$PythonSession, name];
@@ -327,7 +331,7 @@ runScriptData[path_, updateInterval_, runCount_] := Locals[
 
 DeclareHoldFirst[PythonScriptPrint];
 
-SetInitial[$PathToNotebookCache, UAssoc[]];
+SetInitial[$PathToNotebookCache, UDict[]];
 
 PythonScriptPrint[path_String][args___] := Module[{cell, notebook},
   cell = argsToPrintCell[args];
@@ -427,8 +431,6 @@ $spanAbove = "\[SpanFromAbove]";
 
 (*************************************************************************************************)
 
-SetInitial[$TorchInitialized, False];
-
 InitializeTorch[] := If[!$TorchInitialized,
   $TorchInitialized = True;
   LogPrint["Initializing PyTorch."];
@@ -455,14 +457,14 @@ CoreBoxes[PyFunction[name_String, args_List]] :=
   ];
 
 PyFunction[name_String, _][in___] :=
-  ExternalFunction[Assoc["System" -> "Python", "Session" -> $PythonSession, "Command" -> name]][in];
+  ExternalFunction[Dict["System" -> "Python", "Session" -> $PythonSession, "Command" -> name]][in];
 
 (*************************************************************************************************)
 
 DeclareCoreSubBoxes[PyObject]
 
-MakeCoreBoxes[PyObject[name_String, hash_Integer][assoc_Association]] := pyObjectBoxes[name, hash, assoc];
-MakeCoreBoxes[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Assoc[]];
+MakeCoreBoxes[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
+MakeCoreBoxes[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];
 
 CoreBoxes[PyObjectRef[name_String, hash_Integer]]  := RBox[SemiBoldBox @ pyStyleBox[hash] @ name, "[", "\[Ellipsis]", "]"];
 
@@ -473,7 +475,7 @@ fieldBox[f_, opts___Rule] := StyleBox[
 ];
 
 objectEntryBoxes[<||>] := "";
-objectEntryBoxes[assoc_Association] := Locals[
+objectEntryBoxes[assoc_Dict] := Locals[
   grid = KeyValueMap[{fieldBox @ #1, ToBoxes[#2]}&, assoc];
   GridBox[
     grid,
@@ -487,14 +489,14 @@ objectEntryBoxes[assoc_Association] := Locals[
   ]
 ];
 
-PyObject[name_String, _][assoc_Association][key_] := assoc[key];
+PyObject[name_String, _][assoc_Dict][key_] := assoc[key];
 
 (*************************************************************************************************)
 
 namedTupleBoxes[name_, assoc_] := NiceObjectBoxes[name, assocBoxes @ assoc];
 
 assocBoxes[<||>] := {};
-assocBoxes[assoc_Association] := Locals[
+assocBoxes[assoc_Dict] := Locals[
   entryLists = Partition[Normal @ assoc, UpTo @ maxLen];
   If[Len[assoc] > maxLen,
     entryLists //= Map[PadRight[#, maxLen, "" -> ""]&];

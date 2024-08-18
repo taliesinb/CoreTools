@@ -148,8 +148,8 @@ PairOf[preds_][e_]         := PairOfQ[e, preds];
 TupleOf[preds:BlankSeq2]   := TupleOf[List[preds]];
 TupleOf[preds_List][e_]    := TupleOfQ[e, preds];
 
-RecordOf[preds__Rule]      := RecordOf @ UAssoc @ preds;
-RecordOf[preds_Assoc][e_]  := RecordOfQ[e, preds];
+RecordOf[preds__Rule]      := RecordOf @ UDict @ preds;
+RecordOf[preds_Dict][e_]  := RecordOfQ[e, preds];
 
 StructureOf[preds_][e_]    := StructureOfQ[e, preds];
 

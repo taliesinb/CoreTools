@@ -26,13 +26,14 @@ PackageExports[
     ConstructValidExpr, ConstructNoEntryExpr, WithTimestampsPreserved, HoldC, HoldComp, HoldSetNoEntryExpr, HoldSetValidExpr,
 
   "MutatingFunction",
-    StuffBag, SetD, TagSetD, UpSetD, AssocTo,
+    StuffBag, SetD, TagSetD, UpSetD, AssocTo, SubFrom,
 
   "TypeHead",
     Str, Int, Sym,
 
   "DataHead",
-    Dict, Assoc, UDict, UAssoc, UAssociation, UnorderedAssociation,
+    Dict, UDict,
+    UnorderedAssociation,
     RuleD, InternalData,
     DEdge, UEdge,
     Bag,
@@ -58,11 +59,20 @@ PackageExports[
     VFn, VFunction, VSet, VSetD, VTagSetD, VRule, VRuleD,
     Blank1, Blank2, Blank3, Blank01, Blank02, Blank12, Blank13, Blank23, BlankSeq2, BlankSeq3, BlankNullSeq, BlankSeq,
 
+  "Function",
+    SymName, SymContext, SymPath,
+
   "Symbol",
-    Auto, Inherit, Inf, Tau,
+    Auto, Inherit,
+    HInf, Inf,
+    Tau,  Root2,  Root3,
+    NTau, NRoot2, NRoot3, NPi,
 
   "PatternSymbol",
-    AtomP, DatumP, BoolP, ZeroP, NonZeroP, NonZeroIntP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
+    DictP, AtomP, DatumP, BoolP,
+    NEListP, NEDictP, NEListDictP,
+    ZeroP, PiP, TauP,
+    NonZeroP, NonZeroIntP, Zero2P, NatP, Nat2P, PosIntP, PosInt2P,
     NumP, Num2P, Num23P, Num3P,
     Pos2P, Pos2ListP, Pos2ListsP, Pos2PairP,
     Pos3P, Pos3ListP, Pos3ListsP, Pos3PairP,
@@ -72,13 +82,14 @@ PackageExports[
     PosNumP, ExtPosNumP, ColorP, SideP, ExtSideP,
     OnePartSpecP, MultiPartSpecP, ExtPartSpecP,
     SymP, SymStrP, FormalP, PosDollarP, DollarP,
-    SingleP, PairP, ListVecP, AssocVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
-    ListDictP, DictLikeP,
+    SingleP, PairP, ListVecP, DictVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
+    ListDictP, DictLikeP, DictLP,
     RuleP,    RuleLP,    ORuleP     SetLP,    DelayP,
     RuleSeqP, RuleLSeqP, ORuleSeqP, SetLSeqP, DelaySeqP
     RuleVecP, RuleLVecP, ORuleVecP, SetLVecP, DelayVecP
     RuleLSymP, SetLSymP, DelaySymP
-    EmptyP, NonEmptyP, EmptyDataP, EmptyAssoc, EmptyDict,
+    EmptyP, NonEmptyP, EmptyDataP,
+    EmptyUDict, EmptyDict,
     UserSymbolP, InertSymbolP, SystemSymbolP,
     AnonFnP,
 
@@ -95,12 +106,12 @@ PackageExports[
     APointSize, AThickness, ADashing,
 
   "Function",
-    PosIndex, RangeAssoc, AssocRange, UAssocRange, RangeUAssoc,
+    PosIndex,
     SeqLen,
     Seq0, Seq1, Seq2, Seq3, SeqN, SeqMost, SeqRest, SeqReverse,
     Seq12, Seq21,
 
-    LenRange, RangeLen, ConstAssoc, ConstRules, ConstList, ConstUAssoc, ConstTrueAssoc, PairsToAssoc, AssocToPairs,
+    LenRange, RangeLen, ConstRules, ConstList,
     ToRowVec, ToColVec,
 
     Rep,  RepRep, RepAll,   VecRep,
@@ -117,10 +128,9 @@ PackageExports[
     LevelDict, OccDict, ArgDict, LeafDict, PartDict,
 
      InvertDict,  DictRange,  RangeDict,  ConstDict,  PairsToDict,  RulesToDict, DictToPairs, DictToRules,
-    InvertUDict, UDictRange, RangeUDict, ConstUDict, PairsToUDict, RulesToUDict, ConstTrueDict,
+    InvertUDict, UDictRange, RangeUDict, ConstUDict, PairsToUDict, RulesToUDict, TrueDict, FalseDict,
      DictMap,  DictMapApply,  DictMapThread,  DictThread,
     UDictMap, UDictMapApply, UDictMapThread, UDictThread,
-    AssocMap, UAssocThread, AssocMapThread,
 
     HoldLen, Len, Len2, LenN, Dims, Id, Rev, IntDigits,
     SafeIntegerString,
@@ -163,14 +173,14 @@ PackageExports[
     StrQ, StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, StrHasQ, ASCIIQ,
     BoolQ, IntQ, PosIntQ, NegIntQ, NatQ, NumQ, ExtNumQ, ORuleQ,
 
-    AssocQ, VecQ, AssocVecQ, RuleVecQ, RuleLVecQ, ORuleVecQ, DictLQ,
+    VecQ, RuleVecQ, RuleLVecQ, ORuleVecQ, DictLikeQ,
     StrOrVecQ, BoolOrVecQ, SymOrVecQ, IntOrVecQ, RuleOrVecQ, RuleLOrVecQ, ORuleOrVecQ,
     DictVecQ, PairVecQ, ListVecQ, BoolVecQ, SymVecQ, StrVecQ, StrVecQ, NatVecQ, IntVecQ, PosIntVecQ, RealVecQ, NumVecQ, ExtNumVecQ,
     DictMatQ, PairMatQ, ListMatQ, BoolMatQ, SymMatQ, StrMatQ, NatMatQ, IntMatQ, PosIntMatQ, RealMatQ, NumMatQ, ExtNumMatQ,
     PairArrQ, ListArrQ, BoolArrQ, SymArrQ, StrArrQ, NatArrQ, IntArrQ, PosIntArrQ, RealArrQ, NumArrQ, ExtNumArrQ, DictArrQ,
 
     ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, HoldMaybeFnQ, MaybeFQ, MaybeFnQ, ExprWillNotEvaluateQ, ExprWillNotEvaluateWhenAppliedQ,
-    HasAnyCodesQ, HasAnyDefsQ, HasDValueQ, HasDownCodeQ, HasDownDefsQ, HasIValueQ, HasNoCodesQ, HasNoDefsQ, HasOwnDefsQ, HasPrintCodeQ, HasSubCodeQ, HasSubDefsQ, HasUpCodeQ, HasUpDefsQ,
+    HasAnyCodesQ, HasAnyDefsQ, HasDValueQ, HasDownCodeQ, HasDownDefsQ, HasIValueQ, HasNoCodesQ, HasNoDefsQ, HasOwnDefsQ, HasPrintCodeQ, HasSubCodeQ, HasSubDefsQ, HasUpCodeQ, HasUpDefsQ, HasUsageQ,
     Base64StringQ, IntegerPartitionQ,
     AssociationVectorQ, ListOrAssociationQ, StringOrStringVectorQ, StringVectorQ,
     UnsafeEmptyQ, NonEmptyQ, NotEmptyQ
@@ -184,7 +194,7 @@ PackageExports[
     PatternPresentQ, PatternFreeQ, VContainsQ, VFreeQ, ValidSymbolNameQ,
     DupFreeQ,
     AssocScanWhileQ, EmptyComplementQ, EmptyIntersectionQ, HashSameQ, NValueQ,
-    HAssocQ, HPackedQ,
+    HDictQ, HPackedQ,
     DictQ, ListDictQ, UDictQ, ODictQ, NonEmptyDictQ, NonEmptyListDictQ,
     DictOfQ, ListDictOfQ, NonEmptyDictOfQ, NonEmptyListDictOfQ,
     ContainsDictQ,
@@ -194,7 +204,8 @@ PackageExports[
 
     SameOKeysQ, AllSameOKeysQ,
 
-    NEDictQ, NEListDictQ, NEDictOfQ, NEListDictOfQ,
+    NEDictQ,   NEListQ,   NEListDictQ,
+    NEDictOfQ, NEListOfQ, NEListDictOfQ,
     NEAllSameQ, NEAllSameByQ,
     NEAllSameLengthQ, NEAllSameHeadsQ, NEAllSamePartsQ, NEAllSameSetsQ, NEAllSameKeysQ, NEAllSameOKeysQ,
 
@@ -249,6 +260,9 @@ defineAlias[aliasSym_Symbol -> targetSym_Symbol] := (
   Set[aliasSym, targetSym];
 );
 
+definePattern[patternSym_Symbol -> Evaluate[rhs_]] :=
+  With[{rhs2 = rhs}, definePattern[patternSym -> rhs]];
+
 definePattern[patternSym_Symbol -> rhs_] := (
   $SymbolAliases[patternSym] = rhs;
   Set[patternSym, rhs];
@@ -261,6 +275,14 @@ defineAlias[e_]      := (Message[DefineAliasRules::notValidRule,   HoldForm @ e]
 definePattern[e_]    := (Message[DefinePatternRules::notValidRule, HoldForm @ e]; $Failed)
 e_DefineAliasRules   := (Message[DefineAliasRules::notValidRule,   HoldForm @ e]; $Failed)
 e_DefinePatternRules := (Message[DefinePatternRules::notValidRule, HoldForm @ e]; $Failed)
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  Dict                  -> Association,
+  UnorderedAssociation  -> Data`UnorderedAssociation,
+  UDict                 -> Data`UnorderedAssociation
+];
 
 (*************************************************************************************************)
 
@@ -296,7 +318,7 @@ DefinePatternRules[
 DefinePatternRules[
   EmptyP         -> _[],
   NonEmptyP      -> _[__],
-  AtomP          -> HoldPattern[Except[_Association] ? Developer`HoldAtomQ],
+  AtomP          -> Except[_Association] ? Developer`HoldAtomQ,
   DatumP         -> Alternatives[False, True, None, Null, _String, _Integer, _Real, _Rational] ? Developer`HoldAtomQ,
   BoolP          -> False | True,
   ColorP         -> Alternatives[_RGBColor, _GrayLevel, _CMYKColor, _Hue, _XYZColor, _LABColor, _LCHColor, _LUVColor, Opacity[_, _]],
@@ -310,7 +332,6 @@ DefinePatternRules[
   SymStrP        -> Alternatives[_Symbol, _String] ? Developer`HoldAtomQ,
   PosDollarP     -> Alternatives[$0, $1, $2, $3, $4, $5, $6, $7, $8, $9],
   DollarP        -> Alternatives[$1, $2, $3, $4, $5, $6, $7, $8, $9],
-  AssocP         -> _Association ? Developer`HoldAtomQ,
   UserSymbolP    -> _Symbol ? UserSymbolQ,
   InertSymbolP   -> _Symbol ? InertSymbolQ,
   SystemSymbolP  -> _Symbol ? SystemSymbolQ,
@@ -346,19 +367,28 @@ DefineAliasRules[
   FmZ -> \[FormalCapitalZ]
 ];
 
-With[
-  {emptyAssoc = Association[], dirInf = DirectedInfinity[1], tau = 2. * Pi},
-  DefinePatternRules[
-    EmptyDataP -> Alternatives[{}, emptyAssoc],
-    EmptyAssoc -> emptyAssoc,
-    EmptyDict  -> emptyAssoc,
-    Inf        -> dirInf,
-    Tau        -> tau
-  ]
+DefinePatternRules[
+  EmptyDataP -> Evaluate @ Alternatives[{}, Dict[], UDict[]],
+  EmptyDict  -> Evaluate @ Dict[],
+  EmptyUDict -> Evaluate @ UDict[],
+  HInf       -> Infinity,
+  Inf        -> Evaluate @ DirectedInfinity[1],
+  Tau        -> 2 * Pi,
+  NTau       -> Evaluate @ N[2 * Pi],
+  NPi        -> Evaluate @ N[Pi],
+  Root2      -> Sqrt[2],
+  Root3      -> Sqrt[3],
+  NRoot2     -> Evaluate @ N[Sqrt[2]],
+  NRoot3     -> Evaluate @ N[Sqrt[3]]
+]
+
+DefinePatternRules[
+  ZeroP          -> Alternatives[0, 0.],
+  PiP            -> Alternatives[Pi, NPi],
+  TauP           -> Alternatives[Tau, NTau]
 ];
 
 DefinePatternRules[
-  ZeroP          -> 0 | 0.,
   NonZeroP       -> Except[0 | 0., _Integer | _Real | _Rational],
   NonZeroIntP    -> Except[0, _Integer],
   Zero2P         -> {0 | 0., 0 | 0.},
@@ -400,7 +430,7 @@ DefinePatternRules[
   SingleP        -> {_},
   PairP          -> {_, _},
   ListVecP       -> _List ? ListVectorQ,
-  AssocVecP      -> _List ? AssociationVectorQ,
+  DictVecP       -> _List ? AssociationVectorQ,
   BoolVecP       -> _List ? BooleanVectorQ,
   SymVecP        -> {___Symbol},
   StrVecP        -> _List ? StringVectorQ,
@@ -416,9 +446,19 @@ DefinePatternRules[
 (**************************************************************************************************)
 
 DefinePatternRules[
+  DictP          -> _Dict ? Developer`HoldAtomQ,
   DictLikeP      -> Alternatives[_Association ? AssociationQ,  {Alternatives[_Rule, _RuleDelayed]...}],
-  ListDictP      -> Alternatives[_List, _Association ? Developer`HoldAtomQ]
+  ListDictP      -> Alternatives[_List, _Association ? Developer`HoldAtomQ],
+  NEListP        -> Except[{}, _List],
+  NEDictP        -> Except[EmptyDict, _Association ? Developer`HoldAtomQ],
+  NEListDictP    -> Except[_[], _List | _Association ? Developer`HoldAtomQ]
 ];
+
+DefinePatternRules[
+  DictLP         -> DictLikeP
+];
+
+(* alternatives: (assoc_Dict ? HoldAtomQ) ? NonEmptyQ *)
 
 (**************************************************************************************************)
 
@@ -483,8 +523,10 @@ DefineAliasRules[
   SameOKeysQ                    -> SameOrderedKeysQ,
   AllSameOKeysQ                 -> AllSameOrderedKeysQ,
   NEDictQ                       -> NonEmptyDictQ,
+  NEListQ                       -> NonEmptyListQ,
   NEListDictQ                   -> NonEmptyListDictQ,
   NEDictOfQ                     -> NonEmptyDictOfQ,
+  NEListOfQ                     -> NonEmptyListOfQ,
   NEListDictOfQ                 -> NonEmptyListDictOfQ,
   NEAllSameQ                    -> NonEmptyAllSameQ,
   NEAllSameByQ                  -> NonEmptyAllSameByQ,
@@ -533,13 +575,11 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  AssocVecQ                     -> Developer`AssociationVectorQ,
   DictVecQ                      -> Developer`AssociationVectorQ,
   RuleVecQ                      -> RuleVectorQ,
   RuleLVecQ                     -> RuleLikeVectorQ,
   ORuleVecQ                     -> OptionRuleVectorQ,
   DictLikeQ                     -> AssociationLikeQ,
-  AssocQ                        -> AssociationQ,
   VecQ                          -> VectorQ,
   PairVecQ                      -> PairVectorQ,
   ListVecQ                      -> ListVectorQ,
@@ -599,7 +639,7 @@ DefineAliasRules[
   AssocScanWhileQ               -> Association`ScanWhile,
   EmptyComplementQ              -> Language`EmptyComplementQ,
   EmptyIntersectionQ            -> Language`EmptyIntersectionQ,
-  HAssocQ                       -> HoldAssociationQ,
+  HDictQ                        -> HoldAssociationQ,
   HPackedQ                      -> HoldPackedArrayQ
 ];
 
@@ -619,6 +659,8 @@ DefineAliasRules[
   UnsafeEmptyQ                  -> Developer`EmptyQ,
   NotEmptyQ                     -> Developer`NotEmptyQ,
   NonEmptyQ                     -> Developer`NotEmptyQ,
+  HEmptyQ                       -> HoldEmptyQ,
+  HNotEmptyQ                    -> HoldNotEmptyQ,
 
   SymbolQ                       -> Developer`SymbolQ,
   HoldSymbolQ                   -> Developer`HoldSymbolQ,
@@ -746,10 +788,12 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
-  UnorderedAssociation  -> Data`UnorderedAssociation,
-  UAssociation          -> Data`UnorderedAssociation,
-  UAssoc                -> Data`UnorderedAssociation,
-  UDict                 -> Data`UnorderedAssociation
+  Sym            -> Symbol,
+  Str            -> String,
+  Int            -> Integer,
+  RuleD          -> RuleDelayed,
+  DEdge          -> DirectedEdge,
+  UEdge          -> UndirectedEdge
 ];
 
 (*************************************************************************************************)
@@ -757,17 +801,6 @@ DefineAliasRules[
 DefineAliasRules[
   NBObject       -> NotebookObject,
   VertexColorFn  -> VertexColorFunction
-];
-
-DefineAliasRules[
-  Sym            -> Symbol,
-  Dict           -> Association,
-  Assoc          -> Association,
-  Str            -> String,
-  Int            -> Integer,
-  RuleD          -> RuleDelayed,
-  DEdge          -> DirectedEdge,
-  UEdge          -> UndirectedEdge
 ];
 
 (*************************************************************************************************)
@@ -807,7 +840,8 @@ DefineAliasRules[
   SetD           -> SetDelayed,
   TagSetD        -> TagSetDelayed,
   UpSetD         -> UpSetDelayed,
-  AssocTo        -> AssociateTo
+  AssocTo        -> AssociateTo,
+  SubFrom        -> SubtractFrom
 ];
 
 (*************************************************************************************************)
@@ -848,7 +882,7 @@ DefineAliasRules[
   DictMap        -> AssociationMap,
   DictMapApply   -> AssociationMapApply,
   DictMapThread  -> AssociationMapThread,
-  DictThread     -> AssocThread,
+  DictThread     -> AssociationThreadOp,
 
   UDictMap       -> UnorderedAssociationMap,
   UDictMapApply  -> UnorderedAssociationMapApply,
@@ -862,7 +896,8 @@ DefineAliasRules[
 
   ConstDict      -> ConstantAssociation,
   ConstUDict     -> ConstantUnorderedAssociation,
-  ConstTrueDict  -> ConstantTrueAssociation,
+  TrueDict       -> ConstantTrueAssociation,
+  FalseDict      -> ConstantFalseAssociation,
 
   PairsToDict    -> PairsToAssociation,
   RulesToDict    -> RulesToAssociation,
@@ -876,6 +911,12 @@ DefineAliasRules[
   ArgDict        -> ArgumentAssociation,
   LeafDict       -> LeafAssociation,
   PartDict       -> PartAssociation
+];
+
+DefineAliasRules[
+  SymName        -> HoldSymbolName,
+  SymContext     -> HoldSymbolContext,
+  SymPath        -> HoldSymbolPath
 ];
 
 DefineAliasRules[
@@ -896,24 +937,8 @@ DefineAliasRules[
 
   PosIndex       -> PositionIndex,
 
-  AssocMap       -> AssociationMap,
-  UAssocThread   -> UnorderedAssociationThread,
-  AssocMapThread -> AssociationMapThread,
-
-  RangeAssoc     -> RangeAssociation,
-
-  AssocRange     -> AssociationRange,
-  UAssocRange    -> UnorderedAssociationRange,
-
-  ConstAssoc     -> ConstantAssociation,
-  ConstUAssoc    -> ConstantUnorderedAssociation,
-  ConstTrueAssoc -> ConstantTrueAssociation,
-
   ConstRules     -> ConstantRules,
-  ConstList      -> ConstantArray,
-
-  PairsToAssoc   -> PairsToAssociation,
-  AssocToPairs   -> AssociationToPairs
+  ConstList      -> ConstantArray
 ];
 
 (*************************************************************************************************)
@@ -1147,7 +1172,7 @@ expr steSublistPosition;
 
  *)
 DefineAliasRules[
-  ThrowMsg                      -> ThrowErrorMessage,
+  ThrowMsg                      -> ThrowMessage,
   ErrorMsg                      -> ErrorMessage,
   ReturnMsg                     -> ReturnMessage
 ];

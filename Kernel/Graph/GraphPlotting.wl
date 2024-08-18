@@ -26,7 +26,7 @@ PackageExports[
     DefineGraphTheme,
 
   "Function",
-    ExtGraph,
+    ExtGraph, GraphThemeData,
 
   "Predicate",
     CustomGraphThemeQ,
@@ -43,24 +43,47 @@ PackageExports[
 
 DeclarePredicate1[CustomGraphThemeQ]
 
-SetInitial[$SystemGraphThemeNames, GraphComputation`SetGraphStyle[]];
-SetInitial[$CustomGraphThemeData, UAssoc[]];
+Initially[
+  $SystemGraphThemeNames = GraphComputation`SetGraphStyle[];
+  $CustomGraphThemeData  = UDict[]
+];
 
 DeclareStrict[DefineGraphTheme]
 
 DefineGraphTheme[name_String, rules_List] := (
   CustomGraphThemeQ[name] = True;
-  $CustomGraphThemeData[name] = UAssoc[rules];
+  $CustomGraphThemeData[name] = UDict[rules];
 );
+
+(*************************************************************************************************)
+
+GraphThemeData[name_Str] := Locals[
+  dict = Lookup[$CustomGraphThemeData, name, None];
+  Which[
+    !DictQ[dict], $Failed,
+    StringQ[parent = dict[ThemeParent]], Join[GraphThemeData @ parent, dict],
+    True, dict
+  ]
+];
+
+GraphThemeData[name_Str, key_] :=
+  GraphThemeData[Lookup[$CustomGraphThemeData, name, Dict[]], key];
+
+GraphThemeData[dict_Dict, key_] := SubInherited[
+  Lookup[dict, key, Inherited],
+  If[!StringQ[dict, ThemeParent], None,
+    GraphThemeData[dict @ ThemeParent, key]]
+];
 
 (*************************************************************************************************)
 
 DefineGraphTheme["Core", {
   EdgeShapeFunction -> {"ShortUnfilledArrow", "ArrowSize" -> Medium, "ArrowPositions" -> 0.5},
-  VertexShapeFunction -> (Point[#]&),
+  VertexShapeFunction -> "Point",
   VertexSize -> 0.2, ImageSize -> 200,
   EdgeStyle -> Directive[{GrayLevel[0.7, 1.0]}],
-  VertexStyle -> Directive[{AbsolutePointSize[4], EdgeForm[None], FaceForm[GrayLevel[0.2, 1]], GrayLevel[0.2, 1]}],
+  VertexTooltips -> "Name",
+  VertexStyle -> Directive[{AbsolutePointSize[5], EdgeForm[None], FaceForm[GrayLevel[0.2, 1]], GrayLevel[0.2, 1]}],
   Options -> {ImagePadding -> 20}
 }];
 
@@ -71,7 +94,7 @@ $CustomGraphOptions = {
   PostGraphicsFunction, VertexColors,
   VertexColorFunction, VertexTooltips
 };
-customGraphOptionQ = ConstTrueAssoc @ $CustomGraphOptions;
+customGraphOptionQ = TrueDict @ $CustomGraphOptions;
 
 DeclareStrict[ExtGraph]
 
@@ -143,11 +166,11 @@ $newEdgeLabelDVs = {
 
 patchCustomGraphDrawing[] := With[
   {gcGMb := GraphComputation`GraphMakeBoxes,
-   gcS2DQ := GraphComputation`GraphElementDataDump`Shape2DVertexQ,
+   gcS2Dq := GraphComputation`GraphElementDataDump`Shape2DVertexQ,
    gcRNGD := GraphComputation`GraphElementDataDump`RawNetworkGraphData,
    gcS2D  := GraphComputation`GraphElementDataDump`shape2d},
   Unprotect[gcGMb, gcRNGD];
-  gcS2DQ["Disk"] = True;
+  gcS2Dq["Disk"] = True;
   (* With[{shapes = gcRNGD["VertexShapeFunction"]}, gcRNGD["VertexShapeFunction"] := Union[shapes, {"Disk"}]]; *)
   gcS2D["Disk"][pos_, ex_]    := GraphDiskFn[pos, None, ex];
   gcS2D["Disk"][_, ex_, pos_] := GraphDiskFn[pos, None, ex];
@@ -173,8 +196,10 @@ patchCustomGraphPlotThemes[];
 
 (*************************************************************************************************)
 
-SetInitial[$UserVertexLabelFunction, Id];
-SetInitial[$UserEdgeLabelFunction,   Id];
+Initially[
+  $UserVertexLabelFunction = Id;
+  $UserEdgeLabelFunction   = Id;
+];
 
 CustomGraphMakeBoxes[expr_, _, fmt_] := DisableCoreBoxInteractivity @ ToBoxes[expr, fmt];
 
@@ -197,22 +222,43 @@ CustomGraphDrawing[graph2_] := Locals[
     vertexColors, vertexColorFn, vertexTooltips,
     postGraphicsFn
   ];
-  labelFn //= toLabelFn; vertexLabelFn //= toLabelFn; edgeLabelFn //= toLabelFn;
-  vertexLabels = UAssoc @ If[RuleVectorQ[vertexLabels], vertexLabels, {}];
-  edgeLabels = UAssoc @ If[RuleVectorQ[edgeLabels], edgeLabels, {}];
+  vertexShapeFn = LookupOptions[graph2, VertexShapeFunction];
+  plotTheme = LookupOptions[graph2, PlotTheme];
+  If[StringQ @ plotTheme,
+    plotThemeData = GraphThemeData @ plotTheme;
+    SetAuto[vertexShapeFn,  Lookup[plotThemeData, VertexShapeFunction, Auto]];
+    SetNone[labelFn,        Lookup[plotThemeData, LabelFunction, None]];
+    SetNone[vertexLabelFn,  Lookup[plotThemeData, VertexLabelFunction, None]];
+    SetNone[edgeLabelFn,    Lookup[plotThemeData, EdgeLabelFunction, None]];
+    SetNone[vertexColors,   Lookup[plotThemeData, VertexColors, None]];
+    SetNone[vertexColorFn,  Lookup[plotThemeData, VertexColorFunction, None]];
+    SetNone[vertexTooltips, Lookup[plotThemeData, VertexTooltips, None]];
+  ];
+  origShapeFn = vertexShapeFn;
+
+  labelFn //= toLabelFn;
+  vertexLabelFn //= toLabelFn;
+  edgeLabelFn //= toLabelFn;
+  vertexLabels = UDict @ If[RuleVectorQ[vertexLabels], vertexLabels, {}];
+  edgeLabels = UDict @ If[RuleVectorQ[edgeLabels], edgeLabels, {}];
   newOptions = {};
   vertexStyle = Which[
     !MatchQ[vertexColorFn, None | Automatic], With[{vcf = vertexColorFn}, FmV :> vcf[FmV]],
-    ColorQ[vertexColors], vertexColors,
+    ColorQ[vertexColors],       vertexColors,
     ColorVectorQ[vertexColors], makeVertexColorRules[graph2, vertexColors],
-    True, None
+    NoneQ[vertexColors],        None,
+    True,                       GraphVertexData[graph2, vertexStyle]
   ];
   If[vertexStyle =!= None, AppendTo[newOptions, VertexStyle -> vertexStyle]];
-  origShapeFn = vertexShapeFn = LookupOptions[graph2, VertexShapeFunction];
+
   SetAuto[vertexShapeFn, "Disk"];
   If[vertexTooltips =!= None,
-    vertexShapeFn = GraphTooltipFn[vertexShapeFn, UDictThread[VertexList @ graph2, vertexTooltips]]];
+    vertexTooltips = GraphVertexData[graph2, vertexTooltips];
+    vertexShapeFn = GraphTooltipFn[vertexShapeFn, UDictThread[VertexList @ graph2, vertexTooltips]]
+  ];
+
   If[origShapeFn =!= vertexShapeFn, AppendTo[newOptions, VertexShapeFunction -> vertexShapeFn]];
+
   With[{graph = If[newOptions === {}, graph2, Graph[graph2, Seq @@ newOptions]]},
   Block[{
     $CurrentGraph = graph, $CurrentVertexLabels = vertexLabels, $CurrentEdgeLabels = edgeLabels,
@@ -293,7 +339,7 @@ EdgeAnnotation[e:Except[_Slot], k_, d_] := Lookup[Lookup[$CurrentEdgeAnnotations
 
 DeclareStrict[GraphAnnotationRules, GraphProperties]
 
-GraphProperties[graph_Graph] := Lookup[graphAnnos @ graph, "GraphProperties", Assoc[]];
+GraphProperties[graph_Graph] := Lookup[graphAnnos @ graph, "GraphProperties", Dict[]];
 GraphProperties[graph_Graph, syms_] := Lookup[GraphProperties @ graph, syms, Automatic];
 
 graphAnnos[graph_] := Part[Options[graph, AnnotationRules], 1, 2];
@@ -335,7 +381,7 @@ AddSelfAnnotations[annos_] := Locals[
 graphItemAnnos[graph_, items_] := Locals[
   rules = GraphAnnotationRules @ graph;
   annos = VectorReplace[items, Append[rules, _ -> {}]];
-  AssocThread[items, Assoc /@ annos]
+  DictThread[items, Dict /@ annos]
 ];
 
 graphItemAnnos[graph_, items_, key_, def_] := Locals[
@@ -363,7 +409,7 @@ and we embed a TimeRange as a custom option that gives the entire range.
 
 GraphAnimate::badAnimationData = "Data provided for `` was not a matrix: ``.";
 GraphAnimate::animationTimeMismatch = "Vertex time base `` =!= edge time base ``.";
-GraphAnimate[graph_Graph, vertexDataSpec_, edgeDataSpec_, opts:OptionsPattern[]] := Locals @ CatchError[
+GraphAnimate[graph_Graph, vertexDataSpec_, edgeDataSpec_, opts:OptionsPattern[]] := Locals @ CatchMessages[
   vTime = eTime = None;
   vLabelFn = If[NoneQ[vertexDataSpec], None,
     data = GraphVertexData[graph, vertexDataSpec];
@@ -399,6 +445,7 @@ GraphAnimate[graph_Graph, vertexDataSpec_, edgeDataSpec_, opts:OptionsPattern[]]
 DefineGraphTheme["GraphAnimate", {
   ThemeParent -> "Core",
   Options -> {ImagePadding -> 25},
+  VertexTooltips -> None,
   EdgeShapeFunction -> {"ShortUnfilledArrow", "ArrowSize" -> Medium, "ArrowPositions" -> 0.7}
 }];
 

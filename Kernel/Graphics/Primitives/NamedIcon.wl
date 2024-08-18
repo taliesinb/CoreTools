@@ -2,6 +2,7 @@ SystemExports[
   "Function",          NamedIconData,
   "GraphicsPrimitive", NamedIcon,
   "OptionSymbol",      IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
+  "Symbol",            Huge, MediumLarge, MediumSmall,
   "SymbolicHead",      Sized, Reversed
 ];
 
@@ -62,7 +63,7 @@ DefinePatternRules[
 CoreBoxes[ni:NamedIcon[namedIconP, ___Rule]] := namedIconBoxes @ ni;
 
 namedIconBoxes[_] := $Failed;
-namedIconBoxes[NamedIcon[name:namedIconP, opts___Rule]] := Locals @ CatchError[NamedIcon,
+namedIconBoxes[NamedIcon[name:namedIconP, opts___Rule]] := Locals @ CatchMessages[NamedIcon,
   UnpackOptionsAs[
     NamedIcon, {opts},
     imageSize, iconScaling,
@@ -83,7 +84,7 @@ namedIconBoxes[NamedIcon[name:namedIconP, opts___Rule]] := Locals @ CatchError[N
 
 General::unknownIcon = "`` is not a known icon. Known icons include ``.";
 
-namedIconGBoxes[NamedIcon[pos:PosAP|_Offset, dir:PosAP, name:namedIconP, opts:OptionsPattern[]]] := CatchError[NamedIcon,
+namedIconGBoxes[NamedIcon[pos:PosAP|_Offset, dir:PosAP, name:namedIconP, opts:OptionsPattern[]]] := CatchMessages[NamedIcon,
   UnpackOptionsAs[
     NamedIcon, {opts},
     graphicsScale, imageSize, iconScaling,
@@ -125,7 +126,7 @@ rawNamedIconBoxes[pos_, dir2_, name2_,
   $imageSize = EnsurePair[imgSize * iscaling];
   iconData = LookupOrThrow[$namedIconData, name, "unknownIcon", LiteralCommaStringForm @ Keys @ $namedIconData];
   {prims, boxes, boxes3D, {{x1, x2}, {y1, y2}, {b1, b2}}, solid} = iconData;
-  $styler = SolidEmptyStyleBoxOp[solid, color, None, thickness];
+  $styler = solidEmptyStyleBoxOp[solid, color, None, thickness];
   $originx = If[NumberQ @ align, Lerp[b1, b2, align], 0];
   $origin = {$originx, 0};
   makeIcon[
@@ -142,25 +143,25 @@ applyRep[b_, xs_] := Construct[GeometricTransformationBox, b, {{#, 0.}}& /@ xs];
 (**************************************************************************************************)
 
 "
-SolidEmptyStyleBoxOp[isSolid$, color$, opacity$, thickness$] produces a box operator that will appropriately color solid or empty primitives.
+solidEmptyStyleBoxOp[isSolid$, color$, opacity$, thickness$] produces a box operator that will appropriately color solid or empty primitives.
 "
 
-SolidEmptyStyleBoxOp[True, args___]  := SolidStyleBoxOp[args];
-SolidEmptyStyleBoxOp[False, args___] := EmptyStyleBoxOp[args];
+solidEmptyStyleBoxOp[True, args___]  := solidStyleBoxOp[args];
+solidEmptyStyleBoxOp[False, args___] := emptyStyleBoxOp[args];
 
 (**************************************************************************************************)
 
 "
-EmptyStyleBoxOp[color$, opacity$, thickness$] produces a StyleBoxOp that will appropriately style thin primitives like %LineBox, %CircleBox, and %PointBox.
+emptyStyleBoxOp[color$, opacity$, thickness$] produces a StyleBoxOp that will appropriately style thin primitives like %LineBox, %CircleBox, and %PointBox.
 * color$ can be %SolidEdgeForm[$$], in which case the edge color will be used.
 * if thickness$ is 0 or color$ is None, the operator will delete boxes.
 "
 
-EmptyStyleBoxOp = CaseOf[
-  Seq[s_SolidEdgeForm, o_, t_] := $[PN @ solidEdgeColors @ s, o,  t];
-  Seq[None, _, _]              := InvisibleOp;
-  Seq[_, 0, _]                 := InvisibleOp;
-  Seq[_, _, 0]                 := InvisibleOp;
+emptyStyleBoxOp = CaseOf[
+  Seq[s_solidEdgeForm, o_, t_] := $[PN @ solidEdgeColors @ s, o,  t];
+  Seq[None, _, _]              := invisibleOp;
+  Seq[_, 0, _]                 := invisibleOp;
+  Seq[_, _, 0]                 := invisibleOp;
   Seq[c_, o_, t_]              := StyleBoxOp[toThick @ t, toOpacity @ o, toColor @ c]
 ];
 
@@ -176,12 +177,12 @@ toOpacity[o_] := Opacity[o];
 
 (**************************************************************************************************)
 
-InvisibleOp[___] := {};
+invisibleOp[___] := {};
 
 (**************************************************************************************************)
 
 "
-SolidStyleBoxOp[color$, opacity$, thickness$] produces a StyleBoxOp that will appropriately style thick primitives like %PolygonBox and %DiskBox.
+solidStyleBoxOp[color$, opacity$, thickness$] produces a StyleBoxOp that will appropriately style thick primitives like %PolygonBox and %DiskBox.
 * color$ can be %SolidEdgeForm[$$], in which case the face and edge colors will be used.
 * if thickness$ is 0 or color$ is None, the operator will delete boxes.
 "
@@ -196,8 +197,8 @@ toEdgeForm = CaseOf[
   Seq[t_, {_, c_} | c_] := EdgeForm @ {toThick @ t, toColor @ c};
 ];
 
-SolidStyleBoxOp = CaseOf[
-  Seq[s_SolidEdgeForm, o_, t_] := $[t, o, solidEdgeColors @ s];
+solidStyleBoxOp = CaseOf[
+  Seq[s_solidEdgeForm, o_, t_] := $[t, o, solidEdgeColors @ s];
   Seq[c_, o_, t_]              := StyleBoxOp[toFaceForm[o, c], toEdgeForm[t, c]];
 ];
 
@@ -546,7 +547,7 @@ setRightAligned[name_ -> bounded[curve_, {bx_, by_, {_, bb2_}}]] :=
 SetCached[$namedIconData, createIconData[]];
 
 (* NOTE: make sure to update $knownIconNames with the keys from this lazy table so that autocomplete is correct *)
-createIconData[] := MapP[makeIconData, DelCases[None | bounded[None, ___]] @ Assoc[
+createIconData[] := MapP[makeIconData, DelCases[None | bounded[None, ___]] @ Dict[
 
   $arrowIcons,
 
@@ -584,4 +585,4 @@ NamedIconData[] := Keys @ $namedIconData;
 NamedIconData[All] := $namedIconData;
 
 NamedIconData[name_Str] /; StrHasQ[name, "*"] := Select[NamedIconData[], StrMatchQ[name]];
-NamedIconData[name_Str] := CatchError @ LookupOrThrow["unknownIcon", $namedIconData, name, Keys @ $namedIconData];
+NamedIconData[name_Str] := CatchMessages @ LookupOrThrow["unknownIcon", $namedIconData, name, Keys @ $namedIconData];

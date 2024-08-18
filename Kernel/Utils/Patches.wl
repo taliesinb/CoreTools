@@ -17,15 +17,20 @@ PackageExports[
     $CurrentDefinitionNotebooks
 ];
 
+PrivateExports[
+  "MessageFunction",
+    PatchPrint
+];
+
 (*************************************************************************************************)
 
 GetPackageSymbol[symbol_String] := GetPackageSymbol[symbol] = (
-  HiddenLoadPackage[SymbolNameFirst @ symbol];
+  HiddenLoadPackage[NameFirst @ symbol];
   ToExpression[symbol, InputForm]
 );
 
 GetPackageSymbol[context_String, symbols:{__String}] := GetPackageSymbol[context, symbols] = (
-  HiddenLoadPackage[SymbolNameFirst @ context];
+  HiddenLoadPackage[NameFirst @ context];
   ToExpression[StrJoin[context, #]& /@ symbols, InputForm]
 );
 
@@ -50,7 +55,7 @@ PatchPrint[args___] /; $PatchDebugging := LogPrint[args];
 
 (*************************************************************************************************)
 
-SetInitial[$PackageLoadedCache, UAssoc[]];
+SetInitial[$PackageLoadedCache, UDict[]];
 
 SystemPackageLoadedQ[context_] := $PackageLoadedCache[package] = Or[
   Lookup[$PackageLoadedCache, context, False],
@@ -59,16 +64,18 @@ SystemPackageLoadedQ[context_] := $PackageLoadedCache[package] = Or[
 
 (*************************************************************************************************)
 
-SetInitial[$PackagePatchFunctions, Assoc[]];
-SetInitial[$PackageAppliedPatches, Assoc[]];
-SetInitial[$PackageNeedsPatchesQ, UAssoc[]];
+Initially[
+  $PackagePatchFunctions = Dict[];
+  $PackageAppliedPatches = Dict[];
+  $PackageNeedsPatchesQ = UDict[];
+];
 
 DeclareStrict[RegisterPackagePatchFunctions];
 
 RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
   If[$CurrentlyTracingAutoloads, Return[]];
   $PackageNeedsPatchesQ[context] := True;
-  KeyAssociateTo[$PackagePatchFunctions, context, {rules}];
+  KeyBindTo[$PackagePatchFunctions, context, {rules}];
   PatchPrint["Registered new patch functions for ", context, ": ", Keys @ {rules}];
   If[SystemPackageLoadedQ[context],
     PatchPrint["Package ", context, " already loaded, applying patch functions."];
@@ -126,6 +133,7 @@ patchMutVars[] := With[
   ]
 ];
 
+$insideMDNQ = False;
 patchDefNotebook[] := With[
   {makeDefNb := GeneralUtilities`Debugging`PackagePrivate`makeDefinitionNotebook},
   DownValues[makeDefNb] = Prepend[

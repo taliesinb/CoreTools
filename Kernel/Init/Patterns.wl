@@ -38,7 +38,7 @@ ToAltPattern[_]         := $Failed;
 ToLHSPattern[lhs_Rule]          := RemovePatternSymbols @ First[lhs];
 ToLHSPattern[lhs_RuleDelayed]   := RemovePatternSymbols @ Extract[lhs, 1, HoldP];
 ToLHSPattern[list:RuleLVecP]    := ToAltPattern @ RemovePatternSymbols @ Map[ToLHSPattern, list];
-ToLHSPattern[lhs:Assoc]         := ToLHSPattern @ Normal @ lhs;
+ToLHSPattern[lhs:DictP]         := ToLHSPattern @ Normal @ lhs;
 ToLHSPattern[_]                 := $Failed;
 
 (*************************************************************************************************)
@@ -48,7 +48,7 @@ RemovePatternTests[a_]   := ReplaceRepeated[a, {VPatternTest[p_, _] :> p, VCondi
 
 (*************************************************************************************************)
 
-DeclareStrict @ DeclareHoldAll[MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed]
+SetAttributes[{MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed}, HoldAll];
 
 MakeSet[lhs_, rhs_]                     := Hold[Set[lhs, rhs]];
 MakeSetDelayed[lhs_, rhs_]              := Hold[SetDelayed[lhs, rhs]];

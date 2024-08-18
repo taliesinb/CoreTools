@@ -8,7 +8,7 @@ PackageExports[
     Strings, Symbols, Numbers, Probabilities, NegativeLogProbabilities, Expressions, Datums, Atoms,
     ExtendedReals, ExtendedNonNegativeReals,
     ExtendedIntegers, ExtendedNonNegativeIntegers,
-    ExtendedNumbers, Lists,
+    ExtendedNumbers, Lists, Trees,
   "TypeHead",
     ArraysOf, PackedArraysOf, SparseArraysOf, NumericArraysOf,
     ListsOf, TuplesOf, RecordsOf, DictsOf,
@@ -96,7 +96,7 @@ DefinePatternRules[
   PackingDomainP       -> Alt[Integers, Reals, Complexes],
 
   NumberDomainP        -> Alt[Integers, Reals, Rationals, Complexes, Algebraics, Numbers, BoundedNumberDomainP, ExtNumberDomainP],
-  NonNumberDomainP     -> Alt[Strings, Symbols, Booleans, Datums, Atoms],
+  NonNumberDomainP     -> Alt[Strings, Symbols, Booleans, Datums, Atoms, Trees],
 
   ScalarDomainP        -> Union @ Flatten @ Alt[NumberDomainP, NonNumberDomainP]
 ];
@@ -161,7 +161,8 @@ $domainLetterDict = Dict[
   Reals               -> "\[DoubleStruckCapitalR]",
   Strings             -> "\[DoubleStruckCapitalS]",
   Booleans            -> "\[DoubleStruckCapitalB]",
-  Lists               -> "\[DoubleStruckCapitalL]"
+  Lists               -> "\[DoubleStruckCapitalL]",
+  Trees               -> "\[DoubleStruckCapitalT]"
 ];
 
 BlockUnprotect[{NonNegativeIntegers, Reals, Ints, Rationals, Booleans},
@@ -214,8 +215,8 @@ SemiringFor = CaseOf[
 
 DeclareStrict[RandomArray, RandomElement]
 
-RandomArray[type_ ? ArrayDomainQ] := CatchError @ iRandArray @ type;
-RandomElement[type_ ? DomainQ] := CatchError @ iRandElem @ type;
+RandomArray[type_ ? ArrayDomainQ] := CatchMessages @ iRandArray @ type;
+RandomElement[type_ ? DomainQ] := CatchMessages @ iRandElem @ type;
 
 iRandArray = CaseOf[
   NumericArraysOf[type_, dims_]    := NumericArray @ $ @ PackedArraysOf[dims, type];
@@ -229,7 +230,7 @@ iRandArray = CaseOf[
 
 (* TODO: introduce clipping to ensure we hit zero for PositiveReals etc *)
 $typeToRandFn = UDict[
-  Exprs                 -> RandomDatum,
+  Exprs               -> RandomDatum,
   Reals               -> RandomUnitReal,
   Booleans            -> RandomBoolean,
   Probs               -> RandomUnitReal,
@@ -302,7 +303,7 @@ $naTypesDict = UDict[
   Complexes -> {"ComplexReal32", "ComplexReal64"}
 ];
 $fromNAType = UDict @ KeyValueMap[ConstantRules[#2, #1]&, $naTypesDict];
-$fromPAType = UAssoc[Real -> Reals, Complex -> Complexes, Int -> Integers];
+$fromPAType = UDict[Real -> Reals, Complex -> Complexes, Int -> Integers];
 
 (*************************************************************************************************)
 
@@ -467,8 +468,8 @@ headSetToType[heads_ /; ContainsQ[heads, $optHeadsP]] := Locals[
 headSetToType[heads2_] := Locals[
   heads = heads2;
   Which[
-    SubsetOfQ[heads, $realHeadsP], Numbers,
-    SubsetOfQ[heads, $compHeadsP], Complexes,
+    SubsetOfQ[heads, $realHeads], Numbers,
+    SubsetOfQ[heads, $compHeads], Complexes,
     heads = deSym[heads];
     SubsetOfQ[heads, $datumHeads], Datums,
     SubsetOfQ[heads, $atomHeads],  Atoms,

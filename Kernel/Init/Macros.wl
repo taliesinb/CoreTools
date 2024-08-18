@@ -6,7 +6,7 @@ SystemExports[
   "SpecialFunction",
     ExpandMacros, MacroHold, RefreshMacroRules,
   "SpecialVariable",
-    $MacroParentSymbol, $DollarSymbols
+    $MacroParentSymbol, $MacroSourceLocation, $DollarSymbols
 ];
 
 PackageExports[
@@ -221,7 +221,7 @@ TopLevelSetDelayedMacro[___] := Null;
 TopLevelSetDelayedMacro[s_] := Block[
   {$currentMacroParentSymbol = getParentHead @ s, head},
   head = First @ $currentMacroParentSymbol;
-  CatchError[head, TopLevelEvaluateMacro @ s]
+  CatchMessages[head, TopLevelEvaluateMacro @ s]
 ];
 
 (*************************************************************************************************)
@@ -237,7 +237,7 @@ ExpandMacros::usage = "ExpandsMacros[HoldComplete[...]] expands macros that are 
 ExpandMacros::messagesOccurred = "Messages occurred during macro expansion.";
 ExpandMacros[hc_ ? FreeOfMacrosQ] := hc;
 ExpandMacros[hc_] := Check[
-  checkDone @ subRets @ subHolds @ subMps @ ReplaceRepeated[ReplaceAll[hc, $SymbolAliases], $CompiledMacroRules],
+  checkDone @ subRets @ subHolds @ subMps @ attachSLocs @ ReplaceRepeated[ReplaceAll[hc, $SymbolAliases], $CompiledMacroRules],
   $Failed
 ];
 
@@ -245,11 +245,16 @@ ExpandMacros[hc_] := Check[
 
 General::expansionFailed = "Macro(s) `` failed to expand in ``. Code available as $LastMacroFailure.";
 checkDone[hc_ ? FreeOfPureMacrosQ] := hc;
-checkDone[hc_] := ThrowErrorMessage["expansionFailed", Beep[];
+checkDone[hc_] := ThrowMsg["expansionFailed", Beep[];
   $LastMacroFailure = hc;
   HoldForm @@@ Select[$PureMacroSymbols, !FreeQ[hc, #]&],
   hc
 ];
+
+(*************************************************************************************************)
+
+attachSLocs[hc_] /; VFreeQ[hc, $ExceptingSymbols] && VFreeQ[hc, NoEval @ {Unimplemented, InternalError}] := hc;
+attachSLocs[hc_] := InsertWithSourceLocations @ hc;
 
 (*************************************************************************************************)
 
@@ -289,8 +294,10 @@ subRets2[e_] := ErrorPrint["Error finding returns in: ", HoldForm @ e];
 
 (*************************************************************************************************)
 
-subMps[hc_] /; Internal`LiterallyAbsentQ[hc, $MacroParentSymbol] := hc;
-subMps[hc_] := subMps2 @ hc;
+subMps[hc_] /; Internal`LiterallyAbsentQ[hc, {$MacroParentSymbol, $MacroSourceLocation}] := hc;
+subMps[hc_] := subSL @ subMps2 @ hc;
+
+subSL[hc_] := ReplaceAll[hc, $MacroSourceLocation :> RuleEval @ SourceLocation[]];
 
 subMps2[hc:HoldComplete[lhs_SetDelayed | lhs_Set | CompoundExpression[lhs_SetDelayed | lhs_Set, Null]]] :=
   ReplaceAll[hc, $MacroParentSymbol -> getParentHead[lhs]];
@@ -306,7 +313,7 @@ findParentHead[pos_] := Block[{parentSD},
   If[parentSd === None,
     If[System`Private`HasImmediateValueQ[$currentMacroParentSymbol],
       Return[$currentMacroParentSymbol, Block];
-      ThrowErrorMessage["noMacroParent", HoldForm @ hc];
+      ThrowMsg["noMacroParent", HoldForm @ hc];
     ]
   ];
   Extract[$hc, parentSd, getParentHead]
@@ -324,10 +331,10 @@ DeclareHoldAllComplete[getParentHead]
 getParentHead[(SetDelayed|Set)[lhs_, _]] :=
   MacroHold @@ Replace[
     PatternHeadSymbol @ lhs,
-    $Failed :> ThrowErrorMessage["macroParentLHS", HoldForm @ lhs]
+    $Failed :> ThrowMsg["macroParentLHS", HoldForm @ lhs]
   ];
 
-getParentHead[lhs_] := ThrowErrorMessage["macroParentLHS", HoldForm @ lhs]
+getParentHead[lhs_] := ThrowMsg["macroParentLHS", HoldForm @ lhs]
 
 General::macroParentLHS = "Could not find a head symbol for the LHS of SetDelayed, being ``.";
 

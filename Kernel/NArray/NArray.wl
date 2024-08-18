@@ -47,7 +47,7 @@ DefinePatternMacro[MGraphDataP,
 
 (**************************************************************************************************)
 
-MakeNArray[head_Sym, data_, type_:Auto] := CatchError[head,
+MakeNArray[head_Sym, data_, type_:Auto] := CatchMessages[head,
   ConstructNoEntryExpr[NArray, data, toNArrayType[type, data], None]
 ];
 
@@ -138,7 +138,7 @@ fromGradeRules = CaseOf[
 
 checkRes[grade_, Nothing]      := Nothing;
 checkRes[grade_, array_NArray] := Rule[grade, array];
-checkRes[grade_, _]            := ThrowError[];
+checkRes[grade_, _]            := ThrowException[];
 
 (**************************************************************************************************)
 
@@ -154,7 +154,7 @@ iNArrayPlus[args_] := GradedThread[Plus, args]
 
 (**************************************************************************************************)
 
-GradedThread[fn_, args_List] := CatchError[NArray,
+GradedThread[fn_, args_List] := CatchMessages[NArray,
   $numArgs = Len @ args;
   isFlat = ListableFunctionQ[fn];
   implFn = If[isFlat, listableImpl[fn], threadImpl[fn, Len @ args]];
@@ -187,7 +187,7 @@ GradedApply::usage =
 * fn$ can return 0, such results will be discarded.
 "
 
-GradedApply[fn_, args__] := CatchError[NArray,
+GradedApply[fn_, args__] := CatchMessages[NArray,
   impl = toImplFn[head, op];
   inputsDict = Merge[toGradeRules /@ args, Id];
   If[$bcast =!= {}, inputsDict //= Map[inputs |-> Join[inputs, $bcast]]];

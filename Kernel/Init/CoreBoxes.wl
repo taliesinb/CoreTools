@@ -24,7 +24,7 @@ MapMakeBoxesSeq[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
 DeclareHoldAllComplete[HasCoreBoxesQ]
 DeclarePredicate1[HasCoreBoxesQ]
 
-SetInitial[$coreBoxHead, UAssoc[]]
+SetInitial[$coreBoxHead, UDict[]]
 
 HasCoreBoxesQ[s_] = Lookup[$coreBoxHead, Hold @ s, False];
 
@@ -55,7 +55,7 @@ MakeBoxes[Uninteractive[lhs_], form:StandardForm | TraditionalForm] := Block[
 DeclareHoldAllComplete[MakeCoreBoxesModified, MakeCoreBoxesTraditional]
 
 SetInitial[$UseTraditionalForm, False];
-SetInitial[$CurrentCoreBoxModifiers, UAssoc[TraditionalForm :> $UseTraditionalForm]]
+SetInitial[$CurrentCoreBoxModifiers, UDict[TraditionalForm :> $UseTraditionalForm]]
 
 MakeCoreBoxesModified[rules_, expr_] :=
   BlockAssociate[$CurrentCoreBoxModifiers, rules, MakeCoreBoxes @ expr];

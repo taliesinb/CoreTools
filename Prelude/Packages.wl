@@ -80,6 +80,9 @@ System`UnprotectClearAll,
 System`PackageSymbolKinds,
 System`PackageSymbolNames,
 
+"SymbolicHead",
+System`SourceLocation,
+
 "IOFunction",
 System`GetHoldComplete,
 System`GetHidden,
@@ -88,6 +91,7 @@ System`GetHidden,
 System`$SymbolAliases,
 System`$KnownSymbolKinds,
 System`$LastFailedExpression,
+System`$CurrentPackageLineSentinel,
 System`$CurrentPackageFile,
 
 "SpecialFunction",
@@ -103,6 +107,7 @@ System`NonLethalPackageMessages
 PackageExports[
 
 "SpecialVariable",
+$PackageCurrentlyLoading,
 $CurrentPackageExpr,
 $CurrentPackageExprCount,
 $CurrentPackageErrorMessageCount,
@@ -171,6 +176,7 @@ Protect[Language`FullGet];
 PackageLoadCompletedQ[str_String] := Lookup[$PackageLoadCompleteQ, str, False];
 
 If[!AssociationQ[$PackageLoadCompleteQ],
+$PackageCurrentlyLoading = False;
 $SymbolAliasesDirty = False;
 $SymbolAliases = Data`UnorderedAssociation[];
 $PackageSymbolAliases = Data`UnorderedAssociation[];
@@ -246,6 +252,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
    $codePreprocessor, $priorityRules, $aliasFiles,
    $fnBag, $varBag, $kindBag, $fileBag,
    $lazySymbolClearers, $lazyQueueEvaluators, $baseLen, $exprEvalFn,
+   $PackageCurrentlyLoading = True,
    $CurrentPackageErrorMessageCount = 0,
    $SessionCurrentEvaluationPrintCount = 0,
    $SessionMaxEvaluationPrintCount = 32,
@@ -282,7 +289,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
       $SymbolAliases = externalAliases = KeyComplement[{$SymbolAliases, previousAliases}];
       Clear[previousAliases];
     ];
-    $PackageSymbolAliases[baseContext] = UAssoc[];
+    $PackageSymbolAliases[baseContext] = Data`UnorderedAssociation[];
 
     LoadPrint["Loading ", baseContext];
     $PackageLoadCompleteQ[baseContext] = False;
@@ -599,6 +606,8 @@ attachEnqueingTo[fn_, bag_] := (
 );
 
 (*************************************************************************************************)
+
+SourceLocation[] /; TrueQ[$PackageCurrentlyLoading] := SourceLocation[$CurrentPackageFile, $CurrentPackageExprCount];
 
 SetAttributes[runPackageFileExpr, HoldAllComplete];
 

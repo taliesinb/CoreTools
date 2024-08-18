@@ -53,7 +53,7 @@ cmAny[Verbatim[__]]        := chowing[2, "__"];
 cmAny[Verbatim[___]]       := chowing[3, "___"];
 
 cmAny[e_List]              := chowing[2, decStrLen @ rbox["{",  cmListSeq @ e, "}"]];
-cmAny[e_Association ? haq] := chowing[2, decStrLen @ rbox[$la, cmAssocSeq @ e, $ra]]; (* TODO: doesn't limit keys *)
+cmAny[e_Dict ? haq] := chowing[2, decStrLen @ rbox[$la, cmAssocSeq @ e, $ra]]; (* TODO: doesn't limit keys *)
 
 cmAny[e_]                  := cmFinal[e];
 
@@ -177,7 +177,7 @@ riffMapList[fn_, str_, a_] := RowBox @ Riffle[holdMap[fn, a], str];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmFinal, cmFinal2, plainHeadQ, holdBigQ, holdByteCount, recHeadQ, recHeadQ2];
+DeclareHoldAllComplete[cmFinal, cmFinal2, holdBigQ, holdByteCount, recHeadQ, recHeadQ2];
 
 $boxRecurse1P = _Pane | _Tooltip | _CodePane | _CodeTooltip | _Annotation;
 $boxTypesetP  = HoldPattern[_Image] | _Graph | _Grid | _NiceGrid | _Column | _NiceMulticolumn | _PlainGrid;
@@ -188,7 +188,7 @@ cmFinal[CoreToolsSequence[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
 cmFinal[CoreToolsHold[a_]]       := cmAny[a];
 cmFinal[CoreToolsHold[a___]]     := cmListSeq[{a}];
 cmFinal[(h_Symbol ? haq)[CoreToolsSequence[a___]]] := cmAny[h[a]];
-cmFinal[r_Ref ? ExprNoEntryQ] := MakeRefBoxes @ r;
+(* cmFinal[r_Ref ? ExprNoEntryQ] := makeRefBoxes @ r; *)
 cmFinal[a:recurse1]         := ToBoxes @ MapAt[cmAny /* RawBoxes, Unevaluated @ a, 1];
 cmFinal[Style[a_, rest___]] := StyleBox[cmAny @ a, rest];
 cmFinal[Row[a_List]]        := RowBox @ Riffle[holdMap[cmAny, a], ""];
@@ -364,7 +364,7 @@ chars[a_List]                       := 2 + runChars[a];
 
 chars[(Rule|RuleDelayed)[a_, b_]]   := ruleChars[a, b];
 
-chars[a_Association ? haq]          := 4 + Total[KeyValueMap[ruleChars, Unevaluated @ a]];
+chars[a_Dict ? haq]          := 4 + Total[KeyValueMap[ruleChars, Unevaluated @ a]];
 
 chars[a_ ? System`Private`NoEntryQ] := Infinity;
 chars[Verbatim[Condition][a_, b_]]  := chars[a] + chars[b] + 4;

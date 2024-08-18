@@ -2,29 +2,42 @@ BeginPackage["Prelude`Symbols`"]
 
 System`PackageExports[
 "Function",
-System`FindLikelySymbolName, System`FindSymbolNames,
-System`RegisterDynamicAliasFunction,
-System`CreateDynamicAlias,
-System`FullSymbolName,
-System`SymbolNameFirst,
-System`SymbolNameLast,
-System`SymbolNameMost,
-System`SymbolNameMostLast,
-System`SymbolNamesGrouped,
+System`NamePaths,
+System`NamePathsGrouped,
 
-"Predicate",
-System`SymbolNameHasDefinitionsQ,
+System`HoldSymbolName,
+System`HoldSymbolContext,
+System`HoldSymbolPath,
 
-System`UserSymbolQ,
-System`InertSymbolQ,
-System`SystemSymbolQ,
-System`InertUserSymbolQ,
-System`InertSystemSymbolQ,
-System`FullSymbolName,
+System`NameFirst,
+System`NameLast,
+System`NameMost,
+System`NameMostLast,
+
+"Function",
+FindLikelySymbolName,
+LikelySymbolNames,
+RegisterDynamicAliasFunction,
+CreateDynamicAlias,
 
 "Head",
-System`AttachImmediateValue,
-System`AttachDelayedValue,
+AttachImmediateValue,
+AttachDelayedValue,
+
+"Predicates",
+CoreToolsContextQ,
+CoreToolsSymbolQ
+
+"Predicate",
+System`SystemContextQ,
+System`ActiveNameQ,
+System`UserSymbolQ,
+System`SystemSymbolQ,
+System`InertSymbolQ,
+System`ActiveSymbolQ,
+System`InertUserSymbolQ,
+System`InertSystemSymbolQ,
+System`CapitalizedSymbolQ,
 
 "MutatingFunction",
 System`UnprotectClearAll,
@@ -46,50 +59,87 @@ UnprotectClearAll[e___] := (Unprotect[e]; ClearAll[e]);
 
 (*************************************************************************************************)
 
+NamePaths::usage = "NamePaths['glob$'] returns fully symbol paths that match 'glob$'.";
+
+NamePaths[glob_] := Block[{$ContextPath = {}, $Context = "DummyContext`"}, Names[glob]];
+
+NamePathsGrouped[list_List]  := Merge[Rule @@@ NameMostLast @ list, Identity];
+NamePathsGrouped[str_String] := NamePathsGrouped @ NamePaths @ str;
+
+(*************************************************************************************************)
+
+$systemContexts = {"System`", "Internal`"};
+$coreToolsContexts = {"CoreTools`", "Prelude`"};
+
+SystemContextQ["System`"]     := True;
+SystemContextQ[str_String]    := StringMatchQ[str, $systemContexts];
+SystemContextQ[_]             := False;
+
+CoreToolsContextQ[str_String] := StringMatchQ[str, $coreToolsContexts];
+CoreToolsContextQ[_]          := False;
+
+(*************************************************************************************************)
+
 declareHeldPred[syms___Symbol] := (
   SetAttributes[{syms}, HoldAllComplete];
   Scan[sym |-> Set[sym[_], False], {syms}]
 );
 
 declareHeldPred[
-  System`UserSymbolQ,
-  System`InertSymbolQ,
-  System`SystemSymbolQ,
-  System`CoreToolsSymbolQ,
-  System`InertUserSymbolQ,
-  System`InertSystemSymbolQ
+  System`UserSymbolQ, System`SystemSymbolQ,
+  System`InertSymbolQ, System`ActiveSymbolQ,
+  System`InertUserSymbolQ, System`InertSystemSymbolQ
 ];
 
-UserSymbolQ[s_Symbol ? Developer`HoldAtomQ]        := Context[s] =!= "System`";
-InertSymbolQ[s_Symbol ? Developer`HoldAtomQ]       := System`Private`HasNoEvaluationsQ[s];
-SystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]      := Context[s] === "System`";
-CoreToolsSymbolQ[s_Symbol ? Developer`HoldAtomQ]   := Context[s] === "CoreTools`";
-InertUserSymbolQ[s_Symbol ? Developer`HoldAtomQ]   := System`Private`HasNoEvaluationsQ[s] && Context[s] =!= "System`";
-InertSystemSymbolQ[s_Symbol ? Developer`HoldAtomQ] := System`Private`HasNoEvaluationsQ[s] && Context[s] === "System`";
+UserSymbolQ[s_Symbol ? Developer`HoldAtomQ]           := Not @ SystemContextQ @ Context @ s;
+SystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]         := SystemContextQ @ Context @ s;
+CoreToolsSymbolQ[s_Symbol ? Developer`HoldAtomQ]      := CoreToolsContextQ @ Context @ s;
+
+InertSymbolQ[s_Symbol ? Developer`HoldAtomQ]          := System`Private`HasNoEvaluationsQ @ s;
+ActiveSymbolQ[s_Symbol ? Developer`HoldAtomQ]         := System`Private`HasAnyEvaluationsQ @ s;
+
+InertUserSymbolQ[s_Symbol ? Developer`HoldAtomQ]      := System`Private`HasNoEvaluationsQ[s] && UserSymbolQ @ s;
+InertSystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]    := System`Private`HasNoEvaluationsQ[s] && SystemSymbolQ @ s;
+
+$initCap = RegularExpression["[$]*[A-Z]"];
+CapitalizedSymbolQ[s_Symbol ? Developer`HoldAtomQ]    := StringStartsQ[HoldSymbolName @ s, $initCap];
 
 (*************************************************************************************************)
 
-SetAttributes[FullSymbolName, HoldAllComplete];
+SetAttributes[{HoldSymbolName, HoldSymbolContext, HoldSymbolPath}, HoldAllComplete];
 
-FullSymbolName[sym_Symbol] := StringJoin[Internal`SymbolContext[Unevaluated @ sym], SymbolName @ Unevaluated @ sym];
-FullSymbolName[list_List] := Map[FullSymbolName, Unevaluated @ list];
-FullSymbolName[_] := $Failed;
+HoldSymbolName::usage = "HoldSymbolName[sym$] gives the name of sym$ without evaluating sym$.";
+HoldSymbolContext::usage = "HoldSymbolContext[sym$] gives the full context of sym$ without evaluating sym$.";
+HoldSymbolPath::usage = "HoldSymbolPath[sym$] gives the context and name of sym$ without evaluating sym$.";
 
-SymbolNameHasDefinitionsQ[sym_String] := ToExpression[sym, InputForm, System`Private`HasAnyEvaluationsQ];
+HoldSymbolName[sym_Symbol ? Developer`HoldAtomQ] := SymbolName @ Unevaluated @ sym;
+HoldSymbolName[_] := $Failed;
+
+(* TODO: why isn't this just Context? *)
+HoldSymbolContext[sym_Symbol ? Developer`HoldAtomQ] := Internal`SymbolContext @ Unevaluated @ sym;
+HoldSymbolContext[_] := $Failed;
+
+HoldSymbolPath[sym_Symbol] := StringJoin[HoldSymbolContext @ sym, HoldSymbolName @ sym];
+HoldSymbolPath[list_List] := Map[HoldSymbolPath, Unevaluated @ list];
+HoldSymbolPath[_] := $Failed;
 
 (*************************************************************************************************)
 
-SetAttributes[{SymbolNameFirst, SymbolNameLast, SymbolNameMost, SymbolNameMostLast}, Listable];
-
-SymbolNameFirst[str_String]    := If[StringFreeQ[str, "`"], None,        StringTake[str, First @ First @ StringPosition[str, "`"]]];
-SymbolNameLast[str_String]     := If[StringFreeQ[str, "`"], str,         StringDrop[str, Max @ StringPosition[str, "`"]]];
-SymbolNameMost[str_String]     := If[StringFreeQ[str, "`"], None,        StringTake[str, Max @ StringPosition[str, "`"]]];
-SymbolNameMostLast[str_String] := If[StringFreeQ[str, "`"], {None, str}, StringTakeDrop[str, Max @ StringPosition[str, "`"]]];
+ActiveNameQ[sym_String ? NameQ] := ToExpression[sym, InputForm, System`Private`HasAnyEvaluationsQ];
 
 (*************************************************************************************************)
 
-SymbolNamesGrouped[list_List]  := Merge[Rule @@@ SymbolNameMostLast @ list, Identity];
-SymbolNamesGrouped[str_String] := SymbolNamesGrouped @ Names @ str;
+SetAttributes[{NameFirst, NameLast, NameMost, NameMostLast}, Listable];
+
+_NameFirst    := $Failed;
+_NameLast     := $Failed;
+_NameMost     := $Failed;
+_NameMostLast := $Failed;
+
+NameFirst[str_String]    := If[StringFreeQ[str, "`"], None,        StringTake[str, First @ First @ StringPosition[str, "`"]]];
+NameLast[str_String]     := If[StringFreeQ[str, "`"], str,         StringDrop[str, Max @ StringPosition[str, "`"]]];
+NameMost[str_String]     := If[StringFreeQ[str, "`"], None,        StringTake[str, Max @ StringPosition[str, "`"]]];
+NameMostLast[str_String] := If[StringFreeQ[str, "`"], {None, str}, StringTakeDrop[str, Max @ StringPosition[str, "`"]]];
 
 (*************************************************************************************************)
 
@@ -102,7 +152,7 @@ FindLikelySymbolName[str_String] := If[
 
 FindLikelySymbolName[context_String, name_String] := Block[
   {names, words, pattern, NewSymbolHandler, $NewSymbol, foundName},
-  names = FindSymbolNames[context, name, SymbolNameHasDefinitionsQ];
+  names = LikelySymbolNames[context, name, ActiveNameQ];
   names = SortBy[names, {StringCount[#, "`"], StringLength[#]}&];
   If[names =!= {},
     foundName = First @ names;
@@ -118,14 +168,14 @@ FindLikelySymbolName[context_String, name_String] := Block[
 
 (*************************************************************************************************)
 
-FindSymbolNames::err = "Could not find contexts due to internal error.";
+LikelySymbolNames::err = "Could not find contexts due to internal error.";
 
-FindSymbolNames[str_String] := If[
-  StringFreeQ[str, "`"], FindSymbolNames["", str],
-  FindSymbolNames @@ StringTakeDrop[str, Max @ StringPosition[str, "`"]]
+LikelySymbolNames[str_String] := If[
+  StringFreeQ[str, "`"], LikelySymbolNames["", str],
+  LikelySymbolNames @@ StringTakeDrop[str, Max @ StringPosition[str, "`"]]
 ];
 
-FindSymbolNames[context_String, name_String, filter_:None] := Block[
+LikelySymbolNames[context_String, name_String, filter_:None] := Block[
   {names, tryFind, nameGlob, glob, contextRE, $nameFilter = filter, $ic = False},
   contextRE = contextGlobToRegex[context];
   nameGlob = convertNameGlob[name];
@@ -145,9 +195,9 @@ FindSymbolNames[context_String, name_String, filter_:None] := Block[
   names
 ];
 
-FindSymbolNames[context_String, name_String, "Maybe"[filter_]] := Block[{res},
-  res = FindSymbolNames[context, name, filter];
-  If[res =!= {}, res, FindSymbolNames[context, name, None]]
+LikelySymbolNames[context_String, name_String, "Maybe"[filter_]] := Block[{res},
+  res = LikelySymbolNames[context, name, filter];
+  If[res =!= {}, res, LikelySymbolNames[context, name, None]]
 ];
 
 contextGlobToRegex[""] := RegularExpression["\\w"];
@@ -219,7 +269,7 @@ $DynamicAliasTable = Data`UnorderedAssociation[
   "d`"  -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, On]]],
   "doff`" -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, Off]]],
   "f`"  -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3]]],
-  "l`"  -> Function[SymbolNameSetDelayed[#1, FindSymbolNames[#2, #3]]]
+  "l`"  -> Function[SymbolNameSetDelayed[#1, LikelySymbolNames[#2, #3]]]
 ];
 
 $DynamicAliasContexts = Keys @ $DynamicAliasTable;

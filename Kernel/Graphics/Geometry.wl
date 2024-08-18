@@ -87,7 +87,7 @@ DeclareVectorListableOp @ RotateVector;
 RotateVector[vec_List ? Pos2ListOrListsQ, t_] :=
   Dot[vec, {{Cos[t], Sin[t]}, {-Sin[t], Cos[t]}}];
 
-RotateVector[vecs_List | vecs_Assoc, t_] :=
+RotateVector[vecs:ListDictP, t_] :=
   Map[RotateVector[#, t]&, vecs];
 
 RotateVector[t_][vec_] := RotateVector[vec, t];
@@ -96,10 +96,10 @@ RotateVector[t_][vec_] := RotateVector[vec, t];
 
 DeclareVectorListableOp @ RotateVectorTo;
 
-RotateVectorTo[vec_List ? PosAListOrListsQ, to_] :=
+RotateVectorTo[vec_List ? Pos2ListOrListsQ, to_] :=
   Dot[vec, rotToTrans @ to];
 
-RotateVectorTo[vecs_List | vecs_Assoc, to_] :=
+RotateVectorTo[vecs:ListDictP, to_] :=
   Map[RotateVectorTo[to], vecs];
 
 RotateVectorTo[t_] := DotRightOp @ rotToTrans @ t;
@@ -127,12 +127,11 @@ ScaleRotateVector[s_, a_][points_] := ScaleRotateVector[s, a, points];
 
 (**************************************************************************************************)
 
-$pi = N[Pi];
-$tau = N[Tau];
-
-rotationMatrix[0|0.|Tau|$tau|(-Tau)|(-$tau)] := {{1, 0}, {0, 1}};
-rotationMatrix[Pi|$pi|(-Pi)|(-$pi)] := {{-1, 0}, {0, -1}};
-rotationMatrix[angle_] := Transpose @ ToPacked @ Chop @ RotationMatrix @ N @ angle;
+rotationMatrix = CaseOf[
+  Alt[ZeroP, TauP, -TauP] := {{ 1, 0}, {0,  1}};
+  Alt[PiP, -PiP]          := {{-1, 0}, {0, -1}};
+  angle_                  := Transpose @ ToPacked @ Chop @ RotationMatrix @ N @ angle
+];
 
 (**************************************************************************************************)
 

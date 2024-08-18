@@ -4,7 +4,7 @@ PackageExports[
     FindFunctions, FindInertSymbols, FindDownSymbols, FindSubSymbols, FindUpSymbols, FindOwnSymbols, FindFormattingSymbols,
     FindDefinitionsContaining, FindSymbolsContaining, FindUnresolvedSymbols,
     SymbolNameUsage,
-  "Predicate",         HasFormatDefsQ, HasBoxDefsQ,
+  "Predicate",         HasFormatDefsQ, HasBoxDefsQ, UnresolvedSymbolQ,
   "FormHead",          SymbolNameForm, SymbolForm,
   "DebuggingFunction", PrintDefinitionsContaining, PrintDefinitions, PrintStack,
   "Function",          SymbolNameType, SymbolType, SymbolTypeToPredicate,
@@ -26,23 +26,31 @@ Initially[
   ];
 ];
 
-BrowseSymbols[glob_Str] := Column[SymbolNameForm /@ Names[glob]];
+BrowseSymbols[glob_Str] := Column[SymbolNameForm /@ NamePaths[glob]];
 
 (**************************************************************************************************)
 
 SetHoldC @ SymbolForm;
 
-SystemBoxes[SymbolForm[sym_Sym]]      := symbolNameBoxes[HoldSymbolName @ sym, SymbolType @ sym];
+SystemBoxes[SymbolForm[sym_Sym]]      := symbolNameBoxes[SymPath @ sym, SymbolType @ sym];
 SystemBoxes[SymbolNameForm[name_Str]] := symbolNameBoxes[name, SymbolNameType @ name];
 
 (**************************************************************************************************)
 
-symbolNameBoxes[name_Str, type_] := Locals[
+symbolNameBoxes[path_Str, type_] := Locals[
   style = Seq @@ FlatList @ symbolTypeToStyle @ type;
-  boxes = CodeStyleBox[name, style];
-  If[NameQ[name],
-    boxes //= ClickBoxOp @ PrintDefinitions @ name;
-    boxes //= NiceTooltipBox @ symbolTooltipBoxes @ name;
+  {context, name} = NameMostLast @ path;
+  If[context === None, context = Quiet @ Check[At[Context, path], "???"]];
+  If[NameQ @ path,
+    nameBox = If[MemberQ[$ContextPath, context], name, "`" <> name];
+    boxes = CodeStyleBox[nameBox, style];
+    boxes //= If[type === InertSymbol,
+      ClickBoxOp[Null,                    CopyTextToClipboard @ path],
+      ClickBoxOp[PrintDefinitions @ path, CopyTextToClipboard @ path]
+    ];
+    boxes //= NiceTooltipBox @ symbolTooltipBoxes[name, context, path];
+  ,
+    boxes = CodeStyleBox[path, $Red]
   ];
   boxes
 ];
@@ -54,17 +62,16 @@ symbolTypeToStyle = CaseOf[
   ImmediateSymbol  := FontColor -> $LightBlue;
   DelayedSymbol    := {FontWeight -> "Bold", FontColor -> $LightBlue};
   FormattingSymbol := $Orange;
-  InertSymbol      := FontSlant -> Italic;
+  InertSymbol      := {$DarkGray, FontSlant -> Italic};
   PatternSymbol    := FontColor -> $LightTeal;
   DataSymbol       := {FontColor -> $LightPurple, FontWeight -> "SemiBold"};
   UnknownSymbol    := $DarkGray;
   $Failed          := Red;
 ];
 
-symbolTooltipBoxes[name_Str] := Locals[
-  usage = SymbolNameUsage @ name;
-  context = Context @ name;
-  attrs = Attributes @ name;
+symbolTooltipBoxes[name_Str, context_Str, path_Str] := Locals[
+  usage = SymbolNameUsage @ path;
+  attrs = Attributes @ path;
   ColumnBox[{
     CodeStyleBox @ ToBoxes @ name,
     CodeStyleBox @ ToBoxes @ context,
@@ -139,7 +146,36 @@ aliasType[_]      := ImmediateSymbol
 
 (**************************************************************************************************)
 
-SymbolNameType[name_Str] := If[!NameQ[name], $Failed, ToExpression[name, InputForm, SymbolType]];
+SetHoldC @ UnresolvedSymbolQ;
+
+$unresolvedSymRegex = Regex["[$i]*[A-Z]"];
+nameNeedsDefQ[name_Str] := StringStartsQ[NameLast @ name, $unresolvedSymRegex] || StringEndsQ[name, {"Q", "P"}];
+
+UnresolvedSymbolQ[sym_Sym ? HasNoDefsQ] := And[nameNeedsDefQ @ SymName @ sym, Not @ HasFormatDefsQ @ sym];
+UnresolvedSymbolQ[_Sym]                 := False;
+
+(**************************************************************************************************)
+
+SetHoldC @ fromUnresName;
+
+fromUnresName[sym_Sym ? HasAnyDefsQ] := Nothing;
+fromUnresName[sym_Sym ? HasFormatDefsQ] := Nothing;
+fromUnresName[sym_Sym] := SymbolForm @ sym;
+
+internalNameQ[name_Str] := StringContainsQ[name, "`"];
+
+FindUnresolvedSymbols[context_Str] := Locals[
+  If[!StringEndsQ[context, "`"], ReturnFailed[]];
+  glob1 = context <> "*";
+  glob2 = context <> "*`*";
+  names = Join[Names @ glob1, Names @ glob2];
+  candidates = Select[names, internalNameQ[#] && nameNeedsDefQ[#]&];
+  FromInputString[candidates, fromUnresName]
+];
+
+(**************************************************************************************************)
+
+SymbolNameType[name_Str] := If[!NameQ[name], $Failed, FromInputString[name, SymbolType]];
 
 (**************************************************************************************************)
 
@@ -163,7 +199,7 @@ toFinderFn[pred_] := toFinderFn[pred] = Fn[sym, If[pred[sym], SymbolForm @ sym, 
 
 SetStrict[FindFunctions, FindInertSymbols, FindDownSymbols, FindSubSymbols, FindUpSymbols, FindOwnSymbols, FindFormattingSymbols]
 
-defineFindFn[fn_, pred_] := fn[glob_String] := ToExpression[Names @ glob, InputForm, toFinderFn @ pred];
+defineFindFn[fn_, pred_] := fn[glob_String] := FromInputString[Names @ glob, toFinderFn @ pred];
 
 defineFindFn @@@ {
   FindFunctions         -> HasOwnDefsQ,
@@ -186,19 +222,11 @@ hasSubUsageQ[s_] := !StringQ[MessageName[s, "usage"]] || StringContainsQ[Message
 (**************************************************************************************************)
 
 FindFormatDefinitions[sym_Symbol] :=
-  DeleteDuplicates @ Select[MakeBoxesRules[], ContainsQ[sym]];
+  DeleteDuplicates @ Select[$BoxFormattingRules, ContainsQ[sym]];
 
 PrintFormatDefinitions[sym_Symbol] := Module[
   {defs = FindFormatDefinitions[sym]},
   If[defs === {}, None, PrintDefinitions @ defs]
-];
-
-(**************************************************************************************************)
-
-FindUnresolvedSymbols[context_String] := Locals[
-  capNames = Names @ StrJoin[context, "Private`*`*"];
-  capNames = Pick[capNames, UpperCase1Q @ SymbolNameLast @ capNames];
-  ToExpression[capNames, InputForm, toInertSymbol]
 ];
 
 (**************************************************************************************************)
@@ -208,10 +236,10 @@ DeclareHoldAllComplete[filterDefContainingPattQ];
 FindSymbolsContaining[context_, pattern_] := Locals[
   symbols = Names[If[context === "System`", "System`*", {context <> "*", context <> "**`*"}]];
   symbols = DeleteCases[symbols, "In" | "Out"];
-  active = ToExpression[symbols, InputForm, HasAnyDefsQ];
+  active = FromInputString[symbols, HasAnyDefsQ];
   symbols = Pick[symbols, active, True];
   $patt = pattern;
-  Quiet @ ToExpression[symbols, InputForm, filterDefContainingPattQ]
+  Quiet @ FromInputString[symbols, filterDefContainingPattQ]
 ]
 
 filterDefContainingPattQ[s_] := If[FreeQ[{DownValues[s], UpValues[s], OwnValues[s], SubValues[s]}, $patt], Nothing, s]
@@ -224,7 +252,7 @@ FindDefinitionsContaining[context_, pattern_] := Locals[
   definitions = GetPackageSymbol["GeneralUtilities`Definitions"];
   res = Null;
   symbols = Names[If[context === "System`", "System`*", {context <> "*", context <> "**`*"}]];
-  active = ToExpression[symbols, InputForm, HasAnyDefsQ];
+  active = FromInputString[symbols, HasAnyDefsQ];
   symbols = Pick[symbols, active, True];
   Flatten @ Map[definitionsContaining[pattern], symbols]
 ]

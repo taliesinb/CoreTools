@@ -225,8 +225,8 @@ ZipMapP[f_, a_]         := MapP[f, a];
 ZipMapP[f_, a_, b_]     := EnsureNiceMessage @ MapThread[f, {a, b, Range @ Len @ a}];
 ZipMapP[f_, a_, bs__]   := EnsureNiceMessage @ MapThread[f, {a, bs, Range @ Len @ a}];
 
-ZipScan[f_, args___]    := ZipMap[NullifyFunction @ f, args];
-ZipScanP[f_, args___]   := ZipMapP[NullifyFunction @ f, args];
+ZipScan[f_, args___]    := ZipMap[NullifyFn @ f, args];
+ZipScanP[f_, args___]   := ZipMapP[NullifyFn @ f, args];
 
 (**************************************************************************************************)
 
@@ -297,7 +297,7 @@ MapP[f_, dict_Dict]     := MapIndexed[{v, i} |-> f[v, P11 @ i], dict];
 
 DeclareCurry1[ScanApply]
 
-ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFunction @ f, expr];
+ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFn @ f, expr];
 
 (**************************************************************************************************)
 

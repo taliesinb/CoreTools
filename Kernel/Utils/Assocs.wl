@@ -7,32 +7,39 @@ SystemExports[
     RuleThread, RuleUnthread, UnorderedAssociationThread,
     RangeRules, RangeAssociation, RangeUnorderedAssociation,
     RulesRange, AssociationRange, UnorderedAssociationRange,
-    ConstantRules, ConstantAssociation, ConstantUnorderedAssociation, ConstantTrueAssociation,
+    ConstantRules, ConstantAssociation, ConstantUnorderedAssociation,
+    ConstantTrueAssociation, ConstantFalseAssociation,
     UnorderedAssociationMapApply, UnorderedAssociationMapThread, UnorderedAssociationMap,
     AssociationMapThread, AssociationMapApply,
     PairsToAssociation, PairsToUnorderedAssociation, AssociationToPairs,
     RulesToAssociation, RulesToUnorderedAssociation, AssociationToRules,
     GroupPairs, GroupAgainst, CombineBy, CombineAgainst, MergeAssocations,
-    LevelIndex, PadAssociation
+    LevelIndex, PadAssociation,
+    AssociationThreadOp
 ];
 
 PackageExports[
+  "Function",
+    Bind, UBind,
   "MutatingFunction",
     CachedTo,
+    BindTo,
     KeyApplyTo, KeyIncrement, KeyDecrement, KeyIndex, KeyIndexUnique,
-    KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy,
-    KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyAssociateTo,
+    KeyAddTo,   KeySubFrom,   KeyTimesBy,   KeyDivideBy,
+    KeyUnionTo, KeyJoinTo,    KeyAppendTo,  KeyPrependTo, KeyBindTo, KeyUBindTo,
   "MetaFunction",
     DefineKeywiseOperator1, DefineKeywiseOperator2,
   "Function",
-    AssocThread, EnsureOAssoc
+    EnsureODict
 ];
 
 (**************************************************************************************************)
 
 (* because some functions like Extract don't work on UnorderedAssociation *)
-EnsureOAssoc[e_Assoc ? HAssocQ] := Assoc @ e;
-EnsureOAssoc[e_] := e;
+EnsureODict = CaseOf[
+  e:DictP := Dict @ e;
+  e_      := e
+];
 
 (**************************************************************************************************)
 
@@ -43,36 +50,34 @@ ListAssociationParts[list_List] := RangeLen @ list;
 
 (**************************************************************************************************)
 
-PadAssociation[assoc_, keys_, val_] := Join[
-  assoc,
-  ConstAssoc[Complement[keys, Keys @ assoc], val]
-];
+PadAssociation[dict_Dict, keys_, val_] :=
+  Join[dict, ConstDict[Complement[keys, Keys @ dict], val]];
 
 (**************************************************************************************************)
 
 SetStrict[ReverseRules, InvertAssociation, InvertUnorderedAssociation];
 
 ReverseRules[dict_Dict]                := Dict @ Map[Reverse, Normal @ dict];
-ReverseRules[rules_ ? RuleLikeVectorQ] := Map[Reverse, rules];
+ReverseRules[rules_ ? RuleLVecQ] := Map[Reverse, rules];
 
 InvertAssociation::notUnique = "Cannot uniquely invert association ``.";
-InvertAssociation[assoc_ ? AssociationQ] := Module[
-  {res = ReverseRules @ assoc},
-  If[Len[res] == Len[assoc], res,
-    ErrorMsg[InvertAssociation::notUnique, assoc]]];
+InvertAssociation[dict:DictP] := Module[
+  {res = ReverseRules @ dict},
+  If[Len[res] == Len[dict], res,
+    ErrorMsg[InvertAssociation::notUnique, dict]]];
 
 InvertUnorderedAssociation::notUnique = "Cannot uniquely invert association ``.";
-InvertUnorderedAssociation[assoc_ ? AssociationQ] := Module[
-  {res = UDict @ Reverse[Normal @ assoc, 2]},
-  If[Len[res] == Len[assoc], res,
-    ErrorMsg[InvertAssociation::notUnique, assoc]]];
+InvertUnorderedAssociation[dict:DictP] := Module[
+  {res = UDict @ Reverse[Normal @ dict, 2]},
+  If[Len[res] == Len[dict], res,
+    ErrorMsg[InvertAssociation::notUnique, dict]]];
 
 (**************************************************************************************************)
 
 SetCurry1 @ MapRules;
 
 MapRules[fn_, dict_Dict]      := KeyValueMap[fn, dict];
-MapRules[fn_, rules:RuleVecP] := MapApply[fn, rules];
+MapRules[fn_, list:RuleLVecP] := MapApply[fn, rules];
 MapRules[_, _]                := InternalError;
 
 (**************************************************************************************************)
@@ -95,9 +100,8 @@ ValueMap[_, _, _]         := InternalError;
 
 SetStrict @ KeysValues;
 
-KeysValues[list_List ? RuleLVecQ] := {Keys @ dict, Values @ dict};
-KeysValues[dict_Dict]             := {Keys @ dict, Values @ dict};
-KeysValues[_]                     := InternalError;
+KeysValues[data:DictLikeP] := {Keys @ data, Values @ data};
+KeysValues[_]              := InternalError;
 
 (**************************************************************************************************)
 
@@ -110,8 +114,8 @@ ToValues[dict_Dict] := Values @ dict;
 
 SetStrict @ ToRuleList;
 
-ToRuleList[list:RuleVecP] := list;
 ToRuleList[dict_Dict]     := Normal @ dict;
+ToRuleList[list:RuleVecP] := list;
 ToRuleList[_]             := InternalError;
 
 ToRuleList[]              := {};
@@ -122,13 +126,13 @@ ToRuleList[specs__]       := Join @ Map[ToRuleList, NoEval @ specs];
 `RuleThread[{key_i}_i, {val_i}_i]` gives the rule list `{key_i -> val_i}_i`.
 ?*)
 
-SetCurry1[AssocThread, UnorderedAssociationThread, RuleThread];
+SetCurry1[AssociationThreadOp, UnorderedAssociationThread, RuleThread];
 
 (* unlike AssociationThread this fn can curry *)
-AssocThread[keys_, vals_] := AssociationThread[keys, vals];
+AssociationThreadOp[keys_, vals_] := AssociationThread[keys, vals];
 
 UnorderedAssociationThread[keys_List, vals_List]  :=
-  UnorderedAssociation @ Thread[keys -> vals];
+  UDict @ Thread[keys -> vals];
 
 RuleThread[keys_List, values_List] /; Len[keys] === Len[values] :=
   MapThread[Rule, {keys, values}];
@@ -164,9 +168,10 @@ SetCurry1[ConstantRules, ConstantAssociation, ConstantUnorderedAssociation];
 
 ConstantRules[keys_List, constant_List] := Map[key |-> Rule[key, constant], keys];
 ConstantRules[keys_List, constant_] := Thread @ Rule[keys, constant];
-ConstantAssociation[keys_List, constant_] := AssocThread[keys, ConstantArray[constant, Len @ keys]];
-ConstantUnorderedAssociation[keys_List, constant_] := UAssociation @ ConstantAssociation[keys, constant];
-ConstantTrueAssociation[keys_List] := ConstantUnorderedAssociation[keys, True];
+ConstantAssociation[keys_List, constant_] := DictThread[keys, ConstantArray[constant, Len @ keys]];
+ConstantUnorderedAssociation[keys_List, constant_] := UDictThread[keys, ConstantArray[constant, Len @ keys]];
+ConstantTrueAssociation[keys_List]  := ConstantUnorderedAssociation[keys, True];
+ConstantFalseAssociation[keys_List] := ConstantUnorderedAssociation[keys, False];
 
 (**************************************************************************************************
 `AssociationMapThread[fn, <|key_i -> val_i|>_i]` gives the association `<|.., val_i -> i, ..|>`.
@@ -175,34 +180,34 @@ ConstantTrueAssociation[keys_List] := ConstantUnorderedAssociation[keys, True];
 SetCurry1[AssociationMapApply, AssociationMapThread]
 SetCurry1[UnorderedAssociationMapApply, UnorderedAssociationMapThread]
 
-AssociationMapApply[fn_, assoc_Assoc]          :=  Assoc @ Map[fn, Normal @ assoc];
-UnorderedAssociationMapApply[fn_, assoc_Assoc] := UAssoc @ Map[fn, Normal @ assoc];
+AssociationMapApply[fn_, dict_Dict]          :=  Dict @ Map[fn, Normal @ dict];
+UnorderedAssociationMapApply[fn_, dict_Dict] := UDict @ Map[fn, Normal @ dict];
 
-AssociationMapThread[fn_, assoc_Assoc]          := With[{keys = Keys @ assoc}, Map[val |-> fn[ AssocThread[keys, val]], Transpose @ Values @ assoc]];
-UnorderedAssociationMapThread[fn_, assoc_Assoc] := With[{keys = Keys @ assoc}, Map[val |-> fn[UAssocThread[keys, val]], Transpose @ Values @ assoc]];
+AssociationMapThread[fn_, dict_Dict]          := With[{keys = Keys @ dict}, Map[val |-> fn[ DictThread[keys, val]], Transpose @ Values @ dict]];
+UnorderedAssociationMapThread[fn_, dict_Dict] := With[{keys = Keys @ dict}, Map[val |-> fn[UDictThread[keys, val]], Transpose @ Values @ dict]];
 
 (*************************************************************************************************)
 
 SetCurry1[UnorderedAssociationMap]
 
-UnorderedAssociationMap[fn_, expr_List] := UAssoc @ Map[z |-> Rule[z, fn[z]], expr];
-UnorderedAssociationMap[fn_, assoc_Assoc ? AssociationQ] := UAssoc @ Map[fn, Normal @ assoc];
+UnorderedAssociationMap[fn_, list_List]  := UDict @ Map[z |-> Rule[z, fn[z]], list];
+UnorderedAssociationMap[fn_, dict:DictP] := UDict @ Map[fn, Normal @ assoc];
 UnorderedAssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr]; Fail];
 
 (*************************************************************************************************)
 
 SetStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation, PairsToUnorderedAssociation, RulesToUnorderedAssociation]
 
-AssociationToRules[assoc_Assoc] := Normal @ assoc;
-AssociationToPairs[assoc_Assoc] := Transpose @ {Keys @ assoc, Values @ assoc};
+AssociationToRules[dict_Dict] := Normal @ dict;
+AssociationToPairs[dict_Dict] := Transpose @ {Keys @ dict, Values @ dict};
 AssociationToRules::badArguments = AssociationToPairs::badArguments = "First argument was not an association: ``.";
 
          PairsToAssociation[list_ ? PairVectorQ] :=          AssociationThread @@ Transpose @ list;
 PairsToUnorderedAssociation[list_ ? PairVectorQ] := UnorderedAssociationThread @@ Transpose @ list;
 PairsToAssociation::badArguments = PairsToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
 
-         RulesToAssociation[list_List ? RuleVectorQ] := Association @ list;
-RulesToUnorderedAssociation[list_List ? RuleVectorQ] := UnorderedAssociation @ list;
+         RulesToAssociation[list_List ? RuleLikeVectorQ] :=          Association @ list;
+RulesToUnorderedAssociation[list_List ? RuleLikeVectorQ] := UnorderedAssociation @ list;
 RulesToAssociation::badArguments = RulesToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
 
 (**************************************************************************************************)
@@ -288,18 +293,41 @@ addLenKey[lhs_, key_] := lhs[key] = Len[lhs] + 1;
 
 (**************************************************************************************************)
 
-SetHoldF[ KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo, KeyAssociateTo];
-SetCurry1[KeyAddTo, KeySubtractFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo];
+SetStrict @ SetHoldF @ BindTo;
 
-DefineKeywiseOperator1[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[Lookup[lhs, Key @ key, def], arg]]];
-DefineKeywiseOperator2[sym_, {def_, fn_}] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[arg, Lookup[lhs, Key @ key, def]]]];
+BindTo[lhs_, rule:RuleLP] := AssociateTo[lhs, rule];
+BindTo[lhs_, dict_Dict]   := AssociateTo[lhs, dict];
+BindTo[lhs_, rules_List]  := AssociateTo[lhs, rules];
 
-DefineKeywiseOperator1[KeyAddTo,        {0, Plus}]
-DefineKeywiseOperator1[KeySubtractFrom, {0, Subtract}]
-DefineKeywiseOperator1[KeyTimesBy,      {1, Times}]
-DefineKeywiseOperator1[KeyDivideBy,     {1, Divide}]
-DefineKeywiseOperator1[KeyUnionTo,      {{}, Union}]
-DefineKeywiseOperator1[KeyJoinTo,       {{}, Join}]
-DefineKeywiseOperator1[KeyAppendTo,     {{}, Append}]
-DefineKeywiseOperator1[KeyPrependTo,    {{}, Prepend}]
-DefineKeywiseOperator1[KeyAssociateTo,  {Assoc[], Assoc}];
+SetStrict[Bind, UBind];
+
+Bind[dict_Dict, rule:RuleLP]  := Append[dict, rule];
+Bind[dict_Dict, data:DictLP]  := Append[dict, data];
+
+UBind[dict_Dict, rule:RuleLP] := Append[dict, rule];
+UBind[dict_Dict, data:DictLP] := UDict[dict, data];
+
+(**************************************************************************************************)
+
+        DeclaredHere[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo]
+SetCurry1 @ SetHoldF[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo]
+
+DefineKeywiseOperator1[sym_, def_, fn_] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[Lookup[lhs, Key @ key, def], arg]]];
+DefineKeywiseOperator2[sym_, def_, fn_] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[arg, Lookup[lhs, Key @ key, def]]]];
+
+DefineKeywiseOperator1[KeyAddTo,     0,  Plus]
+DefineKeywiseOperator1[KeySubFrom,   0,  Subtract]
+DefineKeywiseOperator1[KeyTimesBy,   1,  Times]
+DefineKeywiseOperator1[KeyDivideBy,  1,  Divide]
+DefineKeywiseOperator1[KeyUnionTo,   {}, Union]
+DefineKeywiseOperator1[KeyJoinTo,    {}, Join]
+DefineKeywiseOperator1[KeyAppendTo,  {}, Append]
+DefineKeywiseOperator1[KeyPrependTo, {}, Prepend]
+
+(**************************************************************************************************)
+
+DeclaredHere[KeyBindTo, KeyUBindTo]
+    SetHoldF[KeyBindTo, KeyUBindTo]
+
+DefineKeywiseOperator1[KeyBindTo,  Dict[],   Bind]
+DefineKeywiseOperator1[KeyUBindTo, UDict[], UBind]

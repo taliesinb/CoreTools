@@ -42,13 +42,13 @@ dposSubBox[head_, sub_] := UnderscriptBox[
 ]
 
 dposHeadStr = CaseOf[
-  s_Str                       := s;
-  HoldC[List]                 := "{\[CenterEllipsis]}";
-  HoldC[Assoc]                := "\[LeftAssociation]\[CenterEllipsis]\[RightAssociation]";
-  HoldC[head_Symbol ? HAtomQ] := codeBox @ HoldSymbolName @ head;
-  HoldC[head_[___]]           := RBox[% @ HoldC @ head, "[\[CenterEllipsis]]"];
-  HoldC[s_Str]                := codeBox @ SJoin["\"", s, "\""];
-  hc_HoldC                    := codeBox @ hc;
+  s_Str              := s;
+  HoldC[List]        := "{\[CenterEllipsis]}";
+  HoldC[Dict]        := "\[LeftAssociation]\[CenterEllipsis]\[RightAssociation]";
+  HoldC[head:SymP]   := codeBox @ HoldSymbolName @ head;
+  HoldC[head_[___]]  := RBox[% @ HoldC @ head, "[\[CenterEllipsis]]"];
+  HoldC[s_Str]       := codeBox @ StrJoin["\"", s, "\""];
+  hc_HoldC           := codeBox @ hc;
 ];
 
 dposLabelStr = CaseOf[
@@ -173,7 +173,7 @@ withSubCrumb[p_, c_, body_] := Block[{$pos = Append[$pos, p], $crumbs = Insert[$
 
 diffExpr[a_HoldC, b_HoldC] /; a === b := False;
 
-diffExpr[a:HoldC[_Assoc ? HoldAtomQ], b:HoldC[_Assoc ? HoldAtomQ]] :=
+diffExpr[a:HoldC[_Dict ? HoldAtomQ], b:HoldC[_Dict ? HoldAtomQ]] :=
   diffAssoc[a, b];
 
 diffExpr[a:HoldC[_ ? HoldAtomQ], b:HoldC[_ ? HoldAtomQ]] :=
@@ -295,13 +295,13 @@ _diffArgs := BadArguments[];
 
 diffAssoc[a_HoldC, b_HoldC] /; a === b := False;
 
-diffAssoc[HoldC[a_Assoc], HoldC[b_Assoc]] :=
+diffAssoc[HoldC[a_Dict], HoldC[b_Dict]] :=
   withCrumb[
-    $KeysCrumb @ HoldC @ Assoc,
+    $KeysCrumb @ HoldC @ Dict,
     diffKeys[1, assocToEntries @ a, assocToEntries @ b]
   ];
 
-assocToEntries[assoc_Assoc] := Module[
+assocToEntries[assoc_Dict] := Module[
   {pairs},
   pairs = HoldC @@ KVMap[HoldC, assoc];
   VectorReplace[pairs, HoldC[k_, v_] :> (k -> v)]

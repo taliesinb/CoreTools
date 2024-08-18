@@ -122,7 +122,7 @@ toApplied[fn_, spec_] := Block[
   {body, $canCache = True, $postFn = Identity},
   body = parseAppSpec0 @ spec;
   appFn = $postFn @ makeAppFn[fn, body];
-  If[$canCache && Developer`SymbolQ[fn], toApplied[fn, spec] = appFn, appFn]
+  If[$canCache && SymbolQ[fn], toApplied[fn, spec] = appFn, appFn]
 ];
 
 makeAppFn[Sequence, {arg_}]    := Fn @ arg;
@@ -146,14 +146,14 @@ parseAppSpec1 = CaseOf[
   Span[i_Integer, j_Integer] := Splice @ Birange[i, j];
   Rule[s_, r_]               := parseAppRule[$postFn = removeSlotHold; parseAppSpec1 @ s, r];
   list_List                  := Map[parseAppSpec1, list];
-  spec_                      := ThrowErrorMessage["badAppliedSpec", spec];
+  spec_                      := ThrowMsg["badAppliedSpec", spec];
 ];
 
 checkIfSimple = CaseOf[
-  $[i_Integer /; -32 < i < 32] := Null;
-  s_Symbol                     := Null;
-  {_ ? simpleQ, _ ? simpleQ}   := Null;
-  _                            := ($canCache = False);
+  $[i_Integer /; -32 < i < 32]             := Null;
+  s_Symbol                                 := Null;
+  {_ ? checkIfSimple, _ ? checkIfSimple}   := Null;
+  _                                        := ($canCache = False);
 ];
 
 General::badAppliedSpec = "Unknown Applied specification ``.";
@@ -165,7 +165,7 @@ parseAppRule[in_, s__String]    := slotHold[in[s]];
 parseAppRule[in_, p_Integer]    := slotHold[Part[in, p]];
 parseAppRule[in_, {p:$pp..}]    := slotHold[Part[in, p]];
 parseAppRule[in_, f_Symbol]     := slotHold[f[in]];
-parseAppRule[_, f_]             := ThrowErrorMessage["badAppliedSlotFunction", f];
+parseAppRule[_, f_]             := ThrowMsg["badAppliedSlotFunction", f];
 
 General::badAppliedSlotFunction = "Cannot use complex Applied slot function ``.";
 

@@ -12,7 +12,7 @@ PackageExports[
     TightRowGridBox, TightColumnGridBox,
     OpenerColumnBox, DeployBox,
   "OptionSymbol",
-    ClickFunction, ViewSize,
+    ClickFunction, ViewSize, LabelPosition
   "Function",
     LabelBy, ViewSampling
 ];
@@ -177,7 +177,7 @@ NestedView[expr_, opts___Rule] := Locals[
 ];
 
 iNestedView = CaseOf[
-  array_ ? PackedQ := DataForm @ array;
+  array_ ? PackedQ := MatrixForm @ array;
   list:ListDictP   := RowColumnView[$ /@ list, $nestedViewOpts];
   other_           := $Failed
 ];
@@ -293,9 +293,9 @@ pickBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
   progressBox =   DynamicProgressBarBox[{i$$, n$$}, {200, 10}],
   pickedButtonRowBox = makeBrowseArrowBoxes[
     {"Green", "Green"},
-    i$$ = F[selected$$, i$$], i$$ = Replace[Max @ Select[selected$$, LessThan @ i$$], -Inf -> i$$],
+    i$$ = First[selected$$, i$$], i$$ = Replace[Max @ Select[selected$$, LessThan @ i$$], -Inf -> i$$],
     fractionBox[IndexOf[selected$$, i$$, "?"], Len @ selected$$], None,
-    i$$ = Replace[Min @ Select[selected$$, GreaterThan @ i$$], Inf -> i$$], i$$ = L[selected$$, i$$],
+    i$$ = Replace[Min @ Select[selected$$, GreaterThan @ i$$], Inf -> i$$], i$$ = Last[selected$$, i$$],
     NiceClickBox["\[DownArrow]", PrintInputCell @ selected$$, "Pink"]
   ]},
   DynamicModuleBox[
@@ -338,7 +338,7 @@ mappedBrowserBoxes[f_, list_List] := With[
   ]
 ];
 
-deferSub[f_, i_] := Apply[Defer, ConstructHoldComplete[f, i]];
+deferSub[f_, i_] := Apply[Defer, MakeHoldComplete[f, i]];
 
 (**************************************************************************************************)
 

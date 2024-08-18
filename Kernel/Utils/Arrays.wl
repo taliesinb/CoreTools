@@ -219,11 +219,11 @@ ThrowRealArrayMsg[array_, {minD_Int, maxD_Int}] := Module[
   {depth, depthStr, badPos, badValue},
   depth = ArrayDepth[array];
   depthStr = If[minD == maxD, minD, StringForm["`` to ``", minD, maxD]];
-  If[!TrueQ[minD <= depth <= maxD], ThrowErrorMessage["realArrayDepthBad", depth, depthStr]];
+  If[!TrueQ[minD <= depth <= maxD], ThrowMsg["realArrayDepthBad", depth, depthStr]];
   badPos = FirstPosition[array, Except[_Real | _Integer | _Rational], {d}, Heads -> False];
-  If[badPos === None, ThrowErrorMessage["realArray", depthStr]];
+  If[badPos === None, ThrowMsg["realArray", depthStr]];
   badValue = Extract[array, badPos];
-  ThrowErrorMessage["realArrayValue", depthStr, badValue, badPos]
+  ThrowMsg["realArrayValue", depthStr, badValue, badPos]
 ];
 
 General::realArray = "Expected a real-valued array of depth ``."
@@ -373,7 +373,7 @@ DeclareStrict[SparseRules]
 
 SparseRules[{} | <||>, sz_] := SparseArray[{}, sz];
 
-SparseRules[assoc_Assoc, sz_] := SparseArray[Normal @ assoc, sz];
+SparseRules[assoc_Dict, sz_] := SparseArray[Normal @ assoc, sz];
 
 SparseRules[list:{___Int} ? DuplicateFreeQ, sz_] := SparseArray[Thread[list -> 1], sz];
 

@@ -102,7 +102,7 @@ SetStrict @ LookupKeys;
 LookupKeys::usage =
 "LookupKeys[dict$, keys$, fn$] looks up a list of keys$, evaluating fn$[key$] for missing keys."
 
-LookupKeys[assoc:RuleDictP, keys_List, fn_] := MissingApply[fn, Lookup[assoc, keys]];
+LookupKeys[assoc:DictLikeP, keys_List, fn_] := MissingApply[fn, Lookup[assoc, keys]];
 
 (*************************************************************************************************)
 

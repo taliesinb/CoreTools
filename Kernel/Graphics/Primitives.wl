@@ -84,7 +84,7 @@ General::internalPrimEror = "Internal error while boxifying `` involving call ``
 MakeCoreGBoxes[prim_] := With[
   {head = Head @ NoEval @ prim},
   {fn = Lookup[$GPrimFns, head, $Failed&]},
-  {res = CatchError[head, fn @ prim]},
+  {res = CatchMessages[head, fn @ prim]},
   Which[
     Head[res] === fn,               gprimErrorMsg[head, prim, "unrecogprim"],
     res === $Failed,                gprimErrorMsg[head, prim, "failprim"],
@@ -122,7 +122,7 @@ DefineGPrimSig[sig_, heads_List | heads_Alternatives] :=
   Scan[DefineGPrimSig[sig, #]&, List @@ heads];
 
 $gprimSym = None;
-DefineGPrimSig[sig_, primSym_Symbol] := CatchError[primSym, Block[
+DefineGPrimSig[sig_, primSym_Symbol] := CatchMessages[primSym, Block[
   {$gprimSym, $gboxSyms},
   $gprimSym = primSym;
   setupPrimSym @ primSym;
@@ -228,7 +228,7 @@ GSigToGPrims[{rules$1, rule$2, $$}] applies multiple criteria simultaneously.
 GSigToGPrims['sig$'] returns a list of primitives that have exactly the signature sig$ (which can contain multiple specs).
 GSigToGPrims[sym$] returns a list of symbolic signatures for primitive sym$."
 
-GSigToGPrims[spec_] := CatchError @ iGSigToGPrims @ spec;
+GSigToGPrims[spec_] := CatchMessages @ iGSigToGPrims @ spec;
 
 iGSigToGPrims = CaseOf[
 

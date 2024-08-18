@@ -46,8 +46,10 @@ PackageExports[
 HoldToInputString[e_]   := ToString[NoEval @ e, InputForm];
 ToInputString[e_]       := ToString[e, InputForm];
 
-FromInputString[str_]        := ToExpression[str, InputForm];
-FromInputString[str_, head_] := ToExpression[str, InputForm, head];
+SetStrict @ FromInputString;
+
+FromInputString[str_?StrOrVecQ]        := ToExpression[str, InputForm];
+FromInputString[str_?StrOrVecQ, head_] := ToExpression[str, InputForm, head];
 
 (**************************************************************************************************)
 
@@ -246,7 +248,7 @@ strSplitPos[str_, pos_List] := Module[{i = 1},
   ]]
 ];
 
-strSplitPos[_, spec_] := (Message[StringSplitAt::badSplitSpec, spec]; $Failed);
+strSplitPos[_, spec_] := ErrorMessage[StringSplitPositions::badSplitSpec, spec];
 StringSplitPositions::badSplitSpec = "`` is not a valid StringSplitPositions specification.";
 
 (**************************************************************************************************)

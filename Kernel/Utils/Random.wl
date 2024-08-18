@@ -234,7 +234,7 @@ codeToFormal[n_] := Which[
 
 DeclareListable[FromFormalSymbol];
 
-$fromFormalSymbols := $fromFormalSymbols = UAssocThread[
+$fromFormalSymbols := $fromFormalSymbols = UDictThread[
   $FormalSymbols, Join[CharRange["a", "z"], CharRange["A", "Z"]]
 ];
 

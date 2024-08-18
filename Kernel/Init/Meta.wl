@@ -1,6 +1,6 @@
 SystemExports[
   "Function",
-    HoldSymbolName, Ensure, AssertThat,
+    Ensure, AssertThat,
   "ControlFlowFunction",
     HoldMap, EvaluateMap, HoldScan,
   "MutatingFunction",
@@ -31,6 +31,9 @@ PackageExports[
     SetPred1, SetPred2, SetPred3, SetNPred1, SetNPred2, SetNPred3,
     SetHoldF, SetHoldR, SetHoldA, SetHoldC,
     SetStrict, SetFlat, SetListable, SetListable1,
+    SetExcepting,
+
+    DefinePseudoMacro,
   "Function",
     Unmake, Remake,
   "ControlFlowFunction",
@@ -41,6 +44,11 @@ PackageExports[
     SymbolList
 ];
 
+PrivateExports[
+  "SpecialVariable",
+    $ExceptingSymbols, $ExceptingSymbolP
+];
+
 (*************************************************************************************************)
 
 SetAttributes[SymbolList, {HoldAll, Flat}]
@@ -49,10 +57,10 @@ SetAttributes[SymbolList, {HoldAll, Flat}]
 
 DefineAliasRules[
   SetCurry1    -> DeclareCurry1,
-  SetCurry2    -> DeclareCurry1,
-  SetCurry12   -> DeclareCurry1,
-  SetCurry23   -> DeclareCurry1,
-  SetCurry13   -> DeclareCurry1,
+  SetCurry2    -> DeclareCurry2,
+  SetCurry12   -> DeclareCurry12,
+  SetCurry23   -> DeclareCurry23,
+  SetCurry13   -> DeclareCurry13,
   SetPred1     -> DeclarePredicate1,
   SetPred2     -> DeclarePredicate2,
   SetPred3     -> DeclarePredicate3,
@@ -170,6 +178,20 @@ DeclarationFunctionDefinitions[
 
 (*************************************************************************************************)
 
+If[!ListQ[$ExceptingSymbols],
+  $ExceptingSymbols = {};
+  $ExceptingSymbolP = Alt[];
+];
+
+DeclarationFunctionDefinitions[
+  SetExcepting[syms__Sym] := Then[
+    $ExceptingSymbols = Join[$ExceptingSymbols, {syms}],
+    $ExceptingSymbolP = Join[$ExceptingSymbolP, Alt[syms]]
+  ]
+];
+
+(*************************************************************************************************)
+
 DeclareStrict[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext, BlockUnprotect];
 DeclareHoldAll[BlockSet, BlockAssociate, BlockJoin, BlockAppend, BlockIncrement, BlockDecrement, BlockTrue, BlockFalse, BlockContext, BlockUnprotect]
 
@@ -208,10 +230,10 @@ General::badArguments = "Bad arguments: ``.";
 General::badSeqScanArg = "Bad argument to ``: ``.";
 
 DeclarationFunctionDefinitions[
-  DeclareStrict[head_Sym] := Apply[
+  DeclareStrict[head_Sym] := With[{sloc = SourceLocation[]}, Apply[
     SetDelayed,
-    Hold[$LHS_head, Message[MessageName[head, "badArguments"], HoldForm @ $LHS]; $Failed]
-  ],
+    Hold[$LHS_head, IssueMessage[head -> sloc, "badArguments", HoldForm @ $LHS]]
+  ]],
 
   DeclareSeqScan[head_Sym] := (
     DeclareStrict[head];
@@ -232,14 +254,6 @@ DeclareStrict[DefineAliasRules]
 
 (*************************************************************************************************)
 
-HoldSymbolName::usage = "HoldSymbolName[sym$] gives the name of sym$ without evaluating sym$.";
-
-DeclareHoldAllComplete[HoldSymbolName]
-HoldSymbolName[sym_Symbol ? Developer`HoldAtomQ] := SymbolName @ Unevaluated @ sym;
-HoldSymbolName[_] := $Failed;
-
-(*************************************************************************************************)
-
 DeclareHoldAll[HoldMake, HoldApply, HoldUnmake];
 DeclareHoldAllComplete[HoldCompUnmake];
 
@@ -257,7 +271,7 @@ Remake[w_[h_, a___]] := w[h[a]];
 HoldMap::usage = "HoldMap[fn$, args$] maps fn$ over args$ without evaluating args$.";
 HoldScan::usage = "HoldScan[fn$, args$] maps fn$ over args$ without evaluating args$.";
 
-DeclareStrict @ DeclareHoldAllComplete[HoldMap, HoldScan]
+SetStrict @ SetHoldC[HoldMap, HoldScan]
 
 HoldMap[f_, args_]                     := Map[f, Unevaluated[args]];
 HoldMap[Function[body_], args_]        := Map[Function[Null, body, HoldAllComplete], Unevaluated[args]];
@@ -286,10 +300,10 @@ StringListableFunctionDefs[sd:SetD[$LHS_, $RHS_]] := With[
   ReleaseHold @ ReplaceAll[Hold[sd] /. {mn_MessageName :> mn, head -> impl}];
   If[strImplNeedsSetupQ[head],
     strImplNeedsSetupQ[head] = False;
-    head[expr_ ? StrOrStrVecQ, args___] := impl[expr, args];
-    head[expr:ListDictP, args___]                := Map[elem |-> head[elem, args], expr];
-    head[expr_, ___]                             := ErrorMsg[head::notStringOrStrings, expr];
-    expr_impl                                    := badImplArgs[head, expr];
+    head[expr_ ? StrOrVecQ, args___] := impl[expr, args];
+    head[expr:ListDictP, args___]    := Map[elem |-> head[elem, args], expr];
+    head[expr_, ___]                 := ErrorMsg[head::notStringOrStrings, expr];
+    expr_impl                        := badImplArgs[head, expr];
   ];
 ];
 
@@ -310,3 +324,30 @@ DeclareHoldRest[Ensure]
 Ensure[expr_, testFn_, else_] := If[TrueQ @ testFn @ expr, expr, else];
 Ensure[testFn_, else_][expr_] := If[TrueQ @ testFn @ expr, expr, else];
 
+(**************************************************************************************************)
+
+DeclareStrict @ DefinePseudoMacro;
+
+DefinePseudoMacro[sym_Sym, rule:RuleD[lhs_, rhs_]] := Then[
+  TagSetDelayed @@ iDefinePseudoMacro[sym, lhs, rhs],
+  DefinePartialMacro[sym, rule]
+];
+
+SetHoldC @ iDefinePseudoMacro;
+
+iDefinePseudoMacro[sym_Sym, lhs_, rhs_] :=
+  HoldC[
+    sym,
+    setdDummy[$LHS_, lhs],
+    withDummy[
+      {lhsHead = First @ PatternHeadSymbol @ $LHS},
+      SetDelayed @@ Hold[$LHS, rhs]
+    ]
+  ] /. $pseudoMacroRules;
+
+$pseudoMacroRules = {
+  HoldP[$MacroParentSymbol]   :> lhsHead,
+  HoldP[$MacroSourceLocation] :> RuleEval[SourceLocation[]],
+  withDummy                   -> With,
+  setdDummy                   -> SetDelayed
+};

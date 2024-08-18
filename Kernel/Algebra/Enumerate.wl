@@ -8,10 +8,10 @@ SystemExports[
 SetHoldF[EnumerateChoices, iEnumerateChoices];
 
 EnumerateChoices[expr_] :=
-  CatchError @ iEnumerateChoices[expr, {}];
+  CatchMessages @ iEnumerateChoices[expr, {}];
 
 EnumerateChoices[expr_, rules__] :=
-  CatchError @ iEnumerateChoices[expr, enumRulesInContext[{}, Reverse @ Hold @ rules]];
+  CatchMessages @ iEnumerateChoices[expr, enumRulesInContext[{}, Reverse @ Hold @ rules]];
 
 iEnumerateChoices[expr_, context_] :=
   List @@ enumInContext[

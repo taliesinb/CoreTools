@@ -6,26 +6,23 @@ PackageExports[
   "Function",
     AllTreesDepth, AllTrees,
     ToTree, UnfoldTree, UnfoldTreeData, RemoveTreeData,
-  "PatternSymbol",       TreeExprP,
-  "Predicate",           TreeExprQ,
+  "PatternSymbol",       TreeNodeP,
+  "Predicate",           TreeNodeQ, ValidTreeQ,
   "Head",                TreeNode, TreeLeaf, DataNode, DataLeaf, TreeSeed,
   "Function",            ToTree, ToTreePattern,
   "SpecialVariable",     $CurrentTreeDepth, $MaxTreeDepth,
   "Operator",            TreeSeedFn,
-  "OptionSymbol",        NodePattern,
-    NodeColorRules, NodeData,
-    NodeTooltips, NodeColor, NodeSize, NodeShape,
-    RootPosition
+  "OptionSymbol",        NodePattern
 ];
 
 
 (**************************************************************************************************)
 
 DefinePatternRules[
-  TreeExprP -> Alt[_TreeNode, DataNode[_][___]]
+  TreeNodeP -> Alt[_TreeNode, DataNode[_][___]]
 ];
 
-DefinePatternPredicateRules[TreeNodeQ -> TreeExprP]
+DeclarePatternPredicates[TreeNodeQ];
 
 (**************************************************************************************************)
 
@@ -50,7 +47,7 @@ MakeCoreBoxes[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
 
 (**************************************************************************************************)
 
-$treeNodePlotOpts = Seq[NodePattern -> TreeExprP | TreeSeed[_], EdgeColor -> GrayLevel[0.8]];
+$treeNodePlotOpts = Seq[NodePattern -> TreeNodeP | TreeSeed[_], EdgeColor -> GrayLevel[0.8]];
 
 treeNodeBoxes = CaseOf[
   s:TreeSeed[_]  := rootNodeBoxes["\[EmptyCircle]", s];
@@ -122,7 +119,7 @@ ToTree[expr_] := toTree @ expr;
 toTree = CaseOf[
   list_List         := Map[$, Apply[TreeNode, list]];
   head_Sym[args___] := Map[$, DataNode[head][args]];
-  expr_             := If[MatchQ[expr, $toTreeProtP], expr, DataNode[expr][]];
+  expr_             := If[MatchQ[expr, TreeNodeP], expr, DataNode[expr][]];
 ];
 
 (**************************************************************************************************)
@@ -132,7 +129,7 @@ treeSeedFn[fn_][e_] := e;
 
 toSeedTree = CaseOf[
   list_List   := Map[$, Apply[TreeNode, list]];
-  t:TreeExprP := Map[$, t];
+  t:TreeNodeP := Map[$, t];
   s_TreeSeed  := s;
   s_          := TreeSeed @ s;
 ];
