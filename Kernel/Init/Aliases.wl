@@ -474,7 +474,7 @@ DefinePatternRules[
 ];
 
 DefinePatternRules[
-   RuleSeqP      -> RuleP...,
+   RuleSeqP      -> ___Rule,
   RuleLSeqP      -> RuleLP...,
   ORuleSeqP      -> ORuleP...,
    SetLSeqP      -> SetLP...,

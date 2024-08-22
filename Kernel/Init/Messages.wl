@@ -1,15 +1,16 @@
 PackageExports[
   "ControlFlowFunction",
-    Try,
+    Try, TryElse,
 
   "MessageFunction",
     IssueMessage, GeneralMessage, ErrorMessage,
 
     ThrowMessage,
     CatchMessages,
-    TryElse, CatchAsFailure,
+    CatchAsFailure,
 
     ThrowException,
+    ThrowErrorValue,
 
     CheckForUnknownOptions, UnknownOptionMsg,
     ThrowUnknownOptionMsg, ThrowOptionMsg,
@@ -150,7 +151,7 @@ SetHoldC[TryElse, TryElseHandler];
 
 TryElse[body_, else_] := HandleExceptions[body, TryElseHandler[else]];
 
-TryElseHandler[else_][_, _] := else;
+TryElseHandler[else_][_] := else;
 
 (**************************************************************************************************)
 
@@ -263,13 +264,20 @@ General::invalidOption = "The setting `` -> `` is not valid.";
 
 (**************************************************************************************************)
 
+ThrowErrorValue::usage =
+"ThrowErrorValue[value$] returns value$ from the containing HandleException-based body."
+
+ThrowErrorValue[value_] := ThrowException @ LiteralException[None, value];
+
+(**************************************************************************************************)
+
 ThrowException::usage =
-"ThrowException[] returns a $Failed from the containing CatchMessages.
-ThrowException[expr$] returns $expr from the containing CatchMessages."
+"ThrowException[] returns a $Failed from the containing HandleException-based body.
+ThrowException[exception$] throws an exception, which should be a MessageException, FailureException, or LiteralException."
 
 General::uncaughtMessage = "The message name \"``\" was thrown but not caught. Aborting.";
 
-ThrowException[] := ThrowException @ LiteralException[$Failed];
+ThrowException[] := ThrowException @ LiteralException[None, $Failed];
 ThrowException[e_] /; $HandlerSet := Throw[e, ExceptionTag];
 ThrowException[e_]                := UnhandledException @ e;
 

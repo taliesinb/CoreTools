@@ -73,13 +73,13 @@ $errorPrintOpts = {
 $logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
 $echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
 $echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
-$DPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
 
 RawPrint[args___]   := CustomizedPrint[{}, args];
 LogPrint[args___]   := CustomizedPrint[$logPrintOpts, args];
 ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
 EchoPrint[args___]  := If[$EchoPrinting, CustomizedPrint[$echoPrintOpts, args], $Disabled, $Disabled];
-DPrint[args___] := If[$DebugPrinting, CustomizedPrint[$DPrintOpts, args], $Disabled, $Disabled];
+DPrint[args___] := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
 
 (*************************************************************************************************)
 
