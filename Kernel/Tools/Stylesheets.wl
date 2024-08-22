@@ -10,6 +10,8 @@ PackageExports[
     SetNotebookStylesheet,
     StyleRules, GetStyleSheet,
     StyleSheetData, PrimaryStyleData,
+  "Predicate",
+    DarkModeQ
   "Variable",
     $CoreStyleSheetStyleNames,
     $InstalledCoreToolsStyleSheetsDirectory,
@@ -66,6 +68,8 @@ coreSheetNameQ[_] := False;
 notebookHasCoreSheetQ[nb_NBObject] := coreSheetNameQ @ GetNotebookStylesheet @ nb;
 
 (*************************************************************************************************)
+
+DarkModeQ[] := TrueQ[Apply[Avg, CurrentValue[Background]] < 0.5];
 
 GetNotebookStylesheet = CaseOf[
   $[]            := GetNotebookStylesheet @ EvaluationNotebook[];

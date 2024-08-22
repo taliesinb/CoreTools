@@ -11,7 +11,7 @@ PackageExports[
     ReadRawJSONString, WriteRawJSONString,
 
   "ScopingFunction",
-    InheritedBlock,
+    InheritedBlock, IBlock,
 
   "ObjectHead",
     NBObject,
@@ -161,6 +161,9 @@ PackageExports[
 
     FastNumericIndices,
     ContainedSymbols,
+
+    ToAltPat, ToLHSPat, PatHeadSym, DefHeadSym,
+    ToBlankSeq, ToBlankNullSeq,
 
   "MutatingFunction",
     UnpackDict, PackDict, SetInherit,
@@ -874,6 +877,17 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
+  ToAltPat       -> ToAltPattern,
+  ToLHSPat       -> ToLHSPattern,
+  PatHeadSym     -> PatternHeadSymbol,
+  DefHeadSym     -> DefinitionHeadSymbol,
+  ToBlankSeq     -> ToBlankSequence,
+  ToBlankNullSeq -> ToBlankNullSequence
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
   InvertDict     -> InvertAssociation,
   InvertUDict    -> InvertUnorderedAssociation,
 
@@ -1127,6 +1141,7 @@ DefineAliasRules[
   WithLocalSettings             -> Internal`WithLocalSettings,
   WithTimestampsPreserved       -> Internal`WithTimestampsPreserved,
   InheritedBlock                -> Internal`InheritedBlock,
+  IBlock                        -> Internal`InheritedBlock,
   RepetitionFromMultiplicity    -> Internal`RepetitionFromMultiplicity,
   Reciprocal                    -> Internal`Reciprocal,
   OutermostToInnermost          -> Internal`OutermostToInnermost,

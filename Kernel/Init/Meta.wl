@@ -4,6 +4,7 @@ SystemExports[
   "ControlFlowFunction",
     HoldMap, EvaluateMap, HoldScan,
   "MutatingFunction",
+    SetSequence,
     BlockSet, BlockAssociate, BlockJoin, BlockAppend,
     BlockIncrement, BlockDecrement,
     BlockTrue, BlockFalse,
@@ -36,8 +37,11 @@ PackageExports[
     DefinePseudoMacro,
   "Function",
     Unmake, Remake,
+    CatenateSymbolLists, JoinSymbolLists,
+  "ScopingFunction",
+    SubWith,
   "ControlFlowFunction",
-    HoldMake, HoldApply, HoldUnmake, HoldCompUnmake,
+    HoldMake, HoldApply, HoldUnmake, HoldCompUnmake, Initially,
   "IOFunction",
     ToImplementationSymbol,
   "Head",
@@ -47,11 +51,39 @@ PackageExports[
 PrivateExports[
   "SpecialVariable",
     $ExceptingSymbols, $ExceptingSymbolP
+  "CacheVariable",
+    $InitializationHashes
 ];
 
 (*************************************************************************************************)
 
+SetAttributes[Initially, HoldAllComplete];
+
+If[!HasIValueQ[$InitializationHashes], $InitializationHashes = UDict[]];
+
+Initially[body___] := Which[
+  Lookup[$InitializationHashes, $CurrentPackageFile] === Prelude`Packages`$CurrentPackageFileHash,
+    "InitializationNotNeeded",
+  Check[Then[body], $Failed] === $Failed,
+    Lookup[$InitializationHashes, $CurrentPackageFile] = None;
+    "InitializationFailed",
+  True,
+    $InitializationHashes[$CurrentPackageFile] = Prelude`Packages`$CurrentPackageFileHash;
+    "Initialized"
+];
+
+(*************************************************************************************************)
+
+DeclaredHere[SymbolList];
+
 SetAttributes[SymbolList, {HoldAll, Flat}]
+
+CatenateSymbolLists[{}] := SymbolList[];
+CatenateSymbolLists[list:{__SymbolList}] := DelDups @ Apply[Join, list];
+
+JoinSymbolLists[] := SymbolList[];
+JoinSymbolLists[list_SymbolList] := list;
+JoinSymbolLists[lists__SymbolList] := DelDups @ Join[lists];
 
 (*************************************************************************************************)
 
@@ -189,6 +221,11 @@ DeclarationFunctionDefinitions[
     $ExceptingSymbolP = Join[$ExceptingSymbolP, Alt[syms]]
   ]
 ];
+
+(*************************************************************************************************)
+
+SetSequence[lhs1_, lhs2__, rhs_] := Set[lhs1, SetSequence[lhs2, rhs]];
+SetSequence[lhs1_, rhs_]         := Set[lhs1, rhs];
 
 (*************************************************************************************************)
 
@@ -351,3 +388,24 @@ $pseudoMacroRules = {
   withDummy                   -> With,
   setdDummy                   -> SetDelayed
 };
+
+(**************************************************************************************************)
+
+SetStrict @ SetHoldC @ SubWith;
+
+SubWith[{}, body_] := body;
+
+SubWith[v_Symbol, body_] :=
+  With[{v = v}, body];
+
+SubWith[{v_Symbol}, body_] :=
+  With[{v = v}, body];
+
+SubWith[{v1_Symbol, v2_Symbol}, body_] :=
+  With[{v1 = v1, v2 = v2}, body];
+
+SubWith[{v1_Symbol, v2_Symbol, v3_Symbol}, body_] :=
+  With[{v1 = v1, v2 = v2, v3 = v3}, body];
+
+SubWith[{v1_Symbol, v2_Symbol, v3_Symbol, v4_Symbol, rest___}, body_] :=
+  SubWith[{rest}, With[{v1 = v1, v2 = v2, v3 = v3, v4 = v4}, body]];

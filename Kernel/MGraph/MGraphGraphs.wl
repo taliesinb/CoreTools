@@ -1,7 +1,12 @@
 SystemExports[
-  "Function",     MultigraphIncidenceGraph,
+  "Function",     MultigraphIncidenceGraph, MultigraphPlot,
   "OptionSymbol", DuplicateTargets
 ];
+
+(**************************************************************************************************)
+
+MultigraphPlot[m_Multigraph] :=
+  MultigraphIncidenceGraph[m, DuplicateTargets -> True];
 
 (**************************************************************************************************)
 
@@ -81,7 +86,6 @@ MultigraphIncidenceGraph[mg:MGraphDataP[dict_], opts:OptionsPattern[]] := Locals
 DefineGraphTheme["CoreMultigraphIncidenceGraph", {
   ThemeParent -> "Core",
   EdgeShapeFunction -> {"ShortUnfilledArrow", "ArrowSize" -> Medium, "ArrowPositions" -> 0.75},
-  Options -> {BaseStyle -> {AbsolutePointSize[20]}}
-  VertexShapeFunction -> (Point[#]&),
+  Options -> {BaseStyle -> {AbsolutePointSize[10]}},
   EdgeStyle -> {$Gray}
 }];

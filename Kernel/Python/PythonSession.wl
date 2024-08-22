@@ -172,14 +172,15 @@ CustomExternalEvaluateCatch[expr_] := Catch[ExternalEvaluatePostProcessor @ expr
 ExternalEvaluatePostProcessor[f_Failure] := $PythonErrorCallback @ f;
 ExternalEvaluatePostProcessor[e_]        := $PythonResultPostProcessor @ e;
 
-RegisterPackagePatchFunctions["ExternalEvaluate`",
-"OverrideDefaultExternalSession" -> Function[
+$sessionNormUpdate = HoldP[s:Switch[#Name, ___]] :> If[StringQ[#Name] && StringQ[#Evaluator], {#Name, #Evaluator}, s];
+
+overrideDefaultExternalSession[] := Then[
   ExternalEvaluateCommon`ExternalEvaluateCatch[expr_] := CustomExternalEvaluateCatch[expr];
   ExternalEvaluate`Private`$SessionNormalizationRules //= ReplaceAll[$sessionNormUpdate];
   ExternalEvaluate`GetDefaultExternalSession["Python"] := DefaultPythonSession[]
-]];
+];
 
-$sessionNormUpdate = HoldP[s:Switch[#Name, ___]] :> If[StringQ[#Name] && StringQ[#Evaluator], {#Name, #Evaluator}, s];
+RegisterPackagePatchFunctions["ExternalEvaluate`", "OverrideDefaultExternalSession" -> overrideDefaultExternalSession];
 
 (*************************************************************************************************)
 

@@ -13,13 +13,14 @@ PackageExports[
   "SpecialVariable",
     $PackageNeedsPatchesQ,
     $PackageLoadedCache, $PackagePatchFunctions, $PackageAppliedPatches,
-    $IsPacletManagerHooked, $PacletManagerHook, $PatchDebugging,
-    $CurrentDefinitionNotebooks
+    $IsPacletManagerHooked, $PacletManagerHook, $PatchDebugging
 ];
 
 PrivateExports[
   "MessageFunction",
-    PatchPrint
+    PatchPrint,
+  "Variable",
+    $DefinitionNotebookOffset
 ];
 
 (*************************************************************************************************)
@@ -133,20 +134,28 @@ patchMutVars[] := With[
   ]
 ];
 
-$insideMDNQ = False;
+$inPrintDefsLocal = False;
 patchDefNotebook[] := With[
-  {makeDefNb := GeneralUtilities`Debugging`PackagePrivate`makeDefinitionNotebook},
-  DownValues[makeDefNb] = Prepend[
-    DownValues[makeDefNb] /. 600 :> $DefinitionNotebookWidth,
-    HoldPattern[makeDefNb[cells_] /; !TrueQ[$insideMDNQ]] :> Block[{$insideMDNQ = True},
-      wrappedMakeDefNotebook[makeDefNb, cells]
-    ]
-  ]
+  {makeDefNb := GeneralUtilities`Debugging`PackagePrivate`makeDefinitionNotebook,
+   defCells := GeneralUtilities`Debugging`PackagePrivate`cells,
+   pdLocal := GeneralUtilities`PrintDefinitionsLocal},
+  DownValues[makeDefNb] = DownValues[makeDefNb] /. {
+    m_makeDefNb            :> m,
+    HoldP[defCells]        :> If[TrueQ[$inPrintDefsLocal], defCells, ToList[defCells, Cell[BoxData[""], "Input"]]],
+    Rule[WindowSize, _]    :> Rule[WindowSize, All],
+    Rule[WindowMargins, _] :> Rule[WindowMargins, definitionNotebookMargins[]]
+  };
+  Unprotect[pdLocal];
+  DownValues[pdLocal] = DownValues[pdLocal] /. HoldP[{a_Set, b_Set}] :> {a, b, $inPrintDefsLocal = True};
+  Protect[pdLocal];
 ];
 
-SetDelayedInitial[
-  $DefinitionNotebookWidth,
-  Clip[First[AvailableScreenSize[]] / 2, {400, 800}]
+SetInitial[$DefinitionNotebookOffset, 0];
+SetDelayedInitial[$DefinitionNotebookWidth, Clip[First[AvailableScreenSize[]] / 2, {400, 1000}]];
+
+definitionNotebookMargins[] := Then[
+  $DefinitionNotebookOffset = Mod[$DefinitionNotebookOffset + 5, 50] + 5,
+  {{Automatic, $DefinitionNotebookOffset}, {5, 5}}
 ];
 
 RegisterPackagePatchFunctions[
@@ -154,20 +163,4 @@ RegisterPackagePatchFunctions[
   "MutationVariables" -> patchMutVars,
   "DefinitionNotebook" -> patchDefNotebook
 ];
-
-(*************************************************************************************************)
-
-$CurrentDefinitionNotebooks = Internal`Bag[];
-
-wrappedMakeDefNotebook[makeDefNb_, cells_] := Block[{newNb},
-  (* If[EvaluatedSinceQ["PrintDefinitions"],
-    Quiet @ Scan[NotebookClose, Internal`BagPart[nbBag, All]];
-    nbBag = Internal`Bag[];
-  ]; *)
-  Internal`StuffBag[
-    $CurrentDefinitionNotebooks,
-    makeDefNb[cells]
-  ];
-];
-
 

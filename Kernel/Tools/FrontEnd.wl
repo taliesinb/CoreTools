@@ -6,14 +6,13 @@ SystemExports[
 ];
 
 PackageExports[
-  "Symbol",
-    Dark, Light,
   "IOFunction",
     CallFrontEnd,
     DisableFloatingSymbolPopup,
     PrintInputCell, PrintOutputCell,
-    PrintNextCellBoxData, PrintPreviousCellBoxData
-];
+    PrintNextCellBoxData, PrintPreviousCellBoxData,
+    DeleteNextGeneratedCells
+x];
 
 (*************************************************************************************************)
 
@@ -40,6 +39,28 @@ $screenInfo := $screenInfo = SystemInformation["Devices", "ScreenInformation"];
 
 (*************************************************************************************************)
 
+DeleteNextGeneratedCells[] := Locals[
+  toDelete = {};
+  cell = EvaluationCell[];
+  i = 1;
+  While[i++ < 100,
+    cell = NextCell[cell];
+    If[Head[cell] =!= CellObject, Break[]];
+    opts = Options[cell, GeneratedCell];
+    If[!ListQ[opts], Break[]];
+    isGenerated = TrueQ @ Lookup[opts, GeneratedCell, False];
+    If[isGenerated || shouldDelete @ NotebookRead @ cell,
+      AppendTo[toDelete, cell],
+      Break[]];
+  ];
+  NotebookDelete[toDelete];
+];
+
+shouldDelete[Cell[_, "Output" | "Print" | "Message" | {"Message", ___}, ___]] := True;
+shouldDelete[_] := False;
+
+(*************************************************************************************************)
+
 PrintNextCellBoxData[] := printCellBoxData[NextCell[]];
 PrintPreviousCellBoxData[] := printCellBoxData[PreviousCell[]];
 
@@ -53,6 +74,6 @@ printCellBoxData[cell_CellObject] := Locals[
 
 (*************************************************************************************************)
 
-PrintInputCell[e_]       := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[e, "Input", "GeneratedCell" -> False];
-PrintInputCell[Hold[e_]] := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[Defer @ e, "Input", "GeneratedCell" -> False];
-PrintOutputCell[e_]      := CellPrint @ ExpressionCell[e, "Output", "GeneratedCell" -> False];
+PrintInputCell[e_]       := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[e, "Input", GeneratedCell -> False];
+PrintInputCell[Hold[e_]] := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[Defer @ e, "Input", GeneratedCell -> False];
+PrintOutputCell[e_]      := CellPrint @ ExpressionCell[e, "Output", GeneratedCell -> False];

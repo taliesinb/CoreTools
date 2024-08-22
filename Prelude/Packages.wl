@@ -468,6 +468,7 @@ toSourceFiles[File[path_String]] := Module[{lines, base},
   base = FileNameDrop @ path;
   lines = ReadList[path, Record, RecordSeparators -> "\n", NullRecords -> False];
   If[!Developer`StringVectorQ[lines], Return[$Failed]];
+  lines = Select[lines, !StringStartsQ[#, "#"]&];
   expandFileSpec[FileNameJoin[{base, #}]& /@ lines]
 ];
 

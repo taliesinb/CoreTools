@@ -2,13 +2,14 @@ SystemExports[
   "Function",
     P1, P2, P3, P4, P5, PN, P11, P1N, PNN, PN1, Col1, Col2, Col12, Col21, Col3, Col4, ColN,
   "ControlFlowFunction",
-    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed, Initially,
+    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor,
-    SetCached, SetInitial, SetDelayedInitial, SetSequence, PackAssociation, UnpackAssociation, UnpackTuple,
+    SetCached, SetInitial, SetDelayedInitial, SetSequence,
+    PackAssociation, UnpackAssociation, UnpackTuple,
   "ScopingFunction",
     IsMatchOf, IsNotMatchOf,
-    CaseOf, ExtendCaseOf, CaseFn, Locals, SubWith, GlobalVar, LocalVar, InheritVar,
+    CaseOf, ExtendCaseOf, CaseFn, Locals, GlobalVar, LocalVar, InheritVar,
     CollectBegin, CollectEnd, Collecting,
   "MessageFunction",
     ThrowUnmatchedError
@@ -19,10 +20,6 @@ PackageExports[
   "MessageFunction",  ReturnFailed, ReturnMessage,
   "MutatingFunction", UnpackOptions, UnpackOptionsAs, UnpackAnnotations,
   "PatternSymbol",    StrMatchP, StrStartsP, StrContainsP, DeepStrContainsP
-];
-
-PrivateExports[
-  "CacheVariable",    $InitializationHashes
 ];
 
 (**************************************************************************************************)
@@ -66,28 +63,6 @@ DefinePatternMacro[DeepStrContainsP,
 
 (*************************************************************************************************)
 
-SetHoldC[SubWith]
-DeclareStrict[SubWith]
-
-SubWith[v_Symbol, body_] :=
-  With[{v = v}, body];
-
-SubWith[{}, body_] := body;
-
-SubWith[{v_Symbol}, body_] :=
-  With[{v = v}, body];
-
-SubWith[{v1_Symbol, v2_Symbol}, body_] :=
-  With[{v1 = v1, v2 = v2}, body];
-
-SubWith[{v1_Symbol, v2_Symbol, v3_Symbol}, body_] :=
-  With[{v1 = v1, v2 = v2, v3 = v3}, body];
-
-SubWith[{v1_Symbol, v2_Symbol, v3_Symbol, v4_Symbol, rest___}, body_] :=
-  SubWith[{rest}, With[{v1 = v1, v2 = v2, v3 = v3, v4 = v4}, body]];
-
-(*************************************************************************************************)
-
 DeclareHoldAll[SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor]
 
 DefineSimpleMacro[SetAll,                   SetAll[lhs_, rhs_] :> If[lhs === All,       lhs = rhs, lhs]];
@@ -112,26 +87,7 @@ DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Replace[$Failed   :> r
 
 (*************************************************************************************************)
 
-DeclareHoldAll[Initially];
-
-If[!System`Private`HasImmediateValueQ[$InitializationHashes],
-  $InitializationHashes = UDict[]
-];
-
-Initially[body___] := Which[
-  Lookup[$InitializationHashes, $CurrentPackageFile] === Prelude`Packages`$CurrentPackageFileHash,
-    "InitializationNotNeeded",
-  Check[Then[body], $Failed] === $Failed,
-    Lookup[$InitializationHashes, $CurrentPackageFile] = None;
-    "InitializationFailed",
-  True,
-    $InitializationHashes[$CurrentPackageFile] = Prelude`Packages`$CurrentPackageFileHash;
-    "Initialized"
-];
-
-(*************************************************************************************************)
-
-DeclareHoldAll[SetCached, SetInitial, SetDelayedInitial, SetSequence, setMultiInitial]
+DeclareHoldAll[SetCached, SetInitial, SetDelayedInitial, SetSequence]
 
 DefineSimpleMacro[SetCached,                  SetCached[lhs_, rhs_] :> SetDelayed[lhs, Set[lhs, rhs]]]
 DefineSimpleMacro[SetDelayedInitial,  SetDelayedInitial[lhs_, rhs_] :> If[System`Private`HasNoEvaluationsQ[lhs], SetDelayed[lhs, rhs]]]
@@ -139,6 +95,8 @@ DefineSimpleMacro[SetInitial, {
   SetInitial[lhs_Sym, rhs_]     :> If[System`Private`HasNoEvaluationsQ[lhs], Set[lhs, rhs]],
   SetInitial[lhs__Sym, rhs_]    :> setMultiInitial[Hold[lhs], rhs]
 }];
+
+DeclareHoldAll[setMultiInitial];
 
 setMultiInitial[lhs_Hold, rhs2_] := Module[{rhs := (rhs = rhs2)},
   Scan[

@@ -26,7 +26,7 @@ AttachDelayedValue,
 
 "Predicates",
 CoreToolsContextQ,
-CoreToolsSymbolQ
+CoreToolsSymbolQ,
 
 "Predicate",
 System`SystemContextQ,
@@ -266,10 +266,12 @@ SymbolNameSetDelayed[name_String, value_] :=
 (*************************************************************************************************)
 
 $DynamicAliasTable = Data`UnorderedAssociation[
-  "d`"  -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, On]]],
+  "d`"    -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, On]]],
+  "don`"  -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, On]]],
   "doff`" -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, Off]]],
-  "f`"  -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3]]],
-  "l`"  -> Function[SymbolNameSetDelayed[#1, LikelySymbolNames[#2, #3]]]
+  "pd`"   -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3, CoreTools`PrintDefinitions]]],
+  "f`"    -> Function[CreateDynamicAlias[#1, findBestSymbolHandler[#2, #3]]],
+  "l`"    -> Function[SymbolNameSetDelayed[#1, LikelySymbolNames[#2, #3]]]
 ];
 
 $DynamicAliasContexts = Keys @ $DynamicAliasTable;

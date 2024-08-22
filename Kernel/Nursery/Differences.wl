@@ -129,7 +129,7 @@ Options[FindExprDeltas] = {
   MaxItems -> 3
 };
 
-FindExprDeltas[a_, b_, OptionsPattern[]] := Scope[
+FindExprDeltas[a_, b_, OptionsPattern[]] := Locals[
   UnpackOptions[maxItems];
   $diffs = Bag[]; $count = 0; $crumbs = {}; $pos = {};
   Catch[
@@ -360,7 +360,7 @@ Options[ShowSequenceAlignment] = {
 lineSplit[e_] := SSplit[e, "\n"];
 lineJoin[e_] := SRiffle[e, "\n"];
 
-ShowSequenceAlignment[a_Str, b_Str, OptionsPattern[]] := Scope[
+ShowSequenceAlignment[a_Str, b_Str, OptionsPattern[]] := Locals[
   UnpackOptions[$elideUnchanged];
   a = lineSplit @ a;
   b = lineSplit @ b;

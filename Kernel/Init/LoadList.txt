@@ -4,7 +4,9 @@ Meta.wl
 Strings.wl
 Messages.wl
 Macros.wl
-MacroDefs.wl
+# MacroDefs.wl
+Macros/LoadList.txt
+Patterns/StrPatterns.wl
 Patterns.wl
 Predicates.wl
 Specs.wl

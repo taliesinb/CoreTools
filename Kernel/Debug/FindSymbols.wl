@@ -6,14 +6,15 @@ PackageExports[
     SymbolNameUsage,
   "Predicate",         HasFormatDefsQ, HasBoxDefsQ, UnresolvedSymbolQ,
   "FormHead",          SymbolNameForm, SymbolForm,
-  "DebuggingFunction", PrintDefinitionsContaining, PrintDefinitions, PrintStack,
+  "DebuggingFunction", PrintDefinitions, PrintDefinitionsLocal, PrintDefinitionsContaining, PrintStack,
   "Function",          SymbolNameType, SymbolType, SymbolTypeToPredicate,
   "TypeHead",          KernelSymbol,
   "TypeSymbol",        FunctionSymbol, OperatorSymbol, ImmediateSymbol, DelayedSymbol, FormattingSymbol, InertSymbol, PatternSymbol, DataSymbol, UnknownSymbol
 ];
 
 PrivateExports[
-  "CacheVariable", $HasBoxDefsCache, $SymbolTypeCache, $BoxFormattingRules, $BoxFormattingSymbols
+  "CacheVariable",
+    $HasBoxDefsCache, $SymbolTypeCache, $BoxFormattingRules, $BoxFormattingSymbols, $PrintDefNotebooks
 ];
 
 (**************************************************************************************************)
@@ -24,6 +25,7 @@ Initially[
     Thread @ Rule[Hold /@ {Pattern, PatternTest, Condition, Blank, BlankSequence, BlankNullSequence, Repeated, Verbatim}, PatternSymbol],
     Thread @ Rule[Hold /@ {Dict, UDict}, DataSymbol]
   ];
+  $PrintDefNotebooks = UDict[];
 ];
 
 BrowseSymbols[glob_Str] := Column[SymbolNameForm /@ NamePaths[glob]];
@@ -265,13 +267,32 @@ definitionsContaining[pattern_][symbol_] := (
 
 PrintDefinitionsContaining[context_, pattern_] := Module[
   {defs = FindDefinitionsContaining[context, pattern]},
-  If[defs === {}, None, PrintDefinitions @ defs]
+  If[defs === {}, None, PrintDefinitions[defs];]
 ];
 
 SetHoldC @ System`Private`PrintDefinitionsHook;
 
 PrintDefinitions[sym_ ? System`Private`PrintDefinitionsHook] := Null;
-PrintDefinitions[args___] := GetPackageSymbol["GeneralUtilities`PrintDefinitions"][args];
+PrintDefinitions[args___] := Module[{currentNb = EvaluationNotebook[], hold = Hold[args], result},
+  Quiet @ NotebookClose @ Lookup[$PrintDefNotebooks, hold, None];
+  result = GetPackageSymbol["GeneralUtilities`PrintDefinitions"][args];
+  If[Head[result] === NotebookObject,
+    SetSelectedNotebook[currentNb];
+    $PrintDefNotebooks[hold] = result;
+  ,
+    $Failed
+  ]
+];
+
+PrintDefinitionsLocal[sym_ ? System`Private`PrintDefinitionsHook] := Null;
+PrintDefinitionsLocal[args___] := Block[{
+  GeneralUtilities`Debugging`PackagePrivate`$PrintDefinitionsBackground = If[DarkModeQ[], $darkDefColor, $lightDefColor]},
+  DeleteNextGeneratedCells[];
+  GetPackageSymbol["GeneralUtilities`PrintDefinitionsLocal"][args]
+];
+
+$lightDefColor = RGBColor[0.98, 0.945, 0.97];
+$darkDefColor := $darkModeDefColor = Blend[{RGBColor[0.196, 0.220, 0.251], $DarkPurple},.1];
 
 (**************************************************************************************************)
 
