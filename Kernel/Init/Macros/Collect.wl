@@ -1,6 +1,10 @@
 SystemExports[
   "ScopingFunction",
-    CollectBegin, CollectEnd, Collecting
+    Collecting, CollectBegin, CollectEnd,
+  "Function",
+    NewCollector, FromCollector,
+  "Operator",
+    CollectorFn
 ];
 
 (**************************************************************************************************)
@@ -22,3 +26,17 @@ DefineSimpleMacro[Collecting,     {
   Collecting[{s__Symbol}, body_] :> Then2[CollectBegin[s], body, CollectEnd[s]]
 }];
 
+(*************************************************************************************************)
+
+DeclareStrict[NewCollector, FromCollector]
+DeclareListable[FromCollector];
+
+NewCollector[]       := CollectorFn[Bag[]];
+NewCollector[n_Int]  := Table[NewCollector[], n];
+
+FromCollector[CollectorFn[b_Bag]] := BagPart[b, All];
+
+CollectorFn::badArguments = "`` is not valid."
+e:(_CollectorFn[___])           := ReturnMsg["badArguments", HoldForm @ e];
+CollectorFn[bag_][item_]        := StuffBag[bag, item];
+CollectorFn[bag_][item_, n_Int] := StuffBag[bag, item, n];

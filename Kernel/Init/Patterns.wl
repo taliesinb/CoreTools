@@ -15,18 +15,21 @@ General::notConvertableToBlank = "Cannot convert `` to a Blank or related.";
 ToBlank[s_Symbol]                          := Blank @ s;
 ToBlank[a_Alt]                             := Map[ToBlank, a];
 ToBlank[a_List]                            := Alt @@ Map[ToBlank, a];
+ToBlank[Hold[s_Symbol]]                    := HoldPattern @ Blank @ s;
 ToBlank[VHoldP[s_Symbol]]                  := HoldPattern @ Blank @ s;
 ToBlank[e_]                                := (Message[ToBlank::notConvertableToBlank, e]; _);
 
 ToBlankSequence[s_Symbol | {s_Symbol}]     := BlankSequence @ s;
 ToBlankSequence[a_Alt]                     := Repeated @ Map[ToBlank, a];
 ToBlankSequence[a_List]                    := ToBlankSequence[Alt @@ a];
+ToBlankSequence[Hold[s_Symbol]]            := HoldPattern @ BlankSequence @ s;
 ToBlankSequence[VHoldP[s_Symbol]]          := HoldPattern @ BlankSequence @ s;
 ToBlankSequence[e_]                        := (Message[ToBlankSequence::notConvertableToBlank, e]; __);
 
 ToBlankNullSequence[s_Symbol | {s_Symbol}] := BlankNullSequence @ s;
 ToBlankNullSequence[a_Alt]                 := RepeatedNull @ Map[ToBlank, a];
 ToBlankNullSequence[a_List]                := ToBlankNullSequence[Alt @@ a];
+ToBlankNullSequence[Hold[s_Symbol]]        := HoldP @ BlankNullSequence @ s;
 ToBlankNullSequence[VHoldP[s_Symbol]]      := HoldP @ BlankNullSequence @ s;
 ToBlankNullSequence[e_]                    := (Message[ToBlankNullSequence::notConvertableToBlank, e]; ___);
 

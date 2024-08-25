@@ -13,14 +13,12 @@ SystemExports[
     ExtractIndices, SortedCounts, SortedCountsBy,
     DuplicateIndices, DuplicateIndicesBy,
     Duplicates, DuplicatesBy,
-    DeleteNone, DeleteNull,
+    DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteVerbatim,
     GatherAgainst, CombineAgainst, CombineBy,
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
     ListRiffle, ScalarRiffle,
     TrimRight, TrimLeft,
-    ReplaceIndices, ConstantReplaceIndices,
-  "Head",
-    Unsequence
+    ReplaceIndices, ConstantReplaceIndices
 ];
 
 PackageExports[
@@ -34,37 +32,32 @@ PackageExports[
   "Function",
     SelectDiscard, Discard, SelectFirstIndex, PickTrueFalse,
     EnsurePair,
-    HoldLength,
-    NewCollector, FromCollector,
-  "ControlFlowFunction",
-    ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3,
-    SeqCol1, SeqCol2, SeqCol3,
-  "Head",
-    CollectorFn,
   "Variable",
     $UnthreadEnabled
 ];
 
 (*************************************************************************************************)
 
-SetHoldR @ ToUnique;
+DecUElemDispatch1N @ SetHoldR @ ToUnique;
 
 ToUnique[list_List, else_] := ToUnique[list, else, else];
 ToUnique[list_List, notUnique_:None, isEmpty_:None] := If[SameQ @@ list, First[list, isEmpty], notUnique];
 
 (*************************************************************************************************)
 
+DecUElemDispatch1 @ CountUnique;
+
 CountUnique[list_List] := Len @ Union @ list;
 CountUnique[expr_]     := Len @ Union @ HoldArgs @ expr;
 
-SetCurry2 @ CountUniqueBy;
+DecUElemDispatch12 @ SetCurry2 @ CountUniqueBy;
 
 CountUniqueBy[list_List, fn_] := Len @ Union @ Map[fn, list];
 CountUniqueBy[expr_, fn_]     := Len @ Union @ MapApply[fn, HoldArgs @ expr];
 
 (*************************************************************************************************)
 
-DeclareCurry2[TrimRight, TrimLeft]
+SetCurry2[TrimRight, TrimLeft]
 
 TrimRight[e:EmptyP, _] := e;
 TrimRight[e_, d_]      := If[MatchQ[Last[e, $dummy], d], Most @ e, e];
@@ -74,36 +67,19 @@ TrimLeft[e_, d_]      := If[MatchQ[First[e, $dummy], d], Rest @ e, e];
 
 (*************************************************************************************************)
 
-DeclareCurry23[Clip2]
+SetCurry23[Clip2]
 
 Clip2[x_, a_, b_] := Clip[x, {a, b}];
 
 (*************************************************************************************************)
 
-DeclareStrict[NewCollector, FromCollector]
-DeclareListable[FromCollector];
-
-NewCollector[]       := CollectorFn[Bag[]];
-NewCollector[n_Int]  := Table[NewCollector[], n];
-
-FromCollector[CollectorFn[b_Bag]] := BagPart[b, All];
-
-CollectorFn::badArguments = "`` is not valid."
-e:(_CollectorFn[___])           := ReturnMsg["badArguments", HoldForm @ e];
-CollectorFn[bag_][item_]        := StuffBag[bag, item];
-CollectorFn[bag_][item_, n_Int] := StuffBag[bag, item, n];
-
-(*************************************************************************************************)
-
-SetHoldC[HoldLength]
-
-HoldLength[e_] := Length @ NoEval @ e;
-
-(*************************************************************************************************)
+DecUElemDispatch1 @ Multiply;
 
 Multiply[e_] := Apply[Times, e];
 
 (*************************************************************************************************)
+
+DecOElemDispatch1[Args, HoldArgs];
 
 Args[dict_Dict ? HoldAtomQ] := Values @ dict;
 Args[list_List]             := list;
@@ -123,7 +99,9 @@ FlatList[a___]   := Flatten @ List @ a;
 
 (*************************************************************************************************)
 
-DeclareCurry2[SelectDiscard, Discard, Occurences, FirstOccurence]
+DecFullDispatch12[SelectDiscard, Discard];
+
+SetCurry2[SelectDiscard, Discard]
 
 SelectDiscard[assoc_Dict, fn_] := PickTrueFalse[assoc, Map[fn /* TrueQ, Values @ assoc]];
 SelectDiscard[list_List, fn_] := PickTrueFalse[list, Map[fn /* TrueQ, list]];
@@ -134,6 +112,8 @@ Discard[list_, crit_] := Select[list, Function[e, crit[e] =!= True]];
 
 (*************************************************************************************************)
 
+DecUElemDispatch1N[SortedCounts, SortedCountsBy]
+
 SortedCounts[list_] := ReverseSort @ Counts[list];
 SortedCounts[list_, n_Int] := Take[ReverseSort @ Counts[list], All, UpTo[n]];
 
@@ -141,6 +121,8 @@ SortedCountsBy[list_, f_] := ReverseSort @ CountsBy[list, f];
 SortedCountsBy[list_, f_, n_Int] := Take[ReverseSort @ CountsBy[list, f], All, UpTo[n]];
 
 (**************************************************************************************************)
+
+DecUElemDispatch1[Avg];
 
 Avg[] := 0;
 Avg[a_] := a;
@@ -188,6 +170,8 @@ ConstantReplaceIndices::usage =
 (* TODO: support Broadcast *)
 ConstantReplaceIndices[expr_, indices_, value_List] := ReplacePart[expr, Map[List, indices] -> value];
 ConstantReplaceIndices[expr_, indices_, value_]     := setParts[expr, indices, value];
+
+(*************************************************************************************************)
 
 ReplaceIndices::usage =
 "ConstantReplaceIndices[expr$, indices$, value$]` replaces the parts at various indices with value$.
@@ -237,50 +221,6 @@ Unthread /: head_Symbol[l___, Unthread[a_, n_Int], r___] := With[
 ];
 
 (*************************************************************************************************)
-
-DeclareHoldAllComplete[ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3]
-DeclareSequenceHold[Unsequence]
-
-(* NOTE: Unevaluated[1, 2] turns into Sequence[1, 2] when substituted, which is good *)
-
-ThenNull[e___] := Then[e, Null];
-ThenFail[e___] := Then[e, $Fail];
-ThenFailEval[e___] := Then[e, FailEval];
-ThenPart[n_Int, e___] := Part[Unsequence[e], n];
-
-Then1[e___] := P1 @ Unsequence[e];
-Then2[e___] := P2 @ Unsequence[e];
-Then3[e___] := P3 @ Unsequence[e];
-
-(*************************************************************************************************)
-
-DeclareSequenceHold[SeqCol1, SeqCol2, SeqCol3];
-
-SeqCol1[a___] := Part[NoEval @ a, All, 1];
-SeqCol2[a___] := Part[NoEval @ a, All, 2];
-SeqCol3[a___] := Part[NoEval @ a, All, 3];
-
-_SequenceNothing := Seq[];
-SequenceFirst[e_, ___] := e;
-SequenceSecond[_, e_, ___] := e;
-SequenceThird[_, _, e_, ___] := e;
-SequenceLast[___, e_]  := e;
-SequenceMost[e___, _]  := e;
-SequenceRest[_, e___]  := e;
-SequenceReverse[e___]  := Seq @@ Reverse[{e}];
-
-SequenceFirstSecond[e1_, e2_, ___] := Seq[e1, e2];
-SequenceSecondFirst[e1_, e2_, ___] := Seq[e2, e1];
-
-(*************************************************************************************************)
-
-SequenceLength[]        := 0;
-SequenceLength[_]       := 1;
-SequenceLength[_, _]    := 2;
-SequenceLength[_, _, _] := 3;
-s_SequenceLength        := Length[Unevaluated @ s];
-
-(*************************************************************************************************)
 Birange::usage = "Birange[a, b]` gives `Range[a,b]` or `Range[b, a, -1]` as appropriate."
 
 Birange[a_, b_]     := Range[a, b, Sign[b - a]];
@@ -294,8 +234,10 @@ RangeLength[expr_] := Range @ Length @ expr;
 
 (*************************************************************************************************)
 
-DeclareHoldRest[SelectFirstIndex]
-DeclareCurry2[SelectFirstIndex]
+DecOElemDispatch13[SelectFirstIndex]
+
+SetHoldR[SelectFirstIndex]
+SetCurry2[SelectFirstIndex]
 
 SelectFirstIndex[assoc_Dict, fn_, default_:None] := Module[{fn2 = fn},
   Association`ScanWhile[assoc, Function[z, If[fn2 @ Last @ z, Return[First @ z, Module], True, True]]];
@@ -311,7 +253,7 @@ SelectFirstIndex[list_, fn_, default_:None] := Module[{fn2 = fn},
 `DropWhile[{e$1, e$2, $$}, f$]` drops the initial elements `e$i` that all yield `f$[ei$] = True`.
 *)
 
-DeclareCurry2[DropWhile]
+DecFullDispatch12 @ SetCurry2[DropWhile]
 
 DropWhile[list_, f_] := Drop[list, LengthWhile[list, f]];
 
@@ -348,8 +290,7 @@ commonPrefixSuffixLen[list_, mult_] := Module[
 
 (**************************************************************************************************)
 
-DeclareStrict[IndexOf];
-DeclareHoldRest[IndexOf];
+DecOElemDispatch13 @ SetHoldR @ SetStrict @ IndexOf;
 
 IndexOf[EmptyDataP, _, else_] := else;
 IndexOf[expr_ ? IntVecQ, elem_ ? IntQ, else_] := First[FastNumericIndices[expr, elem, 1], else];
@@ -357,7 +298,7 @@ IndexOf[expr_, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
 
 (**************************************************************************************************)
 
-DeclareCurry2[VectorIndicesOf, FirstVectorIndexOf]
+DecOElemDispatch12 @ SetCurry2[VectorIndicesOf, FirstVectorIndexOf]
 
 VectorIndicesOf[x_, n_Integer] := MaybeEval @ Replace[FastNumericIndices[x, n], _Failure | $Failed -> FailEval]
 VectorIndicesOf[x_, n_] := Flatten @ Position[x, Verbatim[n], {1}];
@@ -367,8 +308,7 @@ FirstVectorIndexOf[x_, n_] := First @ FirstPosition[x, Verbatim[n], {None}, {1}]
 
 (**************************************************************************************************)
 
-DeclareCurry2[VectorIndices, FirstVectorIndex]
-DeclareHoldRest[FirstVectorIndex, iFirstVectorIndex]
+SetCurry2[VectorIndices, FirstVectorIndex]
 
 VectorIndices::usage =
 "VectorIndices[list$, test$] returns the i$ for which test$[e$i] gives True.
@@ -376,15 +316,19 @@ It uses special kernel code for common numeric predicates like Positive, Negativ
 VectorIndices[test$] is the operator form of VectorIndices.
 "
 
+VectorIndices[EmptyDataP, _] := {};
+VectorIndices[vec_, EqualTo[r_Integer]] /; IntegerVectorQ[vec] := FastNumericIndices[vec, r];
+
+(**************************************************************************************************)
+
+SetHoldR[FirstVectorIndex, iFirstVectorIndex]
+
 FirstVectorIndex::usage =
 "FirstVectorIndex[list$, test$] returns the i$ for which test[e$i] gives True.
 It uses special kernel code for common numeric predicates like Positive, Negative, EqualTo[$$], GreaterThan[$$], etc.
 FirstVectorIndex[list$, test$, def$] returns default$ if no element passes.
 FirstVectorIndex[test$] is the operator form of FirstVectorIndex.
 "
-
-VectorIndices[EmptyDataP, _] := {};
-VectorIndices[vec_, EqualTo[r_Integer]] /; IntegerVectorQ[vec] := FastNumericIndices[vec, r];
 
 FirstVectorIndex[vec_, pred_, def_:None] :=
   iFirstVectorIndex[vec, Evaluate @ pred, def];
@@ -453,26 +397,39 @@ ExtractIndices = CaseOf[
     Map[list |-> $[expr, list], listVec];
 ];
 
-DeclareStrict[ExtractIndices];
+DecFullDispatch1 @ SetStrict @ ExtractIndices;
 
 (**************************************************************************************************)
 
-Duplicates[list_List] := DeleteCases[{_}] @ Gather[list];
+DecOElemDispatch1 @ Duplicates;
+DecUElemDispatch1 @ DuplicateIndices;
+
+Duplicates[list_List]            := DeleteCases[{_}] @ Gather[list];
 DuplicateIndices[list:ListDictP] := DeleteCases[{_}] @ Values @ PositionIndex @ list;
 
-DeclareCurry2[DuplicateIndicesBy, DuplicatesBy]
+(**************************************************************************************************)
 
+DecOElemDispatch12 @ DuplicatesBy;
+DecUElemDispatch12 @ DuplicateIndicesBy;
+
+SetCurry2[DuplicateIndicesBy, DuplicatesBy]
+
+DuplicatesBy[list_List, fn_]            := DeleteCases[{_}] @ GatherBy[list, fn];
 DuplicateIndicesBy[list:ListDictP, fn_] := DuplicateIndices @ Map[fn, list];
-DuplicatesBy[list_List, fn_] := DeleteCases[{_}] @ GatherBy[list, fn];
 
 (**************************************************************************************************)
 
-DeleteNone[e_] := DeleteCases[e, None];
-DeleteNull[e_] := DeleteCases[e, Null];
+DecFullDispatch1[DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteVerbatim];
+
+DeleteNone[e_]         := DeleteCases[e, None];
+DeleteNull[e_]         := DeleteCases[e, Null];
+DeleteFailed[e_]       := DeleteCases[e, $Failed];
+DeleteEmpty[e_]        := DeleteCases[e, EmptyP];
+DeleteVerbatim[e_, v_] := DeleteCases[e, Verbatim @ v];
 
 (**************************************************************************************************)
 
-DeclareStrict[GatherAgainst]
+SetStrict[GatherAgainst]
 
 GatherAgainst::usage =
 "GatherAgainst[expr$, against$] gathers expr$ into sublists whose corresponding values in against$ are equal."
@@ -482,7 +439,7 @@ GatherAgainst[expr_, against_] /; SameLenQ[expr, against] :=
 
 (**************************************************************************************************)
 
-DeclareStrict[CombineAgainst]
+SetStrict[CombineAgainst]
 
 CombineAgainst::usage = "
 CombineAgainst[expr$, against$, f$] returns a list of f$[a$, {e$i, e$j, $$}], where the e$ are parts of \
@@ -494,7 +451,7 @@ CombineAgainst[expr_, against_, fn_:Id] /; SameLenQ[expr, against] :=
 
 (**************************************************************************************************)
 
-DeclareCurry23[CombineBy]
+SetCurry23[CombineBy]
 
 CombineBy::usage =
 "CombineBy[expr$, f$, g$] returns a list of g$[k$, {e$i, e$j, $$}], where the e$ are parts of \
@@ -506,7 +463,16 @@ CombineBy[expr_, f_, g_] := KeyValueMap[g, GroupBy[expr, f]];
 
 (**************************************************************************************************)
 
-ApplyWindowed::usage = "ApplyWindowed[f$, {e$1, e$2, $$, e$n}] gives {f$[e$1, e$2], f$[e$2, e$3], $$, f$[e$(n-1), e$n]}."
+MapWindowed::usage =
+"MapWindowed[f$, {e$1, e$2, $$, e$n}] gives {f$[{e$1, e$2}], f$[{e$2, e$3}], $$, f$[{e$(n-1), e$n]}}.
+MapWindowed[f$, list$, n$] provides tuples of length n$ to f$."
+
+ApplyWindowed::usage =
+"ApplyWindowed[f$, {e$1, e$2, $$, e$n}] gives {f$[e$1, e$2], f$[e$2, e$3], $$, f$[e$(n-1), e$n]}.
+ApplyWindowed[f$, list$, n$] provides tuples of length n$ to f$."
+
+MapWindowedCyclic::usage = "MapWindowedCyclic is like MapWindowed but considers the list to be cyclic."
+ApplyWindowedCyclic::usage = "ApplyWindowedCyclic is like ApplyWindowed but considers the list to be cyclic."
 
 MapWindowed[f_, list_]             := f /@ Partition[list, 2, 1];
 MapWindowed[f_, list_, n_]         := f /@ Partition[list, n, 1];
@@ -522,21 +488,34 @@ ApplyWindowedCyclic[f_, list_, n_] := f @@@ Partition[list, n, 1, 1];
 
 (**************************************************************************************************)
 
-DeclareCurry1[ApplyTuples, MapTuples]
+MapTuples::usage =
+"MapTuples[f$, {list$1, list$2, $$}] produces a list of f$[{e$1, e$2, $$}] where each e$i is taken from list$i.
+MapTuples[f$, list$, n$] uses n$ elements from a single list as arguments for each f$."
 
-MapTuples[f_, pairs_]       := Map[f, Tuples @ pairs];
-MapTuples[f_, pairs_, n_]   := Map[f, Tuples[pairs, n]];
+ApplyTuples::usage =
+"ApplyTuples[f$, {list$1, list$2, $$}] produces a list of f$[e$1, e$2, $$] where each e$i is taken from list$i.
+ApplyTuples[f$, list$, n$] uses n$ elements from a single list as arguments for each f$."
 
-ApplyTuples[f_, pairs_]     := f @@@ Tuples[pairs];
-ApplyTuples[f_, pairs_, n_] := f @@@ Tuples[pairs, n];
+MapTuples[f_, lists_]       := Map[f, Tuples @ lists];
+MapTuples[f_, list_, n_]   := Map[f, Tuples[list, n]];
+
+ApplyTuples[f_, lists_]     := f @@@ Tuples[lists];
+ApplyTuples[f_, lists_, n_] := f @@@ Tuples[lists, n];
 
 (**************************************************************************************************)
+
+ListRiffle::usage =
+"ListRiffle[list$, {r$1, r$2, $$, r$n}] riffles elements of list$ with each r$i in turn, repeating the final r$n if neccessary."
 
 ListRiffle[list_List, {}] := list;
 ListRiffle[list_List, riffleList_List] := Locals[
   riff = PadRight[riffleList, Len[list], Last @ riffleList];
   Most @ Catenate @ Transpose[{list, riff}]
 ];
+
+ScalarRiffle::usage =
+"ScalarRiffle[list$, r$] riffles elements of list$ with r$.
+Unlike Riffle, ScalarRiffle does not behave differently if r$ is itself a list."
 
 ScalarRiffle[list_List, scalar_] :=
   Most @ Catenate @ Transpose[{list, ConstList[scalar, Len @ list]}];

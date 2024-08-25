@@ -330,7 +330,7 @@ DeclareHoldAllComplete[getParentHead]
 
 getParentHead[(SetDelayed|Set)[lhs_, _]] :=
   MacroHold @@ Replace[
-    PatternHeadSymbol @ lhs,
+    PatHeadSym @ lhs,
     $Failed :> ThrowMsg["macroParentLHS", HoldForm @ lhs]
   ];
 

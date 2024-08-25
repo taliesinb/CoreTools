@@ -62,7 +62,7 @@ GeneralMessage[name_Str, args___] := Then[Message[MessageName[General, name], ar
 
 SetHoldF @ SetPred2 @ SymbolMessageQ;
 
-SymbolMessageQ[sym_Sym, name_Str] := !StringQ[MessageName[sym, name]] && GeneralMessageQ[name];
+SymbolMessageQ[sym_Sym, name_Str] := StringQ[MessageName[sym, name]] || GeneralMessageQ[name];
 
 (**************************************************************************************************)
 
@@ -222,6 +222,9 @@ SetExcepting @ ThrowMessage;
 ThrowMessage[sym_Symbol -> msgName_String, msgArgs___] := ThrowException @ MessageException[$SourceLocationStack, sym, msgName, msgArgs];
 ThrowMessage[msgName_String, msgArgs___] := ThrowException @ MessageException[$SourceLocationStack, Inherited, msgName, msgArgs];
 ThrowMessage["quiet", ___]               := ThrowException @ LiteralException[$SourceLocationStack, $Failed];
+m_ThrowMessage                           := ThrowMessage[ThrowMessage -> "invalidThrowMessage", HoldForm @ m];
+
+ThrowMessage::invalidThrowMessage = "Invalid call to ThrowMessage: ``.";
 
 (**************************************************************************************************)
 
@@ -291,21 +294,21 @@ UnhandledException[MessageException[sloc_, Inherited, args___]] :=
 
 UnhandledException[MessageException[sloc_, sym_, name_, args___]] := Then[
   If[SymbolMessageQ[sym, name], IssueMessage[sym, name, args]];
-  GeneralMessage["uncaughtException", sloc],
+  unhandledMessage[sloc];
   Abort[]
 ];
 
-UnhandledException[LiteralException[sloc_, value_]] := Then[
-  GeneralMessage["uncaughtException", sloc],
-  Abort[]
-];
+UnhandledException[LiteralException[sloc_, value_]] :=
+  Then[unhandledMessage[sloc], Abort[]];
 
-UnhandledException[e_] := Then[
-  GeneralMessage["uncaughtException", {}],
-  Abort[]
-];
+UnhandledException[e_] :=
+  Then[unhandledMessage[None], Abort[]];
 
-General::uncaughtException = "Exception occurred without a handler set. Source location: ``.";
+unhandledMessage[None | {}]  := GeneralMessage["uncaughtException"];
+unhandledMessage[sloc_] := GeneralMessage["uncaughtExceptionSrc", sloc];
+
+General::uncaughtException = "Exception occurred without a handler set. Aborting.";
+General::uncaughtExceptionSrc = "Exception occurred without a handler set. Aborting. Source location: ``.";
 
 (**************************************************************************************************)
 

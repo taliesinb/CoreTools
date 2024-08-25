@@ -4,7 +4,7 @@ SystemExports[
     MapEnds, MapFirst, MapLast, MapMost, MapRest, MapFirstRest, MapMostLast, MapFirstLast,
     MapCol, MapCol1, MapCol2, MapCol3,
     MapRow, MapRow1, MapRow2, MapRow3,
-    ZipMap, ZipMapP, ZipScan, ZipScanP, Bimap, Comap,
+    ZipMap, ZipMapP, ZipScan, ZipScanP, Bimap,
     MaybeMap, MapFlip,
     MapP, ScanP, ScanApply,
     RangeArray, Dimension, IndexArray, IndexList,

@@ -1,4 +1,5 @@
 CaseOf.wl
+DispatchOf.wl
 Collect.wl
 PartMacros.wl
 Return.wl

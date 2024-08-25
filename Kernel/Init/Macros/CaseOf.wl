@@ -97,9 +97,10 @@ attachedCaseOf[sym_, ___] := (Message[CaseOf::badCaseDefinition, HoldForm @ sym]
 
 (*************************************************************************************************)
 
+SetHoldA @ ThrowUnmatchedError;
+
 General::unmatchedCase = "Case unmatched: ``";
-ThrowUnmatchedError[head_Symbol, $LHS_] := ThrowMsg["unmatchedCase", HoldForm @ $LHS];
+ThrowUnmatchedError[head_Symbol, $LHS_] := ThrowMsg[head -> "unmatchedCase", HoldForm @ $LHS];
 
 CaseOf::unmatched = "Unmatched case in a CaseOf application.";
 ThrowUnmatchedError[] := ThrowMsg["unmatched"];
-

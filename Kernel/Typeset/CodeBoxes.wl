@@ -26,38 +26,37 @@ trimNothing[e_] := e;
 
 DeclareHoldAllComplete[cmAny, cmFinal, holdBigQ];
 
-With[{haq = Developer`HoldAtomQ, $la = "\[LeftAssociation]", $ra = "\[RightAssociation]"},
-
 cmAny[None]                := chowing[4, "None"];
 cmAny[True]                := chowing[4, "True"];
 cmAny[False]               := chowing[5, "False"];
 cmAny[Infinity]            := chowing[1, "\[Infinity]"];
 cmAny[DirectedInfinity[1]] := chowing[1, "\[Infinity]"];
 
-cmAny[e_Symbol ? haq]      := cmSymbol @ e;
-cmAny[e_Integer ? haq]     := chowStr @ cmInt @ e;
-cmAny[e_Real ? haq]        := cmReal @ e;
-cmAny[e_String ? haq]      := cmString @ e;
+cmAny[e_Sym ? HAtomQ]      := cmSymbol @ e;
+cmAny[e_Int ? HAtomQ]      := chowStr @ cmInt @ e;
+cmAny[e_Real ? HAtomQ]     := cmReal @ e;
+cmAny[e_Str ? HAtomQ]      := cmString @ e;
 
 cmAny[e_Rule]              := cmRule[e];
-cmAny[e_RuleDelayed]       := cmRule[e];
+cmAny[e_RuleD]             := cmRule[e];
 cmAny[e_Pattern]           := cmPattern[e];
-cmAny[e_Alternatives]      := cmAlternatives[e];
+cmAny[e_Alt]               := cmAlternatives[e];
 
 cmAny[e_Set]               := cmSet[e];
-cmAny[e_SetDelayed]        := cmSet[e];
-cmAny[e_CompoundExpression] := cmCE[e];
+cmAny[e_SetD]              := cmSet[e];
+cmAny[e_Then]              := cmCE[e];
 
 cmAny[Verbatim[_]]         := chowing[1, "_"];
 cmAny[Verbatim[__]]        := chowing[2, "__"];
 cmAny[Verbatim[___]]       := chowing[3, "___"];
 
+cmAny[EmptyUDict]          := chowing[7, "UDict[]"];
+cmAny[EmptyODict]          := chowing[7, "UDict[]"];
 cmAny[e_List]              := chowing[2, decStrLen @ rbox["{",  cmListSeq @ e, "}"]];
-cmAny[e_Dict ? haq] := chowing[2, decStrLen @ rbox[$la, cmAssocSeq @ e, $ra]]; (* TODO: doesn't limit keys *)
+cmAny[e_Dict ? HUDictQ]    := chowing[7, decStrLen @ rbox["UDict[", cmAssocSeq @ e, "]"]];
+cmAny[e_Dict ? HODictQ]    := chowing[2, decStrLen @ rbox[LAssoc, cmAssocSeq @ e, RAssoc]]; (* TODO: doesn't limit keys *)
 
 cmAny[e_]                  := cmFinal[e];
-
-];
 
 (*************************************************************************************************)
 

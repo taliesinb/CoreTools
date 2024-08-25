@@ -1,11 +1,16 @@
 Aliases.wl
 Patterns.wl
 Meta.wl
+Dispatch.wl
 Strings.wl
 Messages.wl
 Macros.wl
+UList.wl
 # MacroDefs.wl
 Macros/LoadList.txt
+SetUtils.wl
+Sets.wl
+Intern.wl
 Patterns/StrPatterns.wl
 Patterns.wl
 Predicates.wl

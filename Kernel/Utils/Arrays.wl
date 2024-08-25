@@ -1,6 +1,7 @@
 SystemExports[
   "Function",
-    Length2, LengthN, SumNormalize, ToStochasticArray,
+    Length2, LengthN, DimensionN,
+    SumNormalize, ToStochasticArray,
     ToPackedReals, ToPackedInts, EnsurePacked, EnsurePackedReals, EnsurePackedInts,
     ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide, ThreadAnd, ThreadOr, ThreadNot, ThreadMin, ThreadMax,
     ThreadLess, ThreadLessEqual, ThreadGreater, ThreadGreaterEqual, ThreadEqual, ThreadUnequal, ThreadSame, ThreadUnsame,
@@ -28,7 +29,7 @@ SystemExports[
 PackageExports[
   "MessageFunction",     ThrowRealArrayMsg,
   "Head",                SymbolicDot,
-  "Function",            Dots,
+  "Function",            SymbolicDots,
   "SymbolicHead",        Broad,
   "Predicate",           BroadQ, BSameShapeQ,
   "Function",            BDims, LikeB, BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
@@ -38,7 +39,7 @@ PackageExports[
 (**************************************************************************************************)
 
 FlatSum[e_]     := Total[e, Infinity];
-FlatProduct[e_] := Apply[Times, e, All]
+FlatProduct[e_] := Apply[Times, e, All];
 
 (**************************************************************************************************)
 
@@ -203,7 +204,7 @@ ArrayTable[body_, shape:{___Int}] := Array[ThenOp[body], shape];
 
 Ones[d___]  := makeConstArr[1, d];
 Zeros[d___] := makeConstArr[0, d];
-Dots[d___]  := makeConstArr[SymbolicDot, d];
+SymbolicDots[d___]  := makeConstArr[SymbolicDot, d];
 Eye = IdentityMatrix;
 
 makeConstArr[c_, args___] := ConstantArray[c, FlatList[args]];
@@ -233,11 +234,12 @@ General::realArrayDepthBad = "Expected a real-valued array of depth ``, but got 
 (**************************************************************************************************)
 
 (* this doesn't handle lists of assocs *)
-Length2[{}]       := None;
-Length2[{a_List}] := Len @ a;
-Length2[arr_]     := FastQuietCheck[Part[Dims[arr, 2], 2], None];
+Length2[{}]          := None;
+Length2[arr_]        := FastQuietCheck[Part[Dims[arr, 2], 2], None];
+LengthN[arr_]        := Last[Dimensions @ arr, None];
 
-LengthN[arr_]     := Last[Dimensions @ arr, None];
+DimensionN[{}, n_]   := None;
+DimensionN[arr_, n_] := FastQuietCheck[Part[Dims[arr, n], n], None];
 
 (*************************************************************************************************)
 

@@ -6,11 +6,18 @@ System`BlockPrint,
 System`TraceAutoloads,
 System`Capture,
 System`RawPrintBoxes,
+System`HandleUnpacking,
+System`UnpacksDuringQ,
 System`CountUnpackings,
+System`BenchmarkUnpacking,
+System`BenchmarkUnpackingData,
 System`TraceUnpackings,
 System`EnableDebugPrinting,
 System`DisableEchoPrinting,
 System`FailureString,
+System`UnpackingTable,
+System`MicroTiming,
+System`MicroTimingTable,
 
 "IOFunction",
 System`CustomizedPrint,
@@ -242,32 +249,124 @@ Capture[e_] := Block[
 
 (*************************************************************************************************)
 
-SetAttributes[{withUnpackMsgHandler}, HoldFirst];
+SetAttributes[{HandleUnpacking, quietUnpacking, withUnpackingMessages}, HoldFirst];
 
-withUnpackMsgHandler[expr_, handler_] :=
-  Internal`HandlerBlock[{"Message", handleUnpackMsg[handler]},
-    Quiet[
-      Internal`WithLocalSettings[On["Packing"], expr, Off["Packing"]],
-      "Packing"
-    ]
+HandleUnpacking[body_, handler_] :=
+  Internal`HandlerBlock[
+    {"Message", handleUnpackMsg[handler]},
+    Quiet[withUnpackingMessages @ body, "Packing"]
   ];
 
-handleUnpackMsg[handler_][Hold[Message[MessageName[_, "unpack"|"punpack1"], dims_], _]] := handler[dims];
-handleUnpackMsg[handler_][Hold[Message[MessageName[_, "punpack"|"punpackl1"], _, dims_], _]] := handler[dims]
+quietUnpacking[body_] := Quiet[body, "Packing"];
+
+withUnpackingMessages[body_] :=
+  Internal`WithLocalSettings[On["Packing"], body, Off["Packing"]];
+
+handleUnpackMsg[handler_][Hold[Message[MessageName[_, "unpack"],    f_], _]]         := handler[None, None, f];
+handleUnpackMsg[handler_][Hold[Message[MessageName[_, "punpack1"],  d_], _]]         := handler[fromDims @ d, None, None];
+handleUnpackMsg[handler_][Hold[Message[MessageName[_, "punpack"],   f_, d_], _]]     := handler[fromDims @ d, None, f];
+handleUnpackMsg[handler_][Hold[Message[MessageName[_, "punpackl1"], l_, d_], _]]     := handler[fromDims @ d, l, None];
+handleUnpackMsg[handler_][Hold[Message[MessageName[_, "punpackl"],  f_, l_, d_], _]] := handler[fromDims @ d, l, f];
+
+(* I don't actually know how these will come, so be cautious *)
+fromDims[HoldForm[d_List]] := d;
+fromDims[d_List]           := d;
+fromDims[d_Integer]        := List @ d;
+fromDims[e_]               := Print["Bad unpack dims: ", e];
 
 (*************************************************************************************************)
 
-SetAttributes[{CountUnpackings, TraceUnpackings}, HoldFirst];
+SetAttributes[{UnpacksDuringQ, CountUnpackings, TraceUnpackings}, HoldFirst];
 
-CountUnpackings[expr_] := Block[
+UnpacksDuringQ[body_] := quietUnpacking @ withUnpackingMessages @ Check[body; False, True, "Packing"];
+
+CountUnpackings[body_] := Block[
   {$unpackCounts = Association[]},
-  withUnpackMsgHandler[expr, countUnpack];
+  HandleUnpacking[body, countUnpack];
   $unpackCounts
 ];
-countUnpack[dims_] := Set[$unpackCounts[dims], Lookup[$unpackCounts, dims, 0] + 1];
 
-TraceUnpackings[expr_] := withUnpackMsgHandler[expr, printUnpack];
-printUnpack[dims_] := LogPrint[Row[dims, "\[Times]"]];
+countUnpack[dims_, _, _] := Set[$unpackCounts[dims], Lookup[$unpackCounts, dims, 0] + 1];
+
+TraceUnpackings[body_] := HandleUnpacking[body, printUnpack];
+
+printUnpack[d_, l_, f_] := RawPrintBoxes[
+  RowBox @ fmtUnpack[d, l, f], "Print",
+  FontColor -> RGBColor[0.42, 0.68, 0.95], CellDingbat -> "Unpack", FontSize -> 13
+];
+
+fmtUnpack[None, None, f_] := {"in ", MakeBoxes @ f};
+fmtUnpack[d_, None, None] := {fmtDims @ d};
+fmtUnpack[d_, None, f_]   := {fmtDims @ d, " in ", MakeBoxes @ f};
+fmtUnpack[d_, l_, None]   := {fmtDims @ d, " to ", MakeBoxes @ l};
+fmtUnpack[d_, l_, f_]     := {fmtDims @ d, " to ", MakeBoxes @ l, " in ", MakeBoxes @ f};
+
+fmtDims[d_List] := RowBox @ Riffle[IntegerString /@ d, "\[Times]"];
+
+(*************************************************************************************************)
+
+generateUnpackingTestData[] = Module[
+  {vecSize, matSize, arrSize, rvec, rmat, rarr, ivec, imat, iarr, uvec, umat, uarr, symVec, boolVec, strVec, numVec, listVec, colorVec, colorMat, dictVec},
+  vecSize = {10000};
+  matSize = {100, 100};
+  arrSize = {100, 20, 5};
+  rvec = RandomReal[1, vecSize];
+  rmat = RandomReal[1, matSize];
+  rarr = RandomReal[1, arrSize];
+  ivec = RandomInteger[9, vecSize];
+  imat = RandomInteger[9, matSize];
+  iarr = RandomInteger[9, arrSize];
+  {uvec, umat, uarr} = Developer`FromPackedArray[#, 1]& /@ {ivec, imat, iarr};
+  symVec  = RandomChoice[{\[FormalA], \[FormalB], \[FormalC]}, vecSize];
+  boolVec = RandomChoice[{False, True}, vecSize];
+  strVec  = RandomChoice[{"a","b","c"}, vecSize];
+  numVec  = RandomChoice[{1., 5, 1/2}, vecSize];
+  listVec = RandomChoice[{{1}, {1,2,3},{2,3}}, vecSize];
+  colorVec = RandomChoice[{Red, Green, Blue}, vecSize];
+  colorMat = RandomChoice[{Red, Green, Blue}, matSize];
+  dictVec = RandomChoice[{Association[1 -> 2, 4 -> 2], Association[1 -> 2]}, vecSize];
+  Association[
+    "Real1" -> rvec, "Real2" -> rmat, "Real3" -> rarr,
+    "Int1" -> ivec, "Int2" -> imat, "Int3" -> iarr,
+    "Sym1" -> symVec, "Bool1" -> boolVec, "Str1" -> strVec, "Num1" -> numVec, "List1" -> listVec,
+    "Color1" -> colorVec, "Color2" -> colorMat,
+    "Dict1" -> dictVec,
+    "Unp1" -> uvec, "Unp2" -> umat, "Unp3" -> uarr
+  ]
+];
+
+$unpackingTestData := $unpackingTestData = generateUnpackingTestData[];
+
+BenchmarkUnpackingData[] := $unpackingTestData;
+BenchmarkUnpackingData[key_String] := $unpackingTestData @ key;
+
+BenchmarkUnpacking[fns_List] := Column[BenchmarkUnpacking /@ fns, Left, 1];
+
+BenchmarkUnpacking[fn_] := Module[{unpacks, timings, labels, grid, vals},
+  vals = Values @ $unpackingTestData;
+  PrependTo[vals, First @ vals];
+  unpacks = Rest @ Quiet @ UnpackingTable[fn, vals];
+  (* unpacks = unpacks /. {True -> "\[FilledCircle]", False -> " "}; *)
+  timings = Rest @ Quiet @ MicroTimingTable[fn, vals];
+  labels = Map[SubscriptBox[StringDrop[#, -1], StringTake[#, -1]]&, Keys @ $unpackingTestData];
+  grid = GridBox[
+    {labels, MapThread[If[#2, StyleBox[#1, Red, Bold], StyleBox[#1, Gray]]&, {timings, unpacks}]},
+    ColumnLines -> GrayLevel[0.8], ColumnSpacings -> {{2}}, ColumnAlignments -> {{Left}},
+    RowsEqual -> True, RowLines -> {{GrayLevel[0.9], None}}, RowSpacings -> {{2}}, BaseStyle -> {FontSize -> 10, FontFamily -> "Source Code Sans"}
+  ];
+  RawBoxes @ GridBox[{{StyleBox[MakeBoxes[fn], Bold]}, {grid}}, ColumnAlignments -> {{Left}}]
+];
+
+(*************************************************************************************************)
+
+UnpackingTable[fn_, list_List] := Map[Function[z, UnpacksDuringQ[fn[z]]], list];
+
+(*************************************************************************************************)
+
+SetAttributes[MicroTiming, HoldFirst];
+
+MicroTiming[body_] := Round[10^6 * First @ AbsoluteTiming @ body];
+MicroTimingTable[fn_, list_List] := Map[Function[z, MicroTiming[fn[z]]], list];
 
 (*************************************************************************************************)
 

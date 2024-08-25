@@ -63,6 +63,8 @@ PartOfOp[e_, p1__][p2___] := FastQuietCheck @ Part[p, p1, p2];
 
 (**************************************************************************************************)
 
+DeclaredHere[TakeOp, DropOp, ClipOp, ReplaceAllOp, ReplaceRepeatedOp]
+
 DefineOperator2Rules[
   TakeOp            -> Take,
   DropOp            -> Drop,
@@ -70,6 +72,10 @@ DefineOperator2Rules[
   ReplaceAllOp      -> ReplaceAll,
   ReplaceRepeatedOp -> ReplaceRepeated
 ];
+
+DeclaredHere[DistanceOp, TimesOp, DivideOp, PlusOp, SubtractOp]
+DeclaredHere[ThreadTimesOp, ThreadDivideOp, ThreadPlusOp, ThreadSubtractOp]
+DeclaredHere[DotOp, MinOp, MaxOp, JoinOp, UnionOp, ComplementOp, IntersectionOp]
 
 DefineOperator1Rules[
   DistanceOp        -> EuclideanDistance,
@@ -108,12 +114,15 @@ AffineOp[matrix_, vector_] := DotRightOp[Transpose @ ToPackedArray @ matrix, vec
 
 (**************************************************************************************************)
 
-DefineOperator1Rules[UnsameAs -> UnsameQ]
+DeclaredHere[UnsameAs, LengthOf, DimensionsOf, KeysOf, AllSameBy, AnySameBy, NoneSameBy]
 
+DefineOperator1Rules[UnsameAs -> UnsameQ]
 DefineOperator2Rules[LengthOf -> HasLengthQ, DimensionsOf -> HasDimensionsQ, KeysOf -> HasKeysQ]
 DefineOperator2Rules[AllSameBy -> AllSameByQ, AnySameBy -> AnySameByQ, NoneSameBy -> NoneSameByQ]
 
 (**************************************************************************************************)
+
+DeclaredHere[ListOf, AssociationOf, ListAssociationOf, NonEmptyListOf, NonEmptyAssociationOf, NonEmptyListAssociationOf]
 
 DefineOperator2Rules[
   ListOf                    -> VectorQ,
@@ -135,6 +144,8 @@ RuleVectorOf[ktest_, vtest_][rules_] := RulesTrue[rules, ktest, vtest];
 
 (**************************************************************************************************)
 
+DeclaredHere[VectorOf, MatrixOf]
+
 DefineOperator2Rules[VectorOf -> VectorQ, MatrixOf -> MatrixQ]
 
 ArrayOf[test_][data_]         := ArrayOfQ[data, test];
@@ -149,7 +160,7 @@ TupleOf[preds:BlankSeq2]   := TupleOf[List[preds]];
 TupleOf[preds_List][e_]    := TupleOfQ[e, preds];
 
 RecordOf[preds__Rule]      := RecordOf @ UDict @ preds;
-RecordOf[preds_Dict][e_]  := RecordOfQ[e, preds];
+RecordOf[preds_Dict][e_]   := RecordOfQ[e, preds];
 
 StructureOf[preds_][e_]    := StructureOfQ[e, preds];
 

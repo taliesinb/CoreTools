@@ -371,6 +371,11 @@ DefineSeqRowFormBox[DelimitedRBox, DelimitedRowBox,
   {DBracketSeq, DBracketRow, DBracketRBox, DBracketRowBox, {"\[LeftDoubleBracket]", ",", "\[RightDoubleBracket]"}}
 ];
 
+DeclaredHere[SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq];
+DeclaredHere[SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow];
+DeclaredHere[SpaceRBox, CommaRBox, ColonRBox, SColonRBox, ArrowRBox];
+DeclaredHere[SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox];
+
 DefineSeqRowFormBox[RiffledRBox, RiffledRowBox,
   {SpaceSeq,  SpaceRow,  SpaceRBox,  SpaceRowBox,  {" "}},
   {CommaSeq,  CommaRow,  CommaRBox,  CommaRowBox,  {","}},
@@ -476,4 +481,4 @@ TextIconBox[boxes_, bounds_, baseImageSize_, background_, bshift_, pad:{{l_, r_}
     BoxBaselineShift -> (-bshift / Round @ CurrentValue[FontSize])
   ], TrackedSymbols :> {}
 ];
-RawBoxes[RowBox @ {"A", $timesSymbol, "B"}]
+

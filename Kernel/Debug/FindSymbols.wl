@@ -3,10 +3,11 @@ PackageExports[
     BrowseSymbols,
     FindFunctions, FindInertSymbols, FindDownSymbols, FindSubSymbols, FindUpSymbols, FindOwnSymbols, FindFormattingSymbols,
     FindDefinitionsContaining, FindSymbolsContaining, FindUnresolvedSymbols,
+    FindFormatDefinitions,
     SymbolNameUsage,
   "Predicate",         HasFormatDefsQ, HasBoxDefsQ, UnresolvedSymbolQ,
   "FormHead",          SymbolNameForm, SymbolForm,
-  "DebuggingFunction", PrintDefinitions, PrintDefinitionsLocal, PrintDefinitionsContaining, PrintStack,
+  "DebuggingFunction", PrintDefinitions, PrintDefinitionsLocal, PrintDefinitionsContaining, PrintFormatDefinitions, PrintStack,
   "Function",          SymbolNameType, SymbolType, SymbolTypeToPredicate,
   "TypeHead",          KernelSymbol,
   "TypeSymbol",        FunctionSymbol, OperatorSymbol, ImmediateSymbol, DelayedSymbol, FormattingSymbol, InertSymbol, PatternSymbol, DataSymbol, UnknownSymbol
@@ -277,7 +278,7 @@ PrintDefinitions[args___] := Module[{currentNb = EvaluationNotebook[], hold = Ho
   Quiet @ NotebookClose @ Lookup[$PrintDefNotebooks, hold, None];
   result = GetPackageSymbol["GeneralUtilities`PrintDefinitions"][args];
   If[Head[result] === NotebookObject,
-    SetSelectedNotebook[currentNb];
+    (* SetSelectedNotebook[currentNb]; *)
     $PrintDefNotebooks[hold] = result;
   ,
     $Failed
