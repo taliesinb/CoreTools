@@ -2,7 +2,7 @@ SystemExports[
   "Function",
     ListAssociationParts,
     InvertAssociation, InvertUnorderedAssociation, ReverseRules, MapRules,
-    KeyMapValueMap, ValueMap, KeysValues,
+    KeyValueScan, KeyMapValueMap, ValueMap, KeysValues, ValuesKeys,
     ToValues, ToRuleList,
     RuleThread, RuleUnthread, UnorderedAssociationThread,
     RangeRules, RangeAssociation, RangeUnorderedAssociation,
@@ -24,6 +24,7 @@ SystemExports[
 
 PackageExports[
   "Function",
+    UnindexDicts, IndexDicts,
     Bind, UBind,
   "MutatingFunction",
     CachedTo,
@@ -37,6 +38,16 @@ PackageExports[
   "Function",
     EnsureODict
 ];
+
+(**************************************************************************************************)
+
+(*
+Data`KeyToValue[<|x -> <|a->1|>, y -> <|a->1|>|>, b]       -> {<|b -> x, a -> 1|>, <|b -> y, a -> 1|>}
+Data`ValueToKey[{<|b->x,a->1|>,<|b->y,a->1|>}, b]          -> {x -> {<|a -> 1|>}, y -> {<|a -> 1|>}}
+*)
+
+UnindexDicts[dictOfDicts_Dict, key_] := Data`KeyToValue[dictOfDicts, key];
+IndexDicts[dicts_List, key_] := Data`ValueToKey[dicts, key];
 
 (**************************************************************************************************)
 
@@ -107,7 +118,7 @@ InvertUnorderedAssociation[dict:DictP] := Module[
 (**************************************************************************************************)
 
 (* TODO: rename to ApplyRules? *)
-DecFullDispatch2 @ SetCurry2 @ MapRules;
+DecFullDispatch2 @ SetCurry1 @ MapRules;
 
 MapRules::usage =
 "MapRules[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns {f$[k$1, v$1], f$[k$2, v$2], $$}.
@@ -116,6 +127,17 @@ MapRules does the same for a list of rules, where it applies f$ to the pair of L
 MapRules[fn_, dict_Dict]      := KeyValueMap[fn, dict];
 MapRules[fn_, list:RuleLVecP] := MapApply[fn, rules];
 MapRules[_, _]                := InternalError;
+
+(**************************************************************************************************)
+
+DecFullDispatch2 @ SetCurry1 @ KeyValueScan;
+
+KeyValueScan::usage =
+"KeyValueScan[f, <|k$1 -> v$1, $$|>] evaluates $f[k$i, v$i] for every i$.
+KeyValueScan also works on lists of rules."
+
+KeyValueScan[fn_, dict_Dict]      := Scan[Apply @ fn, Normal @ dict];
+KeyValueScan[fn_, list:RuleLVecP] := Scan[Apply @ fn, dict];
 
 (**************************************************************************************************)
 
@@ -147,10 +169,13 @@ KeysValues::usage =
 "KeysValues[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {{k$1, k$2, $$}, {v$1, v$2, $$}}.
 KeysValues also works on a list of rules."
 
-DecFullDispatch1 @ SetStrict @ KeysValues;
+DecFullDispatch1 @ SetStrict[KeysValues, ValuesKeys];
 
 KeysValues[data:DictLikeP] := {Keys @ data, Values @ data};
 KeysValues[_]              := InternalError;
+
+ValuesKeys[data:DictLikeP] := {Values @ data, Keys @ data};
+ValuesKeys[_]              := InternalError;
 
 (**************************************************************************************************)
 

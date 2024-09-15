@@ -46,6 +46,7 @@ multiedgeRowBoxes[mgraph_] := Locals[
   vertexItems = ZipMap[StyleBox, ToBoxes /@ vertices, vertexColors];
   vertexBoxes = ColumnBox @ ZipMap[StyleBox, ToBoxes /@ vertices, vertexColors];
   edges = MEdgeList @ mgraph;
+  $MultiedgeIconScale = 0.8;
   If[Len[edges] < 8,
     edgeBoxes = widthLimitedRow @ SortBy[edges, MultiedgeArity];
   ,
@@ -56,7 +57,7 @@ multiedgeRowBoxes[mgraph_] := Locals[
   NiceObjectBoxes["Multigraph", {vertexBoxes, edgeBoxes}, .2, ColumnLines -> True]
 ];
 
-widthLimitedRow[edges_, maxWidth_:700] := Locals[
+widthLimitedRow[edges_, maxWidth_:800] := Locals[
   width = 0;
   boxes = {};
   i = 0; num = Len @ edges;

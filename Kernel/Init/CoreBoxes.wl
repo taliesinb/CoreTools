@@ -1,18 +1,17 @@
 SystemExports[
-  "FormHead",          Unformatted, Uninteractive, OutlineForm,
-  "BoxFunction",       OutlineBoxes, LenDotsBox,
-  "IOFunction",        MakeCoreBoxes, CoreBoxes, SystemBoxes, MapMakeBoxes, MapMakeBoxesSeq,
+  "FormHead",          Unformatted, Uninteractive, ExpanderForm, OutlineForm, EllipsisForm,
+  "BoxFunction",       OutlineBoxes, ExpanderBoxes, HoldExpanderBoxes, LenDotsBox, EllipsisBox,
+  "IOFunction",        MakeCoreBoxes, CoreBoxes, SystemBoxes, MapMakeBoxes, MapMakeBoxesSeq, MakeBoxes1, MakeBoxes12, MakeBoxes21, MapMakeBoxesLimited,
   "DebuggingFunction", MakeCoreBoxesTraditional, MakeCoreBoxesModified,
   "SpecialVariable",   $UseCoreBoxFormatting, $UseCoreBoxInteractivity, $CurrentCoreBoxModifiers, $UseTraditionalForm,
   "Predicate",         HasCoreBoxesQ,
-  "MetaFunction",      DeclareCoreBoxes, DeclareCoreSubBoxes, MakeBoxDefinitions, DeclareOutlineBoxes,
+  "MetaFunction",      DeclareCoreBoxes, DeclareCoreSubBoxes, MakeBoxDefinitions, DeclareOutlineBoxes, DeclareExpanderBoxes,
   "ScopingFunction",   DisableCoreBoxFormatting, DisableCoreBoxInteractivity
 ];
 
 PrivateExports[
   "SpecialVariable", $CoreBoxHeadDict, $OutlineBoxHeadDict
 ];
-
 
 (**************************************************************************************************)
 
@@ -24,6 +23,29 @@ MapMakeBoxes = CaseOf[
 ];
 
 MapMakeBoxesSeq[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
+
+(**************************************************************************************************)
+
+SetHoldC[MakeBoxes1, MakeBoxes12, MakeBoxes21]
+SetHoldF[MapMakeBoxesLimited]
+
+MakeBoxes1[e_, _] := MakeBoxes[e];
+MakeBoxes12[e_, p_] := {MakeBoxes[e], MakeBoxes[p]};
+MakeBoxes21[e_, p_] := {MakeBoxes[p], MakeBoxes[e]};
+
+MapMakeBoxesLimited[expr_, axis_, maxSize_, maxCount_, fn_:MakeBoxes1] := Locals[
+  totalSize = 0; heldItems = HoldArgsP[expr];
+  len = Len @ heldItems;
+  boxes = {}; i = 0; num = Min[len, maxCount];
+  While[++i <= num && totalSize <= maxSize,
+    itemBox = First[fn @@@ Extract[heldItems, i, HoldC]];
+    itemSize = ToImageSize @ RawBoxes @ itemBox;
+    totalSize += Part[itemSize, axis];
+    AppendTo[boxes, itemBox];
+  ];
+  If[i < len, AppendTo[boxes, EllipsisBox[len - i]]];
+  boxes
+];
 
 (**************************************************************************************************)
 
@@ -157,7 +179,14 @@ outlineBoxesLeaf[i_Int] := IntStr @ i;
 outlineBoxesLeaf[s_Sym] := HoldSymbolName @ s;
 outlineBoxesLeaf[_]     := "\[Ellipsis]";
 
-LenDotsBox[n_Int] := SubBox[Dots, NatStr @ n];
+LenDotsBox[n_Int] := EllipsisBox[NatStr @ n];
+
+(**************************************************************************************************)
+
+CoreBoxes[EllipsisForm[expr_]] := EllipsisBox @ MakeBoxes @ expr;
+
+EllipsisBox[nBoxes_] := OverscriptBox["\"\[Ellipsis]\"", LowerBox[nBoxes, 1]];
+EllipsisBox[] := EllipsisBox[None] := "\"\[Ellipsis]\"";
 
 (**************************************************************************************************)
 
@@ -174,9 +203,53 @@ DeclareOutlineBoxes[InternalData];
 
 (**************************************************************************************************)
 
+DeclareSeqScan[DeclareExpanderBoxes]
+
+DeclareExpanderBoxes[sym_Sym] := CoreBoxes[sym[args___]] := HoldExpanderBoxes[sym, args];
+
+(**************************************************************************************************)
+
+$remExpansions = Inf;
+
+CoreBoxes[ExpanderForm[head_Sym[args___]]] :=
+  HoldExpanderBoxes[head, args];
+
+CoreBoxes[ExpanderForm[head_Sym[args___], level_]] :=
+  BlockSet[$remExpansions, level, HoldExpanderBoxes[head, args]];
+
+SetHoldC[HoldExpanderBoxes, makeExpanderBoxes1, makeExpanderBoxes2];
+
+ExpanderBoxes[args___] := HoldExpanderBoxes[args];
+HoldExpanderBoxes[head_Sym, args___] := makeExpanderBoxes2[head, {args}];
+
+makeExpanderBoxes1[expr_] := MakeBoxes[expr];
+makeExpanderBoxes1[head_Sym[args___]] := makeExpanderBoxes2[head, {args}];
+
+makeExpanderBoxes2[head_Sym, args_List] := ColumnBox[
+  FlatList[
+    RBox[MakeBoxes @ head, "["],
+    MapMostLast[
+      addTabComma, RBox["\t", #]&,
+      If[$remExpansions > 0,
+        BlockDecrement[$remExpansions, HoldMap[makeExpanderBoxes1, args]],
+        MapMakeBoxes @ List @ args
+      ]
+    ],
+    "]"
+  ],
+  Left
+];
+
+addTabComma[boxes_] := RBox["\t", boxes, ","];
+addTabComma[GridBox[grid_, opts___]] := RBox["\t", Make[GridBox, MapAt[addComma, grid, {-1, -1}], opts]];
+addComma[box_] := RBox[box, ","];
+
+(**************************************************************************************************)
+
 DeclareThenScan[MakeBoxDefinitions]
 
 (* TODO: why not use CoreBoxes for this? *)
 MakeBoxDefinitions[SetDelayed[lhs_, rhs_]] := (
   MakeBoxes[lhs, StandardForm | TraditionalForm] := rhs;
 );
+

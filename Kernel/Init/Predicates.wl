@@ -38,6 +38,7 @@ SystemExports[
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
 
+    ZipAllTrueQ,
     AllSameQ,            NonEmptyAllSameQ,
     AllSameByQ,          NonEmptyAllSameByQ,
     AllSameLengthQ,      NonEmptyAllSameLengthQ,
@@ -748,6 +749,27 @@ NotNoneQ[None]            = False;
 NotAutomaticQ[Auto]       = False;
 NotAutoNoneQ[None | Auto] = False;
 NotInfinityQ[Infinity]    = False;
+
+(*************************************************************************************************)
+
+ZipAllTrueQ[fn_, dict1_Dict, dict2_Dict] := And[
+  SameOrderedKeysQ[dict1, dict2],
+  iZipAllTrueQ[fn, dict1, dict2]
+];
+
+ZipAllTrueQ[fn_, expr1_, expr2_] := And[
+  Head[expr1] === Head[expr2],
+  Len[expr1] === Len[expr2],
+  iZipAllTrueQ[fn, expr1, expr2]
+];
+
+iZipAllTrueQ[fn_, expr1_, expr2_] := Catch[
+  Do[
+    If[fn[Part[expr1, i], Part[expr2, i]] =!= True, Throw @ False],
+    {i, 1, Len @ expr1}
+  ];
+  True
+];
 
 (*************************************************************************************************)
 

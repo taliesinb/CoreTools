@@ -15,7 +15,7 @@ DeclareListable[ColorToHex]
 
 ColorToHex[c:ColorP] := toHexColor @ ColorToRGBArray @ c;
 
-toHexColor[c_List] := toHexColor[c] = StringJoin["#", NatStr[Floor[(255 * c) + 1 / 2], 16, 2]];
+toHexColor[c_List] := toHexColor[c] = StringJoin["#", IntegerString[Floor[(255 * c) + 1 / 2], 16, 2]];
 
 (*************************************************************************************************)
 

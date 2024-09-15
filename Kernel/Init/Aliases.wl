@@ -27,7 +27,7 @@ PackageExports[
     MakeValid, MakeSealed,
 
   "MutatingFunction",
-    StuffBag, SetD, TagSetD, UpSetD, AssocTo, SubFrom,
+    SetD, TagSetD, UpSetD, AssocTo, SubFrom,
 
   "TypeHead",
     Int, Rat, Sym, Str,
@@ -38,16 +38,7 @@ PackageExports[
     RuleD, InternalData,
     DEdge, UEdge,
     DirInf,
-    Bag,
-    PackedTree,
     USet, OSet, MSet,
-
-  "Function",
-    AbsDelta,
-    ToPackedTree,
-    DimsTree,
-    DimsProd,
-    FlatProd,
 
   "Function",
     SplitLengths, Multisets, MultiSubsets, ReplaceSuccessive, SublistPosition,
@@ -162,16 +153,11 @@ PackageExports[
     StrSplitPos, StrSplitL, StrSplitR, StrTake, StrTrim, StrTrimL, StrTrimR, StrTrimLR,
     StrSegment, StrSegmentL, StrSegmentR, StrRepeat, StrRep, StrRepPart, StrRev, StrSplit, StrPre, StrApp,
 
-    DecodeBase64, DecodeBase64ToByteArray, EncodeBase64,
-    ToList, ToPackedArray, ToPacked, FromPackedArray,
-    PackedArrayForm, PackedArrayType,
-
-    BagPart, BagLength,
-    ContainsListRepresentationQ, RepetitionFromMultiplicity, Reciprocal,
-    OutermostToInnermost, InnermostToOutermost, TransposeInPlace, ListJoin,
-
-    StringHash,
-    MapThreadMin, MapThreadMax,
+    ToList, RepetitionFromMultiplicity, Reciprocal,
+    OutermostToInnermost, InnermostToOutermost, ListJoin,
+    ContainedSymbols, StringHash,
+    AbsDelta, MapThreadMin, MapThreadMax,
+    FastNumericIndices,
 
     Parts,
     Select1, SelectIndex1, VectorIndex1, VectorIndex1Of,
@@ -179,18 +165,16 @@ PackageExports[
     RandAtom, RandDatum, RandBit, RandNat, RandBool, RandSign,
     RandRange, RandReal, RandNorm,
 
-    FastNumericIndices,
-    ContainedSymbols,
-
     ToAltPat, ToLHSPat, PatHeadSym, DefHeadSym,
     ToBlankSeq, ToBlankNullSeq,
 
   "MutatingFunction",
-    UnpackDict, PackDict, SetInherit,
+    UnpackDict, PackDict, SetInherit, TransposeInPlace,
 
   "Predicate",
-    SymbolQ, RealQ, NaturalQ, PositiveIntegerQ, NegativeIntegerQ, NonPositiveIntegerQ, NonNegativeIntegerQ, PositiveMachineIntegerQ, NegativeMachineIntegerQ, NonPositiveMachineIntegerQ, NonNegativeMachineIntegerQ,
-    PackedQ, AssociationVectorQ, ListOrAssociationQ, StringOrVectorQ, StringVectorQ, UnsafeEmptyQ, NotEmptyQ, NonEmptyQ,
+    SymbolQ, RealQ, NaturalQ, PositiveIntegerQ, NegativeIntegerQ, NonPositiveIntegerQ, NonNegativeIntegerQ,
+    MachineRealQ, MachineIntegerQ, PositiveMachineIntegerQ, NegativeMachineIntegerQ, NonPositiveMachineIntegerQ, NonNegativeMachineIntegerQ, MachineComplexQ,
+    AssociationVectorQ, ListOrAssociationQ, StringOrVectorQ, StringVectorQ, UnsafeEmptyQ, NotEmptyQ, NonEmptyQ,
     HoldSymbolQ, HoldAtomQ,
 
     StrQ, SymQ, IntQ, NatQ, NumQ, BoolQ, DictQ, UDictQ, ODictQ, ListDictQ,
@@ -209,6 +193,7 @@ PackageExports[
     FailedQ, FailQ, NotFailedQ, NotFailQ,
     DictOfQ, ListDictOfQ,
     AllSameLenQ, SameOKeysQ, AllSameOKeysQ,
+    HasKeyQ,
 
     NEDictQ, NEDictOfQ, NEListQ, NEListOfQ, NEListDictQ, NEListDictOfQ,
     NEAllSameQ, NEAllSameByQ, NEAllSameLenQ, NEAllSameHeadsQ, NEAllSamePartsQ, NEAllSameSetsQ, NEAllSameKeysQ, NEAllSameOKeysQ,
@@ -224,31 +209,18 @@ PackageExports[
     HasDupsQ, DupFreeQ, ContainsDictQ,
 
     StrMatchQ, StrDelimQ, StrStartsQ, StrEndsQ, StrFreeQ, StrContainsQ, StrHasQ, ASCIIQ,
-    PackedArrayQ, MachineRealQ, MachineIntegerQ, MachineComplexQ,
+
     VFreeQ, VContainsQ, ExceptionFreeQ, ComplexPresentQ, ContainsDictQ, PatternPresentQ, PatternFreeQ, CouldContainQ,
     AssocScanWhileQ, EmptyComplementQ, EmptyIntersectionQ, SyntacticNegativeQ, IntegerPartitionQ, TensorTypeQ, ValidSymbolNameQ, HashSameQ, Base64StringQ,
+    ListRepQ, ContainsListRepQ,
 
     SealedQ, UnsealedQ,
     ExprEntryQ, ExprNoEntryQ, ExprValidQ, ExprInvalidQ, HoldExprEntryQ, HoldExprNoEntryQ, HoldExprValidQ, HoldExprInvalidQ, ExprMDataQ, MightEvaluateQ, HoldMaybeFnQ, MaybeFnQ,
     HasAnyCodesQ, HasAnyDefsQ, HasDValueQ, HasDownCodeQ, HasDownDefsQ, HasIValueQ, HasNoCodesQ, HasNoDefsQ, HasOwnDefsQ, HasPrintCodeQ, HasSubCodeQ, HasSubDefsQ, HasUpCodeQ, HasUpDefsQ, HasUsageQ,
-    HashTableQ, HashTableContainsQ,
+
 
   "PredicateOperator",
     LenOf, DimsOf, DictOf, ListDictOf, NEListOf, NEDictOf, NEListDictOf, RuleVecOf,
-
-  "MutatingFunction",
-    GlobalWeakTablePut,
-    HashTableSet, HashTableAdd, HashTableRemove, HashTableMapAt,
-
-  "Head",
-    HashTable,
-
-  "Function",
-    GlobalWeakTableGet,
-    HashTableGet,
-    HashTableClone,
-    HashTableKeys, HashTableValues,
-    HashTableToAssociation,
 
   "Function",
     DRowStr, RiffRowStr, SpaceRowStr, CommaRowStr,
@@ -440,14 +412,16 @@ DefineAliasRules[
   NegativeIntegerQ           -> Internal`NegativeIntegerQ,
   NonPositiveIntegerQ        -> Internal`NonPositiveIntegerQ,
   NonNegativeIntegerQ        -> Internal`NonNegativeIntegerQ,
+  MachineRealQ               -> Developer`MachineRealQ,
+  MachineIntegerQ            -> Developer`MachineIntegerQ,
   PositiveMachineIntegerQ    -> Internal`PositiveMachineIntegerQ,
   NegativeMachineIntegerQ    -> Internal`NegativeMachineIntegerQ,
   NonPositiveMachineIntegerQ -> Internal`NonPositiveMachineIntegerQ,
-  NonNegativeMachineIntegerQ -> Internal`NonNegativeMachineIntegerQ
+  NonNegativeMachineIntegerQ -> Internal`NonNegativeMachineIntegerQ,
+  MachineComplexQ            -> Developer`MachineComplexQ
 ];
 
 DefineAliasRules[
-  PackedQ            -> Developer`PackedArrayQ,
   AssociationVectorQ -> Developer`AssociationVectorQ,
   ListOrAssociationQ -> Developer`ListOrAssociationQ,
   StringOrVectorQ    -> Developer`StringOrStringVectorQ,
@@ -484,8 +458,7 @@ DefineAliasRules[
   HNotEmptyQ       -> HoldNotEmptyQ,
   HDictQ           -> HoldAssociationQ,
   HUDictQ          -> HoldUnorderedAssociationQ,
-  HODictQ          -> HoldOrderedAssociationQ,
-  HPackedQ         -> HoldPackedArrayQ
+  HODictQ          -> HoldOrderedAssociationQ
 ];
 
 (**************************************************************************************************)
@@ -680,7 +653,8 @@ DefineAliasRules[
   SameLenQ         -> SameLengthQ,
   SameOKeysQ       -> SameOrderedKeysQ,
   AllSameLenQ      -> AllSameLengthQ,
-  AllSameOKeysQ    -> AllSameOrderedKeysQ
+  AllSameOKeysQ    -> AllSameOrderedKeysQ,
+  HasKeyQ          -> KeyExistsQ
 ];
 
 DefineAliasRules[
@@ -879,9 +853,9 @@ DefinePatternRules[
   Zero2P           -> {ZeroP, ZeroP},
   PosInt2P         -> {PosIntP, PosIntP},
   Nat2P            -> {NatP, NatP},
-  Num2P            -> Alt[List2P ? PackedQ, {_ ? NumberQ, _ ? NumberQ}],
-  Num3P            -> Alt[List3P ? PackedQ, {_ ? NumberQ, _ ? NumberQ, _ ? NumberQ}],
-  Num23P           -> Alt[List23P ? PackedQ, {Repeated[_ ? NumberQ, {2, 3}]}]
+  Num2P            -> Alt[List2P ? Developer`PackedArrayQ, {_ ? NumberQ, _ ? NumberQ}],
+  Num3P            -> Alt[List3P ? Developer`PackedArrayQ, {_ ? NumberQ, _ ? NumberQ, _ ? NumberQ}],
+  Num23P           -> Alt[List23P ? Developer`PackedArrayQ, {Repeated[_ ? NumberQ, {2, 3}]}]
 ];
 
 (*************************************************************************************************)
@@ -987,13 +961,6 @@ Join::nonlist = "`` is not a list.";
 (**************************************************************************************************)
 
 DefineAliasRules[
-  PackedArrayQ     -> Developer`PackedArrayQ,
-  MachineRealQ     -> Developer`MachineRealQ,
-  MachineIntegerQ  -> Developer`MachineIntegerQ,
-  MachineComplexQ  -> Developer`MachineComplexQ
-];
-
-DefineAliasRules[
   VFreeQ           -> Internal`LiterallyAbsentQ,
   VContainsQ       -> Internal`LiterallyOccurringQ,
   ExceptionFreeQ   -> Internal`ExceptionFreeQ,
@@ -1014,6 +981,13 @@ DefineAliasRules[
   ValidSymbolNameQ   -> Internal`SymbolNameQ,
   HashSameQ          -> Internal`HashSameQ,
   Base64StringQ      -> Developer`Base64StringQ
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  ListRepQ         -> Developer`ListRepresentationQ,
+  ContainsListRepQ -> Internal`ContainsListRepresentationQ
 ];
 
 (*************************************************************************************************)
@@ -1058,26 +1032,6 @@ MaybeFnQ[f_] := System`Private`MightEvaluateWhenAppliedQ[f];
 SetAttributes[HasUsageQ, HoldAllComplete];
 HasUsageQ[s_Symbol ? HAtomQ]  := StringQ[MessageName[s, "usage"]];
 HasUsageQ[_] := False;
-
-(*************************************************************************************************)
-
-DefineAliasRules[
-  ContainedSymbols       -> System`Utilities`SymbolList,
-  GlobalWeakTablePut     -> System`Utilities`ExprLookupAdd,
-  GlobalWeakTableGet     -> System`Utilities`ExprLookup,
-  HashTable              -> System`Utilities`HashTable,
-  HashTableAdd           -> System`Utilities`HashTableAdd,
-  HashTableClone         -> System`Utilities`HashTableClone,
-  HashTableContainsQ     -> System`Utilities`HashTableContainsQ,
-  HashTableGet           -> System`Utilities`HashTableGet,
-  HashTableKeys          -> System`Utilities`HashTableKeys,
-  HashTableMapAt         -> System`Utilities`HashTableMapAt,
-  HashTableQ             -> System`Utilities`HashTableQ,
-  HashTableRemove        -> System`Utilities`HashTableRemove,
-  HashTableSet           -> System`Utilities`HashTableSet,
-  HashTableToAssociation -> System`Utilities`HashTableToAssociation,
-  HashTableValues        -> System`Utilities`HashTableValues
-];
 
 (*************************************************************************************************)
 
@@ -1367,76 +1321,44 @@ DefineAliasRules[
 
 (*************************************************************************************************)
 
-(* Developer` PackedArray utilities *)
-DefineAliasRules[
-  ToList           -> Developer`ToList,
-  ToPackedArray    -> Developer`ToPackedArray,
-  ToPacked         -> Developer`ToPackedArray,
-  FromPackedArray  -> Developer`FromPackedArray,
-  PackedArrayType  -> Internal`PackedArrayType
-];
-
-(*************************************************************************************************)
-
-(* data structures *)
-DefineAliasRules[
-  StringHash       -> Data`StringHash,
-  StringHash       -> Data`StringHash,
-  BagPart          -> Internal`BagPart,
-  Bag              -> Internal`Bag,
-  BagLength        -> Internal`BagLength,
-  StuffBag         -> Internal`StuffBag
-];
-
-(*************************************************************************************************)
-
 (* Internal` functions *)
 DefineAliasRules[
   FastQuietCheck               -> Internal`UnsafeQuietCheck,
   WithLocalSettings            -> Internal`WithLocalSettings,
   WithTimestampsPreserved      -> Internal`WithTimestampsPreserved,
   InheritedBlock               -> Internal`InheritedBlock,
-  IBlock                       -> Internal`InheritedBlock,
-  ContainsListRepresentationQ  -> Internal`ContainsListRepresentationQ,
+  IBlock                       -> Internal`InheritedBlock
+];
+
+(*************************************************************************************************)
+
+(* AbsDelta: auto-broadcasts Abs[#1 - #2]& *)
+
+DefineAliasRules[
+  ToList                       -> Developer`ToList,
   RepetitionFromMultiplicity   -> Internal`RepetitionFromMultiplicity,
   Reciprocal                   -> Internal`Reciprocal,
   OutermostToInnermost         -> Internal`OutermostToInnermost,
   InnermostToOutermost         -> Internal`InnermostToOutermost,
   TransposeInPlace             -> Internal`TransposeInPlace,
-  ListJoin                     -> Internal`JoinOrFail
-];
-
-(*************************************************************************************************)
-
-(* Internal` functions *)
-DefineAliasRules[
-  MapThreadMin         -> Random`Private`MapThreadMin,
-  MapThreadMax         -> Random`Private`MapThreadMax,
-  FastNumericIndices   -> Random`Private`PositionsOf
-];
-
-(*************************************************************************************************)
-
-(* ToPackedTree: packing of tree into a special expression, not sure how we map elements yet *)
-(* AbsDelta: auto-broadcasts Abs[#1 - #2]& *)
-DefineAliasRules[
-  AbsDelta         -> NumericalMath`AbsoluteError,
-  PackedTree       -> NumericalMath`Derivatives`PackedExpression,
-  ToPackedTree     -> NumericalMath`Derivatives`ToPackedExpression,
-  DimsTree         -> NumericalMath`Derivatives`RaggedDimensions,
-  DimsProd         -> NumericalMath`Derivatives`NumberOfElements,
-  FlatProd         -> FlatProduct
+  ListJoin                     -> Internal`JoinOrFail,
+  ContainedSymbols             -> System`Utilities`SymbolList,
+  StringHash                   -> Data`StringHash,
+  AbsDelta                     -> NumericalMath`AbsoluteError,
+  MapThreadMin                 -> Random`Private`MapThreadMin,
+  MapThreadMax                 -> Random`Private`MapThreadMax,
+  FastNumericIndices           -> Random`Private`PositionsOf
 ];
 
 (*************************************************************************************************)
 
 (* Multisets[list, k] or [n, k] *)
 DefineAliasRules[
-  SplitLengths         -> GroupTheory`Tools`PartitionRagged,
-  Multisets            -> GroupTheory`Tools`Multisets,
-  MultiSubsets         -> GroupTheory`Tools`MultiSubsets,
-  ReplaceSuccessive    -> GroupTheory`Tools`ConsecutiveReplace,
-  SublistPosition      -> GroupTheory`Tools`SublistPosition
+  SplitLengths                 -> GroupTheory`Tools`PartitionRagged,
+  Multisets                    -> GroupTheory`Tools`Multisets,
+  MultiSubsets                 -> GroupTheory`Tools`MultiSubsets,
+  ReplaceSuccessive            -> GroupTheory`Tools`ConsecutiveReplace,
+  SublistPosition              -> GroupTheory`Tools`SublistPosition
 ];
 
 (**************************************************************************************************)

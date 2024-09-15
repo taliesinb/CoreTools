@@ -94,6 +94,8 @@ IssueMessage[head_ -> slocs_, args___] := Then[
 IssueMessage[msgHead_Sym, msgName_String, msgArgs___] := Then[
   If[!SymbolMessageQ[msgHead, msgName],
     Message[MessageName[msgHead, "missingMessage"], msgName, msgHead],
+    If[!StringQ[MessageName[msgHead, msgName]],
+      MessageName[msgHead, msgName] = MessageName[General, msgName]]; (* ? *)
     Message[MessageName[msgHead, msgName], msgArgs]
   ],
   $Failed
@@ -140,7 +142,7 @@ SetHoldF[HandleExceptions, DisableHandleExceptions];
 
 $HandlerSet = False;
 
-HandleExceptions[body_, handler_] := Block[{$HandlerSet = True},  Catch[body, ExceptionTag, exceptionHandler @ handler]];
+HandleExceptions[body_, handler_] := Block[{$HandlerSet = True}, Catch[body, ExceptionTag, exceptionHandler @ handler]];
 DisableHandleExceptions[body_]    := Block[{$HandlerSet = False}, body];
 
 exceptionHandler[handler_][exception_, _] := handler[exception];

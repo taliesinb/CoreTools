@@ -107,13 +107,13 @@ System`NonLethalPackageMessages
 PackageExports[
 
 "SpecialVariable",
+$PackageLoadVerbose,
 $PackageCurrentlyLoading,
 $CurrentPackageExpr,
 $CurrentPackageExprCount,
 $CurrentPackageErrorMessageCount,
 $CurrentPackageFileHash,
 $PackageFileCache,
-
 $PackageSymbolTable,
 $PackageLoadCompleteQ,
 $PackageSymbolAliases,
@@ -176,6 +176,7 @@ Protect[Language`FullGet];
 PackageLoadCompletedQ[str_String] := Lookup[$PackageLoadCompleteQ, str, False];
 
 If[!AssociationQ[$PackageLoadCompleteQ],
+$PackageLoadVerbose = False;
 $PackageCurrentlyLoading = False;
 $SymbolAliasesDirty = False;
 $SymbolAliases = Data`UnorderedAssociation[];
@@ -226,7 +227,7 @@ LoadPrint[printArgs___] := If[TrueQ[$ptVerbose], LogPrint[printArgs], Null];
 Options[LoadPackage] = {
   "CodePreprocessor"    -> None,
   "ContextPath"         -> Automatic,
-  "Verbose"             -> False,
+  "Verbose"             -> Automatic,
   "SymbolTableFunction" -> Automatic,
   "PreLoadFunction"     -> None,
   "EvaluationFunction"  -> None,
@@ -265,7 +266,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
 
   Catch[
 
-    $ptVerbose = TrueQ @ OptionValue["Verbose"];
+    $ptVerbose = TrueQ @ Replace[OptionValue["Verbose"], Automatic -> $PackageLoadVerbose];
 
     $priorityRules = procPriorityRules @ OptionValue["PriorityRules"];
 
@@ -284,7 +285,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
     externalAliases = $SymbolAliases;
     previousAliases = Lookup[$PackageSymbolAliases, baseContext, Data`UnorderedAssociation[]];
     If[Length[previousAliases] > 0,
-      LoadPrint["Clearing previous aliases from this package: ", Keys[previousAliases, HoldForm]];
+      LoadPrint["Clearing previous aliases from this package: ", Length @ previousAliases];
       (* this avoids previous aliases (even those in system which wouldn't be cleared) from applying too early *)
       $SymbolAliases = externalAliases = KeyComplement[{$SymbolAliases, previousAliases}];
       Clear[previousAliases];
@@ -316,10 +317,11 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
     Construct[UnprotectClearAll, $basePrivateContext];*)
     fileContextGlob = baseContext <> "*`*";
     LoadPrint["Clearing file private contexts: ", fileContextGlob];
-    savedVariables = saveVariableValues @ Names[baseContext <> "Private`$*"];
-    LoadPrint["Saved values for ", Keys @ savedVariables];
+    (* it is much slower to do Private`$ than ` when there are lots of symbols starting with $ in other contexts! *)
+    savedVariables = saveVariableValues @ Select[Names[baseContext <> "Private`*"], StringContainsQ["`$"]];
+    LoadPrint["Saved values for ", Length @ savedVariables, " vars"];
     Construct[UnprotectClearAll, fileContextGlob];
-    LoadPrint["Restoring values for ", Keys @ savedVariables];
+    LoadPrint["Restoring values."];
     loadVariableValues @ savedVariables;
 
     symbolTableFn = OptionValue["SymbolTableFunction"];
@@ -329,7 +331,7 @@ LoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :=
     (* ^ this is a list of {kind, path, context, decl} *)
     If[!MatchQ[symbolTable, {{_,_,_,_}...}], AbortPackageLoading["invalidSymbolTable", symbolTable]];
     $PackageSymbolTable[baseContext] = symbolTable;
-    LoadPrint["Symbol table counts: ", Normal @ Merge[Total] @ Cases[symbolTable, {k_, _, _, s_} :> k -> StringCount[s, ","]+1]];
+    LoadPrint["Symbol table count: ", Total @ Cases[symbolTable, {k_, _, _, s_} :> StringCount[s, ","]+1]];
 
     invalidKinds = Complement[Part[symbolTable, All, 1], $KnownSymbolKinds];
     If[invalidKinds =!= {},
@@ -587,7 +589,7 @@ $KnownSymbolKinds = {
 (*************************************************************************************************)
 
 lazyQueueEval[path_, bag_] := If[Internal`BagLength[bag] > 0,
-  LoadPrint["Running unqueued evaluations for: ", Internal`BagPart[bag, All, HoldComplete]];
+  LoadPrint["Running unqueued evaluations for: ", Shallow[Internal`BagPart[bag, All, HoldForm], 3]];
   Internal`BagPart[bag, All]
 ];
 
@@ -595,7 +597,7 @@ m_attachLazyEnqueingDefs := (Print["BAD: ", HoldForm[m]]);
 
 attachLazyEnqueingDefs[path_String, symbolData_Association] := Module[{bag = Internal`Bag[]}, With[
   {symbols = Flatten @ KeyValueMap[createSymbolsIn[#1, #2, Identity]&, symbolData]},
-  LoadPrint["Attaching unqueuing to: ", symbols];
+  LoadPrint["Attaching unqueuing to ", Length @ symbols, " symbols e.g. ", SymbolName /@ Take[symbols, UpTo @ 5]];
   $lazySymbolClearers[path] := ClearAll[symbols];
   $lazyQueueEvaluators[path] := lazyQueueEval[path, bag];
   Map[attachEnqueingTo[#, bag]&, symbols];
@@ -603,7 +605,7 @@ attachLazyEnqueingDefs[path_String, symbolData_Association] := Module[{bag = Int
 
 attachEnqueingTo[fn_, bag_] := (
   SetAttributes[fn, HoldAllComplete];
-  SetDelayed[lhs_fn, Internal`StuffBag[LoadPrint["Capturing: ", HoldForm[lhs]]; bag, Unevaluated @ lhs]]
+  SetDelayed[lhs_fn, Internal`StuffBag[LoadPrint["Capturing: ", Shallow[HoldForm[lhs], 3]]; bag, Unevaluated @ lhs]]
 );
 
 (*************************************************************************************************)
@@ -630,7 +632,7 @@ loadPackageFile[path_, context_] := Block[
    $ContextPath = $contextPath, $Context = context, $CurrentPackageExpr = None, $CurrentPackageFileHash = None,
    $CellPrintLabel = trimPath @ path},
   $lazySymbolClearers @ path;
-  LoadPrint["Getting ", path];
+  LoadPrint["Getting ", FileNameJoin @ FileNameTake[path, -3]];
   catchPackageThrows[
     $SymbolAliasesDirty = False;
     $PackageLoadFileTimings[path] = First @ AbsoluteTiming[

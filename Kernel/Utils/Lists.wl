@@ -23,14 +23,14 @@ SystemExports[
 
 PackageExports[
   "Function",
-    Args,
+    Args, ArgsP,
     Clip2,
   "ControlFlowFunction",
-    HoldArgs,
+    HoldArgs, HoldArgsP,
   "MutatingFunction",
     JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
   "Function",
-    SelectDiscard, Discard, SelectFirstIndex, PickTrueFalse,
+    SelectDiscard, Discard, PickLeave, SelectFirstIndex, PickTrueFalse,
     EnsurePair,
   "Variable",
     $UnthreadEnabled
@@ -81,16 +81,29 @@ Multiply[e_] := Apply[Times, e];
 
 DecOElemDispatch1[Args, HoldArgs];
 
-Args[dict_Dict ? HoldAtomQ] := Values @ dict;
-Args[list_List]             := list;
-Args[_[args___]]            := List[args];
-Args[_]                     := $Failed;
+Args[dict_Dict ? HAtomQ] := Values @ dict;
+Args[list_List]          := list;
+Args[_[args___]]         := List[args];
+Args[_]                  := $Failed;
 
-SetHoldC[HoldArgs]
+ArgsP[dict_Dict ? HAtomQ] := ValuesKeys[dict];
+ArgsP[list_List]          := Transpose[{list, RangeLength @ list}];
+ArgsP[_[args___]]         := ArgsP @ List @ args;
+ArgsP[_]                  := $Failed;
 
-HoldArgs[dict_Dict ? HoldAtomQ] := Level[dict, 1, HoldComplete];
-HoldArgs[_[args___]]            := HoldComplete[args];
-HoldArgs[_]                     := $Failed;
+(*************************************************************************************************)
+
+SetHoldC[HoldArgs, HoldArgsP]
+
+HoldArgs[EmptyP]             := HoldComplete[];
+HoldArgs[dict_Dict ? HAtomQ] := Level[dict, 1, HoldComplete];
+HoldArgs[_[args___]]         := HoldComplete[args];
+HoldArgs[_]                  := $Failed;
+
+HoldArgsP[EmptyP]                := HoldComplete[];
+HoldArgsP[Dict[kvs___] ? HAtomQ] := Reverse[List @@@ HoldComplete[kvs], 2];
+HoldArgsP[_[args___]]            := With[{h = HoldC[args]}, Thread[{h, HoldC @@ RangeLength[h]}, HoldC]];
+HoldArgsP[_]                     := $Failed;
 
 (*************************************************************************************************)
 
@@ -109,6 +122,8 @@ SelectDiscard[list_List, fn_] := PickTrueFalse[list, Map[fn /* TrueQ, list]];
 PickTrueFalse[thing_, mask_] := {Pick[thing, mask, True], Pick[thing, mask, False]};
 
 Discard[list_, crit_] := Select[list, Function[e, crit[e] =!= True]];
+
+PickLeave[list_List, mask_List, elem_] := {Pick[thing, mask, elem], Pick[thing, mask, Except[elem]]};
 
 (*************************************************************************************************)
 
@@ -300,7 +315,7 @@ IndexOf[expr_, elem_, else_] := FirstPosition[expr, Verbatim[elem], else, {1}];
 
 DecOElemDispatch12 @ SetCurry2[VectorIndicesOf, FirstVectorIndexOf]
 
-VectorIndicesOf[x_, n_Integer] := MaybeEval @ Replace[FastNumericIndices[x, n], _Failure | $Failed -> FailEval]
+VectorIndicesOf[x_, n_Integer] := MaybeEval @ Replace[Echo @ FastNumericIndices[x, n], _Failure | $Failed -> FailEval]
 VectorIndicesOf[x_, n_] := Flatten @ Position[x, Verbatim[n], {1}];
 
 FirstVectorIndexOf[x_, n_Integer] := MaybeEval @ First[Replace[FastNumericIndices[x, n, 1], _Failure | $Failed -> {FailEval}], None];

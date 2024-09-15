@@ -1,13 +1,13 @@
 SystemExports[
   "DebuggingFunction",
-    NiceEcho,
+    NiceEcho, PEcho,
     Echo1, Echo2, Echo3, Echo4, Echo5,
     EchoBy, EchoLen, EchoDims, EchoOpts, EchoKeys, EchoHead,
     EchoTest,
     EchoReplaceAll, EchoReplaceRepeated,
     EchoingRules, EchoingSetDelayed,
-    EchoH, EchoH0, EchoH1,
-    EchoArrow,
+    EchoH, EchoHC, PEchoH,
+    EchoArrow, PEchoArrow,
     EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
   "SpecialVariable",
     $EchoIndent, $EchoLHS,
@@ -30,6 +30,9 @@ Protect[$EchoLHS];
 
 NiceEcho[arg_]    := (printEchoPane @ CoreToolsHold @ arg; arg);
 NiceEcho[args___] := (printEchoPane @ CoreToolsSequence @ args; Construct[Sequence, args]);
+
+PEcho[arg_] := (EchoPrint[arg]; arg);
+PEcho[args___] := (EchoPrint[args]; NoEval @ args);
 
 (*************************************************************************************************)
 
@@ -194,9 +197,9 @@ EchoBody[lhs_, body_] := Module[
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[EchoH];
+DeclareHoldAllComplete[EchoHC];
 
-EchoH[expr_] := Module[
+EchoHC[expr_] := Module[
   {res = $Aborted},
   WithLocalSettings[
     $RawPrintIndent++
@@ -210,15 +213,28 @@ EchoH[expr_] := Module[
 
 (*************************************************************************************************)
 
-(* if fn is held, EchoH0 should use EchoH *)
-DeclareHoldAllComplete[EchoH0];
+SetHoldC[PEchoH, mkPEchoH];
 
-EchoH0[fn_[args___]] := Module[
+PEchoH[fn_[args___]] := With[{in = Unsequence[args]}, mkPEchoH[fn, in]];
+
+mkPEchoH[fn_, Unsequence[in___]] := With[{out = fn[in]},
+  Then[
+    PEchoArrow[fn[in], out, False],
+    out
+  ]
+];
+
+(*************************************************************************************************)
+
+(* if fn is held, EchoH0 should use EchoH *)
+DeclareHoldAllComplete[EchoH];
+
+EchoH[fn_[args___]] := Module[
   {res = $Aborted, inner = $Aborted},
   WithLocalSettings[
     $RawPrintIndent++
   ,
-    inner = CoreToolsSequence[args];
+    inner = Make[CoreToolsSequence, args];
     res = Apply[fn, inner]
   ,
     $RawPrintIndent--;
@@ -226,33 +242,21 @@ EchoH0[fn_[args___]] := Module[
   ]
 ];
 
-(*************************************************************************************************)
-
-(* if fn is held, EchoH0 should use EchoH *)
-DeclareHoldAllComplete[EchoH1];
-
-EchoH1[fn_[args___]] := Module[
-  {res = $Aborted, inner = $Aborted},
-  WithLocalSettings[
-    $RawPrintIndent++
-  ,
-    inner = Construct[CoreToolsSequence, args];
-    res = Apply[fn, inner]
-  ,
-    $RawPrintIndent--;
-    With[{lhs2 = CoreToolsHold[fn[$inner]] /. $inner -> inner, res2 = res}, EchoArrow[lhs2, res2]]
-  ]
-];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[EchoArrow]
+DeclareHoldAllComplete[EchoArrow, PEchoArrow]
 
-EchoArrow[a_, b_]                                 := printEchoArrow[a, b, True];
-EchoArrow[a_, b_, fill_]                          := printEchoArrow[a, b, fill];
+
+EchoArrow[a_, b_]         := printEchoArrow[a, b, True];
+EchoArrow[a_, b_, fill_]  := printEchoArrow[a, b, fill];
+PEchoArrow[a_, b_]        := printPEchoArrow[a, b, True];
+PEchoArrow[a_, b_, fill_] := printPEchoArrow[a, b, fill];
 
 With[{patt = Apply[Alternatives, Blank /@ $MutatingSymbols]},
-EchoArrow[a:patt, b_] := printEchoArrow[a, b, False]];
+EchoArrow[a:patt, b_]     := printEchoArrow[a, b, False];
+PEchoArrow[a:patt, b_]    := printPEchoArrow[a, b, False]
+];
 
 (*************************************************************************************************)
 
@@ -262,7 +266,15 @@ labeledEchoPane[l_, e_] /; $EchoPrinting := EchoPrint[l, CodePane[e, {{200, 300}
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[printEchoArrow, printEchoArrowRaw]
+DeclareHoldAllComplete[printPEchoArrow, printEchoArrow, printEchoArrowRaw]
+
+printPEchoArrow[lhs2_, rhs_, fill_] := With[
+  {lhs = If[fill, fillImmediateVals, Identity] @ HoldForm @ lhs2},
+  printEchoArrowRaw["\[Function]",
+    NicePasterBoxes[PaneBox[MakeBoxes @ lhs, ImageSize -> {{200, 300}, UpTo @ 100}], lhs],
+    NicePasterBoxes[PaneBox[MakeBoxes @ rhs, ImageSize -> {UpTo @ 500, UpTo @ 100}], rhs]
+  ]
+];
 
 printEchoArrow[lhs2_, rhs_, fill_] := With[
   {lhs = If[fill, fillImmediateVals, Identity] @ CoreToolsHold @ lhs2},

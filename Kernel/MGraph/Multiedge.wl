@@ -3,6 +3,7 @@ PackageExports[
 ];
 
 PrivateExports[
+  "Variable",      $MultiedgeIconScale,
   "CacheVariable", $MultiedgeTreePlotCache
 ];
 
@@ -32,11 +33,12 @@ iMultiedgeTreePlot[m_Multiedge, opts___Rule] := Locals[
   nodeColors = Map[MultigraphEdgeColor, exprs];
   plot = NiceTreePlot[tree,
     opts,
-    NodeShape    -> Map[nodeShapeFn, toNodeSort /@ exprs],
-    NodeColor    -> nodeColors,
+    NodeShape     -> Map[nodeShapeFn, toNodeSort /@ exprs],
+    NodeColor     -> nodeColors,
+    NodeSize      -> 3,
     EdgeThickness -> 1.5, EdgeColor -> GrayLevel[.2,.3],
-    NodeTooltips -> Map[toNodeTooltip /* Unformatted, exprs],
-    GraphScale   -> 15
+    NodeTooltips  -> Map[toNodeTooltip /* Unformatted, exprs],
+    GraphScale    -> 15
   ]
 ];
 
@@ -67,21 +69,31 @@ toNodeColor = CaseOf[
 
 (**************************************************************************************************)
 
+$MultiedgeIconScale = 1;
+
 multiedgeIconBoxes = CaseOf[
-  m:Multiedge[_, _]        := edgeTreeBoxes @ m;
+  m:Multiedge[_, _]        := edgeTreeBoxes[m, $MultiedgeIconScale];
   m:Multiedge[_, _, name_] := ColumnBox[
-    {edgeNameBoxes @ name, edgeTreeBoxes @ Take[m, 2]},
+    {edgeNameBoxes[name, $MultiedgeIconScale],
+     edgeTreeBoxes[Take[m, 2], $MultiedgeIconScale]},
     Center, 0.  5, FrameStyle -> $Gray, RowLines -> True,
     BaselinePosition -> {{2,1}, Baseline}
   ];
 ];
 
-edgeNameBoxes[m_] := StyleBox[SmallBox @ MakeBoxes @ m, MultigraphEdgeColor @ m];
-edgeNameBoxes[m_Multiedge ? MultiedgeQ] :=
-  ToBoxes @ MultiedgeTreePlot[m, RootPosition -> Bottom, GraphScale -> 10, NodeSize -> 4, EdgeThickness -> 1, FontSize -> 8];
+edgeNameBoxes[m_, _] := StyleBox[SmallBox @ MakeBoxes @ m, MultigraphEdgeColor @ m];
+edgeNameBoxes[m_Multiedge ? MultiedgeQ, scale_] :=
+  ToBoxes @ MultiedgeTreePlot[m,
+    RootPosition -> Bottom,
+    GraphScale -> 10 * scale, NodeSize -> 4 * scale,
+    EdgeThickness -> 1 * scale, FontSize -> 8 * scale
+  ];
 
-edgeTreeBoxes[m_Multiedge] :=
-  ToBoxes @ MultiedgeTreePlot[m, RootPosition -> Top, GraphScale -> 15, NodeSize -> 6, FontSize -> 10, EdgeThickness -> 1.2];
+edgeTreeBoxes[m_Multiedge, scale_] :=
+  ToBoxes @ MultiedgeTreePlot[m, RootPosition -> Top,
+    GraphScale -> 15 * scale,
+    NodeSize -> 6 * scale, FontSize -> 10 * scale, EdgeThickness -> 1.2 * scale
+  ];
 
 (**************************************************************************************************)
 

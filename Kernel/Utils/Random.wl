@@ -15,15 +15,36 @@ SystemExports[
     RandomTuple,
     RandomUnitNormal, RandomUnitNormal2D, RandomUnitNormal3D, RandomUnitNormalND,
     RandomExprTree,
+    RandomAssociation,
+    NthLowercase,
     FormalSymbol, FromFormalSymbol,
     FormalSymbolQ, HoldFormalSymbolQ,
     Softmax, RuleVectorChoice, WeightedRandomChoice, RandomChoiceArray,
     RandomPart,
   "ControlFlowFunction",
     CoinToss,
+    BlockSeed,
   "Variable",
     $FormalSymbols
 ];
+
+PackageExports[
+  "Function",
+    RandDict
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  RandDict -> RandomAssociation
+];
+
+(*************************************************************************************************)
+
+SetHoldF[BlockSeed];
+
+BlockSeed[body_] := BlockRandom[body, RandomSeeding -> 1];
+BlockSeed[body_, seed_] := BlockRandom[body, RandomSeeding -> seed];
 
 (*************************************************************************************************)
 
@@ -260,3 +281,17 @@ toRandExpr = CaseOf[
   _Symbol[_, children_List] := Apply[Part[$upperFormal, Mod[$nh++, 26, 1]], $$ /@ children];
   _Symbol[_, None]          := Part[$lowerFormal, Mod[$nl++, 26, 1]];
 ];
+
+(*************************************************************************************************)
+
+SetListable @ NthLowercase;
+
+NthLowercase[n:NatP] := FromCharCode[96 + IntegerDigits[n, 26]]
+
+Scan[NthLowercase[#] = NthLowercase[#]&, Range[26]];
+
+(*************************************************************************************************)
+
+RandomAssociation[n:NatP] := DictThread[NthLowercase[Range[n]], RandomDecimal[n]];
+
+

@@ -44,8 +44,7 @@ If[$MessagePrePrint === CoreTools`MsgPrePrint, Unset @ $MessagePrePrint];
 Prelude`Packages`LoadPackage[
   "CoreTools`",
   File @ FileNameJoin[{$CoreToolsPath, "LoadList.txt"}],
-  "CodePreprocessor" -> ApplyEchoSugar,
-  "Verbose" -> False
+  "CodePreprocessor" -> ApplyEchoSugar
 ];
 
 (*************************************************************************************************)

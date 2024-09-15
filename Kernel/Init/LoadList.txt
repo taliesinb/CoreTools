@@ -1,4 +1,5 @@
 Aliases.wl
+Aliases/LoadList.txt
 Patterns.wl
 Meta.wl
 Dispatch.wl

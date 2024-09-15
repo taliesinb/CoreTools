@@ -10,6 +10,10 @@ SystemExports[
     SetSelect,
     SetJoin, SetUnion, SetIntersection, SetComplement,
     SetLookup,
+    SetFilter,
+    SetAdd,
+  "MutatingFunction",
+    SetUnionTo, SetAddTo,
   "Predicate",
     SetHasQ, SameSetElemsQ, SetSubsetOfQ, SetSupersetOfQ, SetIntersectsQ, SetNotIntersectsQ
 ];
@@ -99,7 +103,7 @@ msetBoxes[k_, n_] := SubBox[MakeBoxes @ k, MakeBoxes @ n];
 
 SetHoldC[sealUSet, sealOSet, sealMSet];
 
-sealUSet[USet[]]      := EmptyOSet;
+sealUSet[USet[]]      := EmptyUSet;
 sealUSet[USet[e_]]    := MakeUSet @ UDict[e -> True];
 sealUSet[USet[es__]]  := MakeUSet @ UDict @ TrueRules @ List @ es;
 
@@ -225,6 +229,39 @@ mSetJoin[a_, b__]      := MakeMSet @ Merge[ToMSetDict /@ {a, b}, Max];
 
 (*************************************************************************************************)
 
+SetAdd[USet[a_], elem_] := MakeUSet[Append[a, elem -> True]];
+SetAdd[OSet[a_], elem_] := MakeUSet[Append[a, elem -> True]];
+SetAdd[MSet[a_], elem_] := MakeMSet[Append[a, elem -> Lookup[a, elem, 0]+1]];
+
+SetStrict @ SetHoldF @ SetAddTo;
+
+SetAddTo[sym_Sym, elem_] := If[SetHasQ[sym, elem], True,
+  sym = SetAdd[sym, elem]; False
+];
+
+(*************************************************************************************************)
+
+SetStrict @ SetHoldF @ SetUnionTo;
+
+SetUnionTo[sym_Sym, set:ASetP] := sym = fastUnionSetTo[sym, set];
+SetUnionTo[sym_Sym, list_List] := sym = fastUnionListTo[sym, list];
+SetUnionTo[lhs_, rhs_]         := lhs = SetUnion[lhs, rhs];
+
+fastUnionSetTo[USet[a_], HoldP[USet[b_]]] := MakeUSet[Join[a, b]];
+fastUnionSetTo[USet[a_], HoldP[OSet[b_]]] := MakeUSet[Join[a, b]];
+fastUnionSetTo[OSet[a_], HoldP[OSet[b_]]] := MakeOSet[Join[a, b]];
+fastUnionSetTo[a:ASetP, b_] := SetUnion[a, b];
+fastUnionSetTo[a_, b_] := Message[SetUnionTo::badset, b, a];
+
+fastUnionListTo[USet[a_], list_List] := MakeUSet[Append[a, Thread[list -> True]]];
+fastUnionListTo[OSet[a_], list_List] := MakeOSet[Append[a, Thread[list -> True]]];
+fastUnionListTo[MSet[a_], list_List] := MakeMSet[Merge[{a, Thread[list -> 1]}, Total]];
+fastUnionListTo[a_, b_] := Message[SetUnionTo::badset, b, a];
+
+SetUnionTo::badset = "Trying to add `` to a non-set ``."
+
+(*************************************************************************************************)
+
 DefineSetDispatch1N[Union, SetUnion];
 DefineSetNaryImpl[SetUnion, uSetUnion, oSetUnion, mSetUnion];
 
@@ -277,6 +314,14 @@ SetLookup[MSet[a_], e_List] := Lookup[a, e, 0];
 
 (*************************************************************************************************)
 
+SetStrict[SetFilter]
+
+SetFilter[USet[a_], e_List] := Pick[e, Lookup[a, e, False]];
+SetFilter[OSet[a_], e_List] := Pick[e, Lookup[a, e, False]];
+SetFilter[MSet[a_], e_List] := Pick[e, Lookup[a, e, False]];
+
+(*************************************************************************************************)
+
 DefineSetDispatch12[Select, SetSelect];
 
 SetSelect[USet[a_], f_] := MakeUSet @ KeySelect[a, f];
@@ -313,6 +358,8 @@ toKeys[MSet[a_]] := Keys[a];
 USet[a_][item_]          := KeyExistsQ[a, item];
 OSet[a_][item_]          := KeyExistsQ[a, item];
 MSet[a_][item_]          := Lookup[a, Key @ item, 0];
+
+SetStrict @ SetHasQ;
 
 SetHasQ[USet[a_], item_] := KeyExistsQ[a, item];
 SetHasQ[OSet[a_], item_] := KeyExistsQ[a, item];

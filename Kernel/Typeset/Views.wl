@@ -4,15 +4,18 @@ PackageExports[
     NestedView,
     GroupedView,
     RowView, ColumnView, RowColumnView,
+    HeadingView,
     LabeledFlipView,
     PickView, MapView, EitherView,
+    LabelTop,
   "BoxFunction",
     ClickAnimateBoxes, DynamicProgressBarBox,
     NiceClickBox, DeployBox,
     TightRowGridBox, TightColumnGridBox,
     OpenerColumnBox, DeployBox,
   "OptionSymbol",
-    ClickFunction, ViewSize, LabelPosition
+    ClickFunction, ViewSize, LabelPosition, MaxPlotSize,
+    LabelSpacing, ItemSpacing, LabelDividers, ItemDividers,
   "Function",
     LabelBy, ViewSampling
 ];
@@ -34,20 +37,40 @@ $genericViewOptions = {
   ClickFunction -> None,
   ViewSize      -> 16,
   MaxItems      -> Inf,
-  ItemFunction  -> None
+  MaxPlotSize   -> 800,
+  ItemFunction  -> None,
+  LabelSpacing  -> 1,
+  ItemSpacing   -> 1,
+  LabelDividers  -> True,
+  ItemDividers   -> False
 };
 
-$viewOption = UDict[];
+$currentViewDepth = 0;
 
-DeclareHoldFirst[makeViewBoxesCommon]
+$viewOption = Dict[];
+
+SetHoldF[makeViewBoxesCommon]
 
 (* first apply the explicit options, then whatever we've inherited
 from higher up, then the defaults for this view *)
 makeViewBoxesCommon[body_, form_Symbol, rules___Rule] := Block[
   {$currentViewDepth = $currentViewDepth + 1,
-   $viewOption = UDict @ ToList[Options @ form, $viewOption, rules]},
-  body
+   $viewOption = Dict @ ToList[Options @ form, $viewOption, rules]},
+  If[$currentViewDepth > 8, "$TOODEEP", body]
 ];
+
+makeViewBoxesCommon[___] := "$FAILED";
+
+SetHoldF[viewMapMakeBoxes];
+
+viewMapMakeBoxes[items_, axis_, fn_:MakeBoxes1] :=
+  MapMakeBoxesLimited[items, axis, $viewOption[MaxPlotSize], $viewOption[MaxItems], fn];
+
+spanLast[n_][e_List] := MapLast[toSpan[n], e];
+
+toSpan[_][e_List] := e;
+toSpan[1][e_] := {ItemBox[StyleBox[e, FontWeight -> Plain], Alignment -> Center], "\[SpanFromAbove]"};
+toSpan[2][e_] := {ItemBox[StyleBox[e, FontWeight -> Plain], Alignment -> Center], "\[SpanFromLeft]"};
 
 (*************************************************************************************************)
 
@@ -177,9 +200,9 @@ NestedView[expr_, opts___Rule] := Locals[
 ];
 
 iNestedView = CaseOf[
-  array_ ? PackedQ := MatrixForm @ array;
-  list:ListDictP   := RowColumnView[$ /@ list, $nestedViewOpts];
-  other_           := $Failed
+  array_ ? HPackedQ := MatrixForm @ array;
+  list:ListDictP    := RowColumnView[$ /@ list, $nestedViewOpts];
+  other_            := $Failed
 ];
 
 $rowOrColumnDepth = 0;
@@ -188,43 +211,100 @@ $rowOrColumnDepth = 0;
 
 DefineViewForm[RowColumnView[items:ListDictP] :> rowColumnViewBoxes @ items];
 
-DeclareHoldAllComplete[rowColumnViewBoxes, rowableQ];
+SetHoldC[rowColumnViewBoxes, rowableQ];
 
-rowableQ[items_] := HoldLen[items] < 32 && AllTrue[items, DatumQ];
+rowableQ[items_] := HoldLen[items] < 32 && AllTrue[NoEval @ items, HoldDatumQ];
 
 rowColumnViewBoxes[items_ ? rowableQ] := rowViewBoxes @ list;
 rowColumnViewBoxes[items_]            := columnViewBoxes @ list;
+rowColumnViewBoxes[_]                 := "$FAILED";
 
 (*************************************************************************************************)
 
 DefineViewForm[RowView[items:ListDictP] :> rowViewBoxes @ items];
 
-DeclareHoldAllComplete[rowViewBoxes];
+SetHoldC[rowViewBoxes];
 
-rowViewBoxes[items_List] := GridBox[ToRowVec   @ MapMakeBoxes @ items, $rowViewGridOpts];
-rowViewBoxes[items_Dict] := GridBox[KeysValues @ MapMakeBoxes @ items, $rowViewGridOpts];
+rowViewBoxes[{}]         := "{}";
+rowViewBoxes[EmptyDict]  := LAssoc <> RAssoc;
+rowViewBoxes[items_List] := GridBox[ToRowVec @ viewMapMakeBoxes[items, 1, MakeBoxes1], $rowViewGridOpts];
+rowViewBoxes[items_Dict] := GridBox[Flip @ spanLast[1] @ viewMapMakeBoxes[items, 1, MakeBoxes12], $rowViewLabelOpts, $rowViewGridOpts];
+rowViewBoxes[_]          := "$FAILED";
 
-$rowViewGridOpts = Seq[
-  GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{None}}},
+$viewLabelStyle = FontWeight -> "SemiBold";
+$rowViewLabelOpts = GridBoxItemStyle -> {"Rows" ->{{{}}, $viewLabelStyle}};
+
+$rowViewGridOpts := Seq[
+  GridBoxDividers -> {"Columns" -> $itemDividers, "Rows" -> $labelDividers},
+  RowAlignments -> {{Baseline}},
   FrameStyle -> GrayLevel[0.5],
   BaselinePosition -> {{1, 1}, Baseline},
-  RowMinHeight -> 1.2, ColumnSpacings -> 1.2
+  RowMinHeight -> 1.2,
+  ColumnSpacings -> 1.2 * $viewOption[ItemSpacing],
+  RowSpacings -> 1.2 * $viewOption[LabelSpacing]
+];
+
+(*************************************************************************************************)
+
+DefineViewForm[HeadingView[items:ListDictP] :> headingViewBoxes @ items];
+
+SetHoldC[headingViewBoxes];
+
+headingViewBoxes = CaseOf[
+  {}        := "()";
+  EmptyDict := LAssoc <> RAssoc;
+  items_List := $ @ RangeDict @ items;
+  items_Dict := ColumnBox[
+    KeyValueMap[labelTopBoxes, items],
+    Left, 1
+  ];
+];
+
+(*************************************************************************************************)
+
+CoreBoxes[LabelTop[label_, expr_]] :=
+  labelTopBoxes[label, expr];
+
+labelTopBoxes[label_, expr_] := ColumnBox[
+  {StyleBox[MakeBoxes @ label,
+    FontWeight -> Bold, FontFamily -> "Source Code Sans",
+    FontSize -> Inherited * 1.1],
+   MakeBoxes @ expr},
+  Left, 0.2
 ];
 
 (*************************************************************************************************)
 
 DefineViewForm[ColumnView[items:ListDictP] :> columnViewBoxes @ items];
 
-DeclareHoldAllComplete[columnViewBoxes];
+SetHoldC[columnViewBoxes];
 
-columnViewBoxes[items_List] := GridBox[ToColVec    @ MapMakeBoxes @ items, $rowViewGridOpts];
-columnViewBoxes[items_Dict] := GridBox[DictToPairs @ MapMakeBoxes @ items, $rowViewGridOpts];
+columnViewBoxes[{}]         := "()";
+columnViewBoxes[EmptyDict | EmptyUDict] := LAssoc <> RAssoc;
+columnViewBoxes[items_List] := GridBox[ToColVec @ viewMapMakeBoxes[items, 2, MakeBoxes1], $colViewGridOpts];
+columnViewBoxes[items_Dict] := GridBox[spanLast[2] @ viewMapMakeBoxes[items, 2, MakeBoxes21], $colViewLabelOpts, $colViewGridOpts];
+columnViewBoxes[_]          := "$FAILED";
 
-$rowViewGridOpts = Seq[
-  GridBoxDividers -> {"Columns" -> {False, {True}, False}, "Rows" -> {{None}}},
+$colViewLabelOpts = Seq[
+  GridBoxItemStyle -> {"Columns" -> {$viewLabelStyle, {{}}}},
+  ColumnAlignments -> {{Right, Left}}
+]
+
+$midDividers = {False, {GrayLevel[0.5]}, False};
+$noDividers = {{None}};
+
+$itemDividers := If[$viewOption[ItemDividers], $midDividers, $noDividers];
+$labelDividers := If[$viewOption[LabelDividers], $midDividers, $noDividers];
+
+$colViewGridOpts := Seq[
+  GridBoxDividers -> {"Columns" -> $labelDividers, "Rows" -> $itemDividers},
+  RowAlignments -> {{Baseline}},
+  ColumnAlignments -> {{Left}},
   FrameStyle -> GrayLevel[0.5],
   BaselinePosition -> {{1, 1}, Baseline},
-  RowMinHeight -> 1.2, ColumnSpacings -> 1.2
+  RowMinHeight -> 1.2,
+  ColumnSpacings -> 1.2 * $viewOption[LabelSpacing],
+  RowSpacings -> 1.2 * $viewOption[ItemSpacing]
 ];
 
 (**************************************************************************************************)
@@ -342,7 +422,7 @@ deferSub[f_, i_] := Apply[Defer, MakeHoldComplete[f, i]];
 
 (**************************************************************************************************)
 
-DeclareHoldAll[makeBrowseArrowBoxes, makeStandardBrowseArrowBoxes]
+SetHoldA[makeBrowseArrowBoxes, makeStandardBrowseArrowBoxes]
 
 makeStandardBrowseArrowBoxes[i_, n_, rest___] := makeBrowseArrowBoxes[
   {Auto, "Gray"},
@@ -376,7 +456,7 @@ viewError[] := ThrowMsg["internalViewError"];
 
 (**************************************************************************************************)
 
-DeclareHoldFirst[modInc, modDec];
+SetHoldF[modInc, modDec];
 modInc[var_, n_] := Set[var, Mod[var + 1, n, 1]];
 modDec[var_, n_] := Set[var, Mod[var - 1, n, 1]];
 
@@ -451,7 +531,7 @@ OpenerColumnBox[a_, b_] := With[
 (**************************************************************************************************)
 
 
-DeclareHoldFirst[DynamicProgressBarBox];
+SetHoldF[DynamicProgressBarBox];
 
 DynamicProgressBarBox[{i_, n_}, {w_, h_}, color_:$LightPurple] := mouseMoveBox[
   DeployBox @ GraphicsBox[
@@ -465,7 +545,7 @@ DynamicProgressBarBox[{i_, n_}, {w_, h_}, color_:$LightPurple] := mouseMoveBox[
   ]
 ];
 
-DeclareHoldRest[mouseMoveBox]
+SetHoldR[mouseMoveBox]
 
 mouseMoveBox[box_, body_] := CursorIconBox[
   EventHandlerBox[box, {"MouseClicked" :> body, "MouseDragged" :> body}],
@@ -474,7 +554,7 @@ mouseMoveBox[box_, body_] := CursorIconBox[
 
 (**************************************************************************************************)
 
-DeclareHoldRest[NiceClickBox];
+SetHoldR[NiceClickBox];
 
 NiceClickBox[text_, action_] := NiceClickBox[text, action, Auto];
 NiceClickBox[text_, action_, color_] := ClickBox[buttonBox[text, color], action];

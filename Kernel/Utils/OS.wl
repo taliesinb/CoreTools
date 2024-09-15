@@ -41,7 +41,7 @@ $pathNormalizationRules = {
   StartOfString ~~ "~" :> $HomeDirectory,
   $PathnameSeparator ~~ Except[$PathnameSeparator].. ~~ $PathnameSeparator ~~ ".." ~~ $PathnameSeparator :> $PathnameSeparator,
   $PathnameSeparator ~~ EndOfString :> "",
-  $PathnameSeparator ~~ "." :> ""
+  $PathnameSeparator ~~ "." ~~ $PathnameSeparator :> ""
 };
 
 (* this is important for macOS, which does this implicitly when you use Finder *)
@@ -141,7 +141,7 @@ DeclareStrict[ImportUTF8];
 
 ImportUTF8[path2_String] := Block[{path, bytes},
   path = NormalizePath @ path2;
-  bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
+bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
   Switch[bytes,
     EndOfFile,  "",
     _ByteArray, ByteArrayToString @ bytes,

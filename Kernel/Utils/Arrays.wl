@@ -2,7 +2,7 @@ SystemExports[
   "Function",
     Length2, LengthN, DimensionN,
     SumNormalize, ToStochasticArray,
-    ToPackedReals, ToPackedInts, EnsurePacked, EnsurePackedReals, EnsurePackedInts,
+    EnsurePacked, EnsurePackedReals, EnsurePackedInts,
     ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide, ThreadAnd, ThreadOr, ThreadNot, ThreadMin, ThreadMax,
     ThreadLess, ThreadLessEqual, ThreadGreater, ThreadGreaterEqual, ThreadEqual, ThreadUnequal, ThreadSame, ThreadUnsame,
     Zip, Flip,
@@ -248,14 +248,11 @@ SumNormalize[e_] := e / Total[e];
 
 (**************************************************************************************************)
 
-ToPackedInts[arr_]  := ToPackedArray[arr, Integer];
-ToPackedReals[arr_] := ToPackedArray[N @ arr, Real];
-
 DeclareHoldRest[EnsurePackedReals, EnsurePackedInts, EnsurePacked]
 
-     EnsurePacked[arr_, else_] := Ensure[ToPackedArray[arr],           PackedQ, else];
- EnsurePackedInts[arr_, else_] := Ensure[ToPackedArray[arr, Integer],  PackedQ, else];
-EnsurePackedReals[arr_, else_] := Ensure[ToPackedArray[N @ arr, Real], PackedQ, else];
+     EnsurePacked[arr_, else_] := Ensure[ToPacked[arr],           PackedQ, else];
+ EnsurePackedInts[arr_, else_] := Ensure[ToPacked[arr, Integer],  PackedQ, else];
+EnsurePackedReals[arr_, else_] := Ensure[ToPacked[N @ arr, Real], PackedQ, else];
 
 (*************************************************************************************************)
 

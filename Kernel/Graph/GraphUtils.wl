@@ -17,9 +17,18 @@ SystemExports[
 PackageExports[
   "Function",
     GraphVertexData, GraphEdgeData,
+    IVertexList, IMEdgeList,
   "SymbolicHead",
     DebugRules
 ];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  IVertexList -> IntegerVertexList,
+  IMEdgeList   -> IntegerEdgeList
+];
+
 
 (*************************************************************************************************)
 

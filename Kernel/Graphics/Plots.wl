@@ -102,7 +102,7 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
   If[meshFading =!= None,
     $pixels = ConstList[0., {3, h2, w2}];
     fade = ConstList[1., {3, h2, w2}];
-    ScanIndexed[paintBlockAdditive, ToPackedArray @ array, {2}];
+    ScanIndexed[paintBlockAdditive, ToPacked @ array, {2}];
     Do[multRow[0.5, r * b2 + 1], {r, 1, h - 1}];
     Do[multCol[0.5, c * b2 + 1], {c, 1, w - 1}];
     Do[Part[fade, All, r * b2 + 1, All] = meshFading, {r, 0, h}];

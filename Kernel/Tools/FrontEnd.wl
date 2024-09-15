@@ -8,6 +8,7 @@ SystemExports[
 PackageExports[
   "IOFunction",
     CallFrontEnd,
+    CodeCellData,
     DisableFloatingSymbolPopup,
     PrintInputCell, PrintOutputCell,
     PrintNextCellBoxData, PrintPreviousCellBoxData,
@@ -70,6 +71,18 @@ printCellBoxData[cell_CellObject] := Locals[
   If[Head[cellData] =!= Cell, ReturnFailed[]];
   expr = Replace[First @ cellData, BoxData[b_] :> b];
   CellPrint[ExpressionCell[expr, "Input"]];
+];
+
+(*************************************************************************************************)
+
+CodeCellData[n_Int:1] := Locals[
+  cells = Cells[CellStyle -> "ExternalLanguage"];
+  cell = PartOr[cells, n, $Failed];
+  If[Head[cell] =!= CellObject, ReturnFailed[]];
+  cell = NotebookRead[cell];
+  If[Head[cell] =!= Cell, ReturnFailed[]];
+  boxes = First @ cell;
+  If[StringQ[boxes], boxes, $Failed]
 ];
 
 (*************************************************************************************************)

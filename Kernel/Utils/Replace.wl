@@ -18,6 +18,9 @@ SystemExports[
     ReplaceAllWithin,
     FnRule,
     MatchFn,
+    ExtractSpans, ReplaceSpans,
+    LiteralSequenceReplace,
+    LiteralSequenceReplaceRepeated,
 
   "Head",
     ExprPath
@@ -159,4 +162,55 @@ toRepLHS = CaseOf[
   rules_List := Alternatives @@ Map[toRepLHS, rules];
   lhs_ -> _  := lhs;
   lhs_ :> _  := lhs;
+];
+
+(*************************************************************************************************)
+
+SetStrict @ ExtractSpans;
+
+ExtractSpans[expr_, {}] := {};
+
+ExtractSpans[expr_, {{l_, r_}}] := Part[expr, l;;r];
+
+ExtractSpans[expr_, list_List] := Part[expr, Span[#1, #2]]& @@@ list;
+
+(*************************************************************************************************)
+
+SetStrict @ ReplaceSpans;
+
+ReplaceSpans[expr_, {}, new_] := expr;
+
+ReplaceSpans[expr_, {{l_, r_}}, new_] :=
+  Join[Take[expr, l-1], new, Drop[expr, r]];
+
+ReplaceSpans[expr_, spans_List, new_] := Locals[
+  $expr = expr;
+  Scan[Fn[Part[$expr, #] = $dum[]], Span @@@ spans];
+  Part[$expr, Part[spans, All, 1]] = $dum @@ new;
+  Flatten[$expr, 1, $dum]
+]
+
+(*************************************************************************************************)
+
+SetStrict @ LiteralSequenceReplace;
+
+LiteralSequenceReplace[expr_, patt_, new_] :=
+  ReplaceSpans[expr, SublistPosition[expr, patt, Infinity, False], new];
+
+(*************************************************************************************************)
+
+SetStrict @ LiteralSequenceReplaceRepeated;
+
+LiteralSequenceReplaceRepeated[expr_, {}] := expr;
+LiteralSequenceReplaceRepeated[expr2_, rules_List] := Locals[
+  expr = expr2; n = 0;
+  Label[restart];
+  If[n > 8, Abort[]];
+  Scan[rule |-> If[Len[expr] >= Len[lhs = P1 @ rule],
+    spans = pos = SublistPosition[expr, P1 @ rule, Infinity, False];
+    expr = ReplaceSpans[old = expr, spans, P2 @ rule];
+    If[NotEmptyQ[pos] && expr =!= old, n++; Goto[restart]]],
+    rules
+  ];
+  expr
 ];

@@ -2,8 +2,9 @@ PackageExports[
   "Function",
     FindArrayType,
     FindExprType,
-    RandomArray, RandomElement,
+    RandomArray, RandomElement, RandomLength,
     SparseArrayDomain,
+
   "TypeSymbol",
     Strings, Symbols, Numbers, Probabilities, NegativeLogProbabilities, Expressions, Datums, Atoms,
     ExtendedReals, ExtendedNonNegativeReals,
@@ -21,7 +22,13 @@ PackageExports[
     $ScalarDomains,
   "PatternSymbol",
     ScalarDomainP, ArrayDomainP, CompoundDomainP, DomainP,
-  "BoxFunction", DomainLetterBox
+  "BoxFunction", DomainLetterBox,
+  "OptionSymbol", ListLength
+];
+
+PackageExports[
+  "Function",
+    RandLen, RandArr, Rand
 ];
 
 PrivateExports[
@@ -55,6 +62,9 @@ DefinePatternRules[
 ];
 
 DefineAliasRules[
+  RandLen     -> RandomLength,
+  RandArr     -> RandomArray,
+  Rand        -> RandomElement,
   Exprs       -> Expressions,
   Probs       -> Probabilities,
   Bools       -> Booleans,
@@ -215,17 +225,32 @@ SemiringFor = CaseOf[
 
 DeclareStrict[RandomArray, RandomElement]
 
-RandomArray[type_ ? ArrayDomainQ] := CatchMessages @ iRandArray @ type;
-RandomElement[type_ ? DomainQ] := CatchMessages @ iRandElem @ type;
+$randLen = 5.0;
 
-iRandArray = CaseOf[
-  NumericArraysOf[type_, dims_]    := NumericArray @ $ @ PackedArraysOf[dims, type];
-  PackedArraysOf[type_, dims_]     := $typeToRandFn[type] @ dims;
-  ArraysOf[type_, dims_] := If[
-    ScalarDomainQ @ type,
-    $typeToRandFn[type] @ dims,
-    ArrayTable[iRandElem @ type, dims]
-  ];
+Options[RandomArray] = Options[RandomElement] = {
+  ListLength -> $randLen
+};
+
+RandomArray[type_, shape:NatP...] := RandomArray[type, {shape}];
+RandomArray[type_, shape:NatVecP] := RandomArray[ArraysOf[type, shape]];
+RandomArray[type_ ? ArrayDomainQ] := CatchMessages @ iRandArray @ type;
+
+RandomElement[type_ ? DomainQ]           := CatchMessages @ iRandElem @ type;
+RandomElement[type_ ? DomainQ, num:NatP] := CatchMessages @ iRandArray @ ArraysOf[type, num];
+
+RandomArray[args___, ListLength -> len_]   := BlockSet[$randLen, len, RandomArray @ args];
+RandomElement[args___, ListLength -> len_] := BlockSet[$randLen, len, RandomElement @ args];
+
+(* TODO: allow for *asking* for unpacked arrays *)
+
+iRandArray[e_] := iRandArray1[e /. PackedArraysOf -> ArraysOf];
+
+iRandArray1 = CaseOf[
+  NumericArraysOf[t_, d_]          := NumericArray @ $ @ ArraysOf[d, t];
+  ArraysOf[ArraysOf[t_, d1_], d2_] := $ @ ArraysOf[t, Join[d2, d1]];
+  ArraysOf[t:PackingDomainP, d_]   := ToPacked @ $typeToRandFn[t] @ d;
+  ArraysOf[t:ScalarDomainP, d_]    := $typeToRandFn[t] @ d;
+  ArraysOf[t_, d_]                 := ArrayTable[iRandElem @ t, d];
 ];
 
 (* TODO: introduce clipping to ensure we hit zero for PositiveReals etc *)
@@ -254,16 +279,28 @@ $typeToRandFn = UDict[
   Symbols             -> RandomSymbol
 ];
 
+RandLen = CaseOf[
+  r:RealP    := RandomGeometric @ r;
+  b:Nat2P    := RandomInteger @ b;
+  i:NatP     := i;
+  $[]        := $ @ $randLen
+];
+
+decLen[r:RealP] := Ceiling[r/2];
+decLen[n_]      := n;
+
+blockDecLen[body_] := Block[{$randLen = decLen @ $randLen}, body];
+
 iRandElem = CaseOf[
   t:ArrayDomainP    := iRandArray @ t;
-  ListsOf[t_]       := Table[$ @ t, RandomGeometric @ 5];
+  ListsOf[t_]       := blockDecLen @ ArrayTable[$ @ t, RandLen[]];
   OptionalOf[t_]    := CoinToss[$ @ t, None];
   TuplesOf[ts_]     := Map[$, ts];
   RecordsOf[k_, v_] := DictThread[k, Map[$, v]];
   RulesOf[kt_, vt_] := Rule[$ @ kt, $ @ vt];
   DictsOf[kt_, vt_] := Locals[
-    n = RandomGeometric[5];
-    DictThread[Table[$ @ kt, n], Table[$ @ vt, n]]
+    n = RandLen[];
+    blockDecLen @ DictThread[ArrayTable[$ @ kt, n], ArrayTable[$ @ vt, n]]
   ];
   AnyOf[alts_List]  := $ @ RandomChoice @ alts;
   sym_Sym ? ScalarDomainQ := $typeToRandFn[sym][{}];
@@ -515,7 +552,7 @@ singleRecordType[dict_Dict]  := kvType[Id, Map[singleType], dict];
 (*************************************************************************************************)
 
 DeclareCurry1[tryHeteroType];
-tryHeteroType[list_, ListsOf[Exprs]]              := singleTupleType @ list;
+tryHeteroType[list_, ListsOf[Exprs]]                := singleTupleType @ list;
 tryHeteroType[dict_, DictsOf[Strings|Exprs, Exprs]] := singleRecordType @ dict;
 tryHeteroType[_, type_] := type;
 

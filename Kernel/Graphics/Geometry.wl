@@ -40,7 +40,7 @@ setupRotFunc[sym_, angle_, cw_] := With[
   {matrix = RotationMatrix @ (If[cw, angle, -angle] * Degree)},
   {nmatrix = ToPackedReals @ N @ matrix},
   sym[vec_List]                          := Dot[vec, matrix];
-  sym[vec_List] /; ArrayQ[vec, _, RealQ] := Dot[ToPackedArray[vec, Real], nmatrix];
+  sym[vec_List] /; ArrayQ[vec, _, RealQ] := Dot[ToPacked[vec, Real], nmatrix];
 ];
 
 setupRotFunc @@@ {

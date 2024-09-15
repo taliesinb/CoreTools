@@ -1,7 +1,7 @@
 PackageExports[
   "BoxFunction",
     RBox,
-    SpacerBox, RaiseBox, LowerBox, MarginBox, ColumnBox,
+    SpacerBox, RaiseBox, LowerBox, MarginBox, HMarginBox, VMarginBox, ColumnBox,
     SpanStyleBox, TightBox, NiceTooltipBox, SkeletonBox,
     FnRowBox, FnBracketRowBox, FnParenRowBox, FnBracketBoxOp, FnParenBoxOp,
     DelimitedRBox,   RiffledRBox,   SpaceRBox,   CommaRBox,   ColonRBox,   SColonRBox,   ArrowRBox,   BraceRBox,   AngleRBox,   ParenRBox,   BracketRBox,   DBracketRBox,   AssocRBox,
@@ -18,6 +18,7 @@ PackageExports[
     UnderBraceBox, OverBraceBox, UnderBracketBox, OverBracketBox, UnderParenBox, OverParenBox,
     TextIconBox, NamedTextIconBox,
     CodeStyleBox,
+    BoldSyntaxBox,
   "FormHead",
     RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
     DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
@@ -28,6 +29,7 @@ PackageExports[
     ClickForm, ClickFormOp,
     FlattenStyle, BuryStyle,
     CodeStyle,
+    BoldSyntaxForm,
   "Operator",
     FormBurrowing, BoxBurrowing,
     StyleOp, StyleBoxOp,
@@ -153,13 +155,16 @@ MarginBox[boxes_, {l_, r_}, {b_, t_}, bl_] :=
 
 MarginBox[padding_][boxes_] := MarginBox[boxes, padding];
 
-DeclareCurry2[RaiseBox, LowerBox];
+DeclareCurry2[RaiseBox, LowerBox, VMarginBox, HMarginBox];
 
 RaiseBox[e_, n_] :=
   AdjustmentBox[e, BoxBaselineShift -> -n];
 
 LowerBox[e_, n_] :=
   AdjustmentBox[e, BoxBaselineShift -> n];
+
+VMarginBox[boxes_, {b_, t_}] := AdjustmentBox[boxes, BoxMargins -> {{0, 0}, {b, t}}];
+HMarginBox[boxes_, {l_, r_}] := AdjustmentBox[boxes, BoxMargins -> {{l, r}, {0, 0}}];
 
 (**************************************************************************************************)
 
@@ -481,4 +486,11 @@ TextIconBox[boxes_, bounds_, baseImageSize_, background_, bshift_, pad:{{l_, r_}
     BoxBaselineShift -> (-bshift / Round @ CurrentValue[FontSize])
   ], TrackedSymbols :> {}
 ];
+
+(**************************************************************************************************)
+
+CoreBoxes[BoldSyntaxForm[expr_]] := BoxBurrowing[BoldSyntaxBox] @ MakeBoxes[expr];
+
+BoldSyntaxBox[RowBox[{a_, syn_Str, b_}]] := RowBox[{a, " ", BoldBox[syn], " ", b}];
+BoldSyntaxBox[boxes_] := boxes;
 

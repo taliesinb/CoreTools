@@ -106,7 +106,7 @@ iHasBoxDefsQ[s_] := VContainsQ[$cachedBoxFormattingSymbols, NoEval @ s];
 $cachedBoxFormattingSymbols := $cachedBoxFormattingSymbols = $BoxFormattingSymbols;
 
 $BoxFormattingSymbols := Union @ DelCases[$Failed] @ Map[getFmtTarget] @ Keys @ $BoxFormattingRules;
-$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes];
+$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes, DownValues @ MakeCoreBoxes];
 
 (**************************************************************************************************)
 

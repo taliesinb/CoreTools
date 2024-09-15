@@ -108,9 +108,9 @@ DefineOperator2Rules[
   DotRightOp -> Dot
 ]
 
-AffineOp[matrix_] := DotRightOp[Transpose @ ToPackedArray @ matrix];
-AffineOp[matrix_, {(0|0.)..}] := DotRightOp @ Transpose @ ToPackedArray @ matrix;
-AffineOp[matrix_, vector_] := DotRightOp[Transpose @ ToPackedArray @ matrix, vector];
+AffineOp[matrix_] := DotRightOp[Transpose @ ToPacked @ matrix];
+AffineOp[matrix_, {(0|0.)..}] := DotRightOp @ Transpose @ ToPacked @ matrix;
+AffineOp[matrix_, vector_] := DotRightOp[Transpose @ ToPacked @ matrix, vector];
 
 (**************************************************************************************************)
 

@@ -32,13 +32,13 @@ MakeMultigraph[head_Symbol, vertices2_, multiedges_, opts___Rule] := Locals @ Ca
 
   $vertexNameIndex = DictRange @ vertices; (* dict of vertex names to integer index *)
   If[Len[$vertexNameIndex] < Len[vertices], ThrowMsg["duplicateMultigraphVertices"]];
-  $parseVertexName = KeyIndex[$vertexNameIndex];
+  $parseVertexName = InternTo[$vertexNameIndex];
 
   $fieldNameIndex = Dict[]; (* <- dict of non-unique field name to integer index *)
-  $parseFieldName = KeyIndex[$fieldNameIndex];
+  $parseFieldName = InternTo[$fieldNameIndex];
 
   $edgeNameIndex = Dict[]; (* <- dict of unique edge names to integer index *)
-  $parseEdgeName = KeyIndexUnique[$edgeNameIndex, ThrowMsg["duplicateMultiedges", #]&];
+  $parseEdgeName = InternUniqueTo[$edgeNameIndex, ThrowMsg["duplicateMultiedges", #]&];
 
   Collecting[{
     $meInputs,  (* edge-ordered list of {vindex...} *)
