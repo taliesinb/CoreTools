@@ -3,7 +3,7 @@ SystemExports[
     Length2, LengthN, DimensionN,
     SumNormalize, ToStochasticArray,
     EnsurePacked, EnsurePackedReals, EnsurePackedInts,
-    ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide, ThreadAnd, ThreadOr, ThreadNot, ThreadMin, ThreadMax,
+    ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide, ThreadAnd, ThreadOr, ThreadNot, ThreadMin, ThreadMax, ThreadMinMax,
     ThreadLess, ThreadLessEqual, ThreadGreater, ThreadGreaterEqual, ThreadEqual, ThreadUnequal, ThreadSame, ThreadUnsame,
     Zip, Flip,
     MoveAxis, DotAxis,
@@ -14,7 +14,7 @@ SystemExports[
     Ones, Zeros, Eye,
     ToRowVector, ToColumnVector,
     FlatSum, FlatProduct,
-  "ControlFlowFunction",
+  "ControlFlow",
     ArrayTable,
   "SymbolicHead",
     Broadcast,
@@ -33,7 +33,7 @@ PackageExports[
   "SymbolicHead",        Broad,
   "Predicate",           BroadQ, BSameShapeQ,
   "Function",            BDims, LikeB, BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
-  "ControlFlowFunction", BSeq, BVal, BSeqN
+  "ControlFlow",         BSeq, BVal, BSeqN
 ];
 
 (**************************************************************************************************)
@@ -189,12 +189,12 @@ FromBroadcastRows[matrix_List, n:Blank01] :=
 
 (**************************************************************************************************)
 
-DeclareStrict[ToRowVector, ToColumnVector]
+SetStrict[ToRowVector, ToColumnVector]
 
 ToRowVector[e_List]    := List @ e;
 ToColumnVector[e_List] := Map[List, e];
 
-DeclareHoldFirst[ArrayTable]
+SetHoldF[ArrayTable]
 
 ArrayTable[body_]                 := body;
 ArrayTable[body_, shape__Int]     := Array[ThenOp[body], shape];
@@ -213,7 +213,7 @@ CoreBoxes[SymbolicDot] := "\[Bullet]";
 
 (**************************************************************************************************)
 
-DeclareStrict[ThrowRealArrayMsg]
+SetStrict[ThrowRealArrayMsg]
 
 ThrowRealArrayMsg[array_, d_Int] := ThrowRealArrayMsg[array, {d, d}];
 ThrowRealArrayMsg[array_, {minD_Int, maxD_Int}] := Module[
@@ -248,7 +248,7 @@ SumNormalize[e_] := e / Total[e];
 
 (**************************************************************************************************)
 
-DeclareHoldRest[EnsurePackedReals, EnsurePackedInts, EnsurePacked]
+SetHoldR[EnsurePackedReals, EnsurePackedInts, EnsurePacked]
 
      EnsurePacked[arr_, else_] := Ensure[ToPacked[arr],           PackedQ, else];
  EnsurePackedInts[arr_, else_] := Ensure[ToPacked[arr, Integer],  PackedQ, else];
@@ -256,7 +256,7 @@ EnsurePackedReals[arr_, else_] := Ensure[ToPacked[N @ arr, Real], PackedQ, else]
 
 (*************************************************************************************************)
 
-DeclareCurry1[ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide]
+SetCurry1[ThreadPlus, ThreadTimes, ThreadSubtract, ThreadDivide]
 
 ThreadPlus[a_, b_]     := Threaded[a] + b;
 ThreadTimes[a_, b_]    := Threaded[a] * b;
@@ -271,7 +271,7 @@ ThreadNot[arg_List] := Map[Not, arg];
 
 (**************************************************************************************************)
 
-DeclareListable[ThreadMin, ThreadMax]
+SetListable[ThreadMin, ThreadMax]
 
 ThreadMin[a__] := Min[a];
 ThreadMax[a__] := Max[a];
@@ -289,7 +289,7 @@ ThreadUnsame[lists___]       := MapThread[UnsameQ, {lists}];
 
 (*************************************************************************************************)
 
-DeclareStrict[Zip];
+SetStrict[Zip];
 
 Zip[seq___List] := Transpose[{seq}];
 
@@ -303,7 +303,7 @@ Flip = Transpose;
 `MoveAxis[c, i -> j]` sends axis `i` to axis `j`.
 *)
 
-DeclareCurry2[MoveAxis]
+SetCurry2[MoveAxis]
 
 MoveAxis[arr_, s_ -> s_] := arr;
 MoveAxis[arr_, 1 -> -1]  := OutermostToInnermost @ arr;
@@ -368,7 +368,7 @@ FormalSymbolArray[dims_, offset_:0] := Block[{n = 0 + offset}, Array[Symbol @ Fr
 
 (**************************************************************************************************)
 
-DeclareStrict[SparseRules]
+SetStrict[SparseRules]
 
 SparseRules[{} | <||>, sz_] := SparseArray[{}, sz];
 
@@ -388,7 +388,7 @@ sumRules[rules_] := Normal @ Merge[rules, Total];
 
 (**************************************************************************************************)
 
-DeclareStrict[SparseRows]
+SetStrict[SparseRows]
 
 SparseRows[rowSpecs_List, n_Int] := SparseArray[
   Flatten @ MapP[rowSpecToFullSpec, rowSpecs],
@@ -411,7 +411,7 @@ rowSpecToFullSpec[col_Int, row_] := {{row, col} -> 1};
 
 (**************************************************************************************************)
 
-DeclareStrict[SparseColumns]
+SetStrict[SparseColumns]
 
 SparseColumns[args___] := Transpose @ SparseRows[args];
 

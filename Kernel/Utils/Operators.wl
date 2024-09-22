@@ -98,7 +98,7 @@ DefineOperator1Rules[
 
 (**************************************************************************************************)
 
-DeclareListableOperator[
+SetListableOp[
   DotOp, DotRightOp,
   TimesOp, DivideOp, PlusOp, SubtractOp,
   ThreadTimesOp, ThreadDivideOp, ThreadPlusOp, ThreadSubtractOp
@@ -222,11 +222,11 @@ RiffleOp[r_][list_] := Riffle[list, r];
 
 (**************************************************************************************************)
 
-DeclareHoldFirst[ArrayTableOp]
+SetHoldF[ArrayTableOp]
 
 ArrayTableOp[body_][args___] := ArrayTable[body, args];
 
-DeclareHoldAll[ThenOp]
+SetHoldA[ThenOp]
 
 ThenOp[body___][___] := Then[body];
 

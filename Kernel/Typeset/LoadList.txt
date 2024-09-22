@@ -1,4 +1,5 @@
 BoxDefs.wl
 CodeBoxes.wl
+ExprBoxes.wl
 Views.wl
 Layouts.wl

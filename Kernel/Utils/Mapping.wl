@@ -29,8 +29,8 @@ PackageExports[
 
 (*************************************************************************************************)
 
-DeclareHoldRest[UniqueValue, UniqueValueBy];
-DeclareHoldFirst[iUniqueValue];
+SetHoldR[UniqueValue, UniqueValueBy];
+SetHoldF[iUniqueValue];
 
 UniqueValue[list_, else_:None]        := iUniqueValue[else, list];
 UniqueValueBy[list_, fn_, else_:None] := iUniqueValue[else, fn /@ list];
@@ -42,7 +42,7 @@ iUniqueValue[else_, list_List] := Replace[Union @ list, {{u_} :> u, _ :> else}];
 
 (*************************************************************************************************)
 
-DeclareCurry1[MapValues, MapValuesP]
+SetCurry1[MapValues, MapValuesP]
 
 MapValues[f_, list_List] := Map[f, list];
 MapValues[f_, dict_Dict] := Map[f, Values @ dict];
@@ -54,7 +54,7 @@ MapValuesP[f_, expr_]     := MapValuesP[f, Level[expr, 1]];
 
 (*************************************************************************************************)
 
-DeclareCurry12[ListDictMap]
+SetCurry12[ListDictMap]
 
 ListDictMap[fl_, fd_, expr_List] := Map[fl, expr];
 ListDictMap[fl_, fd_, expr_Dict] := KeyValueMap[fd, expr];
@@ -63,7 +63,7 @@ ListDictMap::notListOrAssociation = "`` must be a list or an association.";
 
 (*************************************************************************************************)
 
-DeclareCurry2[VectorReplace]
+SetCurry2[VectorReplace]
 
 VectorReplace[vector_, rule_] := Replace[vector, rule, {1}];
 
@@ -75,7 +75,7 @@ MapIndex::usage =
 * an index that doesn't exist is skipped.
 * None does nothing.";
 
-DeclareCurry12[MapIndex]
+SetCurry12[MapIndex]
 
 MapIndex = CaseOf[
   $[f_, None, expr_]           := expr;
@@ -89,7 +89,7 @@ MapIndices::usage =
 * indices can be All, Span[$$], or List[p$1, p$2, $$].
 * indices that don't exist are skipped.";
 
-DeclareCurry12[MapIndices]
+SetCurry12[MapIndices]
 
 MapIndices = CaseOf[
   $[f_, {}, expr_]         := expr;
@@ -167,7 +167,7 @@ safeMapAtMulti[f_, parts_, expr_] := FastQuietCheck[
 
 (**************************************************************************************************)
 
-DeclareCurry1[MapEnds, MapFirst, MapLast, MapMost, MapRest]
+SetCurry1[MapEnds, MapFirst, MapLast, MapMost, MapRest]
 
 MapEnds[f_, expr_ ? EmptyQ]  := expr;
 MapEnds[f_, expr_ ? SingleQ] := Map[f, expr];
@@ -176,9 +176,9 @@ MapEnds[f_, expr_] := MapAt[f, expr, {{1}, {-1}}];
 MapFirst[f_, expr_] := safeMapAt[f, 1, expr];
 MapLast[f_, expr_]  := safeMapAt[f, -1, expr];
 MapMost[f_, expr_]  := safeMapAt[f, 1;;-2, expr];
-MapRest[f_, expr_]  := safeMapAt[f, 2;; 1, expr];
+MapRest[f_, expr_]  := safeMapAt[f, 2;;-1, expr];
 
-DeclareCurry12[MapFirstRest, MapMostLast, MapFirstLast]
+SetCurry12[MapFirstRest, MapMostLast, MapFirstLast]
 
 MapFirstRest[f_, g_, expr_] := safeMapAt[g, 2;;-1, safeMapAt[f, 1, expr]];
 MapMostLast[f_, g_, expr_]  := safeMapAt[f, 1;;-2, safeMapAt[g, -1, expr]];
@@ -189,14 +189,14 @@ safeMapAt[f_, part_, expr_] := FastQuietCheck[MapAt[f, expr, part], expr];
 
 (**************************************************************************************************)
 
-DeclareCurry1[Map2]
+SetCurry1[Map2]
 
 Map2[f_, matrix_] := Map[f, matrix, {2}];
 
 (**************************************************************************************************)
 
-DeclareCurry12[MapCol]
-DeclareCurry1[MapCol1, MapCol2, MapCol3];
+SetCurry12[MapCol]
+SetCurry1[MapCol1, MapCol2, MapCol3];
 
 MapCol[f_, n_Integer, arr_] := MapAt[f, arr, {All, n}];
 
@@ -206,8 +206,8 @@ MapCol3[f_, arr_] := MapAt[f, arr, {All, 3}];
 
 (**************************************************************************************************)
 
-DeclareCurry12[MapRow]
-DeclareCurry1[MapRow1, MapRow2, MapRow3];
+SetCurry12[MapRow]
+SetCurry1[MapRow1, MapRow2, MapRow3];
 
 MapRow[f_, n_Integer, arr_] := MapAt[f, arr, {n, All}];
 
@@ -251,7 +251,7 @@ EnsureNiceMessage[res_] := res;
 (**************************************************************************************************)
 
 (* goes along with Comap *)
-DeclareCurry1[Bimap, MaybeMap, MapFlip]
+SetCurry1[Bimap, MaybeMap, MapFlip]
 
 Bimap[f_, a_, b__] := EnsureNiceMessage @ MapThread[Construct, {f, a, b}];
 Bimap[f_, a_]      := EnsureNiceMessage @ MapThread[Construct, {f, a}];
@@ -268,7 +268,7 @@ MapFlip::notRectangular = "The second argument was not rectangular: ``."
 
 (**************************************************************************************************)
 
-DeclareCurry1[ScanIndexed]
+SetCurry1[ScanIndexed]
 
 (* TODO: there is a weakness here, which is that if the outer heads are held, the map
 won't evaluate, and if they arne't, they *will* evaluate, with Nulls in them!
@@ -284,7 +284,7 @@ ScanIndexed[f_, expr_, level_] := Module[
 
 (**************************************************************************************************)
 
-DeclareCurry1[ScanP, MapP]
+SetCurry1[ScanP, MapP]
 
 ScanP[f_, expr_]        := Module[{i = 1}, Scan[v |-> f[v, i++], expr]];
 ScanP[f_, dict_Dict]    := (AssocScanWhileQ[dict, kvFn[f]];)
@@ -295,13 +295,13 @@ MapP[f_, dict_Dict]     := MapIndexed[{v, i} |-> f[v, P11 @ i], dict];
 
 (**************************************************************************************************)
 
-DeclareCurry1[ScanApply]
+SetCurry1[ScanApply]
 
 ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFn @ f, expr];
 
 (**************************************************************************************************)
 
-DeclareHoldFirst @ DeclareCurry12[PathScanP, PathMapP, PathScan, PathMap]
+SetHoldF @ SetCurry12[PathScanP, PathMapP, PathScan, PathMap]
 
 PathScanP::usage =
 "PathScanP[stackSymbol, fn, expr] is like ScanP, but appends the current part it is visiting onto stackSymbol."
@@ -323,7 +323,7 @@ PathMap[s_, f_, dict_Dict]  := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s
 RangeArray[n_Integer]               := Range[n];
 RangeArray[ns:{__Integer}]          := Array[List, ns];
 
-DeclareCurry2[Dimension, IndexArray, IndexList]
+SetCurry2[Dimension, IndexArray, IndexList]
 
 Dimension[All, array_]                   := Dimensions @ array;
 Dimension[n_Integer, array_]             := Part[Dimensions[array], n];
@@ -339,7 +339,7 @@ DefineAliasRules[Dim -> Dimension]
 
 (**************************************************************************************************)
 
-DeclareCurry1[MapLeaves, ApplyLastAxis, MapLastAxis]
+SetCurry1[MapLeaves, ApplyLastAxis, MapLastAxis]
 
 MapLeaves[f_, arr_]     := Map[f, arr, {-1}];
 ApplyLastAxis[f_, arr_] := Apply[f, arr, {-2}];
@@ -347,7 +347,7 @@ MapLastAxis[f_, arr_]   := Map[f, arr, {-2}];
 
 (**************************************************************************************************)
 
-DeclareCurry12[MapAxis, MapAxisP, ScanAxisP, ApplyAxis]
+SetCurry12[MapAxis, MapAxisP, ScanAxisP, ApplyAxis]
 
 prep[e_, p_] := Prepend[p, e];
 

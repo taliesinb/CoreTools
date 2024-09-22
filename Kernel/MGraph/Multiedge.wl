@@ -1,16 +1,25 @@
 PackageExports[
-  "GraphicsFunction", MultiedgeTreePlot
+  "GraphicsFunction", MultiedgeTreePlot, MultiedgeIcon,
+  "BoxFunction", MultiedgeIconBoxes
 ];
 
 PrivateExports[
-  "Variable",      $MultiedgeIconScale,
+  "Variable",      $MultiedgeIconScale, $MultiedgeAutoColoring,
   "CacheVariable", $MultiedgeTreePlotCache
 ];
 
 (**************************************************************************************************)
 
+Initially[
+  $MultiedgeIconScale = 1;
+  $MultiedgeTheme = None;
+  $MultiedgeAutoColoring = True;
+];
+
+(**************************************************************************************************)
+
 CoreBoxes[m:Multiedge[ListDictP, _, ___] ? MultiedgeQ] := MaybeEval @ ClickBox[
-  multiedgeIconBoxes @ m,
+  MultiedgeIconBoxes @ m,
   PrintInputCell @ m
 ];
 
@@ -44,34 +53,47 @@ iMultiedgeTreePlot[m_Multiedge, opts___Rule] := Locals[
 
 nodeShapeFn = CaseOf[
   domain_Symbol ? DomainQ := InsetNode @ CodeStyle @ domain;
-  True       := InsetNode @ "\[FilledCircle]";
-  False      := InsetNode @ "\[EmptyCircle]";
-  sym_Symbol := InsetNode @ CodeStyle[StringTake[SymbolName @ sym, 1], FontWeight -> "Plain"];
-  other_     := "Disk"
+  True                    := InsetNode @ "\[FilledCircle]";
+  False                   := InsetNode @ "\[EmptyCircle]";
+  sym_Symbol              := InsetNode @ CodeStyle[StringTake[SymbolName @ sym, 1], FontWeight -> "Plain"];
+  Style[e_, _]            := $ @ e;
+  other_                  := "Disk"
 ];
 
 toNodeSort = CaseOf[
   Multiedge[i_, o_]     := o;
   Multiedge[i_, o_, n_] := o;
+  Style[e_, _]          := $ @ e;
   other_                := other;
 ];
 
 toNodeTooltip = CaseOf[
   Multiedge[i_, o_]     := Multiedge[toNodeSort /@ i, o];
   Multiedge[i_, o_, n_] := Multiedge[toNodeSort /@ i, o, n];
+  Style[e_, _]          := $ @ e;
   other_                := other;
 ];
 
 toNodeColor = CaseOf[
-  m_Multiedge := MultigraphEdgeColor @ m;
-  v_          := MultigraphVertexColor @ v;
+  m_Multiedge        := If[$MultiedgeAutoColoring, MultigraphEdgeColor @ m, $Gray];
+  v_                 := If[$MultiedgeAutoColoring, MultigraphVertexColor @ v, $Gray];
+  Style[_, c:ColorP] := c;
 ];
 
 (**************************************************************************************************)
 
-$MultiedgeIconScale = 1;
+MultiedgeIcon[m_Multiedge, scale_:1] := RawBoxes @ MultiedgeIconBoxes[m, scale];
 
-multiedgeIconBoxes = CaseOf[
+MultiedgeIconBoxes[m_Multiedge, scale_:1.] := Block[
+  {$MultiedgeAutoColoring = $MultiedgeAutoColoring && VFreeQ[m, Keyed],
+   $MultiedgeIconScale = scale},
+  iconBoxes @ If[$MultiedgeAutoColoring, m, ColorDuplicates[m, Keyed[_, k_] :> k]]
+];
+
+(**************************************************************************************************)
+
+iconBoxes = CaseOf[
+  m:Multiedge[{___Multiedge}, _Multiedge, ___] := twoDimMultiedgeIconBoxes @ m;
   m:Multiedge[_, _]        := edgeTreeBoxes[m, $MultiedgeIconScale];
   m:Multiedge[_, _, name_] := ColumnBox[
     {edgeNameBoxes[name, $MultiedgeIconScale],
@@ -94,6 +116,21 @@ edgeTreeBoxes[m_Multiedge, scale_] :=
     GraphScale -> 15 * scale,
     NodeSize -> 6 * scale, FontSize -> 10 * scale, EdgeThickness -> 1.2 * scale
   ];
+
+(**************************************************************************************************)
+
+twoDimArrowBox[None] := "\[LeftTeeArrow]";
+twoDimArrowBox[name_] := OverscriptBox["\[LeftTeeArrow]",
+  HMarginBox[edgeNameBoxes[name, $MultiedgeIconScale], {.5, .5}]
+];
+
+twoDimMultiedgeIconBoxes = CaseOf[
+  Multiedge[doms_, cod_, name_:None] := RBox[
+    PaneBox[iconBoxes @ cod, ImageSize -> {{50, Automatic}, All}, Alignment -> Center],
+    twoDimArrowBox @ name,
+    If[doms === {}, "\[CenterDot]", Splice @ Riffle[MapVals[iconBoxes, doms], " "]]
+  ];
+];
 
 (**************************************************************************************************)
 

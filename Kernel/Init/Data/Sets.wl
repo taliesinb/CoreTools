@@ -10,11 +10,13 @@ SystemExports[
     SetSelect,
     SetJoin, SetUnion, SetIntersection, SetComplement,
     SetLookup,
+    LookupSet, SetKeyTake, SetKeyDrop,
     SetFilter,
     SetAdd,
   "MutatingFunction",
     SetUnionTo, SetAddTo,
   "Predicate",
+    SetEmptyQ, SetNonEmptyQ,
     SetHasQ, SameSetElemsQ, SetSubsetOfQ, SetSupersetOfQ, SetIntersectsQ, SetNotIntersectsQ
 ];
 
@@ -27,7 +29,7 @@ PackageExports[
     SetInter, SetCompl,
   "BoxFunction",     SetBoxes,
   "Symbol",          EmptyUSet, EmptyOSet, EmptyMSet,
-  "PatternSymbol",   USetP, OSetP, MSetP, ASetP, SetSymP,
+  "PatternSymbol",   USetP, OSetP, MSetP, ASetP, SetSymP, ESetP,
   "PatternHead",     USetD, OSetD, MSetD, ASetD,
   "SpecialFunction", MakeOSet, MakeUSet, MakeMSet
 ];
@@ -57,7 +59,8 @@ DefinePatternRules[
   USetP   -> _USet ? SealedQ,
   OSetP   -> _OSet ? SealedQ,
   MSetP   -> _MSet ? SealedQ,
-  ASetP   -> (_OSet | _USet | _MSet) ? SealedQ
+  ASetP   -> (_OSet | _USet | _MSet) ? SealedQ,
+  ESetP   -> _Sym[_ ? UnsafeEmptyQ] ? SealedQ  (* permissive, but fast *)
 ];
 
 AllowRHSPatterns[
@@ -187,6 +190,14 @@ DefineSetNaryImpl[sym_, usym_, osym_, msym_] := Then[
 
 (*************************************************************************************************)
 
+DefineSetDispatch1[EmptyQ, SetEmptyQ];
+DefineSetDispatch1[NonEmptyQ, SetNonEmptyQ];
+
+SetEmptyQ[SetSymP[a_]] := EmptyQ @ a;
+SetNonEmptyQ[SetSymP[a_]] := NonEmptyQ @ a;
+
+(*************************************************************************************************)
+
 DefineSetDispatch1[Len, SetLen];
 
 SetLen[USet[a_]] := Len @ a;
@@ -200,6 +211,10 @@ DefineSetDispatch1[Normal, SetElems];
 SetElems[USet[a_]] := Keys @ a;
 SetElems[OSet[a_]] := Keys @ a;
 SetElems[MSet[a_]] := KeyValueMap[repMElem, a];
+
+SetElems[USet[a_], h_] := Keys[a, h];
+SetElems[OSet[a_], h_] := Keys[a, h];
+SetElems[MSet[a_], h_] := KeyValueMap[repMElem, KeyMap[h, a]];
 
 repMElem[k_, 1]  := k;
 repMElem[k_, 0]  := Nothing;
@@ -243,13 +258,15 @@ SetAddTo[sym_Sym, elem_] := If[SetHasQ[sym, elem], True,
 
 SetStrict @ SetHoldF @ SetUnionTo;
 
+SetUnionTo[sym_Sym, {}]        := sym;
+SetUnionTo[sym_Sym, ESetP]     := sym;
 SetUnionTo[sym_Sym, set:ASetP] := sym = fastUnionSetTo[sym, set];
 SetUnionTo[sym_Sym, list_List] := sym = fastUnionListTo[sym, list];
 SetUnionTo[lhs_, rhs_]         := lhs = SetUnion[lhs, rhs];
 
-fastUnionSetTo[USet[a_], HoldP[USet[b_]]] := MakeUSet[Join[a, b]];
-fastUnionSetTo[USet[a_], HoldP[OSet[b_]]] := MakeUSet[Join[a, b]];
-fastUnionSetTo[OSet[a_], HoldP[OSet[b_]]] := MakeOSet[Join[a, b]];
+fastUnionSetTo[USet[a_], USet[b_]] := MakeUSet[Join[a, b]];
+fastUnionSetTo[USet[a_], OSet[b_]] := MakeUSet[Join[a, b]];
+fastUnionSetTo[OSet[a_], OSet[b_]] := MakeOSet[Join[a, b]];
 fastUnionSetTo[a:ASetP, b_] := SetUnion[a, b];
 fastUnionSetTo[a_, b_] := Message[SetUnionTo::badset, b, a];
 
@@ -265,12 +282,18 @@ SetUnionTo::badset = "Trying to add `` to a non-set ``."
 DefineSetDispatch1N[Union, SetUnion];
 DefineSetNaryImpl[SetUnion, uSetUnion, oSetUnion, mSetUnion];
 
+uSetUnion[EmptyUSet, b_USet] := b;
+uSetUnion[a_USet, EmptyUSet] := a;
 uSetUnion[_[a_], USet[b_]] := MakeUSet @ Join[a, b];
 uSetUnion[_[a_], b__]      := MakeUSet @ ToUSetDict @ ArgList[a, b];
 
+oSetUnion[EmptyOSet, b_OSet] := b;
+uSetUnion[a_OSet, EmptyOSet] := a;
 oSetUnion[_[a_], OSet[b_]] := MakeOSet @ Join[a, b];
 oSetUnion[_[a_], b__]      := MakeOSet @ ToOSetDict @ ArgList[a, b];
 
+mSetUnion[EmptyMSet, b_MSet] := b;
+uSetUnion[a_MSet, EmptyMSet] := a;
 mSetUnion[_[a_], MSet[b_]] := MakeMSet @ UDictPlus[a, b];
 mSetUnion[_[a_], b__]      := MakeMSet @ ToMSetDict @ ArgList[a, b];
 
@@ -279,8 +302,13 @@ mSetUnion[_[a_], b__]      := MakeMSet @ ToMSetDict @ ArgList[a, b];
 DefineSetDispatch1N[Inter, SetInter];
 DefineSetNaryImpl[SetInter, uSetInter, oSetInter, mSetInter];
 
+uSetInter[EmptyUSet, ___] := EmptyUSet;
 uSetInter[_[a_], b__] := MakeUSet @ KeyTake[a, SetSupport @ b];
+
+oSetInter[EmptyUSet, ___] := EmptyOSet;
 oSetInter[_[a_], b__] := MakeOSet @ KeyTake[a, SetSupport @ b];
+
+mSetInter[EmptyMSet, ___] := EmptyMSet;
 mSetInter[a_, b__]    := MakeMSet @ DelCases[0] @ msetDictMin @ Map[ToMSetDict, {a, b}];
 
 msetDictMin[list_] := Merge[list, minBy[Len @ list]];
@@ -314,16 +342,34 @@ SetLookup[MSet[a_], e_List] := Lookup[a, e, 0];
 
 (*************************************************************************************************)
 
+DefineSetDispatch2[KeyTake, SetKeyTake];
+DefineSetDispatch2[KeyDrop, SetKeyDrop];
+
+SetKeyTake[dict_, (USet|OSet|MSet)[a_]] := KeyTake[dict, Keys @ a];
+SetKeyDrop[dict_, (USet|OSet|MSet)[a_]] := KeyDrop[dict, Keys @ a];
+
+(*************************************************************************************************)
+
+DefineSetDispatch2[Map, Lookup, LookupSet];
+
+LookupSet[expr_, USet[set_]] := ToUSet @ Lookup[expr, Keys @ set];
+LookupSet[expr_, OSet[set_]] := ToOSet @ Lookup[expr, Keys @ set];
+LookupSet[expr_, MSet[set_]] := ToMSet @ Lookup[expr, Keys @ set];
+
+(*************************************************************************************************)
+
 SetStrict[SetFilter]
 
+SetFilter[ESetP, _]         := {};
 SetFilter[USet[a_], e_List] := Pick[e, Lookup[a, e, False]];
 SetFilter[OSet[a_], e_List] := Pick[e, Lookup[a, e, False]];
-SetFilter[MSet[a_], e_List] := Pick[e, Lookup[a, e, False]];
+SetFilter[MSet[a_], e_List] := Pick[e, Positive /@ Lookup[a, e, 0]];
 
 (*************************************************************************************************)
 
 DefineSetDispatch12[Select, SetSelect];
 
+SetSelect[e:ESetP, _]   := e;
 SetSelect[USet[a_], f_] := MakeUSet @ KeySelect[a, f];
 SetSelect[OSet[a_], f_] := MakeOSet @ KeySelect[a, f];
 SetSelect[MSet[a_], f_] := MakeMSet @ KeySelect[a, f];

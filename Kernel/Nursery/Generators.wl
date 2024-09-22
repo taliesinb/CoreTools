@@ -19,12 +19,12 @@ Generator
 
 *)
 
-DeclareHoldAllComplete[Continuable, CEval, freeze];
+SetHoldC[Continuable, CEval, freeze];
 
 Continuable[e_] := freeze[e];
 
 $moduleId = 0;
-$mutP = ToAltPattern @ $MutatingSymbols;
+$mutP = ToAltP @ $MutatingSymbols;
 freeze = CaseOf[
 
   Module[{vars__Symbol}, body_] := With[

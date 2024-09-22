@@ -77,7 +77,7 @@ procDPlotOptions[head_Symbol, opts_List, opts2___Rule] := Locals[
   If[!MatchQ[colorRules, {Rule[_Integer, ColorP]...}], badDPlotSetting[ColorRules, colorRules]];
   otherData = {scale, paddedSize, padding, plotLabel, colorRules};
 
-  PackAssociation[xScale, yScale, dSelection, dFilter, otherData, imageSize]
+  PackDict[xScale, yScale, dSelection, dFilter, otherData, imageSize]
 ];
 
 _procDOptions := BadArguments[];

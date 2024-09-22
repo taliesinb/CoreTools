@@ -1,15 +1,19 @@
 PackageExports[
   "BoxFunction",
     RBox,
+    LabelTopBox,
     SpacerBox, RaiseBox, LowerBox, MarginBox, HMarginBox, VMarginBox, ColumnBox,
-    SpanStyleBox, TightBox, NiceTooltipBox, SkeletonBox,
+    SpanStyleBox, TightBox, NiceTooltipBox, ErrorTooltipBox, SkeletonBox,
     FnRowBox, FnBracketRowBox, FnParenRowBox, FnBracketBoxOp, FnParenBoxOp,
+    RiffBox,
     DelimitedRBox,   RiffledRBox,   SpaceRBox,   CommaRBox,   ColonRBox,   SColonRBox,   ArrowRBox,   BraceRBox,   AngleRBox,   ParenRBox,   BracketRBox,   DBracketRBox,   AssocRBox,
     DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox, AssocRowBox,
-    DimmedBox, StatusAreaBox, CursorIconBox, LiteralStringBox,
+    GrayBox, DimmedBox,
+    GridBoxRule, RowGridBox, ColGridBox, TightRowGridBox, TightColGridBox,
+    StatusAreaBox, CursorIconBox, LiteralStringBox,
     ApplyEndStyleBox, ApplyIndentBox,
     UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox,
-    FontColorBox, FontSizeBox, FontSizeDeltaBox,
+    FontColorBox, FontSizeBox, FontSizeDeltaBox, FontSizeScaleBox,
     FontBox, RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox,
     RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont,
     VeryLargeBox, LargeBox, MediumBox, SmallBox, VerySmallBox, TinyBox,
@@ -19,11 +23,19 @@ PackageExports[
     TextIconBox, NamedTextIconBox,
     CodeStyleBox,
     BoldSyntaxBox,
+  "FormSymbol",  Comma,      GComma,     CommaS,      GCommaS,       Quad,
+  "BoxSymbol",   CommaB,     GCommaB,    CommaSB,     GCommaSB,      QuadB,
+  "BoxFunction", CommaSBox,  GCommaBox,  GCommaSBox,  RepCommaBox,
+  "FormHead",    CommaSForm, GCommaForm, GCommaSForm, RepCommaForm,
   "FormHead",
-    RaiseForm, LowerForm, MarginForm, RawColumn, RawRow, RawGrid, TightForm, NiceTooltip,
+    LabelTop,
+    RaiseForm, LowerForm, MarginForm, HMarginForm, VMarginForm,
+    RawColumn, RawRow, RawGrid, TightForm, NiceTooltip, ErrorTooltip,
     DelimitedSeq, RiffledSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq, BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
     DelimitedRow, RiffledRow, SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow, BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow,
-    Dimmed, LiteralStringForm, LiteralCommaStringForm,
+    GrayForm, Dimmed,
+    RowGrid, ColGrid, TightRowGrid, TightColGrid,
+    LiteralStringForm, LiteralCommaStringForm,
     UnderlinedForm, ItalicForm, SemiBoldForm, BoldForm, PlainForm,
     VeryLargeForm, LargeForm, MediumForm, SmallForm, VerySmallForm, TinyForm,
     ClickForm, ClickFormOp,
@@ -38,14 +50,29 @@ PackageExports[
   "Variable",
     $BuryThroughForms, $BuryThroughBoxes,
   "Predicate",
-    BurrowThroughHeadQ, BurrowThroughBoxHeadQ
+    BurrowThroughHeadQ, BurrowThroughBoxHeadQ,
+    AtomFormHeadQ, CompoundFormHeadQ
 ];
 
 (**************************************************************************************************)
 
 RBox[args___] := RowBox[{args}];
 
+(*************************************************************************************************)
+
+CoreBoxes[LabelTop[label_, expr_]] := LabelTopBox[label, expr];
+
+LabelTopBox[label_, expr_] := ColumnBox[
+  {StyleBox[MakeBoxes @ label,
+    FontWeight -> Bold, FontFamily -> "Source Code Sans",
+    FontSize -> Inherited * 1.1],
+   MakeBoxes @ expr},
+  Left, 0.2
+];
+
 (**************************************************************************************************)
+
+SetCompoundFormHead[ClickForm];
 
 NoClickBox[box_] := CursorIconBox["Arrow"]  @ EventHandlerBox[{"MouseClicked", _} :> Null] @ box;
 
@@ -66,7 +93,7 @@ ClickFormOp[body1_, body2_][expr_]  := ClickForm[expr, body1, body2];
 
 (**************************************************************************************************)
 
-DeclareCurry2[CursorIconBox, StatusAreaBox, EventHandlerBox]
+SetCurry2[CursorIconBox, StatusAreaBox, EventHandlerBox]
 
 CursorIconBox[boxes_, icon_Str] := TagBox[boxes, MouseAppearanceTag[icon]];
 
@@ -87,6 +114,8 @@ CoreBoxes[LiteralCommaStringForm[s:{__Str}]] := LiteralStringBox @ StringRiffle[
 
 (**************************************************************************************************)
 
+SetCompoundFormHead[TightForm];
+
 MakeBoxDefinitions[
   TightForm[e_] := TightBox @ MakeBoxes @ e;
 ]
@@ -95,25 +124,60 @@ TightBox[e_] := StyleBox[e, AutoSpacing -> False, AutoIndent -> False, LineBreak
 
 (**************************************************************************************************)
 
-DeclareCurry2[SpanStyleBox]
+SetCurry2[SpanStyleBox]
 
 SpanStyleBox[box_, {min_, max_}] := StyleBox[box, SpanMinSize -> min, SpanMaxSize -> max];
 
 (**************************************************************************************************)
 
+SetCompoundFormHead[MarginForm, HMarginForm, VMarginForm, RaiseForm, LowerForm];
+
 MakeBoxDefinitions[
-  MarginForm[e_, m__]          := MarginBox[MakeBoxes @ e, m];
-  RaiseForm[e_, n_ ? NumericQ] := RaiseBox[MakeBoxes @ e, n];
-  LowerForm[e_, n_ ? NumericQ] := LowerBox[MakeBoxes @ e, n];
+  MarginForm[e_, m__]           := MarginBox[MakeBoxes @ e, m];
+  HMarginForm[e_, h:NumP|Num2P] := HMarginBox[MakeBoxes, e, h];
+  VMarginForm[e_, v:NumP|Num2P] := VMarginBox[MakeBoxes, e, v];
+  RaiseForm[e_, n_ ? NumericQ]  := RaiseBox[MakeBoxes @ e, n];
+  LowerForm[e_, n_ ? NumericQ]  := LowerBox[MakeBoxes @ e, n];
 ];
 
 (**************************************************************************************************)
+
+MarginBox[boxes_, n:NumP] :=
+  If[n > 0, MarginBox[boxes, {n, n}, {0, 0}], boxes];
+
+MarginBox[boxes_, {l_, r_}] :=
+  MarginBox[boxes, {l, r}, {0, 0}];
+
+MarginBox[boxes_, {l_, r_}, {b_, t_}] :=
+  AdjustmentBox[boxes, BoxMargins -> {{l, r}, {b, t}}];
+
+MarginBox[boxes_, {l_, r_}, {b_, t_}, bl_] :=
+  AdjustmentBox[boxes, BoxMargins -> {{l, r}, {b, t}}, BoxBaselineShift -> bl];
+
+MarginBox[padding_][boxes_] := MarginBox[boxes, padding];
+
+SetCurry2[RaiseBox, LowerBox, VMarginBox, HMarginBox];
+
+RaiseBox[e_, n_] :=
+  AdjustmentBox[e, BoxBaselineShift -> -n];
+
+LowerBox[e_, n_] :=
+  AdjustmentBox[e, BoxBaselineShift -> n];
+
+VMarginBox[boxes_, v_]       := VMarginBox[boxes, {v, v}];
+VMarginBox[boxes_, {b_, t_}] := AdjustmentBox[boxes, BoxMargins -> {{0, 0}, {b, t}}];
+HMarginBox[boxes_, h_]       := HMarginBox[boxes, {m, m}];
+HMarginBox[boxes_, {l_, r_}] := AdjustmentBox[boxes, BoxMargins -> {{l, r}, {0, 0}}];
+
+(**************************************************************************************************)
+
+SetCompoundFormHead[NiceTooltip];
 
 MakeBoxDefinitions[
   NiceTooltip[expr_, tooltip_] := NiceTooltipBox[MakeBoxes @ expr, DisableCoreBoxInteractivity @ MakeBoxes @ tooltip];
 ];
 
-DeclareCurry2[NiceTooltipBox]
+SetCurry2[NiceTooltipBox]
 
 NiceTooltipBox[Fail, ___] := Fail;
 NiceTooltipBox[boxes_, tooltipBoxes_, opts___] := TagBox[
@@ -132,6 +196,24 @@ NiceTooltipBox[boxes_, tooltipBoxes_, opts___] := TagBox[
 
 (**************************************************************************************************)
 
+SetCompoundFormHead[ErrorTooltip];
+
+MakeBoxDefinitions[
+  ErrorTooltip[expr_, rest___] := ErrorTooltipBox[MakeBoxes @ expr, rest]
+];
+
+ErrorTooltipBox[boxes_] := FrameBox[boxes,
+  ContentPadding -> False, FrameStyle -> $LightRed,
+  Background -> RGBColor[1,0.95,0.95]
+];
+
+ErrorTooltipBox[boxes_, rest__] := NiceTooltipBox[
+  ErrorTooltipBox @ boxes,
+  DisableCoreBoxInteractivity @ MsgFormBoxes[rest]
+];
+
+(**************************************************************************************************)
+
 SkeletonBox[b_] := RBox["\[LeftGuillemet]", b, "\[RightGuillemet]"];
 
 (**************************************************************************************************)
@@ -141,34 +223,7 @@ SpacerBox[w_, h_] := TemplateBox[{w, h}, "Spacer2"];
 
 (**************************************************************************************************)
 
-MarginBox[boxes_, n:NumP] :=
-  If[n > 0, MarginBox[boxes, {n, n}, {0, 0}], boxes];
-
-MarginBox[boxes_, {l_, r_}] :=
-  MarginBox[boxes, {l, r}, {0, 0}];
-
-MarginBox[boxes_, {l_, r_}, {b_, t_}] :=
-  AdjustmentBox[boxes, BoxMargins -> {{l, r}, {b, t}}];
-
-MarginBox[boxes_, {l_, r_}, {b_, t_}, bl_] :=
-  AdjustmentBox[boxes, BoxMargins -> {{l, r}, {b, t}}, BoxBaselineShift -> bl];
-
-MarginBox[padding_][boxes_] := MarginBox[boxes, padding];
-
-DeclareCurry2[RaiseBox, LowerBox, VMarginBox, HMarginBox];
-
-RaiseBox[e_, n_] :=
-  AdjustmentBox[e, BoxBaselineShift -> -n];
-
-LowerBox[e_, n_] :=
-  AdjustmentBox[e, BoxBaselineShift -> n];
-
-VMarginBox[boxes_, {b_, t_}] := AdjustmentBox[boxes, BoxMargins -> {{0, 0}, {b, t}}];
-HMarginBox[boxes_, {l_, r_}] := AdjustmentBox[boxes, BoxMargins -> {{l, r}, {0, 0}}];
-
-(**************************************************************************************************)
-
-DeclareCurry1[FnRowBox, FnBracketRowBox, FnParenRowBox]
+SetCurry1[FnRowBox, FnBracketRowBox, FnParenRowBox]
 
 FnRowBox[p_, RowBox[{a__}]]    := RowBox[{p, a}];
 FnRowBox[p_, a_]               := RowBox[{p, a}];
@@ -180,6 +235,10 @@ FnBracketBoxOp[f_][args___]    := FnRowBox[f, BracketRBox[args]];
 FnParenBoxOp[f_][args___]      := FnRowBox[f, ParenRBox[args]];
 
 (**************************************************************************************************)
+
+SetCompoundFormHead[DelimitedRow];
+
+RiffBox = RiffledRowBox;
 
 MakeBoxDefinitions[
   DelimitedRow[l_, m_, r_][a_List]       := RiffledRowBox[MakeBoxes @ l, MakeBoxes @ m, MakeBoxes @ r][MakeBoxes /@ a];
@@ -198,16 +257,20 @@ DelimitedRowBox[l_, m_, r_, n_][bs_List] := RowBox @ {l, SpacerBox[n], RiffledRo
 
 (**************************************************************************************************)
 
+SetCompoundFormHead[RiffledRow];
+
+SetCurry2[RiffledRow, RiffledRowBox];
+
 MakeBoxDefinitions[
-  RiffledRow[r_][a_List] := RiffledRowBox[MakeBoxes @ r][MakeBoxes /@ a];
+  RiffledRow[a_List, r_] := RiffledRowBox[MakeBoxes /@ a, MakeBoxes @ r];
   RiffledSeq[r_][a___]   := RiffledRowBox[MakeBoxes @ r][MakeBoxes /@ {a}];
 ];
 
 RiffledRBox[r_][b_]        := b;
 RiffledRBox[r_][b___]      := RowBox @ Riffle[{b}, r];
 
-RiffledRowBox[r_][{b_}]    := b;
-RiffledRowBox[r_][{bs___}] := RowBox @ Riffle[{bs}, r];
+RiffledRowBox[{b_}, r_]    := b;
+RiffledRowBox[{bs___}, r_] := RowBox @ Riffle[{bs}, r];
 
 (**************************************************************************************************)
 
@@ -248,7 +311,7 @@ DefineStyleFormBox[
 
 (**************************************************************************************************)
 
-DeclareCurry2[FontColorBox, FontSizeBox, FontSizeDeltaBox]
+SetCurry2[FontColorBox, FontSizeBox, FontSizeDeltaBox, FontSizeScaleBox]
 
 FontColorBox::badColor = "Not a color: ``.";
 FontColorBox[boxes_, color_] := StyleBox[boxes, FontColor -> toFontColor[color]];
@@ -258,12 +321,16 @@ toFontColor = CaseOf[
   e_          := (Message[FontColorBox::badColor, e]; Red)
 ];
 
-FontSizeBox[boxes_, n_]      := StyleBox[boxes, FontSize -> n];
-FontSizeDeltaBox[boxes_, n_] := StyleBox[boxes, FontSize -> (Inherited + n)];
+FontSizeBox[boxes_, n_]         := StyleBox[boxes, FontSize -> n];
+FontSizeBox[boxes_, Scaled[s_]] := FontSizeScaleBox[boxes, s];
+FontSizeDeltaBox[boxes_, n_]    := StyleBox[boxes, FontSize -> (Inherited + n)];
+FontSizeScaleBox[boxes_, n_]    := StyleBox[boxes, FontSize -> (Inherited * n)];
 
 (**************************************************************************************************)
 
-$BuryThroughForms = Alt[EventHandler, NiceTooltip, Style, RaiseForm, LowerForm, MarginForm, ClickForm, NiceTooltip];
+(* TODO: replace this with CompoundFormHeadP *)
+
+$BuryThroughForms = Alt[_EventHandler, _NiceTooltip, _Style, _RaiseForm, _LowerForm, _MarginForm, _ClickForm, _NiceTooltip];
 $BuryThroughBoxes = Alt[_TagBox, _TooltipBox, _StyleBox, _AdjustmentBox];
 
 s_BuryStyle[expr:$BuryThroughForms] := MapFirst[s, expr];
@@ -301,17 +368,21 @@ StyleBoxOp[spec___][e_] := StyleBox[e, spec];
 
 (**************************************************************************************************)
 
+SetAtomFormHead[CodeStyle];
+
 CoreBoxes[CodeStyle[expr_, opts___Rule]] := CodeStyleBox[DisableCoreBoxFormatting @ MakeBoxes @ expr, opts];
 
 CodeStyleBox[box_, opts___] := StyleBox[box, opts, FontFamily -> "Source Code Pro", AutoSpacing -> False];
 
 (**************************************************************************************************)
 
-DeclaredHere[RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox]
-DeclaredHere[RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont]
+SetCompoundFormHead[RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont];
+
+DeclaredHere[RobotoFont, CodeFont, CodeSansFont, SansFont, SerifFont];
+DeclaredHere[RobotoFontBox, CodeFontBox, CodeSansFontBox, SansFontBox, SerifFontBox];
 
 (* CoreBoxes[formSym[expr_]] := BuryStyleBox[style] @ MakeBoxes @ expr; *)
-DeclareCurry2[FontBox]
+SetCurry2[FontBox]
 FontBox[e_, f_] := BuryStyleBox[FontFamily -> f][e];
 
 declareFontBoxForm[boxSym_, formSym_, family_] := (
@@ -363,6 +434,8 @@ defSeqRowFormBox[_, _][args___] := Print @ List[args];
 
 DefineSeqRowFormBox[fnSeq_, fnRow_, tuples__List] := MapApply[defSeqRowFormBox[fnSeq, fnRow], {tuples}];
 
+SetCompoundFormHead[BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow];
+
 DeclaredHere[BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq];
 DeclaredHere[BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow];
 DeclaredHere[BraceRBox, AngleRBox, ParenRBox, BracketRBox, DBracketRBox];
@@ -375,6 +448,8 @@ DefineSeqRowFormBox[DelimitedRBox, DelimitedRowBox,
   {BracketSeq,  BracketRow,  BracketRBox,  BracketRowBox,  {"[", ",", "]"}},
   {DBracketSeq, DBracketRow, DBracketRBox, DBracketRowBox, {"\[LeftDoubleBracket]", ",", "\[RightDoubleBracket]"}}
 ];
+
+SetCompoundFormHead[SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow];
 
 DeclaredHere[SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq];
 DeclaredHere[SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow];
@@ -391,6 +466,49 @@ DefineSeqRowFormBox[RiffledRBox, RiffledRowBox,
 
 AssocRowBox[a_List] := DelimitedRowBox["\[LeftAssociation]", ",", "\[RightAssociation]"][a];
 AssocRBox[a___]     := DelimitedRBox["\[LeftAssociation]", ",", "\[RightAssociation]"][a];
+
+(**************************************************************************************************)
+
+DeclaredHere[Comma, CommaS, GComma, GCommaS, Quad];
+
+MakeBoxDefinitions[
+  Comma   := CommaB;
+  CommaS  := CommaSB;
+  GComma  := GCommaB;
+  GCommaS := GCommaSB;
+  Quad    := QuadB;
+];
+
+CommaB = ",";
+CommaSB = ",\[ThinSpace]";
+GCommaB = StyleBox[",", $Gray];
+GCommaSB = StyleBox[",\[ThinSpace]", $Gray];
+QuadB = TemplateBox[{8}, "Spacer1"];
+
+(**************************************************************************************************)
+
+SetCompoundFormHead[CommaSForm, GCommaForm, GCommaSForm, RepCommaForm];
+
+DeclaredHere[CommaSForm, GCommaForm, GCommaSForm, RepCommaForm];
+
+MakeBoxDefinitions[
+  CommaSForm[e_]       := CommaSBox  @ MakeBoxes @ e;
+  GCommaForm[e_]       := GCommaBox  @ MakeBoxes @ e;
+  GCommaSForm[e_]      := GCommaSBox @ MakeBoxes @ e;
+  RepCommaForm[e_, c_] := RepCommaBox[MakeBoxes @ c] @ MakeBoxes @ e;
+  RepCommaForm[c_][e_] := RepCommaBox[MakeBoxes @ c] @ MakeBoxes @ e;
+];
+
+DeclaredHere[CommaSBox, GCommaBox, GCommaSBox, RepCommaBox];
+
+CommaSBox[e_]  := RepCommaBox[CommaSB]  @ e;
+GCommaBox[e_]  := RepCommaBox[GCommaB]  @ e;
+GCommaSBox[e_] := RepCommaBox[GCommaSB] @ e;
+
+RepCommaBox[b_, c_]                 := RepCommaBox[c] @ b;
+r_RepCommaBox[b_:$BuryThroughBoxes] := MapFirst[r, b];
+r_RepCommaBox[list_List]            := VectorReplace[list, "," -> First[r]];
+
 
 (**************************************************************************************************)
 
@@ -412,13 +530,60 @@ procLine[n_][b_]  := RowBox[{"  ", doIndent[n-1][b]}];
 
 (**************************************************************************************************)
 
+SetCompoundFormHead[Dimmed, GrayForm]
+
 MakeBoxDefinitions[
-  Dimmed[e_] := DimmedBox @ ToBoxes @ e
+  Dimmed[e_]   := DimmedBox @ ToBoxes @ e;
+  GrayForm[e_] := GrayBox @ ToBoxes @ e;
 ];
 
+GrayBox[e_]   := StyleBox[e, $Gray];
 DimmedBox[e_] := StyleBox[e, Opacity[0.3]];
 
 (**************************************************************************************************)
+
+GridBoxRule = CaseOf[
+  $[ItemDivs, rows_, cols_]   := Make[Seq, Rule[RowLines, rows],       Rule[ColLines, cols]];
+  $[ItemJust, rows_, cols_]   := Make[Seq, Rule[RowJust, rows],        Rule[ColJust, cols]];
+  $[ItemGaps, rows_, cols_]   := Make[Seq, Rule[RowGaps, rows],        Rule[ColGaps, cols]];
+  $[ItemSize, rows_, cols_]   := Make[Seq, Rule[RowHeights, rows],     Rule[ColumnWidths, cols]];
+  $[Background, rows_, cols_] := Make[Seq, Rule[RowBackgrounds, rows], Rule[ColumnBackgrounds, cols]];
+  $[ItemStyle, rows_, cols_]  := $[GridItemStyle, rows, cols];
+  $[key_Sym, None, None]      := Rule[key, {}];
+  $[key_Sym, rows_, None]     := Rule[key, {"Rows" -> rows}];
+  $[key_Sym, None, cols_]     := Rule[key, {"Columns" -> cols}];
+  $[key_Sym, rows_, cols_]    := Rule[key, {"Rows" -> rows, "Columns" -> cols}];
+];
+
+GridBoxRule[key_, rows_, cols_, True]  := GridBoxRule[key, cols, rows];
+GridBoxRule[key_, rows_, cols_, False] := GridBoxRule[key, rows, cols];
+
+(**************************************************************************************************)
+
+SetCompoundFormHead[RowGrid, ColGrid, TightRowGrid, TightColGrid]
+
+MakeBoxDefinitions[
+  RowGrid[list_List, sp:NumP:1.0, opts___Rule] := RowGridBox[MapMakeBoxes @ list, N @ sp, opts];
+  ColGrid[list_List, sp:NumP:1.0, opts___Rule] := ColGridBox[MapMakeBoxes @ list, N @ sp, opts];
+  TightRowGrid[list_List, opts___Rule]         := TightRowGridBox[MapMakeBoxes @ list, opts];
+  TightColGrid[list_List, opts___Rule]         := TightColGridBox[MapMakeBoxes @ list, opts];
+];
+
+RowGridBox[list_List, sp:NumP:1.0, opts___Rule] := GridBox[ToRowVec @ list, opts, ColGaps -> sp, $baseGridOpts];
+ColGridBox[list_List, sp:NumP:0.8, opts___Rule] := GridBox[ToColVec @ list, opts, RowGaps -> sp, $baseGridOpts];
+
+$baseGridOpts = Seq[ColJust -> Left, BaselinePos -> {1,1}];
+
+(**************************************************************************************************)
+
+TightRowGridBox[list_List, opts___Rule] := RowGridBox[list, opts, $tightGridOpts];
+TightColGridBox[list_List, opts___Rule] := ColGridBox[list, opts, $tightGridOpts];
+
+$tightGridOpts = Seq[RowGaps -> 0, ColGaps -> 0, GridFrameMargins -> {{0, 0}, {0, 0}}];
+
+(**************************************************************************************************)
+
+SetCompoundFormHead[RawRow, RawColumn, RawGrid]
 
 MakeBoxDefinitions[
 
@@ -447,7 +612,7 @@ ColumnBox[list_List, align:Except[_Rule]:Left, spacing:Except[_Rule]:Automatic, 
     List /@ list,
     opts,
     ColumnAlignments -> align,
-    BaselinePosition -> Scaled[0.5],
+    BaselinePos -> Scaled[0.5],
     GridBoxSpacings -> {"Rows" -> {{spacing}}}
   ];
 
@@ -481,13 +646,15 @@ TextIconBox[boxes_, bounds_, baseImageSize_, background_, bshift_, pad:{{l_, r_}
       boxes,
       PlotRange -> bounds, PlotRangePadding -> 0, AspectRatio -> Full, PlotRangeClipping -> False,
       ImageSize -> Ceiling[baseImageSize * Round @ CurrentValue[FontSize] + {l + r, b + t} , .5],
-      ImagePadding -> pad, BaselinePosition -> Axis, Background -> background
+      ImagePadding -> pad, BaselinePos -> Axis, Background -> background
     ],
     BoxBaselineShift -> (-bshift / Round @ CurrentValue[FontSize])
   ], TrackedSymbols :> {}
 ];
 
 (**************************************************************************************************)
+
+SetCompoundFormHead[BoldSyntaxForm]
 
 CoreBoxes[BoldSyntaxForm[expr_]] := BoxBurrowing[BoldSyntaxBox] @ MakeBoxes[expr];
 

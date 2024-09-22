@@ -26,11 +26,11 @@ SetHoldC[attachedDispatchOf]
 attachedDispatchOf[lhs_, excl_, pre_, arg_SetDelayed] := attachedCaseOf[lhs, excl, pre, CompoundExpression[arg]];
 attachedDispatchOf[lhs_, excl_, pre_, CompoundExpression[args__SetDelayed, Null...]] := Module[
   {holds, sym},
-  sym = PatHeadSym @ lhs;
+  sym = PatHead @ lhs;
   holds = MapApply[HoldComplete, NoEval @ List @ args];
   res = holds /. $ :> lhs;
   If[excl,
-    blank = ToBlank @ sym;
+    blank = ToBlankP @ sym;
     res = Join[res, Map[toUnmatched[sym], holds /. $ -> blank]];
   ];
   SetDelayed @@@ res;

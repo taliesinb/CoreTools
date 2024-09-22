@@ -1,7 +1,7 @@
 SystemExports[
   "MetaFunction",
     DefineVariableMacro, DefinePatternMacro, DefineSimpleMacro, DefineComplexMacro, DefinePartialMacro,
-  "ControlFlowFunction",
+  "ControlFlow",
     FunctionReturn,
   "SpecialFunction",
     ExpandMacros, MacroHold, RefreshMacroRules,
@@ -10,6 +10,8 @@ SystemExports[
 ];
 
 PackageExports[
+  "Function",
+    Ensure,
   "MetaFunction",
     DeclareMacroDefine,
   "Predicate",
@@ -27,6 +29,13 @@ PrivateExports[
   "SpecialVariable",
     $FunctionReturnTarget
 ];
+
+(**************************************************************************************************)
+
+SetHoldR[Ensure];
+
+Ensure[expr_, testFn_, else_] := If[TrueQ @ testFn @ expr, expr, else];
+Ensure[testFn_, else_][expr_] := If[TrueQ @ testFn @ expr, expr, else];
 
 (*************************************************************************************************)
 
@@ -84,7 +93,7 @@ defineMacroPredicates[Hold[symbols_List], Hold[pureSymbols_List]] := (
 
 MacroHold::usage = "MacroHold[$$] will be stripped during macro expansion.";
 
-DeclareHoldAll[MacroHold];
+SetHoldA[MacroHold];
 
 (*************************************************************************************************)
 
@@ -97,7 +106,7 @@ setupInvMacroMsg[macroDefSym_] := (
 DefineVariableMacro::usage =
 "DefineVariableMacro[symbol, value] defines a macro that expands symbol to a value at load time."
 
-DeclareHoldAll[DefineVariableMacro]
+SetHoldA[DefineVariableMacro]
 setupInvMacroMsg[DefineVariableMacro]
 
 DefineVariableMacro[sym_Symbol, value_] := (
@@ -111,7 +120,7 @@ DefineVariableMacro[sym_Symbol, value_] := (
 $macroDefineHeadP = Alt[];
 
 DeclareMacroDefine[macroDefSym_Symbol] := (
-  DeclareHoldAll[macroDefSym];
+  SetHoldA[macroDefSym];
   (* we do this so that macros don't expand before they are defined, e.g. if they are already
   defined and we reload a file *)
   ExpandMacros[h:HoldComplete[_macroDefSym]] := h;
@@ -145,7 +154,7 @@ DefineSimpleMacro[sym_Symbol, rules:{__RuleDelayed}] := With[
 ];
 DefineSimpleMacro::notSimpleMacro = "Macro rules for `` contains MacroHold, use DefineComplexMacro.";
 
-DeclareHoldAll[toSimpleRules]
+SetHoldA[toSimpleRules]
 toSimpleRules[rules_] := MapAt[HoldPattern, Unevaluated @ rules, {All, 1}];
 
 (*************************************************************************************************)
@@ -197,7 +206,7 @@ DefineComplexMacro[sym_Symbol, rules:{__RuleDelayed}] := (
 
 (*************************************************************************************************)
 
-DeclareHoldAll[toDownRule, toUpRules, toInnerRule];
+SetHoldA[toDownRule, toUpRules, toInnerRule];
 
 toInnerRule[_[lhs_, rhs_]] := RuleDelayed[HoldPattern @ lhs, RuleCondition @ rhs];
 
@@ -210,7 +219,7 @@ toUpRules[sym_] := {
 
 (*************************************************************************************************)
 
-DeclareHoldAll[TopLevelEvaluateMacro, TopLevelSetDelayedMacro]
+SetHoldA[TopLevelEvaluateMacro, TopLevelSetDelayedMacro]
 
 TopLevelEvaluateMacro[expr_] :=
   First @ ReplaceRepeated[ExpandMacros @ HoldComplete @ expr, MacroHold[h_] :> h];
@@ -228,7 +237,7 @@ TopLevelSetDelayedMacro[s_] := Block[
 
 ContainsMacrosQ::usage = "ContainsMacrosQ[...] returns True if macro symbols are present.";
 
-DeclareHoldAll[ContainsMacrosQ, FreeOfMacrosQ, FreeOfPureMacrosQ]
+SetHoldA[ContainsMacrosQ, FreeOfMacrosQ, FreeOfPureMacrosQ]
 
 (*************************************************************************************************)
 
@@ -326,11 +335,11 @@ General::noMacroParent = "Could not resolve macro parent in ``.";
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[getParentHead]
+SetHoldC[getParentHead]
 
 getParentHead[(SetDelayed|Set)[lhs_, _]] :=
   MacroHold @@ Replace[
-    PatHeadSym @ lhs,
+    PatHead @ lhs,
     $Failed :> ThrowMsg["macroParentLHS", HoldForm @ lhs]
   ];
 

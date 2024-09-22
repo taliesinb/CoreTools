@@ -29,6 +29,7 @@ System`ExportOptionSymbol,
 System`ExportPredicate,
 System`ExportSpecialVariable,
 System`ExportSymbol,
+System`ExportBoxSymbol,
 System`ExportPatternSymbol,
 System`ExportStrPatternSymbol,
 System`ExportFormSymbol,
@@ -541,9 +542,10 @@ extractExportsFromChunk[chunk_] := (
 
 (* Note: keep these in sync with the list at the top of the file *)
 $KnownSymbolKinds = {
-  "ControlFlowFunction",
+  "ControlFlow",
   "Function",
   "BoxFunction",
+  "BoxSymbol",
   "DebuggingFunction",
   "IOFunction",
   "MessageFunction",

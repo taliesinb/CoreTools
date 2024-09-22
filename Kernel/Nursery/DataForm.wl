@@ -25,7 +25,7 @@ LineFlowedBoxes::usage = "LineFlowedBoxes[expr] evaluates box-creation code expr
 boxes like BraceRowBox, and DelimitedRowBox, behave differently, resulting in a line-broken result.
 ";
 
-DeclareHoldFirst[LineFlowedBoxes];
+SetHoldF[LineFlowedBoxes];
 
 LineFlowedBoxes[body_, w_:80] := Block[
   {$x = 0, $xl = 0, $xr = w, DelimitedRowBox},
@@ -135,19 +135,19 @@ getW = CaseOf[
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[
+SetHoldC[
   dataBox, atomDataBox,
   packedArrayBox, listDataBox, rawListDataBox,
   assocDataBox, assocEntryDataBox, exprBox
 ];
 
 dataBox = CaseOf[
-  e_ ? PackedArrayQ            := packedArrayBox @ e;
+  e_ ? HPackedQ                := packedArrayBox @ e;
   e_List                       := listDataBox @ e;
-  e_Dict ? HoldAtomQ          := assocDataBox @ e;
+  e_Dict ? HAtomQ              := assocDataBox @ e;
   DirectedInfinity[1]|Infinity := "\[Infinity]";
   DirectedInfinity[-1]         := "-\[Infinity]";
-  e_ ? HoldAtomQ               := atomDataBox @ e;
+  e_ ? HAtomQ                  := atomDataBox @ e;
   e_                           := exprBox @ e;
 ];
 
@@ -181,8 +181,8 @@ arrayStrings[a_] := Locals[
 
 (*************************************************************************************************)
 
-DeclareHoldRest[elideDimsBox, applyLong];
-DeclareHoldFirst[truncateList];
+SetHoldR[elideDimsBox, applyLong];
+SetHoldF[truncateList];
 
 elideDimsBox[dims_, body_] := If[
   Apply[Times, dims] > $maxArrayElems,
@@ -228,9 +228,9 @@ exprBox = CaseOf[
 
 (*************************************************************************************************)
 (*
-DeclareHoldAllComplete[dShortQ, dShallowQ, dSmallQ];
+SetHoldC[dShortQ, dShallowQ, dSmallQ];
 
-dShortQ[e_] := InputFormStringLength[CoreToolsHold[e], PrintPrecision -> 3];
+dShortQ[e_] := GuessInputStrLen[PrivateHold[e], PrintPrecision -> 3];
 dShallowQ[e_] := VectorQ[e, dSmallQ];
 dSmallQ[_Symbol[e_ ? dSmallQ]] := True;
 dSmallQ[e_Symbol ? HoldSymbolQ] := True;

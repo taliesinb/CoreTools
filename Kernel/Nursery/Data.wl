@@ -2,9 +2,7 @@ SystemExports[
   "Head",
     RelationData,
   "Function",
-    RelationFromRows, RelationFromColumns,
-  "Variable",
-    $FormalSymbols
+    RelationFromRows, RelationFromColumns
 ];
 
 (*************************************************************************************************)
@@ -22,6 +20,6 @@ RelationFromColumns[arg_] := Locals[
   ];
   values = ToPackedInts[values];
   If[!PackedQ[values], values = ToPackedInts /@ values];
-  ConstructNoEntryExpr[SparseRelation, 1]
+  MakeSealed[SparseRelation, 1]
 ];
 

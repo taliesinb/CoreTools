@@ -37,18 +37,18 @@ DefineAliasRules[
 (**************************************************************************************************)
 
 DefinePatternRules[
-  NArrayP     -> HoldP[NArray[_, _, _] ? HoldExprNoEntryQ],
+  NArrayP     -> HoldP[NArray[_, _, _] ? SealedQ],
   NArrayTypeP -> HoldP[NArrayType[_, _, _]]
 ];
 
 DefinePatternMacro[MGraphDataP,
-  NArrayDataP[dsym_, tsym_] :> HoldP[NArray[InternalData[dsym, tsym]] ? HoldExprNoEntryQ]
+  NArrayDataP[dsym_, tsym_] :> HoldP[NArray[InternalData[dsym, tsym]] ? SealedQ]
 ];
 
 (**************************************************************************************************)
 
 MakeNArray[head_Sym, data_, type_:Auto] := CatchMessages[head,
-  ConstructNoEntryExpr[NArray, data, toNArrayType[type, data], None]
+  MakeSealed[NArray, data, toNArrayType[type, data], None]
 ];
 
 toNArrayType = CaseOf[
@@ -63,7 +63,7 @@ procArrayType = CaseOf[
 
 (**************************************************************************************************)
 
-CoreBoxes[na_NArray ? HoldExprNoEntryQ] := nArrayBoxes @ na;
+CoreBoxes[na_NArray ? SealedQ] := nArrayBoxes @ na;
 
 nArrayBoxes[_] := FailEval;
 
@@ -96,7 +96,7 @@ NArray /: FormalSum[a_NArray, b___] := NArrayPlus[a, b];
 
 (**************************************************************************************************)
 
-DeclareStrict @ DeclareHoldRest[registerOps];
+SetStrict @ SetHoldR[registerOps];
 
 registerOps[ops:{__Sym}, defs__SetD] := Scan[op |-> registerOps[op, defs], ops];
 registerOps[op_Sym, defs__SetD]      := HoldScan[def |-> registerOps[op, def], defs];
@@ -227,12 +227,12 @@ word-forming or using the underlying monoid *)
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[evalNArray];
+SetHoldC[evalNArray];
 
-m_NArray ? HoldExprEntryQ := evalNArray[m];
+m_NArray ? UnsealedQ := evalNArray[m];
 
 evalNArray = CaseOf[
-  m:NArray[_, NArrayTypeP, _]        := HoldSetNoEntryExpr[m];
+  m:NArray[_, NArrayTypeP, _]        := HSetNoEntryFlag[m];
   NArray[data_]                      := MakeNArray[NArray, ToPacked @ data];
   NArray[data_, type_]               := MakeNArray[NArray, ToPacked @ data, type];
   m_                                 := ErrorMsg[NArray::invalidNArraySpec, HoldForm[m]]

@@ -206,7 +206,7 @@ CanonicalizationFn[rules_, final_:Id][value_] := final @ FixedPoint[Replace[rule
 
 (**************************************************************************************************)
 
-DeclareCurry1[MethodResolutionFn]
+SetCurry1[MethodResolutionFn]
 
 MethodResolutionFn[None] := Id;
 MethodResolutionFn[spec_, val_]    := val;

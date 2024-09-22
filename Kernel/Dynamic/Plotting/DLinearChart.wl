@@ -15,7 +15,7 @@ DLinearChartBox[data_, n_Integer, opts:OptionsPattern[]] := MLocals[
   $dvaluePrefix = "Linear";
   UnpackOptions[chartLabels];
   extraPadding = If[Len[chartLabels] =!= n, chartLabels = None; 0, {{0, 0}, {20, 0}}];
-  UnpackAssociation[
+  UnpackDict[
     procDPlotOptions[DLinearChartBox, {opts, AdditionalImagePadding -> extraPadding}, "HeightFactor" -> 7.5],
     dFilter, dSelection, xScale, otherData
   ];

@@ -4,9 +4,7 @@ PackageExports[
     DeltaPos,
     NotEqualDelta, NotSameDelta, ArrayNotEqualDelta, LenthDelta, DepthDelta, DimensionsDelta, KeysAddDelta, KeysRemovedDelta, KeysReorderedDelta, KeysChangedDelta, ArgumentsAddedDelta, ArgumentsRemovedDelta, SetLargerDelta, SetSmallerDelta, SetDelta,
   "Head",
-    StochasticFunction,
-  "Variable",
-    $FormalSymbols
+    StochasticFunction
 ];
 
 (*************************************************************************************************)
@@ -162,7 +160,7 @@ _holdKeys := BadArguments[];
 
 (**************************************************************************************************)
 
-DeclareHoldRest[withCrumb, withPos, withPosCrumb, withSubCrumb];
+SetHoldR[withCrumb, withPos, withPosCrumb, withSubCrumb];
 
 withCrumb[c_, body_] := Block[{$crumbs = Append[$crumbs, c]}, body];
 withPos[p_, body_] := Block[{$pos = Append[$pos, p]}, body];
@@ -173,21 +171,21 @@ withSubCrumb[p_, c_, body_] := Block[{$pos = Append[$pos, p], $crumbs = Insert[$
 
 diffExpr[a_HoldC, b_HoldC] /; a === b := False;
 
-diffExpr[a:HoldC[_Dict ? HoldAtomQ], b:HoldC[_Dict ? HoldAtomQ]] :=
+diffExpr[a:HoldC[_Dict ? HAtomQ], b:HoldC[_Dict ? HAtomQ]] :=
   diffAssoc[a, b];
 
-diffExpr[a:HoldC[_ ? HoldAtomQ], b:HoldC[_ ? HoldAtomQ]] :=
+diffExpr[a:HoldC[_ ? HAtomQ], b:HoldC[_ ? HAtomQ]] :=
   emitAtomDiff[a, b];
 
 diffExpr[a:HoldC[_List ? setLikeListQ], b:HoldC[_List ? setLikeListQ]] :=
   diffSet[a, b];
 
-diffExpr[a:HoldC[_List ? HoldPackedArrayQ], b:HoldC[_List ? HoldPackedArrayQ]] :=
+diffExpr[a:HoldC[_List ? HPackedQ], b:HoldC[_List ? HPackedQ]] :=
   diffArray[a, b];
 
 diffExpr[
-  HoldC[(h1_[Shortest[args1___], opts1:((_Symbol|_Str) -> _)...]) ? HoldEntryQ],
-  HoldC[(h2_[Shortest[args2___], opts2:((_Symbol|_Str) -> _)...]) ? HoldEntryQ]] := With[
+  HoldC[(h1_[Shortest[args1___], opts1:((_Symbol|_Str) -> _)...]) ? UnsealedQ],
+  HoldC[(h2_[Shortest[args2___], opts2:((_Symbol|_Str) -> _)...]) ? UnsealedQ]] := With[
     {head = HoldC @ h1},
     Or[
       withPosCrumb[0, $HeadCrumb,  diffExpr[HoldC @ h1, HoldC @ h2]],
@@ -203,10 +201,10 @@ _diffExpr := BadArguments[];
 
 (**************************************************************************************************)
 
-DeclareHoldFirst[setLikeListQ]
+SetHoldF[setLikeListQ]
 
 setLikeListQ[{}] := False;
-setLikeListQ[e_List] := VecQ[NoEval @ e, HoldAtomQ] && OrderedQ[NoEval @ e];
+setLikeListQ[e_List] := VecQ[NoEval @ e, HAtomQ] && OrderedQ[NoEval @ e];
 
 diffSet[HoldC[{a__}], HoldC[{b__}]] :=
   diffSet2[HoldC[a], HoldC[b]];

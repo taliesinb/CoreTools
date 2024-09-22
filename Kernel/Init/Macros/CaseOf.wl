@@ -24,7 +24,7 @@ $::usage = "$ stands for the function currently being defined."
 
 CaseOf::badCaseDefinition = "Bad Case definition for ``.";
 
-DeclareHoldAll[CaseOf, ExtendCaseOf]
+SetHoldA[CaseOf, ExtendCaseOf]
 
 DefineComplexMacro[CaseOf, {
   SetDelayed[sym_Symbol[pre___], CaseOf[args___]] :> attachedCaseOf[sym, True, Hold[pre], args],
@@ -42,7 +42,7 @@ DefineComplexMacro[ExtendCaseOf, {
 
 (*************************************************************************************************)
 
-DeclareHoldAll[CaseFn]
+SetHoldA[CaseFn]
 
 DefineComplexMacro[CaseFn, {
 CaseFn[CompoundExpression[args___SetDelayed, Null...]][arg_] :> appliedCaseOf[{args, _ :> ThrowUnmatchedError[]}, arg],
@@ -83,7 +83,7 @@ attachedCaseOf[sym_Symbol, excl_, pre_, CompoundExpression[args__SetDelayed, Nul
     Hold[lhs:VPatternTest[_$, _], rhs_]   :> MacroHold @ SetDelayed[lhs, rhs],
     Hold[lhs:VCondition[_$, _],   rhs_]   :> MacroHold @ SetDelayed[lhs, rhs],
     Hold[VPatternTest[lhs_, test_], rhs_] :> MacroHold @ SetDelayed[$ @ PatternTest[lhs, test], rhs],
-    Hold[  VCondition[lhs_, cond_], rhs_] :> MacroHold @ SetDelayed[VCondition[$ @ lhs, cond], rhs],
+    Hold[  VCondition[lhs_, cond_], rhs_] :> MacroHold @ SetDelayed[Condition[$ @ lhs, cond], rhs],
     Hold[lhs___, rhs_]                    :> MacroHold @ SetDelayed[$[lhs], rhs] (* <- remove the ___ *)
   }, {1}] /. HoldPattern[$$|$] :> sym
 ];

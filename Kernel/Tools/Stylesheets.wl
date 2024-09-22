@@ -65,21 +65,21 @@ checkForCoreSheetUsage[] := Then[
 
 coreSheetNameQ[s_Str] := StringStartsQ[s, "CoreTools"];
 coreSheetNameQ[_] := False;
-notebookHasCoreSheetQ[nb_NBObject] := coreSheetNameQ @ GetNotebookStylesheet @ nb;
+notebookHasCoreSheetQ[nb_NotebookObject] := coreSheetNameQ @ GetNotebookStylesheet @ nb;
 
 (*************************************************************************************************)
 
 DarkModeQ[] := TrueQ[Apply[Avg, CurrentValue[Background]] < 0.5];
 
 GetNotebookStylesheet = CaseOf[
-  $[]            := GetNotebookStylesheet @ EvaluationNotebook[];
-  $[nb_NBObject] := fromFrontEndFile @ Lookup[Options[nb, StyleDefinitions], StyleDefinitions];
+  $[]                  := GetNotebookStylesheet @ EvaluationNotebook[];
+  $[nb_NotebookObject] := fromFrontEndFile @ Lookup[Options[nb, StyleDefinitions], StyleDefinitions];
 ];
 
 SetNotebookStylesheet = CaseOf[
-  $[sheet_]              := SetNotebookStylesheet[EvaluationNotebook[], sheet];
-  $[All, sheet_]         := CatchMessages @ Scan[setSheet[toFrontEndSheet @ sheet], UserNotebooks[]];
-  $[nb_NBObject, sheet_] := CatchMessages @ setSheet[toFrontEndSheet @ sheet] @ nb;
+  $[sheet_]                    := SetNotebookStylesheet[EvaluationNotebook[], sheet];
+  $[All, sheet_]               := CatchMessages @ Scan[setSheet[toFrontEndSheet @ sheet], UserNotebooks[]];
+  $[nb_NotebookObject, sheet_] := CatchMessages @ setSheet[toFrontEndSheet @ sheet] @ nb;
 ];
 
 setSheet[sheet_][nb_] := SetOptions[nb, StyleDefinitions -> sheet];
@@ -179,7 +179,7 @@ PrimaryStyleData[name_Str] := Lookup[PrimaryStyleData[], name];
 
 (*************************************************************************************************)
 
-DeclareStrict[StyleRules]
+SetStrict[StyleRules]
 
 StyleRules[styleName_Str] :=
   DeleteCases[ContextMenu -> _] @ AbsoluteCurrentValue[{StyleDefinitions, styleName}];

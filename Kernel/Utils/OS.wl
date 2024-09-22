@@ -1,6 +1,6 @@
 SystemExports[
   "Function",
-    PathJoin, NormalizePath, NewTemporaryFilename, ShellEscape, ToJSON,
+    PathJoin, NormalizePath, ArchiveInnerFile, NewTemporaryFilename, ShellEscape, ToJSON,
   "Head",
     FileList, RawString,
   "IOFunction",
@@ -20,7 +20,7 @@ PrivateExports[
 
 (**************************************************************************************************)
 
-DeclareStrict[PathJoin, DataPath]
+SetStrict[PathJoin, DataPath]
 
 PathJoin[s__Str] := FileNameJoin @ {s};
 PathJoin[s__Str, FileList[list_List]] := Map[FileNameJoin, Thread @ {PathJoin @ s, list}];
@@ -31,7 +31,7 @@ DataPath[spec___] := PathJoin[$CoreToolsRootPath, "Data", spec];
 
 (**************************************************************************************************)
 
-DeclareStrict[NormalizePath]
+SetStrict[NormalizePath]
 
 NormalizePath[""]       := "";
 NormalizePath[None]     := None;
@@ -50,21 +50,49 @@ accentsToMarks[str_] := CharacterNormalize[str, "NFC"];
 
 (**************************************************************************************************)
 
-DeclareStrict[ImportLines]
+ArchiveInnerFile::missing = "Archive file `` does not exist."
+ArchiveInnerFile::corrupt = "Archive file `` is corrupt."
+ArchiveInnerFile::ambiguous = "Archive file `` expanded to multiple files: ``.";
+ArchiveInnerFile::empty = "Archive file `` was empty."
+
+ArchiveInnerFile[path2_Str] := Locals[
+  path = NormalizePath @ path2;
+  If[!FileExistsQ[path], ReturnFailed["missing", path]];
+  If[!StringEndsQ[path, {".zip", ".tar.gz", ".gz"}], Return @ path];
+  hashStr = Base36String @ FileHash @ path;
+  dirName = FileBaseName[path] <> "." <> hashStr;
+  dirPath = NewTemporaryFilename[dirName];
+  files = If[DirectoryQ[dirPath],
+    FileNames[All, dirPath, Infinity],
+    CreateDirectory[dirPath]; {}
+  ];
+  If[files === {},
+    files = ExtractArchive[path, dirPath, CreateIntermediateDirectories -> False];
+    If[!ListQ[files], ReturnFailed["corrupt", path]]];
+  Switch[files,
+    {},  ReturnFailed["empty", path],
+    {_}, First @ files,
+    _,   ReturnFailed["ambiguous", path, files]
+  ]
+];
+
+(**************************************************************************************************)
+
+SetStrict[ImportLines]
 
 ImportLines[file_Str] := ReadList[NormalizePath @ file, Record, RecordSeparators -> "\n", NullRecords -> True]
 ImportLines[file_Str, n_Int] := ReadList[NormalizePath @ file, Record, n, RecordSeparators -> "\n", NullRecords -> True];
 
 (**************************************************************************************************)
 
-DeclareStrict[ExportLines]
+SetStrict[ExportLines]
 
 ExportLines[file_Str, lines_] := If[!StrVecQ[lines], $Failed,
   ExportUTF8[file, StrJoin @ Riffle[lines, "\n"]]];
 
 (**************************************************************************************************)
 
-DeclareStrict[ImportJSONString]
+SetStrict[ImportJSONString]
 
 ImportJSONString::badJSONString = "String `` does not appear to be valid JSON.";
 
@@ -85,10 +113,10 @@ importErrorMessage[head_, path_] := If[!FileExistsQ[path],
 
 (**************************************************************************************************)
 
-DeclareStrict[ImportJSON]
+SetStrict[ImportJSON]
 
 ImportJSON[path2_String] := Block[{path, expr},
-  path = NormalizePath @ path2;
+  path = ArchiveInnerFile @ NormalizePath @ path2;
   expr = Quiet @ Check[ReadRawJSONFile @ path, $Failed];
   If[FailureQ[expr],
     importErrorMessage[ImportJSON, path],
@@ -98,7 +126,7 @@ ImportJSON[path2_String] := Block[{path, expr},
 
 (**************************************************************************************************)
 
-DeclareStrict[ExportJSON];
+SetStrict[ExportJSON];
 
 ExportJSON::badExpr = "Cannot convert `` to JSON for export to ``.";
 ExportJSON[path_String, expr_] := Block[{jsonStr},
@@ -109,7 +137,7 @@ ExportJSON[path_String, expr_] := Block[{jsonStr},
 
 (**************************************************************************************************)
 
-DeclareStrict[ImportMX];
+SetStrict[ImportMX];
 
 ImportMX::nefile = "File `` does not exist.";
 ImportMX::fail = "File `` is corrupt.";
@@ -124,7 +152,7 @@ ImportMX[path2_String] := Block[
 
 (**************************************************************************************************)
 
-DeclareStrict[ExportMX];
+SetStrict[ExportMX];
 
 ExportMX::fail = "Could not write expression to ``.";
 ExportMX[path2_String, expr_] := Block[
@@ -137,7 +165,7 @@ ExportMX[path2_String, expr_] := Block[
 
 (**************************************************************************************************)
 
-DeclareStrict[ImportUTF8];
+SetStrict[ImportUTF8];
 
 ImportUTF8[path2_String] := Block[{path, bytes},
   path = NormalizePath @ path2;
@@ -151,7 +179,7 @@ bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
 
 (**************************************************************************************************)
 
-DeclareStrict[ExportUTF8];
+SetStrict[ExportUTF8];
 
 ExportUTF8::openFailure = "Cannot open `` for writing.";
 ExportUTF8::writeFailure = "Cannot write to ``.";
@@ -182,7 +210,7 @@ ExportUTF8[path_String, string_String] := (
 
 (*************************************************************************************************)
 
-DeclareStrict[ImportStringTable]
+SetStrict[ImportStringTable]
 
 ImportStringTable::invalidSymbolTable = "`` does not contain a valid symbol table.";
 
@@ -197,7 +225,7 @@ ImportStringTable[path_Str] := Locals[
 
 (*************************************************************************************************)
 
-DeclareStrict[ExportStringTable]
+SetStrict[ExportStringTable]
 
 ExportStringTable::invalidData = "`` is not an association from strings to lists of strings.";
 
@@ -218,7 +246,7 @@ ExportStringTable[path_Str, assoc2_Dict, OptionsPattern[]] := Locals[
 
 (**************************************************************************************************)
 
-DeclareStrict[NewTemporaryFilename];
+SetStrict[NewTemporaryFilename];
 
 $tempDir := $tempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
   If[!FileExistsQ[dir], CreateDirectory[dir]]; dir];
@@ -236,7 +264,7 @@ uniqueSessionStr[] := StrJoin[IntegerString[$ProcessID], "_", IntegerString[Uniq
 
 RunCommand::noOutput = "Command `` terminated without output, see ``.";
 
-DeclareStrict[RunCommand];
+SetStrict[RunCommand];
 
 RunCommand[binary:(_String | File[_String]), rawArgs___] := Locals[
 
@@ -278,7 +306,7 @@ RunCommand[binary:(_String | File[_String]), rawArgs___] := Locals[
 
 (**************************************************************************************************)
 
-DeclareStrict[ShellEscape];
+SetStrict[ShellEscape];
 
 ShellEscape[s_String] := If[
   StringMatchQ[s, RegularExpression["[a-zA-Z_-]+"]], s,
@@ -298,7 +326,7 @@ SetInitial[$BinaryPaths, {
 
 General::binaryNotFound = "Binary \"``\" is not present in any of the normal binary paths. Please install it.";
 
-DeclareStrict[FindBinary];
+SetStrict[FindBinary];
 
 FindBinary[name_String] := FindBinary[name] = SelectFirst[
   PathJoin[#, name]& /@ $BinaryPaths,
@@ -308,7 +336,7 @@ FindBinary[name_String] := FindBinary[name] = SelectFirst[
 
 (**************************************************************************************************)
 
-DeclareStrict[RunAppleScript]
+SetStrict[RunAppleScript]
 
 RunAppleScript[cmd_String] := Locals[
   file = NewTemporaryFilename["applescript.#.scpt"];
@@ -325,7 +353,7 @@ CopyImageToClipboard[expr_] := (
 
 (**************************************************************************************************)
 
-DeclareStrict[CopyTextToClipboard]
+SetStrict[CopyTextToClipboard]
 
 (* TODO: undertake replacements of $ScriptLetters codepoints which mathematica substitutes for private use ones *)
 CopyTextToClipboard[text_Str] := Locals[

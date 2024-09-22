@@ -41,14 +41,14 @@ PackageExports[
 
 (*************************************************************************************************)
 
-DeclarePredicate1[CustomGraphThemeQ]
+SetPred1[CustomGraphThemeQ]
 
 Initially[
   $SystemGraphThemeNames = GraphComputation`SetGraphStyle[];
   $CustomGraphThemeData  = UDict[]
 ];
 
-DeclareStrict[DefineGraphTheme]
+SetStrict[DefineGraphTheme]
 
 DefineGraphTheme[name_String, rules_List] := (
   CustomGraphThemeQ[name] = True;
@@ -96,7 +96,7 @@ $CustomGraphOptions = {
 };
 customGraphOptionQ = TrueDict @ $CustomGraphOptions;
 
-DeclareStrict[ExtGraph]
+SetStrict[ExtGraph]
 
 ExtGraph[graph_Graph, opts___Rule] := iExtGraph[graph, List @ opts];
 ExtGraph[verts_List, edges_List, opts___Rule] := iExtGraph[Seq[verts, edges], List @ opts];
@@ -127,7 +127,7 @@ patchCustomGraphLabeling[] := Then[
   patchGraphLabelFn[GraphComputation`DynamicEdgeLabelingFunction,   GraphComputation`GraphLabelsDump`dynamicEdgeLabelingFunction,   GraphComputation`CustomDynamicEdgeLabelFunction,   $UserEdgeLabelFunction,   $newEdgeLabelDVs]
 ];
 
-DeclareHoldAllComplete[patchGraphLabelFn];
+SetHoldC[patchGraphLabelFn];
 patchGraphLabelFn[gcFn_, internalFn_, customFn_, userFnVar_, rules_] := Then[
   gcFn, internalFn,
   Unprotect[gcFn],
@@ -337,7 +337,7 @@ EdgeAnnotation[e:Except[_Slot], k_, d_] := Lookup[Lookup[$CurrentEdgeAnnotations
 
 (*************************************************************************************************)
 
-DeclareStrict[GraphAnnotationRules, GraphProperties]
+SetStrict[GraphAnnotationRules, GraphProperties]
 
 GraphProperties[graph_Graph] := Lookup[graphAnnos @ graph, "GraphProperties", Dict[]];
 GraphProperties[graph_Graph, syms_] := Lookup[GraphProperties @ graph, syms, Automatic];
@@ -360,7 +360,7 @@ addEdgeTags = CaseOf[
 
 (*************************************************************************************************)
 
-DeclareStrict[GraphVertexAnnotations, GraphEdgeAnnotations, AddSelfAnnotations];
+SetStrict[GraphVertexAnnotations, GraphEdgeAnnotations, AddSelfAnnotations];
 
 GraphVertexAnnotations[graph_Graph]                  := graphItemAnnos[graph, VertexList @ graph];
 GraphVertexAnnotations[graph_Graph, key_, def_:None] := graphItemAnnos[graph, VertexList @ graph, key, def];

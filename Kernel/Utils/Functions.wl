@@ -1,7 +1,7 @@
 PackageExports[
   "Function",
     NullifyFn, PostCompose, FnComposeBody,
-  "ControlFlowFunction",
+  "ControlFlow",
     MakeHoldComplete, ApplyHoldComplete,
     Applied,
     NullFn, ConstFn, HoldConstFn,
@@ -76,7 +76,7 @@ FalseFn[___] := False;
 
 (**************************************************************************************************)
 
-DeclareHoldAll[AttributeFn, HoldFirstFn, HoldRestFn, HoldAllFn, HoldCompFn];
+SetHoldA[AttributeFn, HoldFirstFn, HoldRestFn, HoldAllFn, HoldCompFn];
 
 AttributeFn[attr_, vars_, body_] := Fn[vars, body, attr];
 AttributeFn[attr_, body_]        := Fn[Null, body, attr];
@@ -171,7 +171,7 @@ General::badAppliedSlotFunction = "Cannot use complex Applied slot function ``."
 
 (**************************************************************************************************)
 
-DeclareHoldAll[slotHold]
+SetHoldA[slotHold]
 
 removeSlotHold[e_] := e //. slotHold[f_] :> f;
 

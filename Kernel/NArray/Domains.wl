@@ -113,14 +113,14 @@ DefinePatternRules[
 
 DefinePatternRules[
   DimListP            -> _List ? PositiveIntegerVectorQ,
-  ArrayDomainP        -> ToBlank[{ArraysOf, PackedArraysOf, SparseArraysOf, NumericArraysOf}] ? ArrayDomainQ,
-  CompoundDomainP     -> ToBlank[{ListsOf, TuplesOf, RecordsOf, DictsOf, RulesOf, OptionalOf, AnyOf, HeadsOf}] ? CompoundDomainQ,
+  ArrayDomainP        -> ToBlankP[{ArraysOf, PackedArraysOf, SparseArraysOf, NumericArraysOf}] ? ArrayDomainQ,
+  CompoundDomainP     -> ToBlankP[{ListsOf, TuplesOf, RecordsOf, DictsOf, RulesOf, OptionalOf, AnyOf, HeadsOf}] ? CompoundDomainQ,
   DomainP             -> _ ? DomainQ
 ];
 
 (*************************************************************************************************)
 
-DeclarePredicate1[DimVecQ, ScalarDomainQ, ArrayDomainQ, CompoundDomainQ, DomainQ]
+SetPred1[DimVecQ, ScalarDomainQ, ArrayDomainQ, CompoundDomainQ, DomainQ]
 
 DimVecQ[e_] := PosIntVecQ[e];
 
@@ -223,7 +223,7 @@ SemiringFor = CaseOf[
 
 (*************************************************************************************************)
 
-DeclareStrict[RandomArray, RandomElement]
+SetStrict[RandomArray, RandomElement]
 
 $randLen = 5.0;
 
@@ -329,7 +329,7 @@ iArrayType0[arr_] := Locals[
 iArrayType1 = CaseOf[
   arr_SparseArray    := SparseArraysOf @ SparseArrayDomain @ arr;
   arr_NumericArray   := NumericArraysOf @ $fromNAType @ NumericArrayType @ arr;
-  arr_List ? PackedQ := PackedArraysOf @ $fromPAType @ PackedArrayType @ arr;
+  arr_List ? PackedQ := PackedArraysOf @ $fromPAType @ PackedType @ arr;
   arr_List           := ArraysOf @ arrayElemType[arr, Len @ $arrDims];
   e_                 := ArraysOf @ singleType @ e;
 ];
@@ -551,7 +551,7 @@ singleRecordType[dict_Dict]  := kvType[Id, Map[singleType], dict];
 
 (*************************************************************************************************)
 
-DeclareCurry1[tryHeteroType];
+SetCurry1[tryHeteroType];
 tryHeteroType[list_, ListsOf[Exprs]]                := singleTupleType @ list;
 tryHeteroType[dict_, DictsOf[Strings|Exprs, Exprs]] := singleRecordType @ dict;
 tryHeteroType[_, type_] := type;

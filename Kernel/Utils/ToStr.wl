@@ -12,9 +12,11 @@ SystemExports[
 
 PackageExports[
   "Function",
-    ToStr, BoxToString, ToStrBlock,
+    ToStr, BoxToString, ToStrBlock, ToStrInternal,
   "Head",
-    StrBlock, HSpace, HStrBlock, VStrBlock
+    StrBlock, HSpace, HStrBlock, VStrBlock,
+  "Predicate",
+    HasToStrFnQ
 ];
 
 (**************************************************************************************************)
@@ -30,6 +32,19 @@ ToStr = CaseOf[
 ];
 
 iToStr[e_] := CatchMessages[ToStr, StrJoin @ blockToStrs @ formToBlock @ e];
+
+(**************************************************************************************************)
+
+SetHoldC @ ToStrInternal;
+SetPred1 @ SetHoldC @ HasToStrFnQ;
+
+ToStr /: SetDelayed[ToStr[$LHS_], $RHS_] := With[
+  {head = First @ PatHead @ $LHS},
+  HasToStrFnQ[head] = True;
+  First @ MakeSetDelayed[ToStrInternal[$LHS], $RHS]
+];
+
+Protect[ToStr];
 
 (**************************************************************************************************)
 
@@ -70,10 +85,20 @@ formToBlock = CaseOf[
 
 iToStrFallback = CaseOf[
   (head_ ? BurrowThroughHeadQ)[arg1_, ___] := formToBlock @ $ @ arg1;
+  expr:(_Sym ? HasToStrFnQ)[___]           := makeSingleBlock @ checkToStr[expr, ToStrInternal @ expr];
   head_Sym ? HasCoreBoxesQ                 := boxToBlock @ MakeBoxes @ head;
   expr:(_Sym ? HasCoreBoxesQ)[___]         := boxToBlock @ MakeBoxes @ expr;
-  _                                        := "$Failed";
+  expr_                                    := makeSingleBlock @ checkToStr[expr, Null];
 ];
+
+SetHoldF @ checkToStr;
+
+checkToStr[expr_, str_Str]      := str;
+checkToStr[head_Symbol[___], _] := {HoldSymbolName[head], "[", CDots, "]"};
+checkToStr[head_Symbol, _]      := HoldSymbolName[head];
+checkToStr[_, _]                := "\[EmptySquare]";
+
+failStrBlock[e_] := makeSingleBlock @
 
 (**************************************************************************************************)
 
@@ -519,12 +544,6 @@ blockPadding[block:StrBlock[elems2_, w2_, h2_], framePadding_] := Locals[
   If[r > 0, space = hspaceList[h, r]; elems = MapThread[Flatten @ {#1, #2}&, {elems, space}]];
   StrBlock[elems, w + l + r, h]
 ];
-
-(**************************************************************************************************)
-
-ToStr /: SetDelayed[ToStr[$LHS], $RHS] := SetD @@ Hold[iToStr @ $LHS, $RHS];
-
-Protect[ToStr];
 
 (**************************************************************************************************)
 
@@ -1103,3 +1122,5 @@ extendSpanning = CaseOf[
     Flatten @ {l, ConstList[a, Floor @ n2], m, ConstList[a, Ceiling @ n2], r}
   ]
 ];
+
+(**************************************************************************************************)

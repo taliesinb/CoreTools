@@ -21,7 +21,7 @@ $SublimeKindColors := $SublimeKindColors = getSublimeKindColors[];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[LogToSublime]
+SetHoldC[LogToSublime]
 
 LogToSublime[expr_] := Locals[
   path = NewTemporaryFilename["sublime_log#.txt"];
@@ -105,7 +105,7 @@ CoreToolsSymbolKinds[] := Locals[
 
 symbolDictQ[a_] := KeysValuesTrue[a, StringQ, StringVectorQ];
 
-DeclareHoldAll[savePreludeExports];
+SetHoldA[savePreludeExports];
 
 savePreludeExports[] := Null;
 savePreludeExports[kind_String, Longest[syms___Symbol], rest___] := (
@@ -333,7 +333,7 @@ $groupToSymbol = Association[
 groupToKindColorProxy = CaseOf[
   "Symbol" | "PatternSymbol" | "PatternHead" | "SpecialSymbol"      := "symbol";
   "ObjectHead"                                                      := "function";
-  "Function" | "MutationFunction" | "ScopingFunction" | "ControlFlowFunction" := "function";
+  "Function" | "MutationFunction" | "ScopingFunction" | "ControlFlow" := "function";
   "PackageFunction" | "PackageDeclaration" | "DebuggingFunction" | "SpecialFunction"    := "function";
   "Variable" | "SpecialVariable" | "CacheVariable"                  := "variable";
   "GraphicsBoxFunction" | "GraphicsPrimitive" |

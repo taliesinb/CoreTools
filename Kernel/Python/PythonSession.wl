@@ -165,7 +165,7 @@ addBestEval[params_] :=
 
 (*************************************************************************************************)
 
-DeclareHoldFirst[CustomExternalEvaluateCatch];
+SetHoldF[CustomExternalEvaluateCatch];
 
 CustomExternalEvaluateCatch[expr_] := Catch[ExternalEvaluatePostProcessor @ expr, "__externalevaluate__"];
 
@@ -324,13 +324,13 @@ runScriptData[path_, updateInterval_, runCount_] := Locals[
   ];
   endTime = SessionTime[];
   runTime = endTime - startTime;
-  PackAssociation[
+  PackDict[
     fileTime, startTime, endTime, runTime,
     updateInterval, path, dynamic, result, runCount
   ]
 ];
 
-DeclareHoldFirst[PythonScriptPrint];
+SetHoldF[PythonScriptPrint];
 
 SetInitial[$PathToNotebookCache, UDict[]];
 
@@ -381,7 +381,7 @@ notInternalFrameQ[e_] := FreeQ[e, s_String /; StringContainsQ[s, $InstallationDi
 
 (*************************************************************************************************)
 
-DeclareHoldFirst[PythonScriptResult, scriptResultObjectBoxes];
+SetHoldF[PythonScriptResult, scriptResultObjectBoxes];
 
 PythonScriptResult[var_][field_] := Lookup[var, field];
 
@@ -393,7 +393,7 @@ MakeBoxes[PythonScriptResult[var_], StandardForm] :=
 scriptResultObjectBoxes[var_] := Locals[
   If[!AssociationQ[var], Return @ $invalidScriptBoxes];
   argBoxes = runSummaryArgsFn @ var;
-  UnpackAssociation[var, dynamic, path, fileTime, updateInterval];
+  UnpackDict[var, dynamic, path, fileTime, updateInterval];
   If[dynamic, argBoxes = makeDynamicScriptBox[
     Hold[var], path, fileTime, updateInterval, argBoxes
   ]];

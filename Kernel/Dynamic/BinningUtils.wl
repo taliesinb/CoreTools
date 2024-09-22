@@ -6,7 +6,7 @@ PrivateExports[
 
 (**************************************************************************************************)
 
-HasMissingDataQ[data_ ? PackedArrayQ] := False;
+HasMissingDataQ[data_ ? PackedQ] := False;
 HasMissingDataQ[data_] := MemberQ[data, _Missing | None | _Failure | $Failed];
 
 (**************************************************************************************************)

@@ -1,6 +1,6 @@
 SystemExports[
   "GraphicsDirective", OKColor, OKHue, ComplexHue, NiceHue,
-  "Function",          HashToColor, UniqueColor
+  "Function",          HashToColor, UniqueColor, ColorDuplicates
 ];
 
 PackageExports[
@@ -9,6 +9,23 @@ PackageExports[
     ColorToOKArray,  OKArrayToColor,
     OKArrayToRGBArray, RGBArrayToOKArray,
     LCHArrayToRGBArray
+];
+
+(**************************************************************************************************)
+
+ColorDuplicates[expr_, patt_] := Locals[
+  dups = Occurences[expr, patt];
+  dups = Union @@ Duplicates @ dups;
+  If[dups === {}, Return @ expr];
+  colors = UniqueColor /@ Range @ Len @ dups;
+  lhs = PatternLHS @ patt;
+  If[FailureQ[lhs],
+    rules = ZipMap[Rule[Verbatim[#1], Style[#1, #2]]&, dups, colors];
+    expr /. rules
+  ,
+    colorDict = DictThread[dups, colors];
+    expr /. e:lhs :> RuleEval @ Style[e, Lookup[colorDict, Replace[e, patt], $Gray]]
+  ]
 ];
 
 (**************************************************************************************************)
@@ -79,7 +96,7 @@ convert$ok$srgb[lab_List] := Map[convert$ok$srgb, lab, {-2}];
 convert$srgb$ok[srgb_List ? VectorQ] := Dot[$lms$ok, CubeRoot @ Dot[$srgb$lms, srgb]];
 convert$srgb$ok[srgb_List] := Map[convert$srgb$ok, srgb, {-2}];
 
-DeclareListable[convert$rgb$srgb, convert$srgb$rgb]
+SetListable[convert$rgb$srgb, convert$srgb$rgb]
 convert$srgb$rgb[x_] := If[x >= 0.0031308, 1.055 * x^(1.0/2.4) - 0.055, 12.92 * x];
 convert$rgb$srgb[x_] := If[x >= 0.04045, ((x + 0.055)/(1 + 0.055))^2.4, x / 12.92];
 
@@ -105,7 +122,7 @@ $lms$ok = ToPackedReals @ {
 
 (*************************************************************************************************)
 
-DeclareListable[ComplexHue]
+SetListable[ComplexHue]
 
 ComplexHue[c_Complex] := ComplexHue[Arg[c] / Tau, Min[Sqrt[Abs[c]]/1.2,1], .9];
 
@@ -115,7 +132,7 @@ NiceHue[arr_] := fastBalancedHue @ arr;
 NiceHue[arr_, s:NumP] := modifySat[s, fastBalancedHue @ arr];
 NiceHue[arr_, s:NumP, l:NumP] := modifySatLum[s, l, fastBalancedHue @ arr];
 
-DeclareListable[fastBalancedHue];
+SetListable[fastBalancedHue];
 
 fastBalancedHue[h_] := Blend["SoftBalancedHue", h];
 

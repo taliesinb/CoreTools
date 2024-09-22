@@ -17,18 +17,9 @@ SystemExports[
 PackageExports[
   "Function",
     GraphVertexData, GraphEdgeData,
-    IVertexList, IMEdgeList,
   "SymbolicHead",
     DebugRules
 ];
-
-(*************************************************************************************************)
-
-DefineAliasRules[
-  IVertexList -> IntegerVertexList,
-  IMEdgeList   -> IntegerEdgeList
-];
-
 
 (*************************************************************************************************)
 
@@ -66,13 +57,13 @@ PrefixGraph[vertices_, opts___Rule] := Locals[
 
 (*************************************************************************************************)
 
-DeclarePredicate1[IndexGraphQ]
+SetPred1[IndexGraphQ]
 
 IndexGraphQ[g_Graph] := PermutedRangeQ @ VertexList @ g;
 
 (*************************************************************************************************)
 
-DeclareStrict[FromIndexGraph]
+SetStrict[FromIndexGraph]
 
 FromIndexGraph::notIndexedGraph = "First argument was not an indexed graph."
 FromIndexGraph::badVertexCount = "Wrong number of provided vertices."
@@ -91,7 +82,7 @@ FromIndexGraph[igraph_, vertexList_List, opts___Rule] := Locals[
 
 (*************************************************************************************************)
 
-DeclareStrict[EdgeTagIndices, VertexRange, VertexEdgeList, IndexVertexEdgeList]
+SetStrict[EdgeTagIndices, VertexRange, VertexEdgeList, IndexVertexEdgeList]
 
 "VertexEdgeList[graph$] returns {vertices$, edges$}."
 
@@ -104,12 +95,12 @@ VertexRange[graph_Graph]         := Range @ VertexCount @ graph;
 VertexEdgeList[graph_Graph]      := List[VertexList @ graph, EdgeList @ graph];
 IndexVertexEdgeList[graph_Graph] := VertexEdgeList @ IndexGraph @ graph;
 
-DeclareStrict[EdgePairs, EdgePairsT]
+SetStrict[EdgePairs, EdgePairsT]
 
 EdgePairs[graph_Graph]                := Flip @ Col12 @ EdgeList @ graph;
 EdgePairsT[graph_Graph]               := Col12 @ EdgeList @ graph;
 
-DeclareStrict[VertexOutLists, VertexInLists]
+SetStrict[VertexOutLists, VertexInLists]
 
 VertexInLists[graph_Graph]  := padWithEmpty[edgeDictI @ graph, graph];
 VertexOutLists[graph_Graph] := padWithEmpty[edgeDictO @ graph, graph];
@@ -120,12 +111,12 @@ edgeDictO[graph_] := Merge[EdgeRules @ graph, Id];
 padWithEmpty[dict_, g_] /; Len[dict] == VertexCount[g] := g;
 padWithEmpty[dict_, g_] := Join[ConstUDict[VertexList @ g, {}], dict];
 
-DeclareStrict[IndexVertexInLists, IndexVertexOutLists]
+SetStrict[IndexVertexInLists, IndexVertexOutLists]
 
 IndexVertexInLists[g_Graph]  := Lookup[edgeDictI @ IndexGraph @ g, VertexRange @ g, {}];
 IndexVertexOutLists[g_Graph] := Lookup[edgeDictO @ IndexGraph @ g, VertexRange @ g, {}];
 
-DeclareStrict[IndexVertexSources, IndexVertexSinks, VertexSources, VertexSinks]
+SetStrict[IndexVertexSources, IndexVertexSinks, VertexSources, VertexSinks]
 
 IndexVertexSources[g_Graph] := Pick[VertexRange @ g, VertexInDegree @ g, 0];
 IndexVertexSinks[g_Graph]   := Pick[VertexRange @ g, VertexOutDegree @ g, 0];
@@ -134,7 +125,7 @@ VertexSinks[g_Graph]        := Pick[VertexList @ g, VertexOutDegree @ g, 0];
 
 (*************************************************************************************************)
 
-DeclareStrict[FromVertexOutLists]
+SetStrict[FromVertexOutLists]
 
 FromVertexOutLists[dict_Dict, opts___Rule] := ExtGraph[
   DelDups @ Join[Keys @ dict, Catenate @ dict],
@@ -182,7 +173,7 @@ parseGraphDataSpec = CaseOf[
 
 (*************************************************************************************************)
 
-DeclareStrict[GraphFold]
+SetStrict[GraphFold]
 
 GraphFold::badArguments = "Expected a graph, function, initial vertex data, and iteration steps.";
 

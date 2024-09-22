@@ -51,7 +51,7 @@ HiddenLoadPackage[package_String] := If[!SystemPackageLoadedQ[package],
 
 SetInitial[$PatchDebugging, False];
 
-DeclareHoldAll[PatchPrint]
+SetHoldA[PatchPrint]
 PatchPrint[args___] /; $PatchDebugging := LogPrint[args];
 
 (*************************************************************************************************)
@@ -71,7 +71,7 @@ Initially[
   $PackageNeedsPatchesQ = UDict[];
 ];
 
-DeclareStrict[RegisterPackagePatchFunctions];
+SetStrict[RegisterPackagePatchFunctions];
 
 RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
   If[$CurrentlyTracingAutoloads, Return[]];

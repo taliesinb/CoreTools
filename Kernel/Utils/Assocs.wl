@@ -1,22 +1,22 @@
 SystemExports[
   "Function",
     ListAssociationParts,
-    InvertAssociation, InvertUnorderedAssociation, ReverseRules, MapRules,
+    InvertAssociation, InvertUAssociation, ReverseRules, MapRules,
     KeyValueScan, KeyMapValueMap, ValueMap, KeysValues, ValuesKeys,
     ToValues, ToRuleList,
-    RuleThread, RuleUnthread, UnorderedAssociationThread,
-    RangeRules, RangeAssociation, RangeUnorderedAssociation,
-    RulesRange, AssociationRange, UnorderedAssociationRange,
-    ConstantRules, ConstantAssociation, ConstantUnorderedAssociation,
+    RuleThread, RuleUnthread, UAssociationThread,
+    RangeRules, RangeAssociation, RangeUAssociation,
+    RulesRange, AssociationRange, UAssociationRange,
+    ConstantRules, ConstantAssociation, ConstantUAssociation,
     ConstantTrueAssociation, ConstantFalseAssociation,
     TrueRules,
-    UnorderedAssociationMapApply, UnorderedAssociationMapThread, UnorderedAssociationMap,
+    UAssociationMapApply, UAssociationMapThread, UAssociationMap,
     AssociationMapThread, AssociationMapApply,
-    PairsToAssociation, PairsToUnorderedAssociation, AssociationToPairs,
-    RulesToAssociation, RulesToUnorderedAssociation, AssociationToRules,
+    PairsToAssociation, PairsToUAssociation, AssociationToPairs,
+    RulesToAssociation, RulesToUAssociation, AssociationToRules,
     GroupPairs, GroupAgainst, CombineBy, CombineAgainst, MergeAssocations,
-    AssociationSum, UnorderedAssociationSum,
-    AssociationPlus, UnorderedAssociationPlus,
+    AssociationSum, UAssociationSum,
+    AssociationPlus, UAssociationPlus,
     UnorderedCounts,
     LevelIndex, PadAssociation,
     AssociationThreadOp
@@ -52,10 +52,10 @@ IndexDicts[dicts_List, key_] := Data`ValueToKey[dicts, key];
 (**************************************************************************************************)
 
 EnsureODict::usage =
-"EnsureODict[UnorderedAssociation[$$]] returns Association[$$].
+"EnsureODict[UAssociation[$$]] returns Association[$$].
 EnsureODict has no effect on other expressions."
 
-(* because some functions like Extract don't work on UnorderedAssociation *)
+(* because some functions like Extract don't work on UAssociation *)
 EnsureODict[e:DictP] := Dict @ e;
 EnsureODict[e_]      := e
 
@@ -97,11 +97,11 @@ InvertAssociation::usage =
 "InvertAssociation[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|v$1 -> k$1, v$2 -> k$2, $$|>.
 InvertAssociation throws an error if a unique inverse does not result."
 
-InvertUnorderedAssociation::usage =
-"InvertUnorderedAssociation[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns UnorderedAssociation[v$1 -> k$1, v$2 -> k$2, $$].
-InvertUnorderedAssociation throws an error if a unique inverse does not result."
+InvertUAssociation::usage =
+"InvertUAssociation[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[v$1 -> k$1, v$2 -> k$2, $$].
+InvertUAssociation throws an error if a unique inverse does not result."
 
-SetStrict[InvertAssociation, InvertUnorderedAssociation];
+SetStrict[InvertAssociation, InvertUAssociation];
 
 InvertAssociation::notUnique = "Cannot uniquely invert association ``.";
 InvertAssociation[dict:DictP] := Module[
@@ -109,8 +109,8 @@ InvertAssociation[dict:DictP] := Module[
   If[Len[res] == Len[dict], res,
     ErrorMsg[InvertAssociation::notUnique, dict]]];
 
-InvertUnorderedAssociation::notUnique = "Cannot uniquely invert association ``.";
-InvertUnorderedAssociation[dict:DictP] := Module[
+InvertUAssociation::notUnique = "Cannot uniquely invert association ``.";
+InvertUAssociation[dict:DictP] := Module[
   {res = UDict @ Reverse[Normal @ dict, 2]},
   If[Len[res] == Len[dict], res,
     ErrorMsg[InvertAssociation::notUnique, dict]]];
@@ -205,7 +205,7 @@ ToRuleList[]              := {};
 ToRuleList[specs__]       := Join @ Map[ToRuleList, NoEval @ specs];
 
 (**************************************************************************************************
-`UnorderedAssociationThread[{key_i}_i, {val_i}_i]` gives the unordered association `<|key_i -> val_i|>_i`.
+`UAssociationThread[{key_i}_i, {val_i}_i]` gives the unordered association `<|key_i -> val_i|>_i`.
 `RuleThread[{key_i}_i, {val_i}_i]` gives the rule list `{key_i -> val_i}_i`.
 ?*)
 
@@ -213,9 +213,9 @@ AssociationThreadOp::usage =
 "AssociationThreadOp[{k$1, k$2, $$}, {v$1, v$2, $$}] returns <|k$1 -> v$2, k$2 -> v$2, $$|>.
 AssociationThreadOp[keys$] is the operator form of AssociationThreadOp."
 
-UnorderedAssociationThread::usage =
-"UnorderedAssociationThread[{k$1, k$2, $$}, {v$1, v$2, $$}] returns UnorderedAssociation[k$1 -> v$2, k$2 -> v$2, $$].
-UnorderedAssociationThread[keys$] is the operator form of UnorderedAssociationThread."
+UAssociationThread::usage =
+"UAssociationThread[{k$1, k$2, $$}, {v$1, v$2, $$}] returns UAssociation[k$1 -> v$2, k$2 -> v$2, $$].
+UAssociationThread[keys$] is the operator form of UAssociationThread."
 
 RuleThread::usage =
 "RuleThread[{k$1, k$2, $$}, {v$1, v$2, $$}] returns {k$1 -> v$2, k$2 -> v$2, $$}.
@@ -224,12 +224,12 @@ RuleThread[keys$] is the operator form of RuleThread."
 RuleUnthread::usage =
 "RuleUnthread[{k$1 -> v$2, k$2 -> v$2, $$}] returns {k$1, k$2, $$} -> {v$1, v$2, $$}."
 
-SetCurry1[AssociationThreadOp, UnorderedAssociationThread, RuleThread];
+SetCurry1[AssociationThreadOp, UAssociationThread, RuleThread];
 
 (* unlike AssociationThread this fn can curry *)
 AssociationThreadOp[keys_, vals_] := AssociationThread[keys, vals];
 
-UnorderedAssociationThread[keys_List, vals_List]  :=
+UAssociationThread[keys_List, vals_List]  :=
   UDict @ Thread[keys -> vals];
 
 RuleThread[keys_List, values_List] /; Len[keys] === Len[values] :=
@@ -245,8 +245,8 @@ RuleUnthread[rules_List] := Thread[rules, Rule];
 RangeAssociation[vals_List] := AssociationThread[LengthRange @ vals, vals];
 AssociationRange[keys_List] := AssociationThread[keys, LengthRange @ keys];
 
-RangeUnorderedAssociation[vals_List] := UnorderedAssociationThread[LengthRange @ vals, vals];
-UnorderedAssociationRange[keys_List] := UnorderedAssociationThread[keys, LengthRange @ keys];
+RangeUAssociation[vals_List] := UAssociationThread[LengthRange @ vals, vals];
+UAssociationRange[keys_List] := UAssociationThread[keys, LengthRange @ keys];
 
 (**************************************************************************************************
 `RangeRules[{key_i}_i]` gives the rule list `{key_i -> i}_i`.
@@ -259,17 +259,17 @@ RulesRange[keys_] := RuleThread[keys, LengthRange @ keys];
 (**************************************************************************************************
 `ConstantRules[{key_i}_i, c]` gives the constant rules `{key_i -> c}_i`.
 `ConstantAssociation[{key_i}_i, c]` gives the constant association `<|key_i -> c|>_i`.
-`ConstantUnorderedAssociation[{key_i}_i, c]` gives the unordered constant association `<|key_i -> c|>_i`.
+`ConstantUAssociation[{key_i}_i, c]` gives the unordered constant association `<|key_i -> c|>_i`.
 ?*)
 
-SetCurry1[ConstantRules, ConstantAssociation, ConstantUnorderedAssociation];
+SetCurry1[ConstantRules, ConstantAssociation, ConstantUAssociation];
 
 ConstantRules[keys_List, constant_List] := Map[key |-> Rule[key, constant], keys];
 ConstantRules[keys_List, constant_] := Thread @ Rule[keys, constant];
 ConstantAssociation[keys_List, constant_] := DictThread[keys, ConstantArray[constant, Len @ keys]];
-ConstantUnorderedAssociation[keys_List, constant_] := UDictThread[keys, ConstantArray[constant, Len @ keys]];
-ConstantTrueAssociation[keys_List]  := ConstantUnorderedAssociation[keys, True];
-ConstantFalseAssociation[keys_List] := ConstantUnorderedAssociation[keys, False];
+ConstantUAssociation[keys_List, constant_] := UDictThread[keys, ConstantArray[constant, Len @ keys]];
+ConstantTrueAssociation[keys_List]  := ConstantUAssociation[keys, True];
+ConstantFalseAssociation[keys_List] := ConstantUAssociation[keys, False];
 
 (*************************************************************************************************)
 
@@ -284,34 +284,34 @@ TrueRules = CaseOf[
 ?*)
 
 AssociationMapApply::usage = "AssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|f$[k$1, v$1], f$[k$2, v$2], $$|>."
-UnorderedAssociationMapApply::usage = "UnorderedAssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UnorderedAssociation[f$[k$1, v$1], f$[k$2, v$2], $$]."
+UAssociationMapApply::usage = "UAssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[f$[k$1, v$1], f$[k$2, v$2], $$]."
 
-SetCurry1[AssociationMapApply, UnorderedAssociationMapApply]
+SetCurry1[AssociationMapApply, UAssociationMapApply]
 
 AssociationMapApply[fn_, dict_Dict]          :=  Dict @ MapApply[fn, Normal @ dict];
-UnorderedAssociationMapApply[fn_, dict_Dict] := UDict @ MapApply[fn, Normal @ dict];
+UAssociationMapApply[fn_, dict_Dict] := UDict @ MapApply[fn, Normal @ dict];
 
 (*************************************************************************************************)
 
 AssociationMapThread::usage = "AssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
-UnorderedAssociationMapThread::usage = "UnorderedAssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
+UAssociationMapThread::usage = "UAssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
 
-SetCurry1[AssociationMapThread, UnorderedAssociationMapThread]
+SetCurry1[AssociationMapThread, UAssociationMapThread]
 
 AssociationMapThread[fn_, dict_Dict]          := With[{keys = Keys @ dict}, Map[val |-> fn[ DictThread[keys, val]], Transpose @ Values @ dict]];
-UnorderedAssociationMapThread[fn_, dict_Dict] := With[{keys = Keys @ dict}, Map[val |-> fn[UDictThread[keys, val]], Transpose @ Values @ dict]];
+UAssociationMapThread[fn_, dict_Dict] := With[{keys = Keys @ dict}, Map[val |-> fn[UDictThread[keys, val]], Transpose @ Values @ dict]];
 
 (*************************************************************************************************)
 
-UnorderedAssociationMap::usage =
-"UnorderedAssociationMap[f$, {k$1, k$2, $$}] returns UnorderedAssociation[k$1 -> f$[k$1], k$2 -> f$[k$2], $$].
-UnorderedAssociationMap[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UnorderedAssociation[f$[k$1 -> v$1], f$[k$2 -> v$2]]."
+UAssociationMap::usage =
+"UAssociationMap[f$, {k$1, k$2, $$}] returns UAssociation[k$1 -> f$[k$1], k$2 -> f$[k$2], $$].
+UAssociationMap[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[f$[k$1 -> v$1], f$[k$2 -> v$2]]."
 
-DecFullDispatch2 @ SetCurry1[UnorderedAssociationMap]
+DecFullDispatch2 @ SetCurry1[UAssociationMap]
 
-UnorderedAssociationMap[fn_, list_List]  := UDict @ Map[z |-> Rule[z, fn[z]], list];
-UnorderedAssociationMap[fn_, dict:DictP] := UDict @ Map[fn, Normal @ assoc];
-UnorderedAssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr]; Fail];
+UAssociationMap[fn_, list_List]  := UDict @ Map[z |-> Rule[z, fn[z]], list];
+UAssociationMap[fn_, dict:DictP] := UDict @ Map[fn, Normal @ assoc];
+UAssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr]; Fail];
 
 (*************************************************************************************************)
 
@@ -319,22 +319,22 @@ AssociationToRules::usage = "AssociationToRules[<|k$1 -> v$1, k$2 -> v$2, $$|>] 
 RulesToAssociation::usage = "AssociationToRules[{k$1 -> v$1, k$2 -> v$2, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
 AssociationToPairs::usage = "AssociationToPairs[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {{k$1, v$1}, {k$2, v$2}, $$}."
 PairsToAssociation::usage = "AssociationToRules[{{k$1, v$1}, {k$2, v$2}, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
-RulesToUnorderedAssociation::usage = "RulesToUnorderedAssociation[{k$1 -> v$1, k$2 -> v$2, $$}] returns UnorderedAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
-PairsToUnorderedAssociation::usage = "PairsToUnorderedAssociation[{{k$1, v$1}, {k$2, v$2}, $$}] returns UnorderedAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
+RulesToUAssociation::usage = "RulesToUAssociation[{k$1 -> v$1, k$2 -> v$2, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
+PairsToUAssociation::usage = "PairsToUAssociation[{{k$1, v$1}, {k$2, v$2}, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
 
-SetStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation, PairsToUnorderedAssociation, RulesToUnorderedAssociation]
+SetStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation, PairsToUAssociation, RulesToUAssociation]
 
 AssociationToRules[dict_Dict] := Normal @ dict;
 AssociationToPairs[dict_Dict] := Transpose @ {Keys @ dict, Values @ dict};
 AssociationToRules::badArguments = AssociationToPairs::badArguments = "First argument was not an association: ``.";
 
          PairsToAssociation[list_ ? PairVectorQ] :=          AssociationThread @@ Transpose @ list;
-PairsToUnorderedAssociation[list_ ? PairVectorQ] := UnorderedAssociationThread @@ Transpose @ list;
-PairsToAssociation::badArguments = PairsToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
+PairsToUAssociation[list_ ? PairVectorQ] := UAssociationThread @@ Transpose @ list;
+PairsToAssociation::badArguments = PairsToUAssociation::badArguments = "First argument was not a list of pairs: ``.";
 
          RulesToAssociation[list_List ? RuleLikeVectorQ] :=          Association @ list;
-RulesToUnorderedAssociation[list_List ? RuleLikeVectorQ] := UnorderedAssociation @ list;
-RulesToAssociation::badArguments = RulesToUnorderedAssociation::badArguments = "First argument was not a list of pairs: ``.";
+RulesToUAssociation[list_List ? RuleLikeVectorQ] := UAssociation @ list;
+RulesToAssociation::badArguments = RulesToUAssociation::badArguments = "First argument was not a list of pairs: ``.";
 
 (**************************************************************************************************)
 
@@ -373,7 +373,7 @@ MergeAssocations[fn_, assocs_] := KeyValueMap[fn, Merge[assocs, Id]];
 (*************************************************************************************************)
 
 AssociationSum::usage = "AssociationSum[assocs$] returns <|k$ -> Total[{v$1, v$2, $$}], $$|>."
-UnorderedAssociationSum::usage = "UnorderedAssociationSum[assocs$] returns UnorderedAssociation[k$ -> Total[{v$1, v$2, $$}], $$]."
+UAssociationSum::usage = "UAssociationSum[assocs$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$]."
 
 AssociationSum = CaseOf[
   {}       := EmptyDict;
@@ -383,7 +383,7 @@ AssociationSum = CaseOf[
   r_Rule   := Dict[r];
 ];
 
-UnorderedAssociationSum = CaseOf[
+UAssociationSum = CaseOf[
   {}       := EmptyUDict;
   {e_Dict} := UDict @ e;
   e_List   := UDict @ Merge[e, Total];
@@ -397,19 +397,19 @@ AssociationPlus::usage =
 "AssociationPlus[assoc$1, assoc$2, $$] returns <|k$ -> Total[{v$1, v$2, $$}], $$|>.
 Any of the assoc$i can be rules or lists of rules."
 
-UnorderedAssociationPlus::usage = "
-UnorderedAssociationPlus[assoc$1, assoc$2, $$] returns UnorderedAssociation[k$ -> Total[{v$1, v$2, $$}], $$].
+UAssociationPlus::usage = "
+UAssociationPlus[assoc$1, assoc$2, $$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$].
 Any of the assoc$i can be rules or lists of rules."
 
 AssociationPlus[]               := EmptyDict;
 AssociationPlus[as___]          := Merge[{as}, Total];
 
-UnorderedAssociationPlus[]      := EmptyUDict;
-UnorderedAssociationPlus[as___] := UDict @ Merge[{as}, Total];
+UAssociationPlus[]      := EmptyUDict;
+UAssociationPlus[as___] := UDict @ Merge[{as}, Total];
 
 (*************************************************************************************************)
 
-UnorderedCounts::usage = "UnorderedCounts[list$] returns UnorderedAssociation[e$1 -> n$1, $$]."
+UnorderedCounts::usage = "UnorderedCounts[list$] returns UAssociation[e$1 -> n$1, $$]."
 
 UnorderedCounts[e_] := UDict @ Counts @ e;
 
@@ -489,6 +489,7 @@ BindTo[sym$] is the operator form of BindTo."
 
 SetStrict @ SetHoldF @ BindTo;
 
+BindTo[lhs_, {}]          := lhs;
 BindTo[lhs_, rule:RuleLP] := AssociateTo[lhs, rule];
 BindTo[lhs_, dict_Dict]   := AssociateTo[lhs, dict];
 BindTo[lhs_, rules_List]  := AssociateTo[lhs, rules];

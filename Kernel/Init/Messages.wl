@@ -1,5 +1,5 @@
 PackageExports[
-  "ControlFlowFunction",
+  "ControlFlow",
     Try, TryElse,
 
   "MessageFunction",
@@ -12,8 +12,9 @@ PackageExports[
     ThrowException,
     ThrowErrorValue,
 
-    CheckForUnknownOptions, UnknownOptionMsg,
-    ThrowUnknownOptionMsg, ThrowOptionMsg,
+    ThrowOnUnknownOptions, MessageOnUnknownOptions,
+    IssueUnknownOptionMsg, ThrowUnknownOptionMsg,
+    ThrowOptionMsg,
     SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
     OptionMsg,
     AssertThat,
@@ -35,7 +36,7 @@ PackageExports[
 PrivateExports[
   "Function",             InsertWithSourceLocations, CreateFailure,
   "SymbolicHead",         MessageException, FailureException, LiteralException,
-  "ControlFlowFunction",  WithSourceLocation, HandleExceptions, DisableHandleExceptions, UnhandledException,
+  "ControlFlow",          WithSourceLocation, HandleExceptions, DisableHandleExceptions, UnhandledException,
   "SpecialFunction",      TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
   "SpecialSymbol",        ExceptionTag,
   "SpecialVariable",      $HandlerSet, $SourceLocationStack
@@ -241,22 +242,29 @@ LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, Thro
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict[CheckForUnknownOptions, UnknownOptionMsg, ThrowUnknownOptionMsg];
+SetExcepting @ SetStrict[ThrowOnUnknownOptions, MessageOnUnknownOptions];
 
-CheckForUnknownOptions[head_Symbol] := Null;
+ThrowOnUnknownOptions[head_Symbol] := Null;
 
-CheckForUnknownOptions[head_Symbol, key_ -> _] :=
+ThrowOnUnknownOptions[head_Symbol, key_ -> _] :=
   If[!OptionKeyQ[head, key], ThrowUnknownOptionMsg[head, key]];
 
-CheckForUnknownOptions[head_Symbol, opts___] := Locals[
+ThrowOnUnknownOptions[head_Symbol, opts___] := Locals[
   validKeys = OptionKeys @ head;
   actualKeys = Keys @ FlatList @ opts;
   badKeys = Compl[actualKeys, validKeys];
   If[NonEmptyQ[badKeys], ThrowUnknownOptionMsg[head, First @ badKeys]];
 ];
 
+MessageOnUnknownOptions[args___] := Block[
+  {ThrowUnknownOptionMsg = IssueUnknownOptionMsg},
+  ThrowOnUnknownOptions[args]
+];
+
+SetExcepting @ SetStrict[IssueUnknownOptionMsg, ThrowUnknownOptionMsg]
+
 General::unknownOption = "`` is not a known option to ``. Available options are ``.";
-UnknownOptionMsg[head_, key_]      := ErrorMessage["unknownOption", key, head, OptionKeys @ head];
+IssueUnknownOptionMsg[head_, key_]      := ErrorMessage["unknownOption", key, head, OptionKeys @ head];
 ThrowUnknownOptionMsg[head_, key_] := ThrowMessage["unknownOption", key, head, OptionKeys @ head];
 
 (**************************************************************************************************)
@@ -332,15 +340,16 @@ MsgPrePrint[$PrintLiteral[s_Str]] := s;
 MsgPrePrint[f_Failure]      := FailureString @ f;
 MsgPrePrint[b_RawBoxes]     := b;
 MsgPrePrint[HoldForm[e_]]   := MsgPrePrint @ e;
-MsgPrePrint[HoldForm[e___]] := MsgPrePrint @ CoreToolsSequence @ e;
-MsgPrePrint[e_String ? HoldAtomQ] /; StringContainsQ[e, " " | "/"] := e;
-MsgPrePrint[e_]             := If[ByteCount[HoldComplete[e]] > 20000,
+MsgPrePrint[HoldForm[e___]] := MsgPrePrint @ PrivateSeq @ e;
+MsgPrePrint[e_String ? HAtomQ] /; StringContainsQ[e, " " | "/"] := e;
+MsgPrePrint[e_]             := If[
+  ByteCount[HoldComplete[e]] > 20000 || !TrueQ[$UseCoreBoxInteractivity],
   RawBoxes @ msgBoxes @ e,
   NicePaster[RawBoxes @ msgBoxes @ e, e]
 ];
 
 msgBoxes[e_] := Block[{$MessagePrePrint = Automatic}, PaneBox[
-  ConstrainedMakeBoxes[CoreToolsHold[e], 120, 30, 6],
+  MakeTruncatedBoxes[PrivateHold[e], 120, 30, 6],
   BaseStyle -> {$msgStyleOptions}, ImageSize -> {UpTo[650], UpTo[60]},
   BaselinePosition -> Baseline,
   StripOnInput -> True

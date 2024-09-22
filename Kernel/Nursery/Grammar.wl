@@ -18,7 +18,7 @@ DefineAliasRules[GSym -> GrammarSymbol, GAnno -> GrammarAnnotation, GPattern -> 
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[GrammarSymbol, GrammarAnnotation]
+SetHoldC[GrammarSymbol, GrammarAnnotation]
 
 $excludedSymbols = {
   Association, List, DirectedInfinity, None, Null, SparseArray, NumericArray,
@@ -61,13 +61,13 @@ option. but i can also recognize it when given an opaque expression that I *know
 
 FindGrammarType[expr_] := Locals[
   syms = Compl[ContainedSymbols @ expr, $excludedSymbols];
-  alt = ToAltPattern @ syms;
+  alt = ToAltP @ syms;
 
   alt2 = Alt[makeCapturePatt[alt], alt];
   posList = Sort @ Position[expr, alt2];
   tags = Extract[expr, posList];
   posList = TrimRight[0] /@ posList;
-  $leafRule = a:Alt[ToBlank[alt], alt] :> RuleEval[makeLeaf @ a];
+  $leafRule = a:Alt[ToBlankP[alt], alt] :> RuleEval[makeLeaf @ a];
   subs = Extract[expr, posList, makeRoot];
   FromVertexOutLists[
     Merge[subs, Occs[_GrammarSymbol]],
@@ -84,10 +84,10 @@ DefineGraphTheme["CoreGrammar", {
   Options -> {ImagePadding -> 30}
 }];
 
-DeclareHoldAllComplete[GrammarSymbol, makeRoot, makeLeaf];
+SetHoldC[GrammarSymbol, makeRoot, makeLeaf];
 
 makeRoot[(Rule | RuleDelayed)[lhs_, rhs_]] := With[
-  {gs = GrammarSymbol @@ PatternHeadSymbol[lhs]},
+  {gs = GrammarSymbol @@ PatternHead[lhs]},
   Rule[gs, ReplaceAll[HoldComplete[args], $leafRule]]
 ];
 
@@ -115,7 +115,7 @@ FindGrammarType[expr_, 2] := Locals[
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[AnnoSplice]
+SetHoldC[AnnoSplice]
 
 $excludedSymbols = {
   Association, List, DirectedInfinity, None, Null, SparseArray, NumericArray,
@@ -127,14 +127,14 @@ $excludedSymbols = {
 
 GrammarAnnotate[expr_] := Locals[
   syms = Compl[ContainedSymbols @ NoEval @ expr, $excludedSymbols];
-  symP = ToAltPattern @ syms;
+  symP = ToAltP @ syms;
   $annoSyms = syms;
   $annoRules = $baseAnnoRules /. FmS -> symP;
   result = attachAnnos[expr];
   result //. (AnnoSplice[a_] :> a) //. (h_[l___, AnnoSplice[m___], r___] :> h[l, m, r])
 ];
 
-DeclareHoldAllComplete[makeAnno, attachAnnos, annoRecQ]
+SetHoldC[makeAnno, attachAnnos, annoRecQ]
 
 annoRecQ[body_] := VContainsQ[NoEval @ body, $annoSyms];
 makeAnno[tag_, body_ ? annoRecQ] := GAnno[tag, body] /. FmR -> AnnoSplice;

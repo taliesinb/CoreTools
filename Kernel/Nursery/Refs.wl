@@ -33,7 +33,7 @@ AllRefs[] := Keys @ $Refs;
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[RefVal]
+SetHoldC[RefVal]
 
 PutRef[val_] := PutRefVal @ RefVal @ val;
 
@@ -41,7 +41,7 @@ PutRefVal[rval_RefVal] := findRef[rval, Hash @ rval];
 
 findRef[rval_, hash_] := Lookup[$HashToRef, hash, $HashToRef[hash] = makeRef[rval, hash]];
 makeRef[rval_, hash_] := With[
-  {ref = ConstructNoEntryExpr[Ref, hash]},
+  {ref = MakeSealed[Ref, hash]},
   $RefCols[ref] = UniqueColor[Len @ $Refs];
   $Refs[ref] = rval; ref
 ];
@@ -51,7 +51,7 @@ PutRefVal::badArguments = "Incorrect PutRef: ``.";
 
 (**************************************************************************************************)
 
-CoreBoxes[ref_Ref ? ExprNoEntryQ] := makeRefBoxes[ref];
+CoreBoxes[ref_Ref ? SealedQ] := makeRefBoxes[ref];
 
 makeRefBoxes[ref_] := If[!$UseCoreBoxFormatting,
   FnBracketBoxOp["Ref"][hashBoxes @ ref],
@@ -107,15 +107,15 @@ General::missingRef = "Failed to find ``."
 
 (**************************************************************************************************)
 
-DeclarePredicate1[RefQ, RefListQ, RefDictQ, RefListDictQ]
+SetPred1[RefQ, RefListQ, RefDictQ, RefListDictQ]
 
-RefQ[_Ref ? ExprNoEntryQ]         := True;
-RefListQ[{___Ref ? ExprNoEntryQ}] := True;
+RefQ[_Ref ? SealedQ]         := True;
+RefListQ[{___Ref ? SealedQ}] := True;
 RefDictQ[d_Dict]                  := DictOfQ[d, RefQ];
 RefListDictQ[l_List]              := RefListQ @ l;
 RefListDictQ[d_Dict]              := RefDictQ @ l;
 
-ContainsRefQ[expr_] := !FreeQ[expr, _Ref ? ExprNoEntryQ];
+ContainsRefQ[expr_] := !FreeQ[expr, _Ref ? SealedQ];
 
 (**************************************************************************************************)
 
@@ -127,7 +127,7 @@ FindRefDepths[expr_] := internalScanRefs[Hold, expr];
 internalScanRefs[fn_, expr_, root_] := Module[
   {visitDepth = Dict[], parent = root, visit, value, depth = 0, depth2},
   visit = Function[
-    If[ExprEntryQ[#1] || IntQ[Lookup[visitDepth, #1]],
+    If[UnsealedQ[#1] || IntQ[Lookup[visitDepth, #1]],
       fn[#1, RefVisited, parent, depth]
     ,
       visitDepth[#1] = depth;
@@ -220,7 +220,7 @@ KillRefs[expr_, test_] :=
 (*
 OLD KNOWN-CORRECT IMPLEMENTATION:
 
-knownRefQ[r_Ref ? ExprNoEntryQ] := KeyExistsQ[$refI, r];
+knownRefQ[r_Ref ? SealedQ] := KeyExistsQ[$refI, r];
 
 echoHF[f_][a_, b_] := Locals[
   h = f[a, b]; Print @ hashInts[{a, b} -> h];

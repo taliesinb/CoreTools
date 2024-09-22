@@ -16,13 +16,13 @@ PrivateExports[
 
 (*************************************************************************************************)
 
-DeclarationFunctionDefinitions[
-  DecFullDispatch1[sym_Sym]       := SetDelayed[e:sym[_ ? SealedQ],       SealedFullDispatch1[e]],
-  DecFullDispatch2[sym_Sym]       := SetDelayed[e:sym[_, _ ? SealedQ],    SealedFullDispatch2[e]],
-  DecFullDispatch3[sym_Sym]       := SetDelayed[e:sym[_, _, _ ? SealedQ], SealedFullDispatch3[e]],
-  DecFullDispatch12[sym_Sym]      := SetDelayed[e:sym[_ ? SealedQ, _],    SealedFullDispatch12[e]],
-  DecFullDispatch13[sym_Sym]      := SetDelayed[e:sym[_ ? SealedQ, _, _], SealedFullDispatch13[e]],
-  DecFullDispatch1N[sym_Sym]      := SetDelayed[e:sym[_ ? SealedQ, ___],  SealedFullDispatch1N[e]],
+DeclarationDefs[
+  DecFullDispatch1[sym_Sym]   := SetDelayed[e:sym[_ ? SealedQ],       SealedFullDispatch1[e]],
+  DecFullDispatch2[sym_Sym]   := SetDelayed[e:sym[_, _ ? SealedQ],    SealedFullDispatch2[e]],
+  DecFullDispatch3[sym_Sym]   := SetDelayed[e:sym[_, _, _ ? SealedQ], SealedFullDispatch3[e]],
+  DecFullDispatch12[sym_Sym]  := SetDelayed[e:sym[_ ? SealedQ, _],    SealedFullDispatch12[e]],
+  DecFullDispatch13[sym_Sym]  := SetDelayed[e:sym[_ ? SealedQ, _, _], SealedFullDispatch13[e]],
+  DecFullDispatch1N[sym_Sym]  := SetDelayed[e:sym[_ ? SealedQ, ___],  SealedFullDispatch1N[e]],
   DecUElemDispatch1[sym_Sym]  := SetDelayed[e:sym[_ ? SealedQ],       SealedUElemDispatch1[e]],
   DecUElemDispatch2[sym_Sym]  := SetDelayed[e:sym[_ ? SealedQ],       SealedUElemDispatch1[e]],
   DecUElemDispatch12[sym_Sym] := SetDelayed[e:sym[_ ? SealedQ, _],    SealedUElemDispatch12[e]],

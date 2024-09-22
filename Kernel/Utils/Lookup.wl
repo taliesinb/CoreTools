@@ -88,7 +88,8 @@ SetCurry1 @ MissingApply;
 
 MissingApply::usage =
 "MissingApply[fn$, expr$] replaces a missing key with fn$[key$] at outer level or level 1, and \
-otherwise has no effect."
+otherwise has no effect.
+MissingApply[fn$] is the operator form of MissingApply."
 
 MissingApply[fn_, e_] := e;
 MissingApply[fn_, Missing[_, k_]] := fn[k];
@@ -165,12 +166,11 @@ HoldOptionRules[_] := $Failed;
 
 (*************************************************************************************************)
 
-OptionKey::usage = "
-OptionKey[key$] represents a key in an object with non-rule arguments.
+OptionKey::usage =
+"OptionKey[key$] represents a key in an object with non-rule arguments.
 OptionKey[key$, default$] represents a key with a held default value.
 OptionKey[$$][obj$] will find the key in the obj$ if present and return its value.
-* the lookup is performed by LookupOptions.
-";
+* the lookup is performed by LookupOptions.";
 
 SetHoldR @ OptionKey;
 
@@ -179,12 +179,15 @@ OptionKey[key_, def_][expr_] := LookupOptions[expr, key, def&];
 
 (*************************************************************************************************)
 
+DefaultOptionValueFn::usage =
+"DefaultOptionValueFn[head$][key$] looks up OptionValue[head$, key$]."
+
 DefaultOptionValueFn[head_Symbol][key_] := OptionValue[head, key];
 
 (*************************************************************************************************)
 
-LookupOptions::usage = "
-LookupOptions[expr$, key$] looks up an option in an expr$ with non-rule arguments.
+LookupOptions::usage =
+"LookupOptions[expr$, key$] looks up an option in an expr$ with non-rule arguments.
 LookupOptions[expr$, {key$1, key$2, $$}] looks up multiple keys.
 LookupOptions[$$, fn$] uses fn$[key$] to obtain defaults for any keys not found.
 * expr$ can also be an association.

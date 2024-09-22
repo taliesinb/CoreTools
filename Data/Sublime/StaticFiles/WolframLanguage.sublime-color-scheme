@@ -234,6 +234,12 @@
             "foreground": "var(typesetting)",
         },
         {
+            "name": "BoxSymbol",
+            "scope": "support.function.box.wolfram",
+            "foreground": "var(typesetting)",
+            "font_style": "italic"
+        },
+        {
             "name": "DebuggingFunction",
             "scope": "support.function.debugging.wolfram",
             "foreground": "var(red)",

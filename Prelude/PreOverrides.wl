@@ -1,15 +1,16 @@
 BeginPackage["Prelude`Overrides`"]
 
 System`PackageExports[
-  "MutatingFunction", System`UnprotectClearAll
+  "MutatingFunction", System`UnprotectClearAll, System`UnprotectClear
 ];
 
 Begin["`Private`"]
 
 (*************************************************************************************************)
 
-SetAttributes[UnprotectClearAll, {HoldAllComplete}];
+SetAttributes[{UnprotectClearAll, UnprotectClear}, {HoldAllComplete}];
 UnprotectClearAll[e___] := (Unprotect[e]; ClearAll[e]);
+UnprotectClear[e___] := (Unprotect[e]; Clear[e]);
 
 (*************************************************************************************************)
 

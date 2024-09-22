@@ -20,7 +20,7 @@ Dup4[e_] := {e, e, e, e};
 
 (**************************************************************************************************)
 
-DeclareHoldRest[Second, Third, Fourth, FirstSecond, SecondFirst]
+SetHoldR[Second, Third, Fourth, FirstSecond, SecondFirst]
 
 Second::usage = "Second[e$] gives Part[e, 2] or None.\nSecond[e$, else$] evaluates else if there is no second part.";
 Third::usage  =  "Third[e$] gives Part[e, 3] or None.\nThird[e$, else$] evaluates else if there is no third part.";
@@ -35,13 +35,13 @@ SecondFirst[e_] := {Second @ e, First @ e};
 
 (**************************************************************************************************)
 
-DeclareHoldRest[FirstLast]
+SetHoldR[FirstLast]
 
 FirstLast::usage = "FirstLast[e$] gives {First[e], Last[e]}, or {None, None}.\nFirstLast[e$, else$] gives {else, else} in this case.";
 FirstLast[_ ? EmptyQ, f_:None] := Dup2 @ f;
 FirstLast[e_, Blank01]         := {First @ e, Last @ e};
 
-DeclareStrict[FirstRest, MostLast]
+SetStrict[FirstRest, MostLast]
 
 FirstRest::usage = "FirstRest[e$] gives {First[e], Rest[e]}. It throws an error if e$ is empty.";
 MostLast::usage  =  "MostLast[e$] gives {Most[e], Last[e]}. It throws an error if e$ is empty.";
@@ -55,11 +55,11 @@ General::expressionEmpty1 = "First argument was an empty expression ``."
 
 PartOf::usage = "PartOf[p$$, e$] gives Part[e$, p$$] or $Failed.\nThe operator forms are PartOp (curry p$) or PartOfOp (curry e$)."
 
-PartOf[p__, e_] := FastQuietCheck @ Part[e, p];
+PartOf[p___, e_] := FastQuietCheck @ Part[e, p];
 
 (**************************************************************************************************)
 
-DeclareCurry2[MaybePart]
+SetCurry2[MaybePart]
 
 MaybePart::usage ="MaybePart[e$, p$] gives Part[e$, p$$] or $Failed.
 MaybePart[p$] is the single-part operator form of MaybePart.
@@ -69,8 +69,8 @@ MaybePart[e_, p_] := FastQuietCheck @ Part[e, p];
 
 (**************************************************************************************************)
 
-DeclareCurry23[PartOr]
-DeclareHoldRest[PartOr]
+SetCurry23[PartOr]
+SetHoldR[PartOr]
 
 (* same as SafePart *)
 PartOr::usage =

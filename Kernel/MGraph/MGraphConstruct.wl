@@ -67,14 +67,14 @@ MakeMultigraph[head_Symbol, vertices2_, multiedges_, opts___Rule] := Locals @ Ca
   ];
 
   SameSetQOrThrow[Keys @ data, $MGraphDataKeys, "badMultigraphKeys"];
-  ConstructNoEntryExpr[Multigraph, InternalData @ data]
+  MakeSealed[Multigraph, InternalData @ data]
 ];
 
 General::badMultigraphKeys = "An internal error occurred. The following internal keys were unexpected `` and missing: ``.";
 
 (**************************************************************************************************)
 
-DeclareStrict[SyntaxMultigraph]
+SetStrict[SyntaxMultigraph]
 
 SyntaxMultigraph[medges_List] := MakeMultigraph[
   SyntaxMultigraph,

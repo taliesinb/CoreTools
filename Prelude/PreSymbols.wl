@@ -5,10 +5,6 @@ System`PackageExports[
 System`NamePaths,
 System`NamePathsGrouped,
 
-System`HoldSymbolName,
-System`HoldSymbolContext,
-System`HoldSymbolPath,
-
 System`NameFirst,
 System`NameLast,
 System`NameMost,
@@ -31,6 +27,7 @@ CoreToolsSymbolQ,
 "Predicate",
 System`SystemContextQ,
 System`ActiveNameQ,
+System`FormalSymbolQ,
 System`UserSymbolQ,
 System`SystemSymbolQ,
 System`InertSymbolQ,
@@ -38,6 +35,7 @@ System`ActiveSymbolQ,
 System`InertUserSymbolQ,
 System`InertSystemSymbolQ,
 System`CapitalizedSymbolQ,
+System`DocumentedSymbolQ,
 
 "MutatingFunction",
 System`UnprotectClearAll,
@@ -86,11 +84,14 @@ declareHeldPred[syms___Symbol] := (
 );
 
 declareHeldPred[
+  System`FormalSymbolQ,
   System`UserSymbolQ, System`SystemSymbolQ,
   System`InertSymbolQ, System`ActiveSymbolQ,
-  System`InertUserSymbolQ, System`InertSystemSymbolQ
+  System`InertUserSymbolQ, System`InertSystemSymbolQ,
+  System`DocumentedSymbolQ
 ];
 
+FormalSymbolQ[s_Symbol ? Developer`HoldAtomQ]         := MemberQ[$FormalSymbols, HoldPattern @ s];
 UserSymbolQ[s_Symbol ? Developer`HoldAtomQ]           := Not @ SystemContextQ @ Context @ s;
 SystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]         := SystemContextQ @ Context @ s;
 CoreToolsSymbolQ[s_Symbol ? Developer`HoldAtomQ]      := CoreToolsContextQ @ Context @ s;
@@ -104,24 +105,8 @@ InertSystemSymbolQ[s_Symbol ? Developer`HoldAtomQ]    := System`Private`HasNoEva
 $initCap = RegularExpression["[$]*[A-Z]"];
 CapitalizedSymbolQ[s_Symbol ? Developer`HoldAtomQ]    := StringStartsQ[HoldSymbolName @ s, $initCap];
 
-(*************************************************************************************************)
-
-SetAttributes[{HoldSymbolName, HoldSymbolContext, HoldSymbolPath}, HoldAllComplete];
-
-HoldSymbolName::usage = "HoldSymbolName[sym$] gives the name of sym$ without evaluating sym$.";
-HoldSymbolContext::usage = "HoldSymbolContext[sym$] gives the full context of sym$ without evaluating sym$.";
-HoldSymbolPath::usage = "HoldSymbolPath[sym$] gives the context and name of sym$ without evaluating sym$.";
-
-HoldSymbolName[sym_Symbol ? Developer`HoldAtomQ] := SymbolName @ Unevaluated @ sym;
-HoldSymbolName[_] := $Failed;
-
-(* TODO: why isn't this just Context? *)
-HoldSymbolContext[sym_Symbol ? Developer`HoldAtomQ] := Internal`SymbolContext @ Unevaluated @ sym;
-HoldSymbolContext[_] := $Failed;
-
-HoldSymbolPath[sym_Symbol] := StringJoin[HoldSymbolContext @ sym, HoldSymbolName @ sym];
-HoldSymbolPath[list_List] := Map[HoldSymbolPath, Unevaluated @ list];
-HoldSymbolPath[_] := $Failed;
+DocumentedSymbolQ[s_Symbol ? Developer`HoldAtomQ]     := StringQ[MessageName[s, "usage"]];
+DocumentedSymbolQ[_] := False;
 
 (*************************************************************************************************)
 

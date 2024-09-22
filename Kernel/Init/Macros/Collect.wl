@@ -28,8 +28,8 @@ DefineSimpleMacro[Collecting,     {
 
 (*************************************************************************************************)
 
-DeclareStrict[NewCollector, FromCollector]
-DeclareListable[FromCollector];
+SetStrict[NewCollector, FromCollector]
+SetListable[FromCollector];
 
 NewCollector[]       := CollectorFn[Bag[]];
 NewCollector[n_Int]  := Table[NewCollector[], n];

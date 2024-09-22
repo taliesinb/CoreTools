@@ -118,7 +118,7 @@ $SymbolicPointSizes = Dict[
 
 (**************************************************************************************************)
 
-DeclareStrict[BoundsToSize]
+SetStrict[BoundsToSize]
 
 BoundsToSize[{{x1_, x2_}, {y1_, y2_}}] := {x2 - x1, y2 - y1};
 
@@ -207,7 +207,7 @@ ParseCyclicSpec[n$] is the operator form of ParseCyclicSpec.
 * additionally, a list of rules can be used that send positions to specs.
 "
 
-DeclareCurry2[ParseCyclicSpec]
+SetCurry2[ParseCyclicSpec]
 
 ParseCyclicSpec[spec_, n_] := Locals[$n = n; parseCyclic @ spec];
 

@@ -47,7 +47,7 @@ EnlargeRange = CaseOf[
 
 (* boxBound is set up lazily so that the primitive box registery will have been populated *)
 
-boxPattern[str_] := ToAltPattern @ GSigToGBoxes[str];
+boxPattern[str_] := ToAltP @ GSigToGBoxes[str];
 
 (* TODO: make this work in 3D, handle radii that are specified as Offset *)
 setupGPrimBoundDefs[] := With[{

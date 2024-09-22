@@ -1,23 +1,24 @@
 PackageExports[
   "FormHead",
     ListView,
-    NestedView,
-    GroupedView,
-    RowView, ColumnView, RowColumnView,
+    NestedView, ExpanderView, JSONView,
+    GroupedView, RowColumnView,
+    RowView, ColumnView, ColView,
+    MultiRowView, MultiColumnView, MultiColView,
     HeadingView,
     LabeledFlipView,
     PickView, MapView, EitherView,
-    LabelTop,
   "BoxFunction",
     ClickAnimateBoxes, DynamicProgressBarBox,
     NiceClickBox, DeployBox,
-    TightRowGridBox, TightColumnGridBox,
+    RowViewGridBox, ColViewGridBox,
     OpenerColumnBox, DeployBox,
   "OptionSymbol",
-    ClickFunction, ViewSize, LabelPosition, MaxPlotSize,
-    LabelSpacing, ItemSpacing, LabelDividers, ItemDividers,
+    MultiGaps, MultiDivs,
   "Function",
-    LabelBy, ViewSampling
+    LabelBy, ViewSampling,
+  "BoxFunction",
+    ListDictMakeBoxes1D, ListDictMakeBoxes2D
 ];
 
 PrivateExports[
@@ -27,20 +28,19 @@ PrivateExports[
 
 (*************************************************************************************************)
 
-DeclareCurry2[LabelBy];
+SetCurry2[LabelBy];
 
 LabelBy[list_List, fn_] := Map[item |-> Labeled[item, fn[item]], list];
 
 (*************************************************************************************************)
 
 $genericViewOptions = {
-  ClickFunction -> None,
-  ViewSize      -> 16,
-  MaxItems      -> Inf,
-  MaxPlotSize   -> 800,
-  ItemFunction  -> None,
-  LabelSpacing  -> 1,
-  ItemSpacing   -> 1,
+  ClickFn        -> None,
+  ViewSize       -> 16,
+  MaxItems       -> Inf,
+  ItemFn         -> None,
+  LabelGaps       -> 1,
+  ItemGaps        -> 1,
   LabelDividers  -> True,
   ItemDividers   -> False
 };
@@ -61,20 +61,9 @@ makeViewBoxesCommon[body_, form_Symbol, rules___Rule] := Block[
 
 makeViewBoxesCommon[___] := "$FAILED";
 
-SetHoldF[viewMapMakeBoxes];
-
-viewMapMakeBoxes[items_, axis_, fn_:MakeBoxes1] :=
-  MapMakeBoxesLimited[items, axis, $viewOption[MaxPlotSize], $viewOption[MaxItems], fn];
-
-spanLast[n_][e_List] := MapLast[toSpan[n], e];
-
-toSpan[_][e_List] := e;
-toSpan[1][e_] := {ItemBox[StyleBox[e, FontWeight -> Plain], Alignment -> Center], "\[SpanFromAbove]"};
-toSpan[2][e_] := {ItemBox[StyleBox[e, FontWeight -> Plain], Alignment -> Center], "\[SpanFromLeft]"};
-
 (*************************************************************************************************)
 
-DeclareStrict[DefineViewForm]
+SetStrict[DefineViewForm]
 
 DefineViewForm[RuleD[form_Symbol[lhs___], rhs_]] := Then[
   Options[form] = $genericViewOptions,
@@ -82,6 +71,279 @@ DefineViewForm[RuleD[form_Symbol[lhs___], rhs_]] := Then[
 ];
 
 (*************************************************************************************************)
+
+DeclaredHere[HeadingView];
+
+SetCompoundFormHead[HeadingView];
+
+DefineViewForm[HeadingView[items:ListDictP] :> headingViewBoxes @ items];
+
+SetHoldC[headingViewBoxes];
+
+headingViewBoxes = CaseOf[
+  {}         := RBox[LBrace, " ", RBrace];
+  EmptyDict  := RBox[LAssoc, " ", RAssoc];
+  EmptyUDict := RBox["UDict", "[", " ", "]"];
+  items_List := At[$, RangeDict @ items];
+  items_Dict := ColGridBox[KeyValueMap[LabelTopBox, items], 1];
+  e_         := NiceErrorBox["bad HeadingView data: ``", e];
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  ColumnView      -> ColView,
+  MultiColumnView -> MultiColView
+];
+
+(*************************************************************************************************)
+
+BlockUnprotect[{Row, Column, Multicolumn},
+  Row[d_Dict, opts___Rule]         := RowView[d, NarrowOpts @ opts];
+  Column[d_Dict, opts___Rule]      := ColumnView[d, NarrowOpts @ opts];
+  Multicolumn[d_Dict, opts___Rule] := MultiColumnView[d, NarrowOpts @ opts];
+];
+
+(*************************************************************************************************)
+
+SetHoldF[ListDictMakeBoxes1D, ListDictMakeBoxes2D];
+
+ListDictMakeBoxes1D[expr_, isHor_, itemBoxFn_, keyBoxFn_, maxSize2_, maxCount_] := Locals[
+
+  sizeFn = If[isHor, P1, P2];
+  maxSize = sizeFn @ EnsurePair @ maxSize2;
+  {isDict, heldKeys, heldItems} = toHeldKeysItems @ expr;
+
+  len = Len @ heldItems;
+  n = i = 0; total = 0; list = {}; tooBig = False;
+  slop = Max[maxSize * 0.1, 5];
+  While[!tooBig && ++i <= len,
+    itemBox = itemBoxFn @ Part[heldItems, i];
+    itemSize = ToImageSize @ RawBoxes @ itemBox;
+    size = sizeFn @ itemSize;
+    If[size > maxSize,
+      size = 20;
+      itemBox = HoldElidedBox @@ Part[heldItems, i];
+    ];
+    tooBig = total + size > maxSize;
+    total += size;
+    If[tooBig && size > slop, Break[]];
+    If[isDict,
+      keyBox = keyBoxFn @ Part[heldKeys, i];
+      itemBox = {itemBox, keyBox}];
+    AppendTo[list, itemBox];
+    n += 1;
+  ];
+  If[n < len, AppendTo[list, makeDots1D[len - n, isDict, isHor]]];
+  list
+];
+
+makeDots1D[m_, True, True]    := {CDotsBox[m, True], ""};
+makeDots1D[m_, True, False]   := {ItemBox[CDotsBox[m, False], Alignment -> Center], ""};
+makeDots1D[m_, False, isHor_] := CDotsBox[m, isHor];
+
+ListDictMakeBoxes2D[expr_, isHor_, itemBoxFn_, keyBoxFn_, maxSize_, maxItems_] := Locals[
+
+  sizeFn = If[isHor, Id, Rev];
+  {maxSize1, maxSize2} = sizeFn @ EnsurePair @ maxSize;
+  {maxItems1, maxItems2} = sizeFn @ EnsurePair @ maxItems;
+  {isDict, heldKeys, heldItems} = toHeldKeysItems @ expr;
+  slop = Max[maxSize1 * 0.1, 5];
+  len = Len @ heldItems;
+  n = i = 0; total1 = total2 = other = 0; list1 = list2 = {};
+
+  While[++i <= len,
+    itemBox = itemBoxFn @ Part[heldItems, i];
+    itemSize = ToImageSize @ RawBoxes @ itemBox;
+    {size1, size2} = sizeFn @ itemSize;
+    If[(size1 > maxSize1 || size2 > maxSize2) && i > 1,
+      size1 = size2 = 20;
+      itemBox = HoldElidedBox @@ Part[heldItems, i];
+    ];
+    MaxTo[other, size2];
+    If[isDict,
+      itemBox = {keyBoxFn @ Part[heldKeys, i], itemBox}];
+    If[(total1 + size1 <= maxSize1) || i == 0,
+      AppendTo[list1, itemBox];
+      total1 += size1;
+      MaxTo[other, size2];
+    ,
+      useSlop = total1 + size1 <= maxSize1 + slop;
+      If[useSlop,
+        AppendTo[list1, itemBox];
+        MaxTo[other, size2];
+      ];
+      n += Len @ list1;
+      AppendTo[list2, list1];
+      total2 += other;
+      list1 = {};
+      If[total2 > maxSize2, Break[]];
+      If[useSlop,
+        total1 = other = 0,
+        total1 = size1; other = size2;
+        list1 = {itemBox}
+      ];
+    ];
+  ];
+  If[list1 =!= {},
+    n += Len[list1];
+    AppendTo[list2, list1];
+  ];
+  If[n < len,
+    dots = makeDots2D[len - n, isDict, isHor];
+    If[total1 < size1 - 20,
+      AppendTo[PN @ list2, dots],
+      Part[list2, -1, -1] = dots
+    ]
+  ];
+  list2
+];
+
+makeDots2D[m_, True, True]    := {CDotsBox[m, True], ""};
+makeDots2D[m_, True, False]   := {ItemBox[CDotsBox[m, False], Alignment -> Center], ""};
+makeDots2D[m_, False, isHor_] := CDotsBox[m, isHor];
+
+toHeldKeysItems = CaseOf[
+  dict_Dict  := List[True, Keys[NoEval @ dict, HoldC], Values[NoEval @ dict, HoldC]];
+  list_List  := List[False, None, Thread @ HoldC @ list];
+  held_HoldC := List[False, None, List @@ Map[HoldC, held]];
+];
+
+(*************************************************************************************************)
+
+$rowColViewOptions = {
+   ItemFn -> None,  ItemDivs -> False,  ItemGaps -> 1,  ItemStyle -> None,
+  LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> Bold,
+  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 500
+};
+
+$multiRowColViewOptions = FlatList[
+  $rowColViewOptions,
+  MultiGaps -> 2.5,
+  MultiDivs -> True
+];
+
+rcOptVal = UDict[$rowColViewOptions];
+
+Options[MultiColView] = $multiRowColViewOptions;
+Options[MultiRowView] = $multiRowColViewOptions;
+
+SetAtomFormHead[MultiRowView, MultiColView];
+
+CoreBoxes[MultiRowView[items:ListDictP, opts___Rule]] := multiRowColViewBoxes[True,  MultiRowView, items, List @ opts];
+CoreBoxes[MultiColView[items:ListDictP, opts___Rule]] := multiRowColViewBoxes[False, MultiColView, items, List @ opts];
+
+SetHoldC @ multiRowColViewBoxes;
+
+multiRowColViewBoxes[_, e:EmptyP, _] := trivialViewBoxes @ e;
+
+multiRowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
+  MessageOnUnknownOptions[head, opts];
+  UnpackSymbols[opts -> head, itemFn, labelFn, maxWidth, maxHeight, maxSize, maxItems, multiGaps, multiDivs];
+  InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
+  {maxSize1, maxSize2} = If[PairQ[maxSize], maxSize, {maxSize, 1000}];
+  SetAuto[maxWidth, If[isHor, maxSize1, maxSize2]];
+  SetAuto[maxHeight, If[isHor, maxSize2, maxSize1]];
+  maxSize = {maxWidth, maxHeight};
+  itemFn = itemFnBoxes @ SubNone[itemFn, Id];
+  labelFn = itemFnBoxes @ SubNone[labelFn, Id];
+  entries = ListDictMakeBoxes2D[items, isHor, itemFn, labelFn, maxSize, maxItems];
+  subGrids = If[isHor, Map[RowViewGridBox], Map[ColViewGridBox]] @ entries;
+  If[SingleQ[subGrids], Return @ P1 @ subGrids];
+  If[isHor,
+    ColGridBox[subGrids, RowGaps -> multiGaps, RowLines -> toDivCol[multiDivs]],
+    RowGridBox[subGrids, ColGaps -> multiGaps, ColLines -> toDivCol[multiDivs]]
+  ]
+];
+
+itemFnBoxes[Id][HoldC[item_]] := MakeBoxes @ item;
+itemFnBoxes[f_][HoldC[item_]] := ToBoxes @ f @ item;
+
+(*************************************************************************************************)
+
+(* OldMultiColumnView[items_, nrows_, ncols_:Inf, maxWidth_:1000] := Locals[
+  If[DictQ[items], toFn = Dict; fromFn = Normal, toFn = fromFn = Id];
+  colFn = ColumnView[toFn @ #, MaxPlotSize -> Inf, MaxItems -> Inf, ItemGap -> 1]&;
+  RowView[
+    colFn /@ Take[Partition[fromFn @ items, UpTo[nrows]], UpTo[nrows * ncols]],
+    MaxPlotSize -> maxWidth, MaxItems -> ncols, ItemGap -> 3
+  ]
+];
+ *)
+(*************************************************************************************************)
+
+SetAtomFormHead[RowView, ColView];
+
+Options[RowView] = $rowColViewOptions;
+Options[ColView] = $rowColViewOptions;
+
+CoreBoxes[RowView[items:ListDictP, opts___Rule]] := rowColViewBoxes[True,  RowView, items, List @ opts];
+CoreBoxes[ColView[items:ListDictP, opts___Rule]] := rowColViewBoxes[False, ColView, items, List @ opts];
+
+SetHoldC[rowColViewBoxes];
+
+rowColViewBoxes[_, e:EmptyP, _, _] := trivialViewBoxes @ e;
+
+rowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
+  MessageOnUnknownOptions[head, opts];
+  UnpackSymbols[opts -> head, itemFn, labelFn, maxWidth, maxHeight, maxSize, maxItems];
+  InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
+  SetAuto[maxWidth, maxSize];
+  SetAuto[maxHeight, maxSize];
+  maxSize = {maxWidth, maxHeight};
+  itemFn  = itemFnBoxes @ SubNone[itemFn, Id];
+  labelFn = itemFnBoxes @ SubNone[labelFn, Id];
+  entries = ListDictMakeBoxes1D[items, isHor, itemFn, labelFn, maxSize, maxItems];
+  If[isHor,
+    RowViewGridBox @ entries,
+    ColViewGridBox @ entries
+  ]
+];
+
+trivialViewBoxes = CaseOf[
+  {}             := RBox[LBrace, " ", RBrace];
+  EmptyDict      := RBox[LAssoc, " ", RAssoc];
+  EmptyUDict     := RBox["UDict", "[", " ", "]"];
+  _              := NiceErrorBox["bad data"];
+];
+
+RowViewGridBox = CaseOf[
+  {}                     := "";
+  {e1:Except[_List]}     := e1;
+  boxes_List             := GridBox[ToRowVec @ boxes, $rcViewOpts];
+  boxes_List ? dictRowsQ := GridBox[Flip @ boxes, $rcViewOpts, $rViewLabelStyle];
+  e_                     := NiceErrorBox["bad data: ``", Head @ e]
+];
+
+ColViewGridBox = CaseOf[
+  {}                     := "";
+  {e1:Except[_List]}     := e1;
+  boxes_List             := GridBox[ToColVec @ boxes, $rcViewOpts];
+  boxes_List ? dictRowsQ := GridBox[Reverse2 @ boxes, $rcViewOpts, $cViewLabelStyle];
+  e_                     := NiceErrorBox["bad data: ``", Head @ e]
+];
+
+dictRowsQ[boxes_] := ListQ @ P1 @ boxes;
+
+$cViewLabelStyle := GridBoxRule[ItemStyle, None, {Directive @ rcOptVal @ LabelStyle, None}]
+$rViewLabelStyle := GridBoxRule[ItemStyle, {None, Directive @ rcOptVal @ LabelStyle}, None]
+
+$rcViewOpts := Seq[
+  ColumnAlignments -> Left, RowMinHeight -> 1.2, BaselinePosition -> {1, 1},
+  GridBoxRule[ItemDivs, toDivCol @ rcOptVal @ ItemDivs, toDivCol @ rcOptVal @ LabelDivs, $isHor],
+  GridBoxRule[ItemGaps, If[$isHor, 1.2, 0.8] * rcOptVal[ItemGaps], If[$isHor, 0.5, 1.2] * rcOptVal[LabelGaps], $isHor]
+];
+
+toDivCol = CaseOf[
+  True := GrayLevel[0.8];
+  e_   := e;
+];
+
+(*************************************************************************************************)
+
+DeclaredHere[GroupedView];
+
+SetAtomFormHead[GroupedView];
 
 DefineViewForm[GroupedView[list_List, fns_] :> groupedView[list, fns]];
 
@@ -91,7 +353,7 @@ groupedView[list_List, fns2_] := Locals[
   fns = fns2;
   If[RuleQ[fns],
     {fns, $itemFn} = FirstLast @ fns,
-    $itemFn = $viewOption[ItemFunction];
+    $itemFn = $viewOption[ItemFn];
   ];
   SetNone[$itemFn, Id];
   fns = ToList @ fns;
@@ -150,8 +412,11 @@ dimLeftBox[box_] := ItemBox[box, Frame -> {{GrayLevel[0.95], Auto}, {Auto, Auto}
 
 visitGroup[d_][dict_] := PathScan[$labelPath, visitGroup[d-1], KeySort @ dict];
 
-
 (*************************************************************************************************)
+
+DeclaredHere[ListView];
+
+SetAtomFormHead[ListView];
 
 DefineViewForm[ListView[list_List] :> listBrowserBoxes[list]];
 
@@ -186,6 +451,179 @@ listBrowserBoxes[list_List] := With[
 
 (*************************************************************************************************)
 
+makeNestingView[boxFn_, gid_, expr_] := Module[
+  {$expPath = {}, $expCache = UDict[]},
+  makeNestingViewInner[boxFn, $expPath, $expCache, $viewOption, gid]
+];
+
+makeNestingView[boxFn_, gid_, expr_] /; TrueQ[$UseCoreBoxInteractivity] := With[
+  {viewOptions = $viewOption},
+  DynamicModuleBox[{$expPath = {}, $expCache = Dict[], $expOptions = viewOptions, $gid = gid},
+    DynamicBox[
+      If[HasDownDefsQ[makeNestingViewInner],
+        makeNestingViewInner[boxFn, $expPath, $expCache, $expOptions, $gid],
+        "---"
+      ],
+      TrackedSymbols :> {$expPath}
+    ]
+  ]
+];
+
+(*************************************************************************************************)
+
+SetHoldC @ makeNestingViewInner;
+
+makeNestingViewInner[boxFn_, expPath_, expCache_, expOptions_, gid_] := Module[
+  {subBoxes, rowBoxes, pathBoxes},
+  subBoxes = Table[
+    makeSubviewBoxes[Take[expPath, i], boxFn, expPath, expCache, expOptions, gid],
+    {i, 0, Len @ expPath}
+  ];
+  rowBoxes = RowGridBox[subBoxes, ColumnSpacings -> 3
+    (* GridBoxDividers -> {"Columns" -> {False, {GrayLevel[0.5]}, False}} *)];
+  pathBoxes = ClickBox[
+    StyleBox[RowBox @ Riffle[MakeBoxes /@ Flatten[expPath], ","], Gray],
+    PrintInputCell @ expPath
+  ];
+  ColumnBox[{rowBoxes, pathBoxes}, Left, 1, RowMinHeight -> 1.2]
+];
+
+(*************************************************************************************************)
+
+SetHoldR @ makeSubviewBoxes;
+
+makeSubviewBoxes[ourPath_, boxFn_, pathVar_, cacheVar_, optionsVar_, idVar_] := CachedTo[
+  cacheVar, ourPath,
+  Block[{$pathInfo = Hold[pathVar, ourPath, idVar], $viewOption = optionsVar},
+      applySubExprBoxes[boxFn, idVar, ourPath]
+  ]
+];
+
+applySubExprBoxes[boxFn_, id_Int, {}]        := GlobalWeakTableGet[id, boxFn];
+applySubExprBoxes[boxFn_, id_Int, path_List] := Extract[GlobalWeakTableGet @ id, Flatten @ path, boxFn];
+
+nextViewBoxes[item:DatumP, parts_] := expItemBoxes @ item;
+nextViewBoxes[item_, parts_]       := nextViewButton[expItemBoxes @ item, parts, $pathInfo]
+
+nextViewButton[boxes_, parts_, _] := StyleBox[boxes, FontColor -> $DarkBlue];
+nextViewButton[boxes_, parts_List, Hold[pathVar_, ourPath_, id_]] :=
+  ClickBox[
+    StyleBox[boxes, FontColor -> $DarkBlue],
+    If[CurrentValue["ShiftKey"],
+      printSubExpr @ Extract[GlobalWeakTableGet @ id, FlatList[ourPath, parts], Hold],
+      Set[pathVar, Append[ourPath, parts]]
+    ]
+  ];
+
+printSubExpr[Hold[expr_]] := If[
+  ByteCount[NoEval @ expr] > 512,
+  PrintInputCell @ Iconize @ Unevaluated @ expr,
+  PrintInputCell @ Hold @ expr
+];
+
+(*************************************************************************************************)
+
+DeclaredHere[JSONView];
+
+SetAtomFormHead[JSONView];
+
+DefineViewForm[JSONView[expr_] :> makeNestingView[jsonViewBoxes, GlobalWeakTablePut @ expr, expr]];
+
+SetOptions[JSONView, MaxItems -> 8];
+
+SetHoldC[jsonViewBoxes, jsonExprBoxes, jsonCompoundBox];
+
+jsonViewBoxes[expr_] := Block[{$subPath = {}}, jsonExprBoxes @ expr];
+
+jsonExprBoxes = CaseOf[
+  {}          := "[]";
+  EmptyDict   := "{}";
+  {d_DatumP}  := RBox["[", jsonDataBox @ d, "]"];
+  list_List   := jsonCompoundBox["[", "]", list];
+  dict_Dict   := jsonCompoundBox["{", "}", dict];
+  e_          := jsonDataBox @ e;
+];
+
+jsonDataBox = CaseOf[
+  {}          := "[]";
+  EmptyDict   := "{}";
+  list_List   := RBox["[", HoldLenBox @ list, "]"];
+  dict_Dict   := RBox["{", HoldLenBox @ dict, "}"];
+  s_Str       := StyleBox[If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> Dots]], ShowStringCharacters -> True];
+  d:DatumP    := StyleBox[MakeBoxes @ d, ShowStringCharacters -> True];
+  e_          := HoldElidedBox @ e;
+];
+
+jsonCompoundBox[top_, bot_, expr_] := Locals[
+  If[HoldLen[expr] > 16 && $subPath =!= {}, Return @ jsonNextView[expr]];
+  entries = ListDictMakeBoxes1D[Evaluate @ HoldArgsP @ expr, False, jsonEntryBox, None, 800, 16];
+  If[VFreeQ[entries, {EventHandlerBox, GridBox}] && Total[Occurences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
+    RBox[top, RowBox @ Riffle[entries, ","], bot]
+  ,
+    entries = Map[RBox["\t", #]&, entries];
+    ColumnBox[FlatList[top, entries, bot], Left, BaselinePosition -> {1,1}]
+  ]
+];
+
+SetHoldC[jsonSubExprBoxes, jsonNextViewBoxes, jsonSubBoxes, jsonNextView];
+
+jsonEntryBox[HoldC[{val_, ind_Int}]] := BlockAppend[$subPath, ind, jsonSubBoxes @ val];
+jsonEntryBox[HoldC[{val_, key_Str}]] := BlockAppend[$subPath, Key @ key, joinFirstRow @ RBox[jsonKeyBox @ key, jsonSubBoxes @ val]];
+
+jsonKeyBox[key_] := StyleBox[key <> ": ", $DarkGray, AutoSpacing -> False];
+
+jsonSubBoxes[d:DatumP] := jsonDataBox @ d;
+jsonSubBoxes[list:{Repeated[DatumP, {0, 5}]}] := jsonExprBoxes @ list;
+jsonSubBoxes[expr_]  := If[Len[$subPath] < 4, jsonExprBoxes @ expr, jsonNextView @ expr];
+
+jsonNextView[expr_] := nextViewButton[jsonDataBox @ expr, $subPath, $pathInfo];
+
+(*************************************************************************************************)
+
+addTabComma[boxes_] := RBox["\t", boxes, ","];
+addTabComma[GridBox[grid_, opts___]] := RBox["\t", Make[GridBox, MapAt[addComma, grid, {-1, -1}], opts]];
+addComma[box_] := RBox[box, ","];
+
+joinFirstRow[boxes_] := boxes;
+joinFirstRow[RowBox[{a_, GridBox[{{f1_, fr___}, rest___}, opts___]}]] :=
+  GridBox[{{joinFirstRow @ RowBox[{a, f1}], fr}, rest}, opts];
+
+(*************************************************************************************************)
+
+DeclaredHere[ExpanderView];
+
+SetAtomFormHead[ExpanderView];
+
+DefineViewForm[ExpanderView[expr_] :> makeNestingView[expViewBoxes, GlobalWeakTablePut @ expr, expr]];
+
+SetHoldA[expViewBoxes, expItemBoxes, expColumnBoxes];
+
+expViewBoxes = CaseOf[
+  e:EmptyP    := expItemBoxes @ e;
+  {d:DatumP}  := ParenRBox @ expItemBoxes @ d;
+  l_List      := expColumnBoxes[expListFieldBoxes, l];
+  d_Dict      := expColumnBoxes[expDictFieldBoxes, d];
+  e_          := expItemBoxes @ e;
+];
+
+expItemBoxes = CaseOf[
+  s_Str       := If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> Dots]];
+  p:DatumP    := MakeBoxes @ p;
+  e_          := HoldElidedBox @ e;
+];
+
+expColumnBoxes[fn_, expr_] := GridBox[
+  spanLast[2] @ viewMapMakeBoxes[expr, 2, fn],
+  $colViewLabelOpts, $colViewGridOpts
+];
+
+SetHoldF[expListFieldBoxes, expDictFieldBoxes, nextViewBoxes];
+
+expListFieldBoxes[item_, ind_]         := {expItemBoxes @ ind, nextViewBoxes[item, {ind}]};
+expDictFieldBoxes[item_, key_]         := {expItemBoxes @ key, nextViewBoxes[item, {Key @ key}]};
+
+(*************************************************************************************************)
+
 Options[NestedView] = $genericViewOptions;
 
 NestedView::notNestedExpression = "Cannot use nesting for non-compound data with head ``.";
@@ -205,6 +643,8 @@ iNestedView = CaseOf[
   other_            := $Failed
 ];
 
+(*************************************************************************************************)
+
 $rowOrColumnDepth = 0;
 
 (*************************************************************************************************)
@@ -216,98 +656,14 @@ SetHoldC[rowColumnViewBoxes, rowableQ];
 rowableQ[items_] := HoldLen[items] < 32 && AllTrue[NoEval @ items, HoldDatumQ];
 
 rowColumnViewBoxes[items_ ? rowableQ] := rowViewBoxes @ list;
-rowColumnViewBoxes[items_]            := columnViewBoxes @ list;
+rowColumnViewBoxes[items_]            := colViewBoxes @ list;
 rowColumnViewBoxes[_]                 := "$FAILED";
 
-(*************************************************************************************************)
-
-DefineViewForm[RowView[items:ListDictP] :> rowViewBoxes @ items];
-
-SetHoldC[rowViewBoxes];
-
-rowViewBoxes[{}]         := "{}";
-rowViewBoxes[EmptyDict]  := LAssoc <> RAssoc;
-rowViewBoxes[items_List] := GridBox[ToRowVec @ viewMapMakeBoxes[items, 1, MakeBoxes1], $rowViewGridOpts];
-rowViewBoxes[items_Dict] := GridBox[Flip @ spanLast[1] @ viewMapMakeBoxes[items, 1, MakeBoxes12], $rowViewLabelOpts, $rowViewGridOpts];
-rowViewBoxes[_]          := "$FAILED";
-
-$viewLabelStyle = FontWeight -> "SemiBold";
-$rowViewLabelOpts = GridBoxItemStyle -> {"Rows" ->{{{}}, $viewLabelStyle}};
-
-$rowViewGridOpts := Seq[
-  GridBoxDividers -> {"Columns" -> $itemDividers, "Rows" -> $labelDividers},
-  RowAlignments -> {{Baseline}},
-  FrameStyle -> GrayLevel[0.5],
-  BaselinePosition -> {{1, 1}, Baseline},
-  RowMinHeight -> 1.2,
-  ColumnSpacings -> 1.2 * $viewOption[ItemSpacing],
-  RowSpacings -> 1.2 * $viewOption[LabelSpacing]
-];
-
-(*************************************************************************************************)
-
-DefineViewForm[HeadingView[items:ListDictP] :> headingViewBoxes @ items];
-
-SetHoldC[headingViewBoxes];
-
-headingViewBoxes = CaseOf[
-  {}        := "()";
-  EmptyDict := LAssoc <> RAssoc;
-  items_List := $ @ RangeDict @ items;
-  items_Dict := ColumnBox[
-    KeyValueMap[labelTopBoxes, items],
-    Left, 1
-  ];
-];
-
-(*************************************************************************************************)
-
-CoreBoxes[LabelTop[label_, expr_]] :=
-  labelTopBoxes[label, expr];
-
-labelTopBoxes[label_, expr_] := ColumnBox[
-  {StyleBox[MakeBoxes @ label,
-    FontWeight -> Bold, FontFamily -> "Source Code Sans",
-    FontSize -> Inherited * 1.1],
-   MakeBoxes @ expr},
-  Left, 0.2
-];
-
-(*************************************************************************************************)
-
-DefineViewForm[ColumnView[items:ListDictP] :> columnViewBoxes @ items];
-
-SetHoldC[columnViewBoxes];
-
-columnViewBoxes[{}]         := "()";
-columnViewBoxes[EmptyDict | EmptyUDict] := LAssoc <> RAssoc;
-columnViewBoxes[items_List] := GridBox[ToColVec @ viewMapMakeBoxes[items, 2, MakeBoxes1], $colViewGridOpts];
-columnViewBoxes[items_Dict] := GridBox[spanLast[2] @ viewMapMakeBoxes[items, 2, MakeBoxes21], $colViewLabelOpts, $colViewGridOpts];
-columnViewBoxes[_]          := "$FAILED";
-
-$colViewLabelOpts = Seq[
-  GridBoxItemStyle -> {"Columns" -> {$viewLabelStyle, {{}}}},
-  ColumnAlignments -> {{Right, Left}}
-]
-
-$midDividers = {False, {GrayLevel[0.5]}, False};
-$noDividers = {{None}};
-
-$itemDividers := If[$viewOption[ItemDividers], $midDividers, $noDividers];
-$labelDividers := If[$viewOption[LabelDividers], $midDividers, $noDividers];
-
-$colViewGridOpts := Seq[
-  GridBoxDividers -> {"Columns" -> $labelDividers, "Rows" -> $itemDividers},
-  RowAlignments -> {{Baseline}},
-  ColumnAlignments -> {{Left}},
-  FrameStyle -> GrayLevel[0.5],
-  BaselinePosition -> {{1, 1}, Baseline},
-  RowMinHeight -> 1.2,
-  ColumnSpacings -> 1.2 * $viewOption[LabelSpacing],
-  RowSpacings -> 1.2 * $viewOption[ItemSpacing]
-];
-
 (**************************************************************************************************)
+
+DeclaredHere[LabeledFlipView];
+
+SetAtomFormHead[LabeledFlipView];
 
 CoreBoxes[LabeledFlipView[items:ListDictP, opts___Rule]] :=
   blockView @ labeledFlipViewBoxes[items, opts];
@@ -343,6 +699,8 @@ labeledFlipViewBoxes[items:{___Rule}, opts___] := With[
 LabeledFlipView::badLabelPos = "LabelPosition -> `` should be either Top or Left."
 
 (**************************************************************************************************)
+
+SetAtomFormHead[PickView];
 
 Options[PickView] = Options[ListView];
 
@@ -390,6 +748,8 @@ pickBrowserBoxes[list_List, opts:OptionsPattern[]] := With[
 ];
 
 (**************************************************************************************************)
+
+SetAtomFormHead[MapView];
 
 MapView::usage = "MapView[f$, list$] maps f$ over list$, showing the results in an interactive browser."
 
@@ -462,6 +822,8 @@ modDec[var_, n_] := Set[var, Mod[var - 1, n, 1]];
 
 (**************************************************************************************************)
 
+SetAtomFormHead[EitherView];
+
 CoreBoxes[EitherView[a_, b_]] := blockView @ eitherViewBoxes[MakeBoxes @ a, MakeBoxes @ b];
 
 eitherViewBoxes[a_, b_] :=
@@ -482,28 +844,12 @@ eitherViewBoxes[a_, b_] :=
 
 (**************************************************************************************************)
 
-TightRowGridBox[list_] :=
-  GridBox[{list},
-    GridBoxAlignment -> {"Columns" -> {{Left}}, "Rows" -> {{Top}}},
-    GridBoxSpacings  -> {"Rows" -> {0, {0.5}, 0}, "Columns" -> {0, {0.5}, 0}},
-    GridFrameMargins -> {{0, 0}, {0, 0}}
-  ]
-
-TightColumnGridBox[list_] :=
-  GridBox[List /@ list,
-    GridBoxAlignment -> {"Columns" -> {{Left}}, "Rows" -> {{Top}}},
-    GridBoxSpacings  -> {"Rows" -> {0, {0.5}, 0}, "Columns" -> {0, {0.5}, 0}},
-    GridFrameMargins -> {{0, 0}, {0, 0}}
-  ];
-
-(**************************************************************************************************)
-
 OpenerColumnBox[a_] := a;
 
 OpenerColumnBox[a_, b__] := With[
   {a1 = ClickBox[a, open$$ = False],
    a2 = ClickBox[a, open$$ = True]},
-  {a1b = TightColumnGridBox[Prepend[{b}, a1]]},
+  {a1b = TightColGridBox[Prepend[{b}, a1]]},
   DynamicModuleBox[
     {open$$ = 1},
     DynamicBox[
@@ -517,7 +863,7 @@ OpenerColumnBox[a_, b__] := With[
 OpenerColumnBox[a_, b_] := With[
   {a1 = ClickBox[a, open$$ = False],
    a2 = ClickBox[a, open$$ = True]},
-  {a1b = TightColumnGridBox[Prepend[{b}, a1]]},
+  {a1b = TightColGridBox[Prepend[{b}, a1]]},
   DynamicModuleBox[
     {open$$ = 1},
     DynamicBox[
@@ -529,7 +875,6 @@ OpenerColumnBox[a_, b_] := With[
 ];
 
 (**************************************************************************************************)
-
 
 SetHoldF[DynamicProgressBarBox];
 

@@ -7,7 +7,7 @@ PackageExports[
 
 SetInitial[$MultigraphDisplayForm, "Multiedges"]
 
-CoreBoxes[mgraph:HoldP[Multigraph[InternalData[data_Dict]] ? HoldExprNoEntryQ]] :=
+CoreBoxes[mgraph:HoldP[Multigraph[InternalData[data_Dict]] ? SealedQ]] :=
   With[{res = mgraphBoxes[mgraph]}, If[res === $Failed, fallbackBoxes @ mgraph, res]];
 
 mgraphBoxes[mgraph_] := Switch[$MultigraphDisplayForm,

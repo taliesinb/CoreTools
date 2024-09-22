@@ -5,7 +5,7 @@ Options[DPieChartBox] = $baseDPlotOptions;
 DPieChartBox[data_, n_Integer, opts:OptionsPattern[]] := ModuleScope[
 
   $dvaluePrefix = "Pie";
-  UnpackAssociation[
+  UnpackDict[
     procDPlotOptions[DPieChartBox, {opts}, "ScaleFactor" -> .5],
     dFilter, dSelection, otherData, xScale
   ];

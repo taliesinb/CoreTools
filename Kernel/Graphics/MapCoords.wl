@@ -44,7 +44,7 @@ $mapGBoxesDispatch := $mapGBoxesDispatch = Dispatch @ $MapGBoxRules;
 
 (**************************************************************************************************)
 
-primPattern[str_] := ToAltPattern @ GSigToGPrims[str];
+primPattern[str_] := ToAltP @ GSigToGPrims[str];
 
 (* TODO: handle rotating a rectangle *)
 (* TODO: handle rotating curves! *)

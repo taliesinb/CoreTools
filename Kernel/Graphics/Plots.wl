@@ -49,7 +49,7 @@ commaSep[list_] := Riffle[list, StyleBox[",\[ThinSpace]", Gray]];
 
 (**************************************************************************************************)
 
-DeclareStrict[MeshImage]
+SetStrict[MeshImage]
 
 MeshImage::meshImageBlockSize = "Block size `` is not a positive integer.";
 MeshImage::meshImageDataNumeric = "Input data should be a numeric array."
@@ -158,7 +158,7 @@ paintBlock[v_, {r_, c_}] := Module[
 
 (**************************************************************************************************)
 
-DeclareStrict[CompactArrayPlot]
+SetStrict[CompactArrayPlot]
 
 Options[CompactArrayPlot] = {
   PixelConstrained -> Auto,

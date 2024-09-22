@@ -1,5 +1,5 @@
 SystemExports[
-  "ControlFlowFunction",
+  "ControlFlow",
     SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor
@@ -7,7 +7,7 @@ SystemExports[
 
 (*************************************************************************************************)
 
-DeclareHoldAll[SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor]
+SetHoldA[SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor]
 
 DefineSimpleMacro[SetAll,                   SetAll[lhs_, rhs_] :> If[lhs === All,       lhs = rhs, lhs]];
 DefineSimpleMacro[SetNone,                 SetNone[lhs_, rhs_] :> If[lhs === None,      lhs = rhs, lhs]];
@@ -20,7 +20,7 @@ DefineSimpleMacro[SetScaledFactor, SetScaledFactor[lhs_, rhs_] :> If[MatchQ[lhs,
 (*************************************************************************************************)
 
 (* TODO: rename these IfAll, IfNone, etc *)
-DeclareHoldAll[SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed]
+SetHoldA[SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed]
 
 DefineSimpleMacro[SubAll,          {SubAll      [rhs_] :> Replace[All       :> rhs], SubAll      [lhs_, rhs_] :> Replace[lhs, All        :> rhs]}];
 DefineSimpleMacro[SubNone,         {SubNone     [rhs_] :> Replace[None      :> rhs], SubNone     [lhs_, rhs_] :> Replace[lhs, None       :> rhs]}];

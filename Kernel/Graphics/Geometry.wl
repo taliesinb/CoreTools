@@ -82,7 +82,7 @@ SphericalRotateVector[t_][vec_] := SphericalRotateVector[vec, t];
 
 (**************************************************************************************************)
 
-DeclareVectorListableOp @ RotateVector;
+SetVectorListableOp @ RotateVector;
 
 RotateVector[vec_List ? Pos2ListOrListsQ, t_] :=
   Dot[vec, {{Cos[t], Sin[t]}, {-Sin[t], Cos[t]}}];
@@ -94,7 +94,7 @@ RotateVector[t_][vec_] := RotateVector[vec, t];
 
 (**************************************************************************************************)
 
-DeclareVectorListableOp @ RotateVectorTo;
+SetVectorListableOp @ RotateVectorTo;
 
 RotateVectorTo[vec_List ? Pos2ListOrListsQ, to_] :=
   Dot[vec, rotToTrans @ to];
@@ -136,7 +136,7 @@ rotationMatrix = CaseOf[
 (**************************************************************************************************)
 
 (* TODO: fix me *)
-DeclareVectorListableOp @ TranslateVector;
+SetVectorListableOp @ TranslateVector;
 
 TranslateVector[trans_List, points_List] := Threaded[trans] + points;
 
@@ -218,7 +218,7 @@ circleVector[pos_, r_, theta_List] := Threaded[pos] + r * CosSin[theta];
 
 (*************************************************************************************************)
 
-DeclareListable[CosSin]
+SetListable[CosSin]
 
 CosSin[theta_] := {Cos[theta], Sin[theta]};
 
@@ -254,7 +254,7 @@ PointAlongLine[path$, Scaled[f$]] takes the fraction f$ along the path.
 PointAlongLine[d$] is the operator form of PointAlongLine."
 
 (* TODO: rename XXXAlongLine to XXXAlongPath *)
-DeclareCurry2[PointAlongLine]
+SetCurry2[PointAlongLine]
 
 PointAlongLine[{a_, b_}, d_ ? NumericQ] :=
   a + Normalize[b - a] * d;
@@ -267,7 +267,7 @@ PointAlongLine[coords_List, d_ ? NumericQ] :=
 
 (**************************************************************************************************)
 
-DeclareStrict[LinePoints]
+SetStrict[LinePoints]
 
 "LinePoints[path$, d$] returns a list of points sampled every distance d$.
 * The initial and endpoint are always sampled.
@@ -291,7 +291,7 @@ TangentAlongLine[path$, Scaled[f$]] takes the fraction f$ along the path.
 * If f$ is less than 0 or greater than 1 the point is extrapolated from the tangent at the end of the path.
 * Paths of length 2 can have Offset endpoints and these will be correctly handled, though dir$ will ignore the offset."
 
-DeclareStrict[TangentAlongLine]
+SetStrict[TangentAlongLine]
 
 TangentAlongLine[p:{_, _}, d_ ? NumericQ] := tangentAlongSegment[p, d];
 
@@ -368,7 +368,7 @@ pathTangent[coords_, i_] := Locals[
 
 (**************************************************************************************************)
 
-DeclareStrict[LineLength]
+SetStrict[LineLength]
 
 LineLength[{}] := 0;
 LineLength[{a_, b_}] := Dist @@ RemoveOffsets[{a, b}];
@@ -408,7 +408,7 @@ SimplifyOffsets[points_] := points //. $simpOffRules;
 
 (**************************************************************************************************)
 
-DeclareCurry2[ResolveOffsets]
+SetCurry2[ResolveOffsets]
 
 ResolveOffsets[e_, scale_ ? NumberQ] :=
   RepAll[e, {

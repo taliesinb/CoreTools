@@ -48,7 +48,7 @@ General::badColorFunctionSpecification = "Bad color function specification: ``."
 makeCF[head_, fn_, args___] := CatchMessages[head, Module[
   {res = fn[args]},
   Which[
-    Head[res] === InternalData, ConstructNoEntryExpr[head, res],
+    Head[res] === InternalData, MakeSealed[head, res],
     Head[res] === head, res,
     True, ThrowMsg["badColorFunctionSpecification", HoldForm[head[args]]]; $Failed
   ]
@@ -88,7 +88,7 @@ makeDiscreteColorFunction[values2_List, Auto, opts_] := Locals[
   count = Len @ values;
   If[BooleanVectorQ @ values, values = {False, True}];
   colors = Which[
-    values === {False, True},        $BooleanColors,
+    values === {False, True},        $BoolColors,
     count <= Len[$MediumColorPalette],     Take[$MediumColorPalette, count],
     count <= 2 * Len[$MediumColorPalette], Take[Join[$LightColorPalette, $DarkColorPalette], count],
     True,                            ThrowMsg["tooManyUniqueColors", count]
@@ -308,7 +308,7 @@ ApplyColorFunctionToArray[type:Automatic|None, array2_, depth1_] := Locals[
     PackedRealsQ[array],
       colorFn = ChooseNumericColorFunction @ array
     ,
-    PackedArrayQ[array, Complex] || ComplexPresentQ[array],
+    PackedComplexQ[arr] || ComplexPresentQ[array],
       colorFn = ComplexHue
     ,
     ArrayQ[array, 2, ColorQ],
@@ -365,7 +365,7 @@ ApplyAutomaticColoring[data_List] := Locals[
 
   colorFunction = Which[
     ColorVectorQ[uniqueValues],        Id,
-    sortedUniqueValues === {0, 1},     DiscreteColorFunction[{0, 1}, $BooleanColors],
+    sortedUniqueValues === {0, 1},     DiscreteColorFunction[{0, 1}, $BoolColors],
     sortedUniqueValues === {-1, 1},    DiscreteColorFunction[{-1, 1}, {$Red, $Blue}],
     sortedUniqueValues === {-1, 0, 1}, DiscreteColorFunction[{-1, 0, 1}, {$Red, $White, $Blue}],
     Len[uniqueValues] == 1,            DiscreteColorFunction[uniqueValues, {Gray}],
@@ -403,8 +403,8 @@ discreteColorPalette = CaseOf[
 
 (**************************************************************************************************)
 
-MakeBoxes[cf_NumericColorFunction ? ExprNoEntryQ, StandardForm] :=  colorFunctionBoxes[cf]
-MakeBoxes[cf_DiscreteColorFunction ? ExprNoEntryQ, StandardForm] := colorFunctionBoxes[cf]
+MakeBoxes[cf_NumericColorFunction ? SealedQ, StandardForm] :=  colorFunctionBoxes[cf]
+MakeBoxes[cf_DiscreteColorFunction ? SealedQ, StandardForm] := colorFunctionBoxes[cf]
 
 makeGradientRaster[{min_, max_}, fn_, size_, transposed_] := Locals[
   range = max - min;
@@ -443,7 +443,7 @@ colorFunctionBoxes[cf:DiscreteColorFunction[id_InternalData]] := Locals[
 (**************************************************************************************************)
 
 defineNamedColorFunction[sym_Symbol -> name_String] := (
-  DeclareListable[sym];
+  SetListable[sym];
   sym[r_ ? RealValuedNumericQ] := Blend["BalancedHue", r];
 );
 
@@ -453,12 +453,12 @@ defineNamedColorFunction[RainbowHue -> "DarkColorGradient"]
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[createColorFunction]
+SetHoldC[createColorFunction]
 
-cf_DiscreteColorFunction ? ExprEntryQ := createColorFunction[cf];
-cf_NumericColorFunction ? ExprEntryQ  := createColorFunction[cf];
+cf_DiscreteColorFunction ? UnsealedQ := createColorFunction[cf];
+cf_NumericColorFunction ? UnsealedQ  := createColorFunction[cf];
 
-createColorFunction[e:_[_InternalData]] := HoldSetNoEntryExpr @ e;
+createColorFunction[e:_[_InternalData]] := HSetNoEntryFlag @ e;
 
 createColorFunction[DiscreteColorFunction[args__, opts___Rule]] := makeCF[DiscreteColorFunction, makeDiscreteColorFunction, args, {opts}];
 createColorFunction[NumericColorFunction[args__, opts___Rule]]  := makeCF[NumericColorFunction,  makeNumericColorFunction,  args, {opts}];

@@ -1,19 +1,17 @@
-Aliases.wl
 Aliases/LoadList.txt
-Patterns.wl
+PatternUtils.wl
 Meta.wl
-Dispatch.wl
+Mutation.wl
+HoldUtils.wl
+InitSeq.wl
+SealedDispatch.wl
 Strings.wl
 Messages.wl
-Macros.wl
-UList.wl
-# MacroDefs.wl
+InitMacros.wl
 Macros/LoadList.txt
-SetUtils.wl
-Sets.wl
+Data/LoadList.txt
 Intern.wl
 Patterns/StrPatterns.wl
-Patterns.wl
 Predicates.wl
 Specs.wl
 ItemSpecs.wl

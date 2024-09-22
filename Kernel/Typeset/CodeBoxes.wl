@@ -1,20 +1,20 @@
 PackageExports[
-  "BoxFunction",     InputFormStringLength, ConstrainedMakeBoxes,
-  "SpecialFunction", CoreToolsHold, CoreToolsSequence, LineFlowedBoxes
+  "BoxFunction",     GuessInputStrLen, MakeTruncatedBoxes,
+  "SpecialFunction", PrivateHold, PrivateSeq, LineFlowedBoxes
 ];
 
 (*************************************************************************************************)
 
-ConstrainedMakeBoxes::usage =
-"ConstrainedMakeBoxes[expr, limit] is like MakeBoxes but attempts to introduces truncation when the number of approximate characters exceeds expr.
-ConstrainedMakeBoxes[..., slimit] truncates strings that are longer than slimit.
-ConstrainedMakeBoxes[..., ..., dlimit] truncates elements deeper than dlimit.
+MakeTruncatedBoxes::usage =
+"MakeTruncatedBoxes[expr, limit] is like MakeBoxes but attempts to introduces truncation when the number of approximate characters exceeds expr.
+MakeTruncatedBoxes[..., slimit] truncates strings that are longer than slimit.
+MakeTruncatedBoxes[..., ..., dlimit] truncates elements deeper than dlimit.
 * symbols will not be printed with their full contexts.
 * symbols outside system will be tinted red if they have definitions and orange if not.
 "
 
 (* todo: make the character limit apply to both width and height, and make it image size based instead! *)
-ConstrainedMakeBoxes[e_, charLimit_, strTrunc_:Infinity, maxDepth_:5] := Block[
+MakeTruncatedBoxes[e_, charLimit_, strTrunc_:Inf, maxDepth_:5] := Block[
   {$cmMax = charLimit, $cmLeft = charLimit, $cmStrMax = strTrunc, $cmDepth = maxDepth},
   trimNothing @ cmAny @ e
 ];
@@ -24,7 +24,7 @@ trimNothing[e_] := e;
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmAny, cmFinal, holdBigQ];
+SetHoldC[cmAny, cmFinal, holdBigQ];
 
 cmAny[None]                := chowing[4, "None"];
 cmAny[True]                := chowing[4, "True"];
@@ -50,6 +50,7 @@ cmAny[Verbatim[_]]         := chowing[1, "_"];
 cmAny[Verbatim[__]]        := chowing[2, "__"];
 cmAny[Verbatim[___]]       := chowing[3, "___"];
 
+cmAny[s:((USet|OSet|MSet)[_] ? SealedQ)] := cmSetObj[s];
 cmAny[EmptyUDict]          := chowing[7, "UDict[]"];
 cmAny[EmptyODict]          := chowing[7, "UDict[]"];
 cmAny[e_List]              := chowing[2, decStrLen @ rbox["{",  cmListSeq @ e, "}"]];
@@ -80,11 +81,17 @@ scientificBoxes[r_] := ReplaceAll[
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmSymbol];
+SetHoldC[cmSetObj];
 
-cmSymbol[s_] := cmSymbol2[s, SymbolName @ Unevaluated @ s, Context @ s];
+cmSetObj[set_] := Make[cmSymHead, HoldHead @ set, SetElems[NoEval @ set, PrivateHold]];
 
-DeclareHoldFirst[cmSymbol2];
+(*************************************************************************************************)
+
+SetHoldC[cmSymbol];
+
+cmSymbol[s_] := cmSymbol2[s, HoldSymbolNameAlias @ s, Context @ s];
+
+SetHoldF[cmSymbol2];
 
 cmSymbol2[_, name_, "System`" | "Global`" | "GeneralUtilities`"] := chowStr @ name;
 
@@ -115,91 +122,90 @@ mergeSymTemplates[other_] := other;
 
 (*************************************************************************************************)
 
-DeclareHoldRest[holdMap];
+SetHoldR[holdMap];
 
-holdMap[f_, a_] := Map[f, Unevaluated @ a];
+holdMap[f_, a_] := Map[f, NoEval @ a];
 holdMap[f_, a_, n_] := First @ Map[f, Take[Hold @ a, All, n], {2}];
 
 (*************************************************************************************************)
 
-DeclareHoldRest[cmPattern, cmPatternRHS];
+SetHoldR[cmPattern, cmPatternRHS];
 
-With[{haq = Developer`HoldAtomQ},
-
-cmPattern[Verbatim[Pattern][a_Symbol ? haq, b_]] :=
+cmPattern[VPattern[a:Sym, b_]] :=
   mergeSymTemplates @ RowBox @ Prepend[cmSymbol @ a] @ cmPatternRHS[b];
 
 cmPattern[p_] := cmFinal @ p;
 
 (* TODO: chow *)
-cmPatternRHS[Verbatim[_]]                      := {"_"};
-cmPatternRHS[Verbatim[Blank][b_Symbol ? haq]]  := {"_", cmSymbol @ b};
-cmPatternRHS[Verbatim[__]]                     := {"__"};
-cmPatternRHS[Verbatim[___]]                    := {"___"};
-cmPatternRHS[a_Alternatives]                   := {":", cmAlternatives @ a};
-cmPatternRHS[other_]                           := {":", parenBox @ cmAny @ other, ")"};
-];
+cmPatternRHS[Verbatim[_]]     := {"_"};
+cmPatternRHS[VBlank[b:SymP]]  := {"_", cmSymbol @ b};
+cmPatternRHS[Verbatim[__]]    := {"__"};
+cmPatternRHS[Verbatim[___]]   := {"___"};
+cmPatternRHS[a_Alt]           := {":", cmAlternatives @ a};
+cmPatternRHS[other_]          := {":", parenBox @ cmAny @ other, ")"};
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmAlternatives, cmAlternativesEntry];
+SetHoldC[cmAlternatives, cmAlternativesEntry];
 
-cmAlternatives[Verbatim[Alternatives][a_, b__]] := riffMapList[cmAlternativesEntry, "|", {a, b}];
-cmAlternatives[e_]                              := cmFinal @ e;
+cmAlternatives[VAlt[a_, b__]] := riffMapList[cmAlternativesEntry, "|", {a, b}];
+cmAlternatives[e_]            := cmFinal @ e;
 
 cmAlternativesEntry[e:(_Alternatives | _Rule | _RuleDelayed)] := parenBox @ cmAny @ e;
 cmAlternativesEntry[e_] := cmAny @ e;
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmSet, cmSetEntry];
+SetHoldC[cmSet, cmSetEntry];
 
-cmSet[Set[a_, b_]] := rbox[cmAny @ a, "=", cmSetEntry @ b];
-cmSet[SetDelayed[a_, b_]] := rbox[cmAny @ a, ":=", cmSetEntry @ b];
-cmSet[e_] := cmFinal @ e;
+cmSet[Set[a_, b_]]  := rbox[cmAny @ a, "=", cmSetEntry @ b];
+cmSet[SetD[a_, b_]] := rbox[cmAny @ a, ":=", cmSetEntry @ b];
+cmSet[e_]           := cmFinal @ e;
 
-cmSetEntry[b:(_SetDelayed | _CompoundExpression)] := parenBox @ cmAny @ b;
+cmSetEntry[b:(_SetD | _Then)] := parenBox @ cmAny @ b;
 cmSetEntry[b_] := cmAny @ b;
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmCE, cmCEEntry, riffMapList];
+SetHoldC[cmCE, cmCEEntry, riffMapList];
 
-cmCE[CompoundExpression[a__]] := riffMapList[cmCEEntry, ";", {a}];
-cmCE[CompoundExpression[a__, Null]] := RowBox @ Append[";"] @ First @ cmCE[CompoundExpression[a]];
+cmCE[Then[a__]]       := riffMapList[cmCEEntry, ";", {a}];
+cmCE[Then[a__, Null]] := RowBox @ Append[";"] @ First @ cmCE[Then[a]];
 cmCE[e_] := cmFinal @ e;
 
-cmCEEntry[e_CompoundExpression] := parenBox @ cmAny @ e;
+cmCEEntry[e_Then] := parenBox @ cmAny @ e;
 cmCEEntry[e_] := cmAny @ e;
 
 riffMapList[fn_, str_, a_] := RowBox @ Riffle[holdMap[fn, a], str];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmFinal, cmFinal2, holdBigQ, holdByteCount, recHeadQ, recHeadQ2];
+SetHoldC[cmFinal, cmFinal2, holdBigQ, recHeadQ, recHeadQ2, cmSymHead];
 
-$boxRecurse1P = _Pane | _Tooltip | _CodePane | _CodeTooltip | _Annotation;
-$boxTypesetP  = HoldPattern[_Image] | _Graph | _Grid | _NiceGrid | _Column | _NiceMulticolumn | _PlainGrid;
-
-(* TODO: assume thing is square, and so typeset width and height will generate that (width * height) / font size chars *)
-With[{haq = Developer`HoldAtomQ, recurse1 = $boxRecurse1P, typeset = $boxTypesetP},
-cmFinal[CoreToolsSequence[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
-cmFinal[CoreToolsHold[a_]]       := cmAny[a];
-cmFinal[CoreToolsHold[a___]]     := cmListSeq[{a}];
-cmFinal[(h_Symbol ? haq)[CoreToolsSequence[a___]]] := cmAny[h[a]];
-(* cmFinal[r_Ref ? ExprNoEntryQ] := makeRefBoxes @ r; *)
-cmFinal[a:recurse1]         := ToBoxes @ MapAt[cmAny /* RawBoxes, Unevaluated @ a, 1];
-cmFinal[Style[a_, rest___]] := StyleBox[cmAny @ a, rest];
-cmFinal[Row[a_List]]        := RowBox @ Riffle[holdMap[cmAny, a], ""];
-cmFinal[Row[a_List, b_]]    := Construct[cmFinal, Row @ Riffle[holdMap[CoreToolsHold, a], CoreToolsHold @ b]];
-cmFinal[a:typeset]          := "???";
-cmFinal[RawBoxes[b_]]       := b;
-cmFinal[a_]                 := cmFinal2[a];
+DefinePatternRules[
+  boxRecurse1P -> _Pane | _Tooltip | _CodePane | _CodeTooltip | _Annotation,
+  boxTypesetP  -> HoldP[_Image] | _Graph | _Grid | _NiceGrid | _Column | _NiceMulticolumn | _PlainGrid
 ];
 
-cmFinal2[(s_Symbol ? recHeadQ)[a___]] := chowing[2, decStrLen @ rbox[cmSymbol @ s, "[", cmListSeq @ {a}, "]"]];
+(* TODO: assume thing is square, and so typeset width and height will generate that (width * height) / font size chars *)
+
+cmFinal[PrivateSeq[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
+cmFinal[PrivateHold[a_]]       := cmAny[a];
+cmFinal[PrivateHold[a___]]     := cmListSeq[{a}];
+cmFinal[(h:SymP)[PrivateSeq[a___]]] := cmAny[h[a]];
+cmFinal[a:boxRecurse1P]          := ToBoxes @ MapAt[cmAny /* RawBoxes, NoEval @ a, 1];
+cmFinal[Style[a_, rest___]]      := StyleBox[cmAny @ a, rest];
+cmFinal[Row[a_List]]             := RowBox @ Riffle[holdMap[cmAny, a], ""];
+cmFinal[Row[a_List, b_]]         := Construct[cmFinal, Row @ Riffle[holdMap[PrivateHold, a], PrivateHold @ b]];
+cmFinal[a:boxTypesetP]           := "\[EmptySquare]";
+cmFinal[RawBoxes[b_]]            := b;
+cmFinal[a_]                      := cmFinal2[a];
+
+cmFinal2[(s_Symbol ? recHeadQ)[a___]] := cmSymHead[s, List @ a];
 cmFinal2[_ExternalSessionObject]      := "ExternalSessionObject[\[Ellipsis]]";
-cmFinal2[a_]                          := chowing[holdByteCount[a] / 4, Capture @ cleanupManualBoxes @ MakeBoxes[a, StandardForm]];
+cmFinal2[a_]                          := chowing[HByteCount[a] / 4, cleanupManualBoxes @ MakeBoxes[a, StandardForm]];
+
+cmSymHead[s_Sym, a_List] := chowing[2, decStrLen @ rbox[cmSymbol @ s, "[", cmListSeq @ a, "]"]];
 
 cleanupManualBoxes[e_] := e //. {
   FractionBox[a_, b_] :> RowBox[{a, "/", b}],
@@ -209,32 +215,27 @@ cleanupManualBoxes[e_] := e //. {
 
 (* TODO: find way of disabling fraction box *)
 
-recHeadQ2[s_] := EchoLabel[Hold[s]] @ recHeadQ @ s;
-
-With[
-{allowedRecHeads = Hold | HoldComplete | Splice | Sequence},
-recHeadQ[allowedRecHeads] := True;
-recHeadQ[_ ? System`Private`HasPrintCodeQ] := False;
-recHeadQ[_ ? System`Private`HasUpEvaluationsQ] := MemberQ[$whitelistEntry, SymbolName @ Unevaluated @ s];
-recHeadQ[_Symbol ? Developer`HoldAtomQ] := True;
-];
+recHeadQ2[s_] := Hold[s] @ recHeadQ @ s;
+recHeadQ[Hold | HoldComplete | Splice | Sequence] := True;
+recHeadQ[_ ? HasPrintCodeQ] := False;
+recHeadQ[_ ? HasUpDefsQ] := MemberQ[$whitelistEntry, SymName @ s];
+recHeadQ[SymP] := True;
 
 $whitelistEntry = {"Scope", "ModuleScope", "Case"};
 
 $bigSize = 2000;
-holdByteCount[e_] := ByteCount[Unevaluated[e]];
-holdBigQ[e_] := ByteCount[Unevaluated[e]] > $bigSize;
+holdBigQ[e_]      := HByteCount[e] > $bigSize;
 
 (*************************************************************************************************)
 
-DeclareHoldRest[chowing, chowing2];
+SetHoldR[chowing, chowing2];
 
 chowing[i_, e_]   := If[($cmLeft -= i) >= 0, e, $cmEll];
 chowing[i_, e_]   := If[($cmLeft -= i) >= 0, e, $cmEll];
 
 chowing2[i_, e_, f_] := If[($cmLeft -= i) >= 0, e, f];
 
-DeclareHoldAllComplete[cmAnyComma];
+SetHoldC[cmAnyComma];
 cmAnyComma[e_] /; $cmLeft <= 0 := If[$trig, $trig = False; $cmEll, Nothing];
 cmAnyComma[e_] := Splice[{cmAny[e], $cmLeft -= 2; ","}];
 
@@ -245,7 +246,7 @@ commaRowBox[a_List]                  := RowBox[a];
 safeMost[{}] := {};
 safeMost[list_] := Most @ list;
 
-chowStr[e_String] := chowing[StringLength @ e, e];
+chowStr[e_Str] := chowing[StrLen @ e, e];
 
 leftFor[n_]       := Floor[$cmLeft / n];
 
@@ -259,19 +260,19 @@ parenBox[b_]      := chowing[2, rbox["(", b, ")"]];
 
 (*************************************************************************************************)
 
-DeclareHoldFirst[decStrLen];
+SetHoldF[decStrLen];
 
 decStrLen[body_] := Block[{$cmStrMax = Max[Floor[$cmStrMax * .75], 4]}, body];
 
-cmString[s_] /; StringLength[s] > $cmStrMax := cmString[StringTake[s, $cmStrMax-1] <> $cmEll];
+cmString[s_] /; StrLen[s] > $cmStrMax := cmString[StringTake[s, $cmStrMax-1] <> $cmEll];
 
-cmString[s_] := ToBoxes @ With[{left = $cmLeft}, chowing2[StringLength[s] + 2, s, StringTake[s, UpTo @ Max[left-3, 0]] <> $cmEll]];
+cmString[s_] := ToBoxes @ With[{left = $cmLeft}, chowing2[StrLen[s] + 2, s, StringTake[s, UpTo @ Max[left-3, 0]] <> $cmEll]];
 
 $cmEll = "\[Ellipsis]";
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmRule, ruleBox];
+SetHoldC[cmRule, ruleBox];
 
 cmRule[head_[a:(_Rule | _RuleDelayed), b_]] := ruleBox[head, parenBox @ cmRule @ a, cmAny @ b];
 cmRule[head_[a_, b_]]                       := ruleBox[head, cmAny @ a, cmAny @ b];
@@ -282,13 +283,13 @@ ruleBox[RuleDelayed, a_, b_] := chowing[4, rbox[a, "\[RuleDelayed]", b]];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmListSeq, cmListSeqEntries];
+SetHoldC[cmListSeq, cmListSeqEntries];
 
-cmListSeq[{}]                  := Nothing;
-cmListSeq[{a_}]                := cmAny @ a;
-cmListSeq[{a_, b_}]            := chowing[2, rbox[cmAny @ a, ",", cmAny @ b]];
-cmListSeq[l_List]           := With[
-  {n = Length @ Unevaluated @ l},
+cmListSeq[{}]       := Nothing;
+cmListSeq[{a_}]     := cmAny @ a;
+cmListSeq[{a_, b_}] := chowing[2, rbox[cmAny @ a, ",", cmAny @ b]];
+cmListSeq[l_List]   := With[
+  {n = Length @ NoEval @ l},
   $trig = True; commaRowBox @ cmListSeqEntries[l, n, leftFor[3]]
 ];
 
@@ -300,23 +301,23 @@ cmListSeqEntries[l_, n_, m_] :=
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[cmAssocSeq, cmAssocEntries, cmAssocEntry, cmKVRule];
+SetHoldC[cmAssocSeq, cmAssocEntries, cmAssocEntry, cmKVRule];
 
 cmAssocSeq[a_] := With[
-  {n = Length @ Unevaluated @ a},
+  {n = Length @ NoEval @ a},
   Which[
     n == 0, Nothing,
-    n == 1, First @ KeyValueMap[cmKVRule, Unevaluated @ a],
+    n == 1, First @ KeyValueMap[cmKVRule, NoEval @ a],
     True,   $trig = True; commaRowBox @ cmAssocEntries[a, n, leftFor[7]]
   ]
 ];
 
 cmAssocEntries[a_, n_, m_] /; n < m :=
-  KeyValueMap[cmKVRule, Unevaluated @ a];
+  KeyValueMap[cmKVRule, NoEval @ a];
 
 cmAssocEntries[a_, n_, m_] := Block[
   {$i = 1, $m = m, $cmbag = Internal`Bag[]},
-  Association`ScanWhile[Unevaluated @ a, cmAssocEntry];
+  Association`ScanWhile[NoEval @ a, cmAssocEntry];
   Internal`StuffBag[$cmbag, $cmEll];
   Internal`BagPart[$cmbag, All]
 ];
@@ -327,14 +328,14 @@ cmAssocEntry[r_] := (Internal`StuffBag[$cmbag, cmAnyComma @ r]; ++$i <= $m);
 
 (*************************************************************************************************)
 
-Options[InputFormStringLength] = {
+Options[GuessInputStrLen] = {
   PrintPrecision -> Infinity
 };
 
-InputFormStringLength[e_, opts___] := chars0[e, opts];
-InputFormStringLength[CodePane[e_, ___], opts___] := chars0[e, opts];
+GuessInputStrLen[e_, opts___] := chars0[e, opts];
+GuessInputStrLen[CodePane[e_, ___], opts___] := chars0[e, opts];
 
-InputFormStringLength::invalidOptions = "Non-rules provided as options to InputFormStringLength.";
+GuessInputStrLen::invalidOptions = "Non-rules provided as options to GuessInputStrLen.";
 
 $pp = Infinity;
 chars0[e_, opts___Rule] := Block[
@@ -342,58 +343,48 @@ chars0[e_, opts___Rule] := Block[
   chars[e]
 ];
 
-chars0[e_, ___] := chars0[Message[InputFormStringLength::invalidOptions]; e];
+chars0[e_, ___] := chars0[Message[GuessInputStrLen::invalidOptions]; e];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[chars, ruleChars, runChars, commaChars, chars2, manualChars];
+SetHoldC[chars, ruleChars, runChars, commaChars, chars2, manualChars];
 
-With[{haq = Developer`HoldAtomQ},
-chars[0]                            := 1;
-chars[True]                         := 4;
-chars[None]                         := 4;
-chars[False]                        := 5;
-chars[a_String ? haq]               := StringLength[a] + 2;
-chars[a_Symbol ? haq]               := StringLength @ SymbolName @ Unevaluated @ a;
-chars[a_Integer ? haq]              := intChars @ a;
-chars[a_Real ? haq]                 := realChars @ a;
+chars[0]                    := 1;
+chars[True]                 := 4;
+chars[None]                 := 4;
+chars[False]                := 5;
+chars[a_Str ? HAtomQ]       := StrLen[a] + 2;
+chars[a_Sym ? HAtomQ]       := StrLen @ SymName @ a;
+chars[a_Int ? HAtomQ]       := intChars @ a;
+chars[a_Real ? HAtomQ]      := realChars @ a;
+chars[{}]                   := 2;
+chars[a_List]               := 2 + runChars[a];
+chars[(Rule|RuleD)[a_, b_]] := ruleChars[a, b];
+chars[a_Dict ? HAtomQ]      := 4 + Total[KeyValueMap[ruleChars, NoEval @ a]];
+chars[a_ ? SealedQ]         := Inf;
+chars[VCondition[a_, b_]]   := chars[a] + chars[b] + 4;
+chars[VPattern[a_, b_]]     := chars[a] + chars[b] + 3;
+chars[Verbatim[_]]          := 1;
+chars[Verbatim[__]]         := 2;
+chars[Verbatim[___]]        := 3;
+chars[RawBoxes[b_]]         := 4; (* i'm using this in NiceEcho, don't want to drop these guys *)
+chars[a_]                   := If[holdBigQ[a], Inf, chars2 @ a];
+chars[MathTools`MsgPath[p_String ? HAtomQ]] := Min[StrLen[p], 40] + 2;
 
-chars[{}]                           := 2;
-chars[a_List]                       := 2 + runChars[a];
-
-chars[(Rule|RuleDelayed)[a_, b_]]   := ruleChars[a, b];
-
-chars[a_Dict ? haq]          := 4 + Total[KeyValueMap[ruleChars, Unevaluated @ a]];
-
-chars[a_ ? System`Private`NoEntryQ] := Infinity;
-chars[Verbatim[Condition][a_, b_]]  := chars[a] + chars[b] + 4;
-chars[Verbatim[Pattern][a_, b_]]    := chars[a] + chars[b] + 3;
-chars[Verbatim[_]]                  := 1;
-chars[Verbatim[__]]                 := 2;
-chars[Verbatim[___]]                := 3;
-
-chars[MathTools`MsgPath[p_String ? haq]] := Min[StringLength[p], 40] + 2;
-chars[RawBoxes[b_]]                 := 4; (* i'm using this in NiceEcho, don't want to drop these guys *)
-chars[a_]                           := If[holdBigQ[a], Infinity, chars2 @ a];
-
-];
 
 (*************************************************************************************************)
 
-With[
-  {recurse1 = $boxRecurse1P, typeset = $boxTypesetP, haq = Developer`HoldAtomQ},
-  chars2[a:recurse1]        := MapAt[chars, Unevaluated @ a, 1];
-  chars2[typeset ? haq]     := Infinity;
-  chars2[a_]                := manualChars @ a;
-];
+chars2[a:boxRecurse1P]        := MapAt[chars, NoEval @ a, 1];
+chars2[boxTypesetP ? HAtomQ]  := Inf;
+chars2[a_]                    := manualChars @ a;
 
-manualChars[a_]             := StringLength[ToString[Unevaluated @ a, InputForm]];
+manualChars[a_]               := StrLen[HToInputStr @ a];
 
 (*************************************************************************************************)
 
 (* the extra 5 is for * 10^n *)
-realChars[r_ ? Developer`MachineRealQ] := Min[StringLength @ ToString[r, InputForm], If[Abs[r] >= 1000, 5, 0] + 1 + $pp];
-realChars[r_]                          :=     StringLength @ ToString[r, InputForm];
+realChars[r_ ? MachineRealQ] := Min[StrLen @ ToInputStr @ r, If[Abs[r] >= 1000, 5, 0] + 1 + $pp];
+realChars[r_]                :=     StrLen @ ToInputStr @ r;
 
 (*************************************************************************************************)
 
@@ -410,6 +401,6 @@ runChars[{}]           := 0;
 runChars[{a_}]         := chars[a];
 runChars[{a_, b_}]     := 2 + chars[a] + chars[b];
 runChars[{a_, b_, c_}] := 4 + chars[a] + chars[b] + chars[c];
-runChars[a_List]       := Plus[Total @ Map[chars, Unevaluated @ a], commaChars[a]];
+runChars[a_List]       := Plus[Total @ HoldMap[chars, a], commaChars[a]];
 
-commaChars[a_List]     := 2 * (Length[Unevaluated @ a] - 1);
+commaChars[a_List]     := 2 * (HLen[a] - 1);

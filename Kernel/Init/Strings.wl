@@ -23,9 +23,9 @@ SystemExports[
     EscapeCharacters, UnescapeCharacters,
     EscapeDQuotes, EscapeSQuotes, EscapeNewlines,
 
-
   "IOFunction",
     HoldToInputString, ToInputString, FromInputString,
+
   "Predicate",
     CharQ, StringStartsEndsQ, UpperCase1Q, LowerCase1Q
 ];
@@ -37,8 +37,18 @@ PackageExports[
     StringSelect, StringDiscard, StringSelectDiscard,
     FnBracketStringRow, FnParenStringRow, FnBracketString, FnParenString,
     StrTake1, StrTakeN,
+  "IOFunction",
+    HToInputStr, ToInputStr, FromInputStr,
   "Variable",
     $DQuote, $SQuote, $Newline, $DNewline, $Backslash
+];
+
+(**************************************************************************************************)
+
+DefineAliasRules[
+  HToInputStr  -> HoldToInputString,
+  ToInputStr   -> ToInputString,
+  FromInputStr -> FromInputString
 ];
 
 (**************************************************************************************************)
@@ -84,7 +94,7 @@ FromBase36String::usage = "FromBase36String[str$] interprets str$ as a base 36 n
 
 FromBase36String[s_String] := FromDigits[s, 36];
 
-Base36String[n_]     := IntegerString[n, 36, b];
+Base36String[n_]     := IntegerString[n, 36];
 Base36String[n_, b_] := IntegerString[n, 36, b];
 
 (**************************************************************************************************)
@@ -105,7 +115,7 @@ StringStartsEndsQ[a_, b_][str_] := StringStartsEndsQ[str, a, b];
 (**************************************************************************************************)
 
 General::emptyString1 = "First argument is an empty string.";
-StringListableFunctionDefs[
+StrListableDefs[
   StringFirst[s_] := FastQuietCheck[StringTake[s,  1], ErrorMsg[StringFirst::emptyString1]],
   StringLast[s_]  := FastQuietCheck[StringTake[s, -1], ErrorMsg[StringLast::emptyString1]],
   StringRest[s_]  := FastQuietCheck[StringDrop[s,  1], ErrorMsg[StringRest::emptyString1]],
@@ -116,14 +126,14 @@ StringListableFunctionDefs[
 
 (**************************************************************************************************)
 
-DeclareListable[ToLowerCase1, ToUpperCase1]
+SetListable[ToLowerCase1, ToUpperCase1]
 
 ToLowerCase1[str_String] := StringJoin[ToLowerCase @ StringTake[str, 1], StringDrop[str, 1]];
 ToUpperCase1[str_String] := StringJoin[ToUpperCase @ StringTake[str, 1], StringDrop[str, 1]];
 
 (**************************************************************************************************)
 
-DeclareListable[UpperCase1Q, LowerCase1Q]
+SetListable[UpperCase1Q, LowerCase1Q]
 
 UpperCase1Q[""] = False;
 UpperCase1Q[str_String] := UpperCaseQ @ StringTake[str, 1];
@@ -133,7 +143,7 @@ LowerCase1Q[str_String] := LowerCaseQ @ StringTake[str, 1];
 
 (**************************************************************************************************)
 
-DeclareListable[ToTitleString];
+SetListable[ToTitleString];
 
 ToTitleString[s_String] :=
   ToLowerCase @ StringReplace[s, RegularExpression["([a-z])([A-Z])"] :> "$1 $2"];
@@ -143,33 +153,33 @@ ToCamelCase[s_String] :=
 
 (**************************************************************************************************)
 
-DeclareListable[CamelCaseSplit];
+SetListable[CamelCaseSplit];
 
 CamelCaseSplit[s_String] := StringSplit[s, RegularExpression["(?<=[a-z])(?=[A-Z])"]];
 
 (**************************************************************************************************)
 
-DeclareCurry2[StringTrimLeft, StringTrimRight];
+SetCurry2[StringTrimLeft, StringTrimRight];
 
 StringTrimLeft[str_, lpatt_]  := StringDelete[str, StartOfString ~~ lpatt];
 StringTrimRight[str_, rpatt_] := StringDelete[str, rpatt ~~ EndOfString];
 
-DeclareCurry23[StringTrimLeftRight];
+SetCurry23[StringTrimLeftRight];
 
 StringTrimLeftRight[str_, lpatt_, rpatt_] := StringDelete[str, {StartOfString ~~ lpatt, rpatt ~~ EndOfString}];
 
 (**************************************************************************************************)
 
-DeclareCurry2[StringPrepend, StringAppend];
-DeclareListable1[StringPrepend, StringAppend];
+SetCurry2[StringPrepend, StringAppend];
+SetListable1[StringPrepend, StringAppend];
 
 StringPrepend[string_String, prefix_] := StringJoin[prefix, string];
 StringAppend[string_String, suffix_] := StringJoin[string, suffix];
 
 (**************************************************************************************************)
 
-DeclareStrict[StringLines]
-DeclareListable[StringLines]
+SetStrict[StringLines]
+SetListable[StringLines]
 
 StringLines[str_Str] := StringSplit[str, "\n"];
 
@@ -203,9 +213,9 @@ $quotedStringFunctionSlotRules = {
 
 (**************************************************************************************************)
 
-DeclareHoldRest[StringPositionLeft, StringPositionRight];
-DeclareCurry2[StringPositionLeft, StringPositionRight];
-DeclareListable1[StringPositionLeft, StringPositionRight];
+SetHoldR[StringPositionLeft, StringPositionRight];
+SetCurry2[StringPositionLeft, StringPositionRight];
+SetListable1[StringPositionLeft, StringPositionRight];
 
 StringPositionLeft[str_String, patt_, else_:None] := First[First[StringPosition[str, patt, 1], Null], else];
 StringPositionRight[str_String, patt_, else_:None] := First[Last[StringPosition[str, patt], Null], else];
@@ -213,7 +223,7 @@ StringPositionRight[str_String, patt_, else_:None] := First[Last[StringPosition[
 (**************************************************************************************************)
 
 General::notStringVector1 = "First argument should be a list of strings.";
-DeclareCurry2[StringSelect, StringDiscard, StringSelectDiscard]
+SetCurry2[StringSelect, StringDiscard, StringSelectDiscard]
 
 StringSelect[list_ ? StrVecQ, patt_]        := Pick[list, StringMatchQ[list, patt], True];
 StringDiscard[list_ ? StrVecQ, patt_]       := Pick[list, StringMatchQ[list, patt], False];
@@ -225,16 +235,16 @@ StringSelectDiscard[_, _] := ErrorMsg[General::notStringVector1];
 
 (**************************************************************************************************)
 
-DeclareHoldRest[StringCaseFirst, StringCaseLast];
-DeclareCurry2[StringCaseFirst, StringCaseLast];
-DeclareListable1[StringCaseFirst, StringCaseLast];
+SetHoldR[StringCaseFirst, StringCaseLast];
+SetCurry2[StringCaseFirst, StringCaseLast];
+SetListable1[StringCaseFirst, StringCaseLast];
 
 StringCaseFirst[str_String, patt_, else_:None] := First[StringCases[str, patt, 1], else];
 StringCaseLast[str_String, patt_, else_:None] := Last[StringCases[str, patt], else];
 
 (**************************************************************************************************)
 
-DeclareListable1[StringSplitPositions];
+SetListable1[StringSplitPositions];
 
 StringSplitPositions[str_String, pos_] := strSplitPos[str, pos];
 
@@ -253,14 +263,14 @@ StringSplitPositions::badSplitSpec = "`` is not a valid StringSplitPositions spe
 
 (**************************************************************************************************)
 
-DeclareListable1[StringSplitBefore, StringSplitAfter];
+SetListable1[StringSplitBefore, StringSplitAfter];
 
 StringSplitBefore[str_String, patt_] := StringSplitPositions[str, Part[StringPosition[str, patt], All, 1]];
 StringSplitAfter[str_String, patt_] := StringSplitPositions[str, Part[StringPosition[str, patt] + 1, All, 2]];
 
 (**************************************************************************************************)
 
-DeclareListable1[StringSegment, StringSegmentBefore, StringSegmentAfter];
+SetListable1[StringSegment, StringSegmentBefore, StringSegmentAfter];
 
 StringSegment[str_String, spec_]       := strSegment[str, spec, Null, Null];
 StringSegmentBefore[str_String, spec_] := strSegment[str, spec, First, -1];
@@ -286,7 +296,7 @@ strSegment[str_, patt_, Null, _] := Replace[StringSplit[str, patt, 2], {_} :> {N
 
 (**************************************************************************************************)
 
-DeclareListable[RealString];
+SetListable[RealString];
 
 $numDigits = 5;
 
@@ -348,7 +358,7 @@ stringyQ[_]                  := False;
 
 (**************************************************************************************************)
 
-DeclareCurry1[FnBracketStringRow, FnParenStringRow]
+SetCurry1[FnBracketStringRow, FnParenStringRow]
 
 FnBracketStringRow[f_ ? stringyQ, list_List ? stringyQ] := fnStr[f, "[", list, "]"];
 FnParenStringRow[f_ ? stringyQ, list_List ? stringyQ]   := fnStr[f, "(", list, ")"];

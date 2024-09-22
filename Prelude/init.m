@@ -2,7 +2,7 @@ If[!TrueQ[Prelude`$PreludeLoaded] || True, Check[
   Block[{$ContextPath = {"System`"}, $NewSymbol},
     Prelude`$PreludeFiles = Thread @ Map[FileNameJoin] @ Thread @ {
       FileNameDrop @ $InputFileName,
-      StringSplit @ "Overrides.wl Sublime.wl Tracing.wl Packages.wl Session.wl Symbols.wl"
+      StringSplit @ "PreBase.wl PreOverrides.wl PreSublime.wl PreTracing.wl PrePackages.wl PreSession.wl PreSymbols.wl"
     };
     Scan[Get] @ Prelude`$PreludeFiles;
   ];

@@ -14,17 +14,17 @@ PackageExports[
 
 (*************************************************************************************************)
 
-f_DiscreteFunction ? HoldExprEntryQ := constructDF @ f;
-(f_DiscreteFunction ? HoldExprNoEntryQ)[x_] := evalDF[f, x];
+f_DiscreteFunction ? UnsealedQ := constructDF @ f;
+(f_DiscreteFunction ? SealedQ)[x_] := evalDF[f, x];
 
-DeclareHoldAllComplete[constructDF, evalDF];
+SetHoldC[constructDF, evalDF];
 
 DiscreteFunction::badArguments = "Expected an association or list of rules, and an optional set as a second argument.";
 constructDF[f_] := ReturnMsg[DiscreteFunction::badArguments, HoldForm @ f];
 constructDF[DiscreteFunction[rules:{__Rule}, set_List:Auto]] := makeFSF[Dict @ rules, set];
 constructDF[DiscreteFunction[assoc:DictP, set_List:Auto]]    := makeFSF[assoc, set];
 
-makeFSF[assoc_, set_] := ConstructNoEntryExpr[
+makeFSF[assoc_, set_] := MakeSealed[
   DiscreteFunction,
   UDict @ assoc, UDict @ PositionIndex @ assoc, SubAuto[set, Union @ Vals @ assoc]
 ];
@@ -46,15 +46,15 @@ InjectiveFunction, BijectiveFunction, SurjectiveFunction,
 Relation[fromset, function, toset]
 *)
 
-CoreBoxes[DiscreteFunction[fwd_, bwd_, set_] ? HoldExprNoEntryQ] :=
+CoreBoxes[DiscreteFunction[fwd_, bwd_, set_] ? SealedQ] :=
   NiceObjectBoxes["DiscreteFunction", {RiffledRowBox["\[Rule]"] @ Map[NatStr, {Len @ fwd, Len @ set}]}];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[constructFSF, evalFSF];
+SetHoldC[constructFSF, evalFSF];
 
-f_StochasticFunction ? HoldExprEntryQ := constructFSF @ f;
-(f_StochasticFunction ? HoldExprNoEntryQ)[x_] := evalFSF[f, x];
+f_StochasticFunction ? UnsealedQ := constructFSF @ f;
+(f_StochasticFunction ? SealedQ)[x_] := evalFSF[f, x];
 
 StochasticFunction::badArguments = "Expected either one arg (assoc), two args (assoc, outputs) or three argument (inputs, weights, outputs)."
 constructFSF[f_] := ReturnMsg[StochasticFunction::badArguments, HoldForm @ f];
@@ -62,10 +62,10 @@ constructFSF[f_] := ReturnMsg[StochasticFunction::badArguments, HoldForm @ f];
 StochasticFunction::arg1notAssocList = "First argument was not an association of non-empty lists."
 constructFSF[StochasticFunction[assoc_]] := Locals @ CatchMessages[StochasticFunction,
   If[!ListValuesQ[assoc] || MemberQ[assoc, {}], ReturnFailed["arg1notAssoc"]];,
-  ConstructNoEntryExpr[StochasticFunction, assoc]
+  MakeSealed[StochasticFunction, assoc]
 ];
 
-CoreBoxes[StochasticFunction[a_] ? HoldExprNoEntryQ] :=
+CoreBoxes[StochasticFunction[a_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
     {RiffledRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountUnique @ Catenate @ a]}];
 
@@ -81,10 +81,10 @@ constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchMessages[Stoc
   If[!ValuesTrue[assoc, PositiveIntegerVectorQ] || MemberQ[assoc, {}], ReturnFailed["arg1notAssocParts"]];
   If[!ListQ[values], ReturnFailed["arg2notList"]];
   If[(max = Max[assoc]) > (len = Len[values]), ReturnFailed["arg2notList", max, len]];
-  ConstructNoEntryExpr[StochasticFunction, assoc, values]
+  MakeSealed[StochasticFunction, assoc, values]
 ];
 
-CoreBoxes[StochasticFunction[a_, t_] ? HoldExprNoEntryQ] :=
+CoreBoxes[StochasticFunction[a_, t_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
     {RiffledRBox["\[Rule]"][NatStr @ Len @ a, NatStr @ Len @ t]}];
 
@@ -125,7 +125,7 @@ constructFSF[StochasticFunction[ispec_, weights_, ospec_]] := Locals @ CatchMess
     AutoQ[ispec], Range @ numCols,
     True,         ThrowMsg["badOutputSpec", ospec]
   ];
-  ConstructNoEntryExpr[StochasticFunction, inputFn, weights, outputs]
+  MakeSealed[StochasticFunction, inputFn, weights, outputs]
 ];
 
 evalFSF[StochasticFunction[f_Dict, w_, t_], x_] := WeightedRandomChoice[t, Part[w, Lookup[f, x, badKeyMsg1[x]]]]
@@ -137,5 +137,5 @@ evalFSF[StochasticFunction[f_, w_, t_], x_List] := WeightedRandomChoice[t, PartO
 badPartMsg[x_] := (Message[StochasticFunction::invalidInput, x]; 1);
 StochasticFunction::invalidInput = "Input to StochasticFunction was invalid: ``.";
 
-CoreBoxes[StochasticFunction[_, w_ ? PackedArrayQ, _] ? HoldExprNoEntryQ] :=
+CoreBoxes[StochasticFunction[_, w_ ? HPackedQ, _] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction", {RiffledRowBox["\[Times]"] @ Map[ToBoxes, Dimensions @ w]}];

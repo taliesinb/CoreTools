@@ -1,10 +1,11 @@
 SystemExports[
   "Predicate",
 
-    HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ,
     ZeroIntegerQ, NonZeroIntegerQ, UnitIntegerQ, ExtendedIntegerQ, ExtendedNaturalQ, ExtendedPositiveIntegerQ,
     ZeroRealQ,   NonZeroRealQ,   PositiveRealQ,   NegativeRealQ,   NonPositiveRealQ,   NonNegativeRealQ,   UnitRealQ,   ExtendedRealQ, ExtendedPositiveRealQ, ExtendedNonNegativeRealQ,
     ZeroNumberQ, NonZeroNumberQ, PositiveNumberQ, NegativeNumberQ, NonPositiveNumberQ, NonNegativeNumberQ, UnitNumberQ, ExtendedNumberQ, ExtendedPositiveNumberQ, ExtendedNonNegativeNumberQ,
+
+    NotMissingQ, NotFailureQ,
 
     UnorderedAssociationQ, OrderedAssociationQ,
     HoldUnorderedAssociationQ, HoldOrderedAssociationQ,
@@ -57,15 +58,15 @@ SystemExports[
     IntegerKeysQ, StringKeysQ, ListKeysQ, AssociationKeysQ, SymbolKeysQ,
     IntegerValuesQ, StringValuesQ, ListValuesQ, AssociationValuesQ, BooleanValuesQ, SymbolValuesQ,
     HasDuplicatesQ,
-    AnyMissingQ, NoneMissingQ, AnyFailedQ, NoneFailedQ, NotFailureQ,
-    HoldAssociationQ, HoldPackedArrayQ,
+    AnyMissingQ, NoneMissingQ, AnyFailedQ, NoneFailedQ,
 
     ListOfQ,                 AssociationOfQ,         ListAssociationOfQ,
     NonEmptyListQ,     NonEmptyAssociationQ,   NonEmptyListAssociationQ,
     NonEmptyListOfQ, NonEmptyAssociationOfQ, NonEmptyListAssociationOfQ,
     PairOfQ, TupleOfQ, RecordOfQ, StructureOfQ, ArrayOfQ,
 
-    BooleanOrVectorQ, SymbolOrVectorQ, IntegerOrVectorQ, RuleOrVectorQ, RuleLikeOrVectorQ, OptionRuleOrVectorQ
+    BooleanOrVectorQ, SymbolOrVectorQ, IntegerOrVectorQ, NaturalOrVectorQ, RealOrVectorQ,
+    RuleOrVectorQ, RuleLikeOrVectorQ, OptionRuleOrVectorQ
 ];
 
 PackageExports[
@@ -79,7 +80,7 @@ PackageExports[
     PosAQ, PosAListQ, PosAListsQ, PosAPairQ,
     Pos2ListOrListsQ,
     RuleLikeQ, RuleQ, RuleDelayedQ,
-    PackedRealsQ, PackedIntsQ, PackedNumsQ,
+    PackedRealsQ, PackedIntsQ, PackedComplexQ, PackedNumsQ,
     AutoNoneQ, NotAutoNoneQ,
     HoldVFreeQ, HoldVContainsQ,
     OnePartSpecQ, MultiPartSpecQ, ExtPartSpecQ,
@@ -104,7 +105,7 @@ PackageExports[
 
     DeclarePatternPredicates,
     DefinePatternPredicateRules,
-    DeclareVectorListableOp
+    SetVectorListableOp
 ];
 
 (*************************************************************************************************)
@@ -160,16 +161,6 @@ WithinSQ[e_ /; -1 <= e <= 1] = True;
 
 (*************************************************************************************************)
 
-SetPred1 @ SetHoldC[HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ]
-
-HoldStringQ[_Str ? HAtomQ] = True;
-HoldIntegerQ[_Int ? HAtomQ] = True;
-HoldNaturalQ[(_Int ? HAtomQ) ? NonNegative] = True;
-HoldNumberQ[NumE ? HAtomQ] = True;
-HoldBooleanQ[False | True] = True;
-
-(*************************************************************************************************)
-
 (* the other integer predicates like PosIntQ are already kernel functions *)
 
 DefinePatternPredicateRules[
@@ -210,6 +201,11 @@ DefinePatternPredicateRules[
   ExtendedPositiveNumberQ    -> ExtPosNumP,
   ExtendedNonNegativeNumberQ -> ExtNonNegNumP
 ];
+
+(*************************************************************************************************)
+
+NotMissingQ[_Missing] := False;
+NotMissingQ[_]        := True;
 
 (*************************************************************************************************)
 
@@ -264,11 +260,11 @@ EmptyQ[_ ? NonEmptyQ]     = False;
 EmptyQ[_]                 = True;
 
 AtomicQ[_Dict]            = False;
-AtomicQ[_ ? HoldAtomQ]    = True;
+AtomicQ[_ ? HAtomQ]       = True;
 AtomicQ[_]                = False;
 
 NonAtomicQ[_Dict]         = True;
-NonAtomicQ[_ ? HoldAtomQ] = False;
+NonAtomicQ[_ ? HAtomQ]    = False;
 NonAtomicQ[_]             = True;
 
 (*************************************************************************************************)
@@ -402,21 +398,21 @@ Pos2ListOrListsQ[a_List] := Pos2ListsQ[a] || Pos2ListQ[a];
 
 (*************************************************************************************************)
 
-HasHeadQ[e_, h_]       := MatchQ[e, ToBlank @ h];
-HasHeadQ[h_]           := MatchQ[ToBlank @ h];
+HasHeadQ[e_, h_]       := MatchQ[e, ToBlankP @ h];
+HasHeadQ[h_]           := MatchQ[ToBlankP @ h];
 
-VectorHasHeadsQ[e_, h_] := MatchQ[e, List @ ToBlankNullSequence @ h];
-VectorHasHeadsQ[h_]     := MatchQ[List @ ToBlankNullSequence @ h];
+VectorHasHeadsQ[e_, h_] := MatchQ[e, List @ ToBlankNullSeqP @ h];
+VectorHasHeadsQ[h_]     := MatchQ[List @ ToBlankNullSeqP @ h];
 
 SetCurry2 @ SetPred2 @ AssociationHasHeadsQ
 
-AssociationHasHeadsQ[a_Dict, h_] := MatchQ[Values @ a, List @ ToBlankNullSequence @ h];
+AssociationHasHeadsQ[a_Dict, h_] := MatchQ[Values @ a, List @ ToBlankNullSeqP @ h];
 
 (*************************************************************************************************)
 
 SetCurry2 @ SetPred2[HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ]
 
-HasKeysQ[dict_Dict, keys_List] := Len[dict] === Len[key] && SameQ[Keys @ dict, keys];
+HasKeysQ[dict_Dict, keys_List] := Len[dict] === Len[keys] && SameQ[Keys @ dict, keys];
 
 HasLengthQ[expr_, n_Integer] := Len[expr] === n;
 
@@ -532,7 +528,7 @@ SamePartsQ[a_, b_] := Head[a] === Head[b] && Len[a] === Len[b];
 
 (*************************************************************************************************)
 
-DeclareCurry1[SameHeadQ, SameLengthQ, SameShapeQ]
+SetCurry1[SameHeadQ, SameLengthQ, SameShapeQ]
 
 SameHeadQ[a_, b_] := Head[a] === Head[b];
 SameLengthQ[a_, b_] := Length[a] === Length[b];
@@ -685,10 +681,12 @@ ListArrQ[list_]                 := ListVectorQ[list];
 
 (*************************************************************************************************)
 
-SetPred1[PackedIntsQ, PackedRealsQ, PackedNumsQ];
+SetPred1[PackedIntsQ, PackedRealsQ, PackedComplexQ, PackedNumsQ];
 
 PackedIntsQ[list_]      := PackedQ[list, Int];
 PackedRealsQ[list_]     := PackedQ[list, Real];
+PackedComplexQ[list_]   := PackedQ[list, Complex];
+
 PackedNumsQ[list_]      := PackedQ[list, Int] || PackedQ[list, Real];
 PackedNumsQ[list_, n_]  := PackedQ[list, Int, n] || PackedQ[list, Real, n];
 
@@ -941,9 +939,9 @@ ListableFunctionQ[c_RightComposition | c_Composition] := AllTrue[c, ListableFunc
 
 (**************************************************************************************************)
 
-DeclareDeclare @ DeclareVectorListableOp;
+DeclareDeclare @ SetVectorListableOp;
 
-DeclareVectorListableOp[sym_Symbol] := ListableFunctionQ[_sym] = True;
+SetVectorListableOp[sym_Symbol] := ListableFunctionQ[_sym] = True;
 
 (**************************************************************************************************)
 
@@ -980,33 +978,29 @@ NoneFailedQ[e:ListDictP]  := NoneTrue[e, FailureQ];
 
 (**************************************************************************************************)
 
-SetHoldC[HoldSameQ, HoldAssociationQ, HoldPackedArrayQ, HoldHasHeadQ]
-SetPred1[HoldAssociationQ, HoldPackedArrayQ]
-SetPred2[HoldSameQ, HoldHasHeadQ]
+SetPred2 @ SetHoldC[HoldSameQ, HoldHasHeadQ]
 
 HoldSameQ[a_, a_] := True;
-HoldAssociationQ[_Dict ? HoldAtomQ] := True;
-HoldPackedArrayQ[arr_List] := PackedArrayQ @ NoEval @ arr;
-
 HoldHasHeadQ[h_[___], h_] := True;
 HoldHasHeadQ[h_] := HoldCompFn[FmE, HoldHasHeadQ[FmE, h]];
 
 (**************************************************************************************************)
 
 (* StringOrVectorQ is an alias to Developer`StringOrStringVectorQ *)
-SetPred1[BooleanOrVectorQ, SymbolOrVectorQ, IntegerOrVectorQ, RuleOrVectorQ, RuleLikeOrVectorQ, OptionRuleOrVectorQ]
+SetPred1[BooleanOrVectorQ, SymbolOrVectorQ, IntegerOrVectorQ, NaturalOrVectorQ, RealOrVectorQ]
 
-BooleanOrVectorQ[True|False]             = True;
-BooleanOrVectorQ[_List ? BooleanVectorQ] = True;
+BooleanOrVectorQ[BoolOrVecP] = True;
+SymbolOrVectorQ[SymOrVecP]   = True;
+IntegerOrVectorQ[IntOrVecP]  = True;
+NaturalOrVectorQ[NatOrVecP]  = True;
+RealOrVectorQ[RealOrVecP]    = True;
 
-SymbolOrVectorQ[_Sym ? HoldSymbolQ]    = True;
-SymbolOrVectorQ[_List ? SymbolVectorQ] = True;
+(**************************************************************************************************)
 
-IntegerOrVectorQ[_Int]                   = True;
-IntegerOrVectorQ[_List ? IntegerVectorQ] = True;
+SetPred1[RuleOrVectorQ, RuleLikeOrVectorQ, OptionRuleOrVectorQ]
 
-RuleOrVectorQ[_Rule]               = True;
-RuleOrVectorQ[_List ? RuleVectorQ] = True;
+RuleOrVectorQ[_Rule]                   = True;
+RuleOrVectorQ[_List ? RuleVectorQ]     = True;
 
 RuleLikeOrVectorQ[_Rule | RuleD]       = True;
 RuleLikeOrVectorQ[_ ? RuleLikeVectorQ] = True

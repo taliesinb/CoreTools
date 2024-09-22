@@ -12,7 +12,7 @@ DScatterPlotBox[data_, opts:OptionsPattern[]] := ModuleScope[
 
   $dvaluePrefix = "XY";
   UnpackOptions[ticks];
-  UnpackAssociation[
+  UnpackDict[
     procDPlotOptions[DScatterPlotBox, {opts, AdditionalImagePadding -> {Right -> 20, Bottom -> 20}}, "ScaleFactor" -> 1],
     dFilter, dSelection, otherData, imageSize
   ];

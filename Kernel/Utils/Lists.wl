@@ -2,7 +2,7 @@ SystemExports[
   "Function",
     CountUnique, CountUniqueBy, ToUnique,
     Lerp, Avg, Multiply,
-    PlusOne, MinusOne, OneMinus, OneOver,
+    PlusOne, MinusOne, OneMinus,
     Unthread, SequenceLength, Birange, LengthRange, RangeLength,
     SequenceNothing, SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
     SequenceFirstSecond, SequenceSecondFirst,
@@ -23,9 +23,10 @@ SystemExports[
 
 PackageExports[
   "Function",
+    Reverse2,
     Args, ArgsP,
     Clip2,
-  "ControlFlowFunction",
+  "ControlFlow",
     HoldArgs, HoldArgsP,
   "MutatingFunction",
     JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
@@ -35,6 +36,12 @@ PackageExports[
   "Variable",
     $UnthreadEnabled
 ];
+
+(*************************************************************************************************)
+
+SetStrict @ Reverse2;
+
+Reverse2[list_List] := Reverse[list, 2];
 
 (*************************************************************************************************)
 
@@ -174,7 +181,6 @@ EnsurePair[a_, test_] := Ensure[EnsurePair @ a, VectorOf[test], ThrowMsg["badPai
 PlusOne[e_] := e + 1;
 MinusOne[e_] := e - 1;
 OneMinus[e_] := 1 - e;
-OneOver[e_] := 1 / e;
 
 (*************************************************************************************************)
 
@@ -202,7 +208,7 @@ setParts[expr_, parts_, value_] := Locals[expr2 = expr; Part[expr2, parts] = val
 
 (*************************************************************************************************)
 
-DeclareHoldFirst[JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn];
+SetHoldF[JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn];
 
 JoinTo[e_, r_]            := Set[e, Join[e, r]];
 UnionTo[e_, r_]           := Set[e, Union[e, r]];
@@ -216,8 +222,8 @@ ReplaceRepeatedIn[e_, r_] := Set[e, ReplaceRepeated[e, r]];
 
 $UnthreadEnabled = True;
 
-DeclareHoldAllComplete[unthreadThroughQ];
-unthreadThroughQ[Set | SetDelayed | Hold | CoreToolsSequence | CoreToolsHold | Print | ToBoxes | MakeBoxes] := False;
+SetHoldC[unthreadThroughQ];
+unthreadThroughQ[Set | SetDelayed | Hold | PrivateSeq | PrivateHold | Print | ToBoxes | MakeBoxes] := False;
 unthreadThroughQ[_] := $UnthreadEnabled;
 
 Unthread /: Rule[lhs_, Unthread[rhs_]] :=

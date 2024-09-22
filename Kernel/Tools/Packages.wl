@@ -12,7 +12,7 @@ PackageExports[
 
 (*************************************************************************************************)
 
-DeclareHoldAll[PackageTopLevelEvaluate]
+SetHoldA[PackageTopLevelEvaluate]
 
 With[{ignoredSyms = Apply[Alt, Blank /@ Prelude`Packages`$PackageDeclarationSymbols]},
 PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;

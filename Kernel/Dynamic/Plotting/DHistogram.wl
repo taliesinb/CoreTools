@@ -17,7 +17,7 @@ DHistogramBox[data_, n_Integer, opts:OptionsPattern[]] := ModuleScope[
   $dvaluePrefix = "Hist";
   UnpackOptions[binTicks];
   extraPadding = If[ListQ[binTicks], Bottom -> 20, 0];
-  UnpackAssociation[
+  UnpackDict[
     procDPlotOptions[DHistogramBox, {opts, AdditionalImagePadding -> extraPadding}, "HeightFactor" -> 2],
     dFilter, dSelection, xScale, yScale, otherData
   ];

@@ -117,11 +117,11 @@ DefineAliasRules[
 ];
 
 DefinePatternRules[
-  MGraphP -> HoldP[Multigraph[_InternalData] ? HoldExprNoEntryQ]
+  MGraphP -> HoldP[Multigraph[_InternalData] ? SealedQ]
 ];
 
 DefinePatternMacro[MGraphDataP,
-  MGraphDataP[sym_] :> HoldP[Multigraph[InternalData[sym]] ? HoldExprNoEntryQ]
+  MGraphDataP[sym_] :> HoldP[Multigraph[InternalData[sym]] ? SealedQ]
 ];
 
 (**************************************************************************************************)
@@ -158,7 +158,7 @@ MultiedgeOutputGroups[mg_MGraph] := GroupBy[MEdgeList[mg], Second];
 
 (**************************************************************************************************)
 
-DeclareStrict @ MEdgeFields;
+SetStrict @ MEdgeFields;
 
 (* TODO: return Key as a wrapper *)
 MEdgeFields[MGraphDataP[data_]] := getEdgeFields[data];
@@ -170,7 +170,7 @@ toFieldList[fs_][l_List] := Part[fs, l];
 
 (**************************************************************************************************)
 
-DeclareStrict[MVertexCount, MEdgeCount, MFieldCount];
+SetStrict[MVertexCount, MEdgeCount, MFieldCount];
 
 MVertexCount[MGraphDataP[data_]]  := Len @ data[VertexList];
 MEdgeCount[MGraphDataP[data_]]    := Len @ data[IEdgeInputs];
@@ -213,12 +213,12 @@ Scan[fn |-> SetDelayed[fn[MGraphDataP[dict_]], dict[fn]], $multigraphPropertyFun
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[evalMultigraph];
+SetHoldC[evalMultigraph];
 
-m_Multigraph ? HoldExprEntryQ := evalMultigraph[m];
+m_Multigraph ? UnsealedQ := evalMultigraph[m];
 
 evalMultigraph = CaseOf[
-  m:Multigraph[_InternalData]        := HoldSetNoEntryExpr[m];
+  m:Multigraph[_InternalData]        := HSetNoEntryFlag[m];
   Multigraph[multiedges_List]        := MakeMultigraph[Multigraph, Auto, multiedges];
   Multigraph[vertices_, multiedges_] := MakeMultigraph[Multigraph, vertices, multiedges];
   m_                                 := ErrorMsg[Multigraph::invalidMultigraphSpec, HoldForm[m]]
@@ -233,9 +233,17 @@ MultigraphEdgeColor = CaseOf[
 ];
 
 MultigraphVertexColor = CaseOf[
-  False := Black;
-  True  := Black;
-  i_Int := Part[$MediumColorPalette, i + 1];
-  e_    := HashToColor @ Hash @ e;
+  Style[_, c:ColorP] := c;
+  Keyed[_, c:ColorP] := c;
+  Keyed[_, _]        := $Gray;
+  c:ColorP           := c;
+  other_             := If[$MultiedgeAutoColoring, autoColor @ other, $Gray];
+];
+
+autoColor = CaseOf[
+  False       := Black;
+  True        := Gray;
+  i_Int       := PartOr[$MediumColorPalette, i + 1, $Gray];
+  e_          := HashToColor @ Hash @ e;
 ];
 

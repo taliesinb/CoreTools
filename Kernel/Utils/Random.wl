@@ -16,27 +16,39 @@ SystemExports[
     RandomUnitNormal, RandomUnitNormal2D, RandomUnitNormal3D, RandomUnitNormalND,
     RandomExprTree,
     RandomAssociation,
+    RandomUAssociation,
     NthLowercase,
-    FormalSymbol, FromFormalSymbol,
-    FormalSymbolQ, HoldFormalSymbolQ,
     Softmax, RuleVectorChoice, WeightedRandomChoice, RandomChoiceArray,
     RandomPart,
-  "ControlFlowFunction",
+  "ControlFlow",
     CoinToss,
-    BlockSeed,
-  "Variable",
-    $FormalSymbols
+    BlockSeed
 ];
 
 PackageExports[
   "Function",
-    RandDict
+    RandInt, RandDict, RandUDict, RandAtom, RandDatum, RandSym, RandLet,
+    RandDec, RandBit, RandNat, RandBool, RandSign, RandRange, RandReal, RandNorm
 ];
 
 (*************************************************************************************************)
 
 DefineAliasRules[
-  RandDict -> RandomAssociation
+  RandInt          -> RandomInt,
+  RandDict         -> RandomAssociation,
+  RandUDict        -> RandomUAssociation,
+  RandAtom         -> RandomAtom,
+  RandDatum        -> RandomDatum,
+  RandSym          -> RandomSymbol,
+  RandLet          -> RandomLetter,
+  RandDec          -> RandomDecimal,
+  RandBit          -> RandomBit,
+  RandNat          -> RandomNatural,
+  RandBool         -> RandomBoolean,
+  RandSign         -> RandomUnitInteger,
+  RandRange        -> RandomRange,
+  RandReal         -> RandomUnitReal,
+  RandNorm         -> RandomUnitNormal
 ];
 
 (*************************************************************************************************)
@@ -48,7 +60,7 @@ BlockSeed[body_, seed_] := BlockRandom[body, RandomSeeding -> seed];
 
 (*************************************************************************************************)
 
-DeclareHoldAll[CoinToss];
+SetHoldA[CoinToss];
 
 CoinToss[a_]     := a;
 CoinToss[a_, b_] := If[RandomBoolean[], a, b];
@@ -65,7 +77,7 @@ RuleVectorChoice[rule:Rule[_List, _List], n_Int] := RandomChoice[rule, n];
 
 (*************************************************************************************************)
 
-DeclareCurry2[WeightedRandomChoice]
+SetCurry2[WeightedRandomChoice]
 
 WeightedRandomChoice[set_List, weights_ ? VectorQ] := RandomChoice[weights -> set];
 WeightedRandomChoice[set_List, weights_ ? ArrayQ] := Map[w |-> RandomChoice[w -> set], weights, {-2}];
@@ -86,9 +98,9 @@ Softmax[array_List] := Normalize[Abs @ Exp @ ToPackedReals @ N @ array, Total /*
 (*************************************************************************************************)
 
 declareSimpleRandFn[head_] := (
-  DeclareStrict[head];
-  head[dims___Integer]             := head @ {dims};
-  head[dims_] /; !PosIntVecQ[dims] := (Message[head::invalidRandomShape, dims]; $Failed);
+  SetStrict[head];
+  head[dims___Integer]          := head @ {dims};
+  head[dims_] /; !NatVecQ[dims] := (Message[head::invalidRandomShape, dims]; $Failed);
 );
 
 Scan[declareSimpleRandFn, {
@@ -132,7 +144,7 @@ RandomUnitNormal3D[dims_] := RandomUnitNormalND[3, dims];
 (*************************************************************************************************)
 
 declareSpecRandFn[head_] := (
-  DeclareStrict[head];
+  SetStrict[head];
   head[spec_, dims___Integer] := head[spec, {dims}];
 );
 
@@ -189,17 +201,17 @@ General::invalidRandomShape = "Invalid random shape: ``.";
 
 $rshape = {};
 defineThreadingRandFn[head_, impl_] := (
-  DeclareStrict[head];
+  SetStrict[head];
   head[spec_, dims___Integer] := head[spec, {dims}];
   head[spec_List, shape_List] := rcheck[head, shape, OutermostToInnermost @ impl @ spec];
   head[spec_, shape_List]     := rcheck[head, shape, impl @ spec];
 
-  DeclareListable[impl];
+  SetListable[impl];
   impl[spec_] := Message[head::invalidRandomSpec, spec];
 );
 
-DeclareHoldAll[rcheck];
-rcheck[head_, shape_, body_] := If[!PosIntVecQ[shape],
+SetHoldA[rcheck];
+rcheck[head_, shape_, body_] := If[!NatVecQ[shape],
   Message[head::invalidRandomShape, shape]; $Failed,
   Block[{$rshape = shape}, Check[body, $Failed]]
 ];
@@ -226,48 +238,11 @@ randSymReal[r_ ? Positive] := RandomReal[{-r, r}, $rshape];
 
 (*************************************************************************************************)
 
-DeclareStrict[RandomTuple];
+SetStrict[RandomTuple];
 
 RandomTuple[sets_, dims__Integer]      := RandomTuple[sets, {dims}];
 RandomTuple[sets:{__List}]             := RandomChoice /@ sets;
 RandomTuple[sets:{__List}, shape_List] := OutermostToInnermost[RandomChoice[#, shape]& /@ sets];
-
-(*************************************************************************************************)
-
-$lowerFormal := $lowerFormal = ToExpression[CharRange["\[FormalA]","\[FormalZ]"], InputForm];
-$upperFormal := $upperFormal = ToExpression[CharRange["\[FormalCapitalA]","\[FormalCapitalZ]"], InputForm];
-$FormalSymbols := $FormalSymbols = Join[$lowerFormal, $upperFormal];
-
-DeclareListable[FormalSymbol];
-
-FormalSymbol::notFormalSpec = "`` should be a integer or string containing a roman letter.";
-FormalSymbol[e_] := ErrorMsg["notFormalSpec", e];
-FormalSymbol[s_Str ? CharQ] := codeToFormal @ First @ ToCharCode @ s;
-FormalSymbol[n_Int /; 1 <= n <= 52] := Part[$FormalSymbols, n];
-
-codeToFormal[n_] := Which[
-  65 <= n <= 90,  Part[$upperFormal, n - 64],
-  97 <= n <= 122, Part[$lowerFormal, n - 96],
-  True, ErrorMsg["notFormalSpec", FromCharCode @ n]
-];
-
-(*************************************************************************************************)
-
-DeclareListable[FromFormalSymbol];
-
-$fromFormalSymbols := $fromFormalSymbols = UDictThread[
-  $FormalSymbols, Join[CharRange["a", "z"], CharRange["A", "Z"]]
-];
-
-FromFormalSymbol[sym_Symbol] := Lookup[$fromFormalSymbols, sym, sym];
-
-(*************************************************************************************************)
-
-DeclareHoldFirst[HoldFormalSymbolQ]
-DeclarePredicate1[HoldFormalSymbolQ, FormalSymbolQ]
-
-HoldFormalSymbolQ[s_Symbol] := MemberQ[$FormalSymbols, Unevaluated @ s];
-FormalSymbolQ[s_Symbol] := MemberQ[$FormalSymbols, Unevaluated @ s];
 
 (*************************************************************************************************)
 
@@ -286,12 +261,13 @@ toRandExpr = CaseOf[
 
 SetListable @ NthLowercase;
 
-NthLowercase[n:NatP] := FromCharCode[96 + IntegerDigits[n, 26]]
+NthLowercase[n:PosIntP] := FromCharCode[97 + IntegerDigits[n-1, 26]]
 
 Scan[NthLowercase[#] = NthLowercase[#]&, Range[26]];
 
 (*************************************************************************************************)
 
-RandomAssociation[n:NatP] := DictThread[NthLowercase[Range[n]], RandomDecimal[n]];
+RandomAssociation[n:NatP]  := DictThread[NthLowercase[Range[n]], RandomDecimal[n]];
+RandomUAssociation[n:NatP] := UDictThread[NthLowercase[Range[n]], RandomDecimal[n]];
 
 

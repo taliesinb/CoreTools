@@ -33,6 +33,10 @@ mLocals[head_, held_]  := Block[
   ]
 ];
 
+DeclaredHere[GlobalVar, LocalVar, BlockVar, InheritVar, ModuleVar];
+
+SetHoldA[GlobalVar, LocalVar, BlockVar, InheritVar, ModuleVar]
+
 $varH = {GlobalVar, LocalVar, BlockVar, InheritVar, ModuleVar}
 
 fixThen[HoldComp[]]         := HoldComp[Null];
