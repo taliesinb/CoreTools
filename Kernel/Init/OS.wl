@@ -6,7 +6,7 @@ SystemExports[
   "IOFunction",
     ImportJSONString,
     ImportLines, ImportJSON, ImportMX, ImportUTF8, ImportStringTable,
-    ExportLines, ExportJSON, ExportMX, ExportUTF8, ExportStringTable,
+    ExportLines, ExportJSON, ExportMX, ExportUTF8, ExportStringTable, StringTableString,
     RunAppleScript, RunCommand, FindBinary,
     CopyImageToClipboard, CopyTextToClipboard,
   "Variable",
@@ -106,8 +106,13 @@ ArchiveInnerFile[path2_Str] := Module[
 
 SetStrict[ImportLines]
 
-ImportLines[file_Str] := ReadList[NormalizePath @ file, Record, RecordSeparators -> "\n", NullRecords -> True]
-ImportLines[file_Str, n_Int] := ReadList[NormalizePath @ file, Record, n, RecordSeparators -> "\n", NullRecords -> True];
+ImportLines[file_Str]        := importLines[file];
+ImportLines[file_Str, n_Int] := importLines[file, n];
+
+importLines[file_, args___] := ReadList[
+  NormalizePath @ file, Record, args,
+  RecordSeparators -> "\n", NullRecords -> True
+];
 
 (**************************************************************************************************)
 
@@ -249,35 +254,74 @@ ImportStringTable[path_Str] := Module[{text},
     Return @ $Failed];
   PairsToDict @ Map[
     StringSplit /* FirstRest,
-    StringLines @ text
+    StringLines @ StringReplace[text, "\n\t" -> " "]
   ]
+];
+
+(*************************************************************************************************)
+
+SetStrict[StringTableString]
+
+Options[StringTableString] = {"Sort" -> True, "Split" -> 100};
+
+StringTableString[dict_Dict, OptionsPattern[]] := Module[
+  {kvs, split, rowFn, lines},
+  kvs = {Map[ToStr, Keys @ dict], Map[ToStr, Vals @ dict, {2}]};
+  If[!StrVecQ[P1 @ kvs] || !VecQ[P2 @ kvs, StrVecQ], Return @ $Failed];
+  If[OptionValue["Sort"], kvs //= sortKeysVals];
+  split = OptionValue["Split"];
+  rowFn = If[IntQ @ split,
+    mulLineRow[split - 4],
+    oneLineRow[Max @ StrLen @ First @ kvs]
+  ];
+  lines = MapThread[rowFn, kvs];
+  str = StrJoin @ Riffle[lines, NL];
+  If[StrQ @ str, str, $Failed]
+];
+
+sortKeysVals[{keys_, vals_}] := Module[
+  {ord = Ordering @ keys},
+  List[
+    Part[keys, ord],
+    Sort /@ Part[vals, ord]
+  ]
+];
+
+oneLineRow[m_][k_, vs_] := List[
+  StrPadR[k, m + 1],
+  Riffle[vs, " "]
+];
+
+mulLineRow[m_][k_, {}] := {k};
+mulLineRow[m_][k_, vs_] := Module[
+  {c, v, line1, lineR, nlt = "\n\t"},
+  v = First @ vs;
+  line1 = {k, nlt, v}; c = StrLen[v];
+  lineR = Table[
+    v = Part[vs, i];
+    n = StrLen @ v;
+    c += n + 1;
+    If[c >= m, c = 1; {nlt, v}, {Spc, v}]
+  ,
+    {i, 2, Len @ vs}
+  ];
+  {line1, lineR}
 ];
 
 (*************************************************************************************************)
 
 SetStrict[ExportStringTable]
 
+Options[ExportStringTable] = Options[StringTableString];
+
 ExportStringTable::invalidData = "`` is not an association from strings to lists of strings.";
 
-Options[ExportStringTable] = {"Sort" -> False};
-
-ExportStringTable[path_Str, assoc2_Dict, OptionsPattern[]] := Module[
-  {sort, assoc, len, str},
-  sort = OptionValue["Sort"];
-  assoc = KeyMap[ToStr, assoc2];
-  len = Max @ StrLen @ Keys @ assoc;
-  If[!IntQ[len],
-    Message[ExportStringTable::invalidData, assoc2];
-    Return @ $Failed];
-  str = StrJoin @ KeyValueMap[
-    {StringPadRight[#1, len + 1], Riffle[ToStr /@ #2, " "], "\n"}&,
-    If[sort, KeySort /* Map[Sort], Id] @ assoc
-  ];
+ExportStringTable[path_Str, dict_Dict, opts:OptionsPattern[]] := Module[
+  {str = StringTableString[dict, opts]},
   If[!StrQ[str],
-    Message[ExportStringTable::invalidData, assoc2];
-    Return @ $Failed
-  ];
-  ExportUTF8[path, str]
+    Message[ExportStringTable::invalidData, dict]; $Failed,
+    ExportUTF8[path, str]
+  ]
 ];
 
 (**************************************************************************************************)
@@ -409,7 +453,7 @@ handleJSONRawString[RawString[raw_Str]] := (StuffBag[$rawStringDict, raw]; $rawP
 SetStrict @ LoadSystemData;
 
 LoadSystemData[name_Str] /; StrEndsQ[name, ".mx"] := Block[
-  {path = DataPath["SystemData", name]},
+  {path = DataPath["System", name]},
   If[FileExistsQ[path],
     ImportMX @ path,
     GenerateSystemData @ StrDrop[name, -1]
@@ -422,7 +466,7 @@ GenerateSystemData::genFileNotExists = "Generator file `` does not exist.";
 GenerateSystemData::genFileBadOutput = "Generator file `` produced a bad result: ``.";
 
 GenerateSystemData[name_Str] /; StrEndsQ[name, ".m"] := Module[{path, result, iresult},
-  path = DataPath["SystemData", name];
+  path = DataPath["System", name];
   If[!FileExistsQ[path],
     Message[GenerateSystemData::genFileNotExists, path];
     Return @ $Failed];

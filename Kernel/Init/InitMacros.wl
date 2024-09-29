@@ -8,7 +8,10 @@ PackageExports[
     Ensure, MacroHead,
   "SpecialFunction",
     ExpandMacros, MacroHold, RefreshMacroRules,
+  "MessageFunction",
+    MacroError,
   "MetaFunction",
+    DefinePartialMacro,
     DeclareMacroDefSym,
     SimpleMacroDefs, PatternMacroDefs, ComplexMacroDefs, PartialMacroDefs,
   "Predicate",
@@ -44,6 +47,19 @@ SetHoldR[Ensure];
 
 Ensure[expr_, testFn_, else_] := If[TrueQ @ testFn @ expr, expr, else];
 Ensure[testFn_, else_][expr_] := If[TrueQ @ testFn @ expr, expr, else];
+
+(*************************************************************************************************)
+
+SetHoldA @ MacroError;
+
+MacroError::error = "A macro error eccurred.";
+MacroError[args___] /; TrueQ[$PackageCurrentlyLoading] := Then[
+  ErrorPrint["Macro error at ", RawBoxes @ SourceLocationBox[$CurrentPackageFile, $CurrentPackageExprCount]];
+  Message[args];
+  AbortPackageLoading[];
+];
+
+MacroError[args___] := Then[Message[args], Abort[]];
 
 (*************************************************************************************************)
 
@@ -117,8 +133,8 @@ HoldMLower[hold_HoldM] := Thread[list, HoldM];
 General::internalMacroError = "Internal macro error: ``.";
 General::invalidMacroDefinition = "Not a valid macro definition: ``.";
 
-setMacroHelper[sym_Sym] := SetD[e_sym, ErrorMessage[sym::internalMacroError,     HoldForm @ e]];
-setMacroDefSym[sym_Sym] := SetD[e_sym, ErrorMessage[sym::invalidMacroDefinition, HoldForm @ e]];
+setMacroHelper[sym_Sym] := SetD[e_sym, MacroError[sym::internalMacroError,     HoldForm @ e]];
+setMacroDefSym[sym_Sym] := SetD[e_sym, MacroError[sym::invalidMacroDefinition, HoldForm @ e]];
 
 (*************************************************************************************************)
 
@@ -132,7 +148,7 @@ DeclareMacroDefSym[defSym_Sym, fn_Sym] := Then[
   ExpandMacros[hc:HoldC[Then[_defSym, Null]]] := hc,
   defSym[def_SetD]             := procMacroDefSingle[fn, HoldC @ def],
   defSym[defs__SetD]           := procMacroDefGroup0[fn, HoldC @ {defs}],
-  defSym[head_Sym, defs__SetD] := procMacroDefManual[fn, HoldC @ {defs}, Hold @ head],
+  defSym[head_Sym | Hold[head_Sym], defs__SetD] := procMacroDefManual[fn, HoldC @ {defs}, Hold @ head],
   Null
 ];
 
@@ -197,16 +213,17 @@ SimpleMacroDefs::notSimpleMacro = "Macro rules for `` contains MacroHold, use Co
 
 (*************************************************************************************************)
 
-PartialMacroDefs::usage =
-"PartialMacroDefs[lhs := rhs, ...] defines macros for a symbol that is also an ordinary
-function, but has certain usages that appear in macros."
+DefinePartialMacro::usage =
+"DefinePartialMacro[lhs := rhs, ...] defines macros for a symbol that is also an ordinary
+function, but has certain usages that appear in macros.
+* Rule LHS must be wrapped in HoldPattern."
 
-DeclareMacroDefSym[PartialMacroDefs, partialMacroDef];
+SetStrict @ DefinePartialMacro;
 
-partialMacroDef[Hold[sym_Sym], rules:HoldC[{__RuleD}]] := With[
-  {hrules = ToHoldPRuleDs @ rules},
-  $MacroRules[HoldP[sym]] = hrules;
-  $PartialMacroRules[HoldP[sym]] = hrules;
+DefinePartialMacro[sym_Symbol, rule_RuleD] := Then[
+  $MacroRules[HoldPattern[sym]] = {rule};
+  $PartialMacroRules[HoldPattern[sym]] = {rule};
+  invalidateMacroRules[];
 ];
 
 (*************************************************************************************************)
@@ -249,34 +266,31 @@ MacroEval[expr_] :=
 
 (*************************************************************************************************)
 
-SetHoldA @ MacroHook;
+SetStrict @ SetHoldA @ MacroHook;
 
-MacroHook[___] := Null;
 MacroHook[s_] := Block[
-  {$activeMHead = getParentHead @ s, head},
-  head = First @ $activeMHead;
+  {$activeMHead = getParentHead @ s},
+  With[{head = First[$activeMHead, MacroHook]},
   CatchMessages[head, MacroEval @ s]
-];
-
-MacroParent[] :=
+]];
 
 (*************************************************************************************************)
 
 DeclaredHere[$MacroHead];
 
-MacroHead[] := If[
-  HasIValueQ[$activeMHead],
-  $activeMHead,
-  None
-];
+(*************************************************************************************************)
 
-(* $activeMHead = $MacroHead; *)
+SetHoldA @ MacroHead;
+
+MacroHead[] := MacroHead[MacroError[MacroHead::noHead]];
+MacroHead[else_] := If[HasIValueQ[$activeMHead], $activeMHead, other];
+
+MacroHead::noMacroHead = "No parent head found for macro invocation.";
 
 (*************************************************************************************************)
 
 ExpandMacros::usage = "ExpandsMacros[HoldC[...]] expands macros that are present.";
 
-ExpandMacros::messagesOccurred = "Messages occurred during macro expansion.";
 ExpandMacros[hc_ ? FreeOfMacrosQ] := hc;
 ExpandMacros[hc_] := Check[
   checkDone @ subRets @ subHolds @ subMps @ attachSLocs @ ReplaceRepeated[ReplaceAll[hc, $SymbolAliases], $CompiledMacroRules],
@@ -287,7 +301,7 @@ ExpandMacros[hc_] := Check[
 
 General::expansionFailed = "Macro(s) `` failed to expand in ``. Code available as $LastMacroFailure.";
 checkDone[hc_ ? FreeOfPureMacrosQ] := hc;
-checkDone[hc_] := ThrowMsg["expansionFailed", Beep[];
+checkDone[hc_] := MacroError["expansionFailed",
   $LastMacroFailure = hc;
   HoldForm @@@ Select[$PureMacroSyms, !FreeQ[hc, #]&],
   hc
@@ -297,6 +311,8 @@ checkDone[hc_] := ThrowMsg["expansionFailed", Beep[];
 
 attachSLocs[hc_] /; VFreeQ[hc, $ExceptingSyms] && VFreeQ[hc, NoEval @ {Unimplemented, InternalError}] := hc;
 attachSLocs[hc_] := AttachSrcLocs @ hc;
+
+attachSLocs[hc_] := hc;
 
 (*************************************************************************************************)
 
@@ -347,15 +363,15 @@ subMps2[hc:HoldC[lhs_SetD | lhs_Set | Then[lhs_SetD | lhs_Set, Null]]] :=
 subMps2[hc_] := Block[
   {mpsPositions = ReverseSortBy[Position[hc, $MacroHead], Length],
    $sdPositions = Position[hc, _SetD], $hc = hc},
-  ReplacePart[hc, Map[pos |-> Rule[pos, findParentHead[pos]], mpsPositions]]
+  ReplacePart[hc, Map[pos |-> Rule[pos, findParentHead[hc, pos]], mpsPositions]]
 ];
 
-findParentHead[pos_] := Block[{parentSD},
+findParentHead[hc_, pos_] := Block[{parentSD},
   parentSd = SelectFirst[$sdPositions, prefixListQ[#, pos]&, None];
   If[parentSd === None,
     If[HasIValueQ[$activeMHead],
-      Return[$activeMHead, Block];
-      ThrowMsg["noMacroParent", HoldForm @ hc];
+      Return[$activeMHead, Block],
+      MacroError[General::noMacroParent, HoldForm @ hc];
     ]
   ];
   Extract[$hc, parentSd, getParentHead]
@@ -373,10 +389,12 @@ SetHoldC[getParentHead]
 getParentHead[(SetD|Set)[lhs_, _]] :=
   MacroHold @@ Replace[
     PatHead @ lhs,
-    $Failed :> ThrowMsg["macroParentLHS", HoldForm @ lhs]
+    $Failed :> MacroError["macroParentLHS", HoldForm @ lhs]
   ];
 
-getParentHead[lhs_] := ThrowMsg["macroParentLHS", HoldForm @ lhs]
+getParentHead[lhs_] := MacroError["macroParentLHS", HoldForm @ lhs];
+
+(*************************************************************************************************)
 
 General::macroParentLHS = "Could not find a head symbol for the LHS of SetD, being ``.";
 

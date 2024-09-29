@@ -46,7 +46,7 @@ PreludeLoadPackage[
   "CoreTools`",
   File @ FileNameJoin[{$CoreToolsPath, "LoadList.txt"}],
   "CodePreprocessor" -> ApplyEchoSugar,
-  "ContextPath" -> {"Prelude`"}
+  "ContextPath" -> {"Prelude`", "Session`"}
 ];
 
 (*************************************************************************************************)

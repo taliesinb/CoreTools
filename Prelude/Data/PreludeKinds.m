@@ -17,18 +17,19 @@ DeclareSystemGlobals
 $PreludeLoaded
 $PreludeDir
 $PreludeFiles
-$CurrentPackageLineSentinel
 $CurrentPackageFile
 $CurrentPackageDirectory
+$CurrentPackageLineSentinel
 $CurrentPackageFileHash
 $CurrentPackageExpr
 $CurrentPackageExprCount
 $CurrentPackageMessageCount
+$CurrentPackageQueParent
+$CurrentPackageQueValue
 $PackageFileCache
 $PackageFileModTime
 $PackageSymbolTable
 $PackageSymbolAliases
-$PackageKindDeclarations
 $PackagePreLoadActions
 $PackagePostLoadActions
 $PackageLoadFileTimings
@@ -37,10 +38,11 @@ $LethalPackageMessages
 $PreEvaluationHook
 $PostEvaluationHook
 $ShiftReturnHookInstalled
+$SessionIDs
 $Captured
 $LastTraceback
-$RawPrintIndent
-$RawPrintMaxRate
+$PrintIndent
+$MaxPrintRate
 $CellPrintLabel
 $DebugPrinting
 $EchoPrinting
@@ -170,11 +172,9 @@ $PackageLoadVerbose
 $PackageCurrentlyLoading
 $LastFailedExpression
 $PackageLoadCompleteQ
-$SessionLastEvaluationTime
-$SessionEvaluationsCount
-$SessionCurrentEvaluationStartTime
-$SessionCurrentEvaluationPrintCount
-$SessionMaxEvaluationPrintCount
+$LastEvaluationTime
+$EvaluationsCount
+$CurrentEvaluationStartTime
 $CurrentEvaluationCellState
 $EvaluationsSinceDict
 $SublimeApplicationPath
@@ -243,19 +243,26 @@ MicroTiming
 MicroTimingTable
 
 
-(*Head*)
+(*BoxFunction*)
 
-FileLocation
+SourceLocationBox
 
 
 (*SpecialFunction*)
 
+EnqueEvaluation
+EnquedValue
 DefinitionRules
 DefinitionCounts
 KernelCodes
 NewSymbolHandler
 SymbolTableInit
 SymbolTableInitString
+
+
+(*Head*)
+
+FileLocation
 
 
 (*SymbolicHead*)

@@ -28,7 +28,6 @@ PrivateExports[
   "Function",        AttachSrcLocs,
   "SymbolicHead",    MessageException, FailureException, LiteralException,
   "ControlFlow",     SetSrcLoc, HandleExceptions, DisableHandleExceptions, UnhandledException, ExceptionHandlerStack,
-  "BoxFunction",     SrcLoxBox,
   "Predicate",       SrcLocQ,
   "SpecialFunction", TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
   "TagSymbol",       ExceptionTag,
@@ -57,11 +56,7 @@ InternalError := ThrowMessage["internalError"];
 
 (**************************************************************************************************)
 
-SetExcepting @ SetHoldF @ ErrorMessage;
-
-PseudoMacroDef[
-  ErrorMessage[msg_Str, args___] := IssueMessage[$MacroHead, msg, args]
-];
+SetHoldF @ ErrorMessage;
 
 ErrorMessage[msg_Str, args___]                       := IssueMessage[General, msg, args];
 ErrorMessage[MessageName[sym_Sym, msg_Str], args___] := IssueMessage[sym, msg, args];
@@ -181,10 +176,6 @@ Try::usage =
 
 SetHoldC @ Try;
 
-PseudoMacroDef[
-  Try[body_] := Try[$MacroHead, body]
-];
-
 Try[head_Sym, body_] := HandleExceptions[body, TryHandler[head]];
 
 TryHandler[head_][exception_] := TryHandler[head, exception];
@@ -199,10 +190,6 @@ CatchMessages::usage =
 CatchMessages[body$] uses the current head."
 
 SetHoldC @ CatchMessages;
-
-PseudoMacroDef[
-  CatchMessages[body_] := CatchMessages[$MacroHead, body]
-];
 
 CatchMessages[head_Symbol, body_] := HandleExceptions[body, CatchAsMessageHandler[head]];
 
@@ -352,20 +339,14 @@ General::uncaughtExceptionSrc = "Exception occurred without a handler set. Abort
 
 (**************************************************************************************************)
 
-SetPred1 @ SetHoldC @ SrcLocQ;
-
-SrcLocQ[SrcLoc[StrP, IntP]] := True;
-
-MakeBox[sl_SrcLoc ? srcLocQ, StandardForm] := SrcLoxBox @ sl;
-
-(**************************************************************************************************)
-
-SetHoldC[SrcLoxBox];
-
-SrcLoxBox[SrcLoc[path_Str, line_Int]] := ClickBox[
-  CodeStyleBox @ StrJoin["../", FileNameTake @ path, ":", IntStr @ line],
-  LogPrint[path -> line]; SublimeSeek[path, line]
+DefinePseudoMacro[ErrorMessage,
+  HoldPattern[ErrorMessage[msg_Str, args___]] :> IssueMessage[$MacroHead, msg, args]
 ];
 
-SrcLoxBox[expr_] := MakeBoxes @ expr
+DefinePseudoMacro[Try,
+  HoldPattern[Try[body_]] :> Try[$MacroHead, body]
+];
 
+DefinePseudoMacro[CatchMessages,
+  HoldPattern[CatchMessages[body_]] :> CatchMessages[$MacroHead, body]
+];

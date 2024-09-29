@@ -1,0 +1,178 @@
+Flat
+	And BitAnd BitOr BitXor Composition Dot FormalSum GCD Intersection Join LCM Max Min
+	NonCommutativeMultiply Or PermutationProduct Plus RegionProduct RightComposition StringExpression StringJoin
+	SymmetricDifference Times Union Xor
+HoldAll
+	AbortProtect AbsoluteTiming And Animate Arrow3DBox ArrowBox Attributes Axis3DBox AxisBox
+	BezierCurve3DBox BezierCurveBox Block BlockAppend BlockAssociate BlockContext BlockDecrement BlockFalse
+	BlockIncrement BlockJoin BlockPrint BlockSet BlockTrue BlockUnprotect BSplineCurve3DBox BSplineCurveBox
+	BSplineSurface3DBox CancelButton Capture CaseFn CaseOf Check CheckAbort CheckAll ChoiceButtons CircleBox Clear
+	ClearAll CoinToss CollectBegin CollectEnd Collecting Compile CompiledFunction CompoundExpression
+	Condition ConeBox ConicHullRegion3DBox ConicHullRegionBox ConsoleMessage ContinuedFractionK ContourPlot
+	ContourPlot3D ControlActive ControllerManipulate CuboidBox CylinderBox DebugPrint DefaultButton
+	DefaultValues Defer DefineComplexMacro DefinePartialMacro DefinePatternMacro DefineSimpleMacro
+	DefineVariableMacro Definition DensityPlot Dialog DialogInput DisableEchoPrinting DiskBox Do DownValues
+	DynamicBox DynamicModule DynamicModuleBox EnableDebugPrinting EntityFunction Exists ExtendCaseOf
+	FileName FilledCurveBox FindArgMax FindArgMin FindMaximum FindMaxValue FindMinimum FindMinValue
+	FindRoot For ForAll FormatValues FullDefinition Function GeometricTransformation3DBox
+	GeometricTransformationBox Graphics3DBox GraphicsBox GraphicsComplex3DBox GraphicsComplexBox GraphicsGroup3DBox
+	GraphicsGroupBox GraphPropertyDistribution HexahedronBox Hold HoldForm HoldPattern ImplicitRegion Inset3DBox
+	InsetBox Interpretation JoinedCurveBox KnownUnitQ Line3DBox LineBox Literal Lookup MacroHold
+	Manipulate MatchLocalNameQ MaxMemoryUsed MemoryConstrained MessageObject Messages Module Monitor Nand
+	NIntegrate Nor NProduct NSum NValues Off On Or OwnValues ParametricPlot ParametricPlot3D
+	ParametricRegion Piecewise Play Plot Plot3D Point3DBox PointBox Polygon3DBox PolygonBox PrismBox Product
+	Protect PyramidBox Quiet Raster3DBox RasterBox RectangleBox RegionPlot RegionPlot3D Remove
+	SampledSoundFunction ScheduledTask ScheduledTaskObject SetAll SetAuto SetCached SetDelayed SetDelayedInitial
+	SetFailed SetInherited SetInitial SetMissing SetNone SetScaledFactor SphereBox StackBegin StackComplete
+	StackInhibit SubAll SubAuto SubFailed SubInherited SubMissing SubNone SubValues Sum Table TagSet
+	TagSetDelayed TagUnset TetrahedronBox Text3DBox TextBox ThenOp TimeConstrained Timing Trace TraceDialog
+	TracePrint TraceScan TubeBezierCurveBox TubeBox TubeBSplineCurveBox Unprotect UpSetDelayed UpValues
+	ValueQ WhenEvent Which While With WithCleanup WithRawPrintIndent $ConditionHold $Failed
+HoldAllComplete
+	Assert Association AttachDelayedValue DebugPrint DebugTag DefineAliasRules DefinePatternRules
+	DisplayWith DynamicImage EchoArrow EchoFLH EchoH EchoH0 EchoH1 EchoingSetDelayed EchoPrint EchoTest
+	ErrorPrint FullSymbolName HoldAssociationQ HoldComplete HoldOptionRules HoldPackedArrayQ HoldSymbolName
+	IfCompiled InertSymbolQ InertSystemSymbolQ InertUserSymbolQ InterpretationBox Locals LogPrint
+	LogToSublime MakeBoxes MakeCoreBoxes MapHold PackageExports ParametricFunction Parenthesize PreemptProtect
+	PrivateExports RawPrint ScanHold SubWith SystemException SystemExports SystemSymbolQ Unevaluated
+	UnprotectClearAll
+HoldFirst
+	AbortPackageLoading AddTo AppendTo ApplyTo ArgumentsOptions ArrayTable ArrayTableOp AssociateTo
+	BlockRandom Catch CheckArguments ClearAttributes Context Control CountUnpackings CreateScheduledTask
+	Debug Decrement DialogReturn DisplayWithRef DivideBy Dynamic HoldFormalSymbolQ HoldLookupOptions
+	Inactivate Inactive Increment InitializationObject InitializationObjects InitializationValue Initialize
+	KeyDropFrom LocalSubmit Message MessageName MessagePacket NCache NonLethalPackageMessages Once PathMap
+	PathMapP PathScan PathScanP Pattern PreDecrement PreIncrement PrependTo PythonScriptResult Reap RefBox
+	Refresh RepeatedTiming RuleCondition RunScheduledTask SessionSubmit Set SetAttributes Stack
+	SubtractFrom TableViewBox TimesBy ToEntity TraceAutoloads TraceUnpackings Unset UpSet WaitUntil
+HoldRest
+	Assuming Button CreateDynamicAlias CustomizedPrint DumpSave DynamicWrapper DynamicWrapperBox
+	Ensure EnsurePacked EnsurePackedReals First FirstArgumentPosition FirstCase FirstLast FirstOccurence
+	FirstOccurencePosition FirstPosition FirstSecond FirstVectorIndex Fourth If IndexOf Last MenuItem NicePaster
+	OptionKey PartOr PatternTest RuleDelayed Save Second SecondFirst SelectFirst StringCaseFirst
+	StringCaseLast StringPositionLeft StringPositionRight Switch SymbolNameSetDelayed Third UniqueValue
+	UniqueValueBy
+Listable
+	Abs AbsArg AiryAi AiryAiPrime AiryBi AiryBiPrime AlgebraicIntegerQ AlgebraicNumberDenominator
+	AlgebraicNumberNorm AlgebraicNumberTrace AlgebraicUnitQ AlternatingFactorial AngerJ Apart ArcCos ArcCosh ArcCot
+	ArcCoth ArcCsc ArcCsch ArcSec ArcSech ArcSin ArcSinh ArcTan ArcTanh Arg ArithmeticGeometricMean
+	Attributes AudioChannels AudioType BarnesG BartlettHannWindow BartlettWindow BellB BernoulliB BesselI
+	BesselJ BesselK BesselY Beta BetaRegularized Binomial BitAnd BitClear BitGet BitLength BitNot BitOr
+	BitSet BitShiftLeft BitShiftRight BitXor BlackmanHarrisWindow BlackmanNuttallWindow BlackmanWindow
+	BohmanWindow Boole BooleanConvert BooleanMinimize CamelCaseSplit Cancel CarlsonRC CarlsonRD CarlsonRE
+	CarlsonRF CarlsonRG CarlsonRJ CarlsonRK CarlsonRM CarmichaelLambda CatalanNumber CauchyWindow Ceiling
+	ChampernowneNumber Characters ChebyshevT ChebyshevU Coefficient ColorToHex ComplexHue CompositeQ Conjugate
+	ConnesWindow ConstantRegionQ ContinuedFraction CoprimeQ Cos Cosh CoshIntegral CosineWindow CosIntegral
+	CosSin Cot Coth CoulombF CoulombG CoulombH1 CoulombH2 CreateDirectory CreateFile Csc Csch CubeRoot
+	Cyclotomic DawsonF Decompose DedekindEta Denominator DiracDelta DirectedInfinity DirichletBeta
+	DirichletEta DirichletL DirichletLambda DirichletWindow Discriminant Divide Divisible Divisors
+	DivisorSigma EdgeWeightedGraphQ EllipticE EllipticF EllipticK EllipticPi EllipticTheta EllipticThetaPrime
+	Erf Erfc Erfi ErlangB ErlangC EulerE EulerPhi EvenQ ExactBlackmanWindow Exp ExpIntegralE
+	ExpIntegralEi Exponent ExpToTrig ExtendedGCD Factor Factorial Factorial2 FactorialPower FactorInteger
+	FactorSquareFree Fibonacci Fibonorial FiniteFieldElementNorm FiniteFieldElementPrimitiveQ
+	FiniteFieldElementTrace FiniteFieldIndex FlatTopWindow Floor FormalSymbol FractionalPart FresnelC FresnelF FresnelG
+	FresnelS FrobeniusAutomorphism FromFiniteFieldIndex FromFormalSymbol FromRomanNumeral Gamma
+	GammaRegularized GaussianWindow GCD GegenbauerC Gudermannian HammingWindow HankelH1 HankelH2 HannPoissonWindow
+	HannWindow HarmonicNumber Haversine HeavisideTheta HermiteH HeunB HeunBPrime HeunC HeunCPrime HeunD
+	HeunDPrime HeunG HeunGPrime HeunT HeunTPrime HurwitzLerchPhi HurwitzZeta Hyperfactorial
+	Hypergeometric0F1 Hypergeometric0F1Regularized Hypergeometric1F1 Hypergeometric1F1Regularized Hypergeometric2F1
+	Hypergeometric2F1Regularized HypergeometricU Im In InString IntegerDigits IntegerExponent IntegerLength IntegerPart
+	IntegerString IntervalMemberQ InverseBetaRegularized InverseGammaRegularized InverseGudermannian
+	InverseHaversine InverseJacobiCD InverseJacobiCN InverseJacobiCS InverseJacobiDC InverseJacobiDN
+	InverseJacobiDS InverseJacobiNC InverseJacobiND InverseJacobiNS InverseJacobiSC InverseJacobiSD
+	InverseJacobiSN IrreduciblePolynomialQ JacobiAmplitude JacobiCD JacobiCN JacobiCS JacobiDC JacobiDN JacobiDS
+	JacobiNC JacobiND JacobiNS JacobiP JacobiSC JacobiSD JacobiSN JacobiSymbol JacobiZeta
+	KaiserBesselWindow KaiserWindow KelvinBei KelvinBer KelvinKei KelvinKer KleinInvariantJ LaguerreL LambertW LameC
+	LameCPrime LameEigenvalueA LameEigenvalueB LameS LameSPrime LanczosWindow LCM LegendreP LegendreQ
+	LerchPhi Log Log10 Log2 LogBarnesG LogGamma LogIntegral LogisticSigmoid LowerCase1Q LucasL
+	MakeExpression MantissaExponent MarcumQ MathieuC MathieuCharacteristicA MathieuCharacteristicB
+	MathieuCharacteristicExponent MathieuCPrime MathieuS MathieuSPrime MessageList MinimalPolynomial Minus MittagLefflerE
+	MixedFractionParts Mod MoebiusMu Multinomial Negative NevilleThetaC NevilleThetaD NevilleThetaN NevilleThetaS
+	NonNegative NonPositive NorlundB NumberFieldDiscriminant NumberFieldFundamentalUnits
+	NumberFieldIntegralBasis NumberFieldNormRepresentatives NumberFieldRegulator NumberFieldRootsOfUnity
+	NumberFieldSignature Numerator NumeratorDenominator NuttallWindow OddQ Out OwenT PacletSiteUpdate
+	ParabolicCylinderD PartitionsP PartitionsQ ParzenWindow PastelHue Plus Pochhammer PoissonWindow PolyGamma
+	PolygonalNumber PolyLog PolynomialGCD PolynomialLCM Positive PossibleZeroQ Power PowerMod Prime PrimePi
+	PrimeQ PrimeZetaP PrimitiveRoot PrintableASCIIQ ProductLog QBinomial QFactorial QGamma QPochhammer
+	QPolyGamma QuadraticIrrationalQ Quotient QuotientRemainder RainbowHue RamanujanTau RamanujanTauL
+	RamanujanTauTheta RamanujanTauZ Ramp Range Re RealAbs RealDigits RealExponent RealSign RealString ReIm
+	RemoveScheduledTask Resultant RiemannR RiemannSiegelTheta RiemannSiegelZ RiemannXi RomanNumeral RootApproximant
+	RootOfUnityQ Round ScorerGi ScorerGiPrime ScorerHi ScorerHiPrime Sec Sech Sign Sin Sinc Sinh SinhIntegral
+	SinIntegral SphericalBesselJ SphericalBesselY SphericalHankelH1 SphericalHankelH2 SphericalHarmonicY
+	SpheroidalEigenvalue SpheroidalJoiningFactor SpheroidalPS SpheroidalPSPrime SpheroidalQS SpheroidalQSPrime
+	SpheroidalRadialFactor SpheroidalS1 SpheroidalS1Prime SpheroidalS2 SpheroidalS2Prime Sqrt StieltjesGamma StirlingS1
+	StirlingS2 StopScheduledTask StringByteCount StringLength StringLines StringReverse StruveH StruveL
+	Subfactorial Subtract Surd SymbolNameFirst SymbolNameLast SymbolNameMost SymbolNameMostLast Tan Tanh
+	TaskAbort TaskExecute TaskRemove TaskResume TaskSuspend TaskWait ThreadMax ThreadMin Times ToExpression
+	Together ToHeldExpression ToLowerCase ToLowerCase1 ToTitleString ToUpperCase ToUpperCase1 TrigFactor
+	TrigToExp TukeyWindow UnitDimensions Unitize UnitStep UpperCase1Q VertexWeightedGraphQ VibrantHue
+	WeberE WelchWindow WhittakerM WhittakerW ZernikeR Zeta ZetaZero
+Locked
+	False I List Locked Remove Removed Symbol TooBig True $Aborted $BatchOutput $CommandLine
+	$CreationDate $InitialDirectory $Input $InputStreamMethods $LinkSupported $MachineType $MinorReleaseNumber
+	$Off $OperatingSystem $OutputStreamMethods $PipeSupported $PrintForms $PrintLiteral $ProcessorType
+	$ProductInformation $ReleaseNumber $System $SystemID $SystemMemory $SystemWordLength $TimeUnit $Version
+	$VersionNumber
+NHoldAll
+	AlgebraicNumber Arrays BarabasiAlbertGraphDistribution BernoulliGraphDistribution C
+	CompiledFunction Cycles DateObject DegreeGraphDistribution Derivative DifferenceRoot DifferentialRoot
+	DirichletL DivisorSigma DivisorSum EmptyRegion FullRegion Graph Graph3D InverseFunction LameC LameCPrime
+	LameEigenvalueA LameEigenvalueB LameS LameSPrime LibraryFunction Matrices OptimumFlowData PathGraph
+	PriceGraphDistribution Region Root ShortestPathFunction Slot SlotSequence SpatialGraphDistribution TimeObject
+	TreeGraph UniformGraphDistribution Vectors WattsStrogatzGraphDistribution
+NHoldFirst
+	BellB ChampernowneNumber EllipticTheta EllipticThetaPrime FrontEndValueCache In InString
+	MathieuC MathieuCharacteristicA MathieuCharacteristicB MathieuCPrime MathieuS MathieuSPrime
+	MessageList Out QPolyGamma StieltjesGamma ZetaZero
+NHoldRest
+	AccountingForm Curry CurryApplied DecimalForm Drop EngineeringForm Extract GraphicsComplex
+	HeldPart Indexed NumberForm OperatorApplied Overscript PaddedForm Part PercentForm ScientificForm
+	Subscript Subsuperscript Superscript Take TakeDrop TakeList Underoverscript Underscript
+NumericFunction
+	Abs AiryAi AiryAiPrime AiryBi AiryBiPrime AlternatingFactorial AngerJ ArcCos ArcCosh ArcCot
+	ArcCoth ArcCsc ArcCsch ArcSec ArcSech ArcSin ArcSinh ArcTan ArcTanh Arg ArithmeticGeometricMean
+	BarnesG BartlettHannWindow BartlettWindow BesselI BesselJ BesselK BesselY Beta BetaRegularized
+	Binomial BlackmanHarrisWindow BlackmanNuttallWindow BlackmanWindow BohmanWindow BSplineBasis CarlsonRC
+	CarlsonRD CarlsonRE CarlsonRF CarlsonRG CarlsonRJ CarlsonRK CarlsonRM CatalanNumber CauchyWindow
+	Ceiling ChampernowneNumber ChebyshevT ChebyshevU Clip Conjugate ConnesWindow Cos Cosh CoshIntegral
+	CosineWindow CosIntegral Cot Coth CoulombF CoulombG CoulombH1 CoulombH2 Csc Csch CubeRoot DawsonF
+	DedekindEta DirichletBeta DirichletEta DirichletLambda DirichletWindow DiscreteDelta Divide EllipticE
+	EllipticF EllipticK EllipticPi EllipticTheta EllipticThetaPrime Erf Erfc Erfi ErlangB ErlangC
+	ExactBlackmanWindow Exp ExpIntegralE ExpIntegralEi Factorial Factorial2 FactorialPower Fibonacci FlatTopWindow
+	Floor FoxH FractionalPart FresnelC FresnelF FresnelG FresnelS Gamma GammaRegularized GaussianWindow
+	GegenbauerC Gudermannian HammingWindow HankelH1 HankelH2 HannPoissonWindow HannWindow HarmonicNumber
+	Haversine HermiteH HeunB HeunBPrime HeunC HeunCPrime HeunD HeunDPrime HeunG HeunGPrime HeunT HeunTPrime
+	HurwitzLerchPhi HurwitzZeta Hyperfactorial Hypergeometric0F1 Hypergeometric0F1Regularized Hypergeometric1F1
+	Hypergeometric1F1Regularized Hypergeometric2F1 Hypergeometric2F1Regularized HypergeometricU Im IntegerPart
+	InverseBetaRegularized InverseGammaRegularized InverseGudermannian InverseHaversine InverseJacobiCD InverseJacobiCN
+	InverseJacobiCS InverseJacobiDC InverseJacobiDN InverseJacobiDS InverseJacobiNC InverseJacobiND
+	InverseJacobiNS InverseJacobiSC InverseJacobiSD InverseJacobiSN InverseWeierstrassP JacobiAmplitude JacobiCD
+	JacobiCN JacobiCS JacobiDC JacobiDN JacobiDS JacobiNC JacobiND JacobiNS JacobiP JacobiSC JacobiSD
+	JacobiSN JacobiZeta JuliaSetBoettcher KaiserBesselWindow KaiserWindow KelvinBei KelvinBer KelvinKei
+	KelvinKer KleinInvariantJ KroneckerDelta LaguerreL LameC LameCPrime LameEigenvalueA LameEigenvalueB
+	LameS LameSPrime LanczosWindow LegendreP LegendreQ LerchPhi Log Log10 Log2 LogBarnesG LogGamma
+	LogIntegral LogisticSigmoid LucasL MarcumQ MathieuC MathieuCharacteristicA MathieuCharacteristicB
+	MathieuCharacteristicExponent MathieuCPrime MathieuS MathieuSPrime Max Min Minus MittagLefflerE Mod Multinomial
+	NevilleThetaC NevilleThetaD NevilleThetaN NevilleThetaS NuttallWindow OwenT ParabolicCylinderD ParzenWindow
+	Plus Pochhammer PoissonWindow PolyGamma PolygonalNumber PolyLog Power PrimeZetaP QBinomial
+	QFactorial QGamma QHypergeometricPFQ QPochhammer QPolyGamma Quotient RamanujanTauL RamanujanTauTheta
+	RamanujanTauZ Ramp Re RealAbs RealSign Rescale RiemannR RiemannSiegelTheta RiemannSiegelZ RiemannXi Round
+	ScorerGi ScorerGiPrime ScorerHi ScorerHiPrime Sec Sech SiegelTheta Sign Sin Sinc Sinh SinhIntegral
+	SinIntegral SphericalBesselJ SphericalBesselY SphericalHankelH1 SphericalHankelH2 SphericalHarmonicY
+	SpheroidalEigenvalue SpheroidalJoiningFactor SpheroidalPS SpheroidalPSPrime SpheroidalQS SpheroidalQSPrime
+	SpheroidalRadialFactor SpheroidalS1 SpheroidalS1Prime SpheroidalS2 SpheroidalS2Prime Sqrt StruveH StruveL
+	Subfactorial Subtract Surd Tan Tanh Times TukeyWindow UnitStep WeberE WeierstrassE1 WeierstrassE2
+	WeierstrassE3 WeierstrassEta1 WeierstrassEta2 WeierstrassEta3 WeierstrassHalfPeriodW1
+	WeierstrassHalfPeriodW2 WeierstrassHalfPeriodW3 WeierstrassInvariantG2 WeierstrassInvariantG3 WeierstrassP
+	WeierstrassPPrime WeierstrassSigma WeierstrassZeta WelchWindow WhittakerM WhittakerW ZernikeR Zeta ZetaZero
+OneIdentity
+	And BitAnd BitOr BitXor Composition Dot FormalSum GCD Intersection Join LCM Max Min
+	NonCommutativeMultiply Or PermutationProduct Plus Power RegionProduct RightComposition StringExpression StringJoin
+	SymmetricDifference Times Union Xor
+Orderless
+	ArithmeticGeometricMean BitAnd BitOr BitXor CoprimeQ DiracDelta DiscreteDelta Equivalent
+	FormalSum GCD HeavisideTheta KroneckerDelta LCM Majority Max Min Multinomial OrderlessPatternSequence
+	Plus Times UnitStep Xnor Xor
+SequenceHold
+	AbsoluteTiming RepeatedTiming Rule RuleDelayed Set SetDelayed TagSet TagSetDelayed Timing
+	Unsequence UpSet UpSetDelayed

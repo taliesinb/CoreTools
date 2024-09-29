@@ -53,7 +53,7 @@ contexts:
       pop: true
 
   acceptor_lhs:
-    - match: '\s+'
+    - match: '[ \n\t]+'
     - match: '{{definitionAcceptors}}(?=\s*\[)'
       scope: support.function.box.wolfram
     - match: '\['
@@ -85,14 +85,17 @@ contexts:
     - include: expressions
 
   any_definition_target:
-    - meta_scope: entity.name.function meta.highlight_def
+    - meta_scope: entity.name.function meta.def
     - match: '[a-z]{{symbolSegment}}'
       pop: true
+    - include: core_sym
     - include: library_sym
 
   definition_target:
-    - meta_scope: entity.name.function meta.highlight_def
+    - meta_scope: entity.name.function meta.def
+    - include: core_sym
     - include: library_sym
+    - include: unexpected_sym
 
   sd_lhs:
     - match: '\s+'
@@ -113,27 +116,27 @@ contexts:
       captures:
         1: support.function.builtin.wolfram
         2: punctuation.section.brackets.begin.wolfram
-        3: meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+        3: meta.def meta.function.wolfram entity.name.function.wolfram
         4: punctuation.section.brackets.end.wolfram
         5: keyword.operator.assignment.wolfram
     - match: ^\s*({{symbolSegment}})(?=(\[(?>[^\[\]]+|\g<-1>)*\])\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
       captures:
-        1: meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+        1: meta.def meta.function.wolfram entity.name.function.wolfram
     - match: ^\s*({{symbolSegment}})(?=(\[(?>[^\[\]]+|\g<-1>)*\])(\[(?>[^\[\]]+|\g<-1>)*\])\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
       captures:
-        1: meta.highlight_def meta.function.wolfram entity.name.function.wolfram meta.highlight_def
+        1: meta.def meta.function.wolfram entity.name.function.wolfram meta.def
     - match: ^\s*({{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=) (?:Case))
       captures:
-        1:meta.highlight_def meta.function.wolfram entity.name.function.wolfram
+        1:meta.def meta.function.wolfram entity.name.function.wolfram
     - match: ^\s*(\${{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
       captures:
-        1: meta.highlight_def meta.function.wolfram entity.name.constant.wolfram variable.global.wolfram meta.highlight_def
+        1: meta.def meta.function.wolfram entity.name.constant.wolfram variable.global.wolfram meta.def
     - match: ^\s*({{symbolSegment}})(?=\s*(?:/;.*)?(?::=|=(?!!|=|\.)))
       captures:
-        1: meta.highlight_def meta.function.wolfram entity.name.constant.wolfram variable.local.wolfram meta.highlight_def
+        1: meta.def meta.function.wolfram entity.name.constant.wolfram variable.local.wolfram meta.def
 
   package_items:
-    - match: '({{LibraryPackageDeclaration}})\['
+    - match: '({{CorePackageDeclaration}})\['
       captures:
         1: meta.package.declaration.wolfram
       push: package_items_block
@@ -169,7 +172,7 @@ contexts:
       push: definitions_metafunction_call
 
   defining_macro_call:
-    - match: '({{LibraryMetaFunction}})(\[)'
+    - match: '({{MetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
         2: punctuation.section.brackets.begin.wolfram
@@ -180,13 +183,13 @@ contexts:
       pop: true
 
   definitions_metafunction_call:
-    - match: '({{LibraryMetaFunction}}) (@)'
+    - match: '({{MetaFunction}}) (@)'
       captures:
         1: support.function.meta.wolfram
         2: keyword.operator.wolfram
       push: [defined_symbol_arg]
       pop: true
-    - match: '({{LibraryMetaFunction}})(\[)'
+    - match: '({{MetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
         2: punctuation.section.brackets.begin.wolfram
@@ -198,7 +201,7 @@ contexts:
       pop: true
 
   defining_rules_metafunction_call:
-    - match: '({{LibraryMetaFunction}})(\[)'
+    - match: '({{MetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
         2: punctuation.section.brackets.begin.wolfram
@@ -209,7 +212,7 @@ contexts:
       pop: true
 
   # defining_metafunction_call:
-  #   - match: '({{LibraryMetaFunction}})(\[)'
+  #   - match: '({{MetaFunction}})(\[)'
   #     captures:
   #       1: support.function.meta.wolfram
   #       2: punctuation.section.brackets.begin.wolfram
@@ -220,13 +223,13 @@ contexts:
   #     pop: true
 
   declaring_metafunction_call:
-    - match: '({{LibraryMetaFunction}}) (@)'
+    - match: '({{MetaFunction}}) (@)'
       captures:
         1: support.function.meta.wolfram
         2: keyword.operator.wolfram
       push: [defined_symbol_arg]
       pop: true
-    - match: '({{LibraryMetaFunction}})(\[)'
+    - match: '({{MetaFunction}})(\[)'
       captures:
         1: support.function.meta.wolfram
         2: punctuation.section.brackets.begin.wolfram
@@ -323,6 +326,7 @@ contexts:
     - include: operators
     - include: pattern_operators
     - include: library_symbols
+    - include: core_symbols
 #    - include: obselete_symbols
     - include: builtin_symbols
     - include: internal_symbols
@@ -341,6 +345,7 @@ contexts:
     - include: operators
     - include: pattern_operators
     - include: library_symbols
+    - include: core_symbols
 #    - include: obselete_symbols
     - include: builtin_symbols
     - include: internal_symbols
@@ -772,6 +777,11 @@ contexts:
     - match: '`'
       scope: invalid.illegal.wolfram
 
+  unexpected_sym:
+    - match: '{{symbolSegment}}{{symbolEndBoundary}}'
+      pop: true
+      scope: symbol.unexpected
+
 #########################################################################################################
 #########################################################################################################
 #########################################################################################################
@@ -783,6 +793,12 @@ contexts:
 
   library_sym:
 "#library_sym"
+
+  core_symbols:
+"#core_symbols"
+
+  core_sym:
+"#core_sym"
 
   builtin_symbols:
 "#builtin_symbols"
@@ -952,9 +968,12 @@ variables:
   symbolSegment: (?:[$[:alpha:]][$[:alnum:]]*)
   symbolEndBoundary: (?![`$[:alnum:]])
 
+  MetaFunction: '(?:{{SystemMetaFunction}}|{{CoreMetaFunction}}|{{LibraryMetaFunction}})'
+  LibraryMetaFunction: '(?=ZZZZZZ)'
+
 "#variables"
 
-  definitionAcceptors: (?:MakeBoxes|CoreBoxes|TypeBoxes|FieldBoxes|TermBoxes|SystemBoxes)
+  definitionAcceptors: (?:MakeBox|CoreBox|SystemBox|MakeBoxes|CoreBoxes|TypeBoxes|FieldBoxes|TermBoxes)
 
   systemLongNames_F: (?:F(?:ormalA|ormalAlpha|ormalB|ormalBeta|ormalC|ormalCapitalA|ormalCapitalAlpha|ormalCapitalB|ormalCapitalBeta|ormalCapitalC|ormalCapitalChi|ormalCapitalD|ormalCapitalDelta|ormalCapitalDigamma|ormalCapitalE|ormalCapitalEpsilon|ormalCapitalEta|ormalCapitalF|ormalCapitalG|ormalCapitalGamma|ormalCapitalH|ormalCapitalI|ormalCapitalIota|ormalCapitalJ|ormalCapitalK|ormalCapitalKappa|ormalCapitalKoppa|ormalCapitalL|ormalCapitalLambda|ormalCapitalM|ormalCapitalMu|ormalCapitalN|ormalCapitalNu|ormalCapitalO|ormalCapitalOmega|ormalCapitalOmicron|ormalCapitalP|ormalCapitalPhi|ormalCapitalPi|ormalCapitalPsi|ormalCapitalQ|ormalCapitalR|ormalCapitalRho|ormalCapitalS|ormalCapitalSampi|ormalCapitalSigma|ormalCapitalStigma|ormalCapitalT|ormalCapitalTau|ormalCapitalTheta|ormalCapitalU|ormalCapitalUpsilon|ormalCapitalV|ormalCapitalW|ormalCapitalX|ormalCapitalXi|ormalCapitalY|ormalCapitalZ|ormalCapitalZeta|ormalChi|ormalCurlyCapitalUpsilon|ormalCurlyEpsilon|ormalCurlyKappa|ormalCurlyPhi|ormalCurlyPi|ormalCurlyRho|ormalCurlyTheta|ormalD|ormalDelta|ormalDigamma|ormalE|ormalEpsilon|ormalEta|ormalF|ormalFinalSigma|ormalG|ormalGamma|ormalH|ormalI|ormalIota|ormalJ|ormalK|ormalKappa|ormalKoppa|ormalL|ormalLambda|ormalM|ormalMu|ormalN|ormalNu|ormalO|ormalOmega|ormalOmicron|ormalP|ormalPhi|ormalPi|ormalPsi|ormalQ|ormalR|ormalRho|ormalS|ormalSampi|ormalScriptA|ormalScriptB|ormalScriptC|ormalScriptCapitalA|ormalScriptCapitalB|ormalScriptCapitalC|ormalScriptCapitalD|ormalScriptCapitalE|ormalScriptCapitalF|ormalScriptCapitalG|ormalScriptCapitalH|ormalScriptCapitalI|ormalScriptCapitalJ|ormalScriptCapitalK|ormalScriptCapitalL|ormalScriptCapitalM|ormalScriptCapitalN|ormalScriptCapitalO|ormalScriptCapitalP|ormalScriptCapitalQ|ormalScriptCapitalR|ormalScriptCapitalS|ormalScriptCapitalT|ormalScriptCapitalU|ormalScriptCapitalV|ormalScriptCapitalW|ormalScriptCapitalX|ormalScriptCapitalY|ormalScriptCapitalZ|ormalScriptD|ormalScriptE|ormalScriptF|ormalScriptG|ormalScriptH|ormalScriptI|ormalScriptJ|ormalScriptK|ormalScriptL|ormalScriptM|ormalScriptN|ormalScriptO|ormalScriptP|ormalScriptQ|ormalScriptR|ormalScriptS|ormalScriptT|ormalScriptU|ormalScriptV|ormalScriptW|ormalScriptX|ormalScriptY|ormalScriptZ|ormalSigma|ormalStigma|ormalT|ormalTau|ormalTheta|ormalU|ormalUpsilon|ormalV|ormalW|ormalX|ormalXi|ormalY|ormalZ|ormalZeta))
   systemLongNames_S: (?:S(?:ystemsModelDelay))
@@ -1071,6 +1090,7 @@ variables:
   declareFn:     '(?:(?:SetHold|SetPred|SetCurry|SetStrict|SetExcepting|Declare)[A-Za-z0-9]*)'
   defineRulesFn: '(?:Define[A-Za-z]+Rules)'
   definitionsFn: '(?:[A-Za-z]+Definitions)'
+
 
   defineMacroApplied:   '(?={{defineMacro}}{{applied}})'
   declareFnApplied:     '(?={{declareFn}}{{applied}})'

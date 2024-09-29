@@ -70,7 +70,8 @@ procRewrites[l_List] := Map[procRewrites, NoEval @ l];
 procRewrites[a_ -> b_] := HoldPattern[a] -> b;
 procRewrites[a_ :> b_] := HoldPattern[a] :> b;
 
-mCaseOf[sym_, ___] := (Message[CaseOf::badCaseDefinition, PrivHold @ sym]; $Failed);
+mCaseOf[sym_, ___] := MacroError[CaseOf::badCaseDefinition, PrivHold @ sym];
+
 CaseOf::badCaseDefinition = "Bad case definition for ``.";
 
 (*************************************************************************************************)

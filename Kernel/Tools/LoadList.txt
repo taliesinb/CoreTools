@@ -1,4 +1,5 @@
 Sublime.wl
+SublimeSyntax.wl
 Markdown.wl
 Packages.wl
 FrontEnd.wl

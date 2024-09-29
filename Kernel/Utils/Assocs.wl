@@ -512,12 +512,25 @@ BindFrom[key_ :> sym_, vals_Dict]     := If[HasKeyQ[vals, key], sym[key] = vals[
 BindFrom[keysSyms_, vals_]            := iBindFrom[keysSyms, vals, UnkOptMsg[General]];
 BindFrom[keysSyms_, vals_, fn_]       := iBindFrom[keysSyms, vals, fn];
 
+SetStrict @ iBindFrom;
+
 iBindFrom[_, EmptyP, _]               := Null;
 iBindFrom[keysSyms_, vals_List,  fn_] := iBindFrom[keysSyms, Dict @ vals, fn];
 iBindFrom[keysSyms_, vals:DictP, fn_] := (AssocScanWhileQ[vals, bindFromScan[keysSyms, fn]];)
 iBindFrom[_, _, _]                    := InternalError;
 
-bindFromScan[keysSyms_, fn_][key_ -> val_] := At[Set, Lookup[keysSyms, key, fn[key]; NullSym, SymbolProxy], val];
+bindFromScan[keysSyms_, fn_][key_ -> value_] := Then[
+  At[
+    Set,
+    Lookup[
+      keysSyms, key,
+      fn[key]; NullSym,
+      SymbolProxy
+    ],
+    value
+  ],
+  True
+];
 
 (**************************************************************************************************)
 

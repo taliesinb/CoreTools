@@ -48,12 +48,17 @@ fromUnresName[sym_Sym] := SymbolForm @ sym;
 
 internalNameQ[name_Str] := StringContainsQ[name, "`"];
 
-FindUnresolvedSymbols[context_Str] := Locals[
-  If[!StringEndsQ[context, "`"], ReturnFailed[]];
-  glob1 = context <> "*";
-  glob2 = context <> "*`*";
-  names = Join[Names @ glob1, Names @ glob2];
-  kinds = IfFailed[PackageSymbolKinds[context], {}];
+FindUnresolvedSymbols[context_Str:None] := Locals[
+  If[StringQ[context],
+    If[!StringEndsQ[context, "`"], ReturnFailed[]];
+    glob1 = context <> "*";
+    glob2 = context <> "*`*";
+    names = Join[Names @ glob1, Names @ glob2];
+    kinds = IfFailed[PackageSymbolKinds[context], {}];
+  ,
+    names = Names[{"CoreTools`*", "CoreTools`*`*", "Prelude`*", "Prelude`*`*"}];
+    kinds = CoreToolsSymbolKinds[];
+  ];
   blacklist = Catenate @ Lookup[kinds, {"TagSymbol", "SymbolicHead"}, {}];
   $blacklistDict = TrueDict @ blacklist;
   candidates = Select[names, internalNameQ[#] && nameNeedsDefQ[#]&];

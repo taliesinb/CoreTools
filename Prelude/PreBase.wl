@@ -66,10 +66,8 @@ SetAttributes[{SystemExports, PackageExports, PrivateExports}, HoldAllComplete];
 
 SetAttributes[HoldToInputString, HoldAllComplete];
 
-HoldToInputString[e_]   := ToString[NoEval @ e, InputForm];
-ToInputString[e_]       := ToString[NoEval @ e, InputForm];
-
-SetStrict @ FromInputString;
+HoldToInputString[e_]   := ToString[Unevaluated @ e, InputForm];
+ToInputString[e_]       := ToString[Unevaluated @ e, InputForm];
 
 FromInputString[str_ ? Developer`StringOrStringVectorQ]        := ToExpression[str, InputForm];
 FromInputString[str_ ? Developer`StringOrStringVectorQ, head_] := ToExpression[str, InputForm, head];
@@ -102,7 +100,6 @@ privateHoldBoxes[PrivateHoldComplete[es__]]     := RowBox @ {"Sequence", "[", Ro
 
 (*************************************************************************************************)
 
-SetAttributes[PrivateHoldSequence, HoldAllComplete];
 SetAttributes[privateSeqBoxes, HoldAllComplete];
 
 MakeBoxes[p_PrivateSequence, StandardForm] := privateSeqBoxes[p];

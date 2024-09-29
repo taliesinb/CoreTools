@@ -33,8 +33,8 @@ SystemExports[
   "SpecialVariable",
     $Captured,
     $LastTraceback,
-    $RawPrintIndent,
-    $RawPrintMaxRate,
+    $PrintIndent,
+    $MaxPrintRate,
     $CellPrintLabel,
     $DebugPrinting,
     $EchoPrinting,
@@ -62,7 +62,7 @@ $EchoPrinting = True;
 EnableDebugPrinting[body_] := Block[{$DebugPrinting = True}, body];
 DisableEchoPrinting[body_] := Block[{$EchoPrinting = False}, body];
 
-WithRawPrintIndent[body_] := Block[{$RawPrintIndent = $RawPrintIndent + 1}, body];
+WithRawPrintIndent[body_] := Block[{$PrintIndent = $PrintIndent + 1}, body];
 
 (*************************************************************************************************)
 
@@ -92,8 +92,8 @@ DPrint[args___]     := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args]
 
 (*************************************************************************************************)
 
-$RawPrintIndent = 0;
-If[!IntegerQ[$RawPrintMaxRate], $RawPrintMaxRate = 50];
+$PrintIndent = 0;
+If[!IntegerQ[$MaxPrintRate], $MaxPrintRate = 50];
 
 (*************************************************************************************************)
 
@@ -107,7 +107,7 @@ $ShouldPrint := (
     $rawPrintResetTime = $rawPrintThisTime + .5;
     $rawPrintCount = 0
   ];
-  $rawPrintCount <= $RawPrintMaxRate
+  $rawPrintCount <= $MaxPrintRate
 );
 
 (*************************************************************************************************)
@@ -124,7 +124,7 @@ generateRawPrintOptions[opts_] := Flatten @ {
   If[KeyExistsQ[opts, CellLabel],
     List[
       ShowCellLabel  -> True,
-      CellLabel      -> StringJoin[Lookup[opts, CellLabel], ConstantArray["       ", $RawPrintIndent]],
+      CellLabel      -> StringJoin[Lookup[opts, CellLabel], ConstantArray["       ", $PrintIndent]],
       CellLabelStyle -> Directive["CellLabel", Lookup[opts, CellLabelStyle, GrayLevel[0.5]]],
       DeleteCases[opts, CellLabelStyle | CellLabel -> _]
     ],
@@ -134,7 +134,7 @@ generateRawPrintOptions[opts_] := Flatten @ {
     "CellFrameLabels" -> {{None, trimPath @ $CurrentPackageFile}, {None, None}},
     {}
   ],
-  If[$rawPrintCount++ >= $RawPrintMaxRate,
+  If[$rawPrintCount++ >= $MaxPrintRate,
     List[
       Beep[];
       CellFrame -> {{False, False}, {True, False}},
@@ -142,13 +142,13 @@ generateRawPrintOptions[opts_] := Flatten @ {
     ],
     {}
   ],
-  If[$RawPrintIndent > 0,
+  If[$PrintIndent > 0,
     List[
-      CellDingbatMargin -> 5 + $RawPrintIndent * 20,
+      CellDingbatMargin -> 5 + $PrintIndent * 20,
       CellGroupingRules -> "GraphicsGrouping",
-      (* CellGroupingRules -> {"GraphicsGrouping", $RawPrintIndent}, *)
-      CellMargins -> {{66 + $RawPrintIndent * 20, 3}, {0, 0}},
-      CellLabelMargins -> {{12 + $RawPrintIndent * 20, Inherited}, {Inherited, Inherited}}
+      (* CellGroupingRules -> {"GraphicsGrouping", $PrintIndent}, *)
+      CellMargins -> {{66 + $PrintIndent * 20, 3}, {0, 0}},
+      CellLabelMargins -> {{12 + $PrintIndent * 20, Inherited}, {Inherited, Inherited}}
     ],
     List[
       CellMargins -> {{Inherited, 1}, {1, 1}},
@@ -318,7 +318,7 @@ generateUnpackingTestData[] = Module[
   ivec = RandomInteger[9, vecSize];
   imat = RandomInteger[9, matSize];
   iarr = RandomInteger[9, arrSize];
-  {uvec, umat, uarr} = FromPacked[#, 1]& /@ {ivec, imat, iarr};
+  {uvec, umat, uarr} = Developer`FromPackedArray[#, 1]& /@ {ivec, imat, iarr};
   symVec  = RandomChoice[{\[FormalA], \[FormalB], \[FormalC]}, vecSize];
   boolVec = RandomChoice[{False, True}, vecSize];
   strVec  = RandomChoice[{"a","b","c"}, vecSize];

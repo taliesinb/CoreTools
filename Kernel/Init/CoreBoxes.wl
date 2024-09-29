@@ -60,7 +60,7 @@ Initially[
   $CoreBoxHeadDict   = UDict[];
   $CoreBoxStore      = KeyStoreNew[{}];
   $CoreBoxSubStore   = KeyStoreNew[{}];
-  $AtomFormStore     = KeyStoreNew[{Image, Graph}];
+  $AtomFormStore     = KeyStoreNew[{Image, Graph, SourceLocation}];
   $CompoundFormStore = StoreNew[LoadSystemData["SystemForms.mx"]];
   $ThemeStack        = List[];
   $CoreFormatting    = True;

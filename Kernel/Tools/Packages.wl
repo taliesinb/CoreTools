@@ -15,9 +15,9 @@ PackageExports[
 SetHoldA[PackageTopLevelEvaluate]
 
 With[{ignoredSyms = Apply[Alt, Blank /@ $SymbolExportFunctions]},
-(* PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
+PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
 PackageTopLevelEvaluate[HoldComplete[ignoredSyms;]] := Null;
- *)PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
+PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
 ];
 
 (**************************************************************************************************)
@@ -36,13 +36,12 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   codePreprocFn = ApplyEchoSugar /* insertInputFileHash;
   If[NonEmptyQ[macroRules = OptionValue[MacroRules]],
     codePreprocFn = codePreprocFn /* ReplaceRepeated[macroRules]];
-  $SessionCurrentEvaluationPrintCount = 0;
   DisableHandleExceptions @ PreludeLoadPackage[
     context, path,
     "CodePreprocessor"    -> codePreprocFn,
     "SymbolTableFunction" -> SymbolTableFromDirectives,
     "PreLoadFunction"     -> applyAliases,
-    "EvaluationFunction"  -> PackageTopLevelEvaluate,
+    "EvaluationFunction"  -> None,
     "ContextPath"         -> {$publicContext, $privateContext, "CoreTools`", "System`"},
     "Verbose"             -> OptionValue[Verbose],
     "PriorityRules"       -> OptionValue[PriorityRules]

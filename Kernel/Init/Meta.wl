@@ -12,7 +12,7 @@ PackageExports[
     SetFlat, SetListable, SetListable1, SetListableOp,
     SetStrict, SetExcepting,
 
-    PseudoMacroDef,
+    DefinePseudoMacro,
 
   "Function",         CatenateSymbolLists, JoinSymbolLists,
   "ScopingFunction",  SubWith,
@@ -22,6 +22,7 @@ PackageExports[
 ];
 
 PrivateExports[
+  "MessageFunction",  StrictMsg,
   "SpecialVariable",  $ExceptingSyms, $ExceptingSymP
   "CacheVariable",    $InitializationHashes
 ];
@@ -189,10 +190,15 @@ SetHoldC[SetStrict, DeclareSeqScan, DeclareThenScan]
 General::badArguments = "Bad arguments: ``.";
 General::badSeqScanArg = "Bad argument to ``: ``.";
 
+StrictMsg[head_, sloc_, lhs_] := If[HasDownDefsQ[IssueMessage],
+  IssueMessage[head -> sloc, "badArguments", lhs],
+  Message[head::badArguments, lhs]; $Failed
+];
+
 DeclarationDefs[
   SetStrict[head_Sym] := With[{sloc = SourceLocation[]}, Apply[
     SetDelayed,
-    Hold[$LHS_head, IssueMessage[head -> sloc, "badArguments", HoldForm @ $LHS]]
+    Hold[$LHS_head, StrictMsg[head, sloc, HoldForm @ $LHS]]
   ]],
 
   DeclareSeqScan[head_Sym] := (
@@ -246,30 +252,27 @@ DefineOperator2Rules[opSym_Symbol -> fn_Symbol] := SetDelayed[opSym[arg2_][arg1_
 
 (**************************************************************************************************)
 
-SetStrict @ SetHoldA @ PseudoMacroDef;
+SetStrict @ DefinePseudoMacro;
 
-PseudoMacroDef[sd:SetD[lhs_, rhs_]] := With[{sym = PatHead[lhs]},
-  TagSetDelayed @@ pseudoMacroDef[sym, lhs, rhs];
-  PartialMacroDefs[sym, sd]
+DefinePseudoMacro[sym_Sym, rule:RuleD[VHoldP[lhs_], rhs_]] := Then[
+  UpValues[sym] = Prepend[UpValues[sym], pseudoMacroUpValue[sym, lhs, rhs]];
+  DefinePartialMacro[sym, rule]
 ];
 
-SetHoldC @ pseudoMacroDef;
+SetHoldC @ pseudoMacroUpValue;
 
-pseudoMacroDef[Hold[sym_Sym], lhs_, rhs_] :=
-  HoldC[
-    sym,
-    setdDummy[$LHS_, lhs],
-    withDummy[
-      {lhsHead = First @ PatHead @ $LHS},
-      SetDelayed @@ Hold[$LHS, rhs]
-    ]
-  ] /. $pseudoMacroRules;
+pseudoMacroUpValue[sym_Sym, lhs_, rhs_] := Apply[RuleD, HoldC[
+  HoldPattern @ $setd$[$LHS_, lhs],
+  $with$[
+    {$macroHead$ = First @ PatHead @ $LHS, $macroSrcLoc$ = SourceLocation[]},
+    $setd$[$LHS, rhs]
+  ]
+]] // subTags;
 
-$pseudoMacroRules = {
-  HoldP[$MacroHead]   :> lhsHead,
-  HoldP[$MacroSrcLoc] :> RuleEval[SourceLocation[]],
-  withDummy           -> With,
-  setdDummy           -> SetDelayed
+subTags[e_] := e /. {
+  $with$ -> With, $setd$ -> SetD,
+  HoldP[$MacroHead] -> $macroHead$,
+  HoldP[$MacroSrcLoc] -> $macroSrcLoc$
 };
 
 (**************************************************************************************************)

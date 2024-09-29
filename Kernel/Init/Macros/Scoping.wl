@@ -24,7 +24,7 @@ ComplexMacroDefs[
 
 SetHoldC[mLocals]
 
-mLocals[_]             := Null
+mLocals[_]             := HoldM @ Unimplemented;
 mLocals[head_, held__] := mLocals[head, Then @ held];
 mLocals[head_, held_]  := Block[
   {$ReturnTarget = head, expanded},

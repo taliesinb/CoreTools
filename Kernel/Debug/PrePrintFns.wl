@@ -26,19 +26,26 @@ UnsetPrePrintFns[] := Then[
 ClearAll[OutExprForm];
 ClearAll[MsgArgForm];
 
-MakeBoxes[OutExprForm[e_], _] := OutExprBox[e];
+MakeBoxes[OutExprForm[e_], _]   := OutExprBox[e];
 MakeBoxes[OutExprForm[e___], _] := OutExprBox[e];
 
-OutExprBox[]      := FnRBox["Seq"];
-OutExprBox[e___]  := With[{opts = $OutExprFormOptions}, MakeExprBoxes[e, opts]];
-OutExprBox[s_Str] := s;
-OutExprBox[SystemForm[e_]] := MakeBoxes @ e;
-OutExprBox[f:FullForm[_]]  := MakeBoxes @ f;
+OutExprBox = CaseOf[
+  $[]               := FnRBox["Seq"];
+  $[s_Str]          := MakeBoxes @ s;
+  $[g_Graphics]     := MakeBoxes @ g;
+  $[g_Image]        := MakeBoxes @ g;
+  $[SystemForm[e_]] := MakeBoxes @ e;
+  $[f:FullForm[_]]  := MakeBoxes @ f;
+  $[e___]           := With[
+    {opts = $OutExprFormOptions},
+    MakeExprBoxes[e, opts]
+  ];
+];
 
 $OutExprFormOptions = {
   MaxLength -> {24, 8, 4, 4, 4, 2, 2},
   MaxDepth -> 8,
-  MaxStrLen -> 64
+  MaxStrLen -> 128
 };
 
 (**************************************************************************************************)
@@ -82,8 +89,8 @@ msgArg1 = CaseOf[
   PrivHoldSeq[e_]         := $ @ e;
   HoldForm[e_]            := $ @ e;
   s:StrP ? litStrQ        := LitStrBox @ s;
-  l_SrcLoc ? SrcLocQ      := LitStrBox @ SrcLoxBox @ l;
-  l:{__SrcLoc ? SrcLocQ}  := LitStrRowBox @ Map[SrcLoxBox] @ DelDups @ l;
+  SrcLoc[s_Str, i_Int]    := SourceLocationBox[s, i];
+  l:{__SrcLoc}            := RowBox @ Riffle[Map[MakeBox] @ DelDups @ l, ","];
   e_ /; $MsgArgPasting    := BlockFalse[$MsgArgPasting, PasterBox[msgArg2 @ e, e]];
   e_                      := msgArg2 @ e,
 

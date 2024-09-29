@@ -5,6 +5,13 @@ Scratch/
 __pycache__
 StyleSheets/SystemSheets
 StyleSheets/UserSheets
+Data/Sublime/StaticFiles/LibraryKinds.wl.txt
 Data/Sublime/StaticFiles/WolframLanguage.sublime-completions
 Data/Sublime/StaticFiles/WolframLanguage.sublime-syntax
-Data/Sublime/UserSymbols
+Data/User
+Data/Cache
+Data/System/*.mx
+*.nb
+*.wip/
+*.wip.*
+*.old.*

@@ -3,15 +3,17 @@ BeginPackage["Prelude`"]
 SessionExports[
 
   "Variable",
-    $SessionLastEvaluationTime,
-    $SessionEvaluationsCount,
-    $SessionCurrentEvaluationStartTime,
-    $SessionCurrentEvaluationPrintCount,
-    $SessionMaxEvaluationPrintCount,
-    $CurrentEvaluationCellState, $EvaluationsSinceDict,
+    $LastEvaluationTime,
+    $EvaluationsCount,
+    $CurrentEvaluationStartTime,
+    $CurrentEvaluationCellState,
+    $EvaluationsSinceDict,
 
   "SpecialVariable",
-    $PreEvaluationHook, $PostEvaluationHook, $ShiftReturnHookInstalled,
+    $PreEvaluationHook,
+    $PostEvaluationHook,
+    $ShiftReturnHookInstalled,
+    $SessionIDs,
 
   "IOFunction",
     CreateCachedBox,
@@ -31,6 +33,8 @@ Begin["`Session`Private`"]
 
 (*************************************************************************************************)
 
+AppendTo[$ContextPath, "Session`"];
+
 (* if $PreEvaluationHook etc are in the normal context path, the FE will save them wrong between reloads *)
 
 (*************************************************************************************************)
@@ -38,7 +42,7 @@ Begin["`Session`Private`"]
 (*
 do print veto!
 Internal`$PrintFormatter = Function[Null,
-  If[TrueQ[$SessionEvaluationsCount,
+  If[TrueQ[Session`$EvaluationsCount,
   HoldAllComplete
 ];
 *)
@@ -54,7 +58,7 @@ CreateCachedBox[expr_, key_] := iCreateCachedBox[$held$ @ expr, key];
 
 iCreateCachedBox[held_, key_] := (
   If[!KeyExistsQ[$boxCache, key],
-    If[Len[$boxCache] > 32, $boxCache = Drop[$boxCache, 8]];
+    If[Length[$boxCache] > 32, $boxCache = Drop[$boxCache, 8]];
     $boxCache[key] = held;
   ];
   DynamicBox[Last @ CachedBox[key, {"\"EXPIRED\""}], TrackedSymbols :> {}]
@@ -70,31 +74,29 @@ iCachedBox[key_, $held$[body_]] := Set[$boxCache[key], Check[body, StyleBox["\"M
 
 (*************************************************************************************************)
 
-If[!IntegerQ[System`Private`$UniqueSessionID], System`Private`$UniqueSessionID = 0];
+If[!IntegerQ[$SessionIDs], $SessionIDs = 0];
 
-UniqueSessionID[] := (System`Private`$UniqueSessionID++);
+UniqueSessionID[] := ($SessionIDs++);
 
 (*************************************************************************************************)
 
 DefaultPreEvaluationHook[] := If[FrontEnd`Private`$KernelName =!= "LinkSnooper",
-  $SessionCurrentEvaluationPrintCount = 0;
-  $SessionCurrentEvaluationStartTime = SessionTime[];
-  $SessionEvaluationsCount = If[IntegerQ[$SessionEvaluationsCount], $SessionEvaluationsCount, 0] + 1;
+  $CurrentEvaluationStartTime = SessionTime[];
+  $EvaluationsCount = If[IntegerQ[$EvaluationsCount], $EvaluationsCount, 0] + 1;
   SaveEvaluationCellState[];
 ];
 
 DefaultPostEvaluationHook[] := If[FrontEnd`Private`$KernelName =!= "LinkSnooper",
-  $SessionLastEvaluationTime = SessionTime[] - $SessionCurrentEvaluationStartTime;
+  $LastEvaluationTime = SessionTime[] - $CurrentEvaluationStartTime;
   RestoreEvaluationCellState[];
 ];
 
 (*************************************************************************************************)
 
-If[!IntegerQ[$SessionMaxEvaluationPrintCount], $SessionMaxEvaluationPrintCount = 32];
-If[!IntegerQ[$SessionEvaluationsCount], $SessionEvaluationsCount = 0];
+If[!IntegerQ[$EvaluationsCount], $EvaluationsCount = 0];
 If[!IntegerQ[$SublimeRunCount], $SublimeRunCount = 0];
 
-$SessionCurrentEvaluationPrintCount = $SessionCurrentEvaluationStartTime = 0;
+$CurrentEvaluationStartTime = 0;
 
 (* $KernelName only gets set after a little delay so we remove this noisy stuff from LinkSnooper kernels when we can *)
 SaveEvaluationCellState[] := Block[
@@ -152,13 +154,13 @@ UninstallSessionHooks[] := (
 If[!AssociationQ[$EvaluationsSinceDict], $EvaluationsSinceDict = Association[]];
 
 SessionEvaluatedSinceQ[key_] := First @ {
-  $SessionEvaluationsCount > Lookup[$EvaluationsSinceDict, key, 0],
-  $EvaluationsSinceDict[key] = $SessionEvaluationsCount;
+  $EvaluationsCount > Lookup[$EvaluationsSinceDict, key, 0],
+  $EvaluationsSinceDict[key] = $EvaluationsCount;
 };
 
 (*************************************************************************************************)
 
-$PreEvaluationHook = DefaultPreEvaluationHook;
+$PreEvaluationHook  = DefaultPreEvaluationHook;
 $PostEvaluationHook = DefaultPostEvaluationHook;
 
 InstallSessionHooks[];

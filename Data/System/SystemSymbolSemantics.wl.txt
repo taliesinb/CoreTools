@@ -1,0 +1,14 @@
+Operator1
+	Apply AssociationMap Fold FoldList FoldWhile FoldWhileList KeyMap KeyValueMap Map MapApply
+	MapAt MapIndexed MapThread Scan
+Operator2
+	AllTrue AnyTrue Append Between Cases ContainsAll ContainsAny ContainsExactly ContainsNone
+	ContainsOnly Count CountDistinctBy CountsBy Delete DeleteCases DeleteDuplicatesBy EqualTo Extract
+	FirstCase FirstPosition FlattenAt FreeQ GreaterEqualThan GreaterThan GroupBy IntervalMemberQ KeyDrop
+	KeyExistsQ KeyFreeQ KeyMemberQ KeySelect KeySortBy KeyTake LessEqualThan LessThan LexicographicOrder
+	Lookup MatchQ MaximalBy MemberQ Merge MinimalBy NoneTrue OrderingBy Position Prepend Replace
+	ReplaceAll ReplaceAt ReplaceList ReplacePart ReplaceRepeated ReverseSortBy SameAs Select SelectFirst
+	SortBy StringCases StringContainsQ StringDelete StringEndsQ StringFreeQ StringMatchQ StringPosition
+	StringReplace StringStartsQ TakeLargest TakeLargestBy TakeSmallest TakeSmallestBy UnequalTo
+Operator23
+	Insert StringReplacePart

@@ -137,9 +137,9 @@ SetHoldC[EchoBindingsBody]
 EchoBindingsBody[label_, names_, values_, body_] := Module[
   {res = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++,
+    $PrintIndent++,
     res = body,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{res2 = res}, printEchoArrowRaw["\[RuleDelayed]",
       namesValuesBoxes[label, names, values],
       PasterBox[MakeEchoBoxes[res2], res2]
@@ -183,11 +183,11 @@ SetHoldC[EchoBody];
 EchoBody[lhs_, body_] := Module[
   {res = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++
+    $PrintIndent++
   ,
     res = body
   ,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{res2 = res}, EchoArrow[lhs, res2]]
   ]
 ];
@@ -200,11 +200,11 @@ SetHoldC[EchoHC];
 EchoHC[expr_] := Module[
   {res = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++
+    $PrintIndent++
   ,
     res = expr
   ,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{res2 = res}, EchoArrow[expr, res2]]
   ]
 ];
@@ -230,12 +230,12 @@ SetHoldC[EchoH];
 EchoH[fn_[args___]] := Module[
   {res = $Aborted, inner = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++
+    $PrintIndent++
   ,
     inner = Make[PrivHoldSeq, args];
     res = Apply[fn, inner]
   ,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{lhs2 = PrivHold[fn[$inner]] /. $inner -> inner, res2 = res}, EchoArrow[lhs2, res2]]
   ]
 ];
@@ -288,7 +288,7 @@ fillImmediateVals[e_] := ReplaceAll[e, s_Sym ? HasIValueQ :> RuleCondition[s]];
 printEchoArrowRaw[arrow_, lhs_, rhs_] := EchoPrint @ RawBoxes @ GridBox[
   List @ {lhs, arrow, rhs},
   GridFrameMargins -> 0,
-  GridBoxItemSize  -> {"Columns" -> {30 - $RawPrintIndent*0.9, 3, 500}},
+  GridBoxItemSize  -> {"Columns" -> {30 - $PrintIndent*0.9, 3, 500}},
   GridBoxAlignment -> {"Columns" -> {Left, Left, Left}, "Rows" -> {Baseline}}
 ]
 
@@ -299,11 +299,11 @@ EchoF[fn_] := EchoFL[fn, fn];
 EchoFL[fnl_, fn_][args___] := Module[
   {res = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++
+    $PrintIndent++
   ,
     res = fn[args]
   ,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{res2 = res}, EchoArrow[HoldAtForm[fnl, args], res2]]
   ]
 ];
@@ -317,11 +317,11 @@ SetHoldC[EchoFLH];
 EchoFLH[fnl_, fn_, args___] := Module[
   {res = $Aborted},
   WithLocalSettings[
-    $RawPrintIndent++
+    $PrintIndent++
   ,
     res = fn[args]
   ,
-    $RawPrintIndent--;
+    $PrintIndent--;
     With[{res2 = res}, EchoArrow[HoldAtForm[fnl, args], res2, False]]
   ]
 ];

@@ -33,7 +33,7 @@ PackageExports[
     $SymbolExportFunctions
 ];
 
-Begin["`Exports`Private`"]
+Begin["`SymbolTable`Private`"]
 
 (*************************************************************************************************)
 
@@ -172,13 +172,13 @@ $lineAliasRegex    = RegularExpression["([$a-zA-Z0-9]+) -> ([$a-zA-Z0-9]+)"];
 collectLineAliases[{}] := Null
 collectLineAliases[lines_List] := Module[{ruleChunks},
   ruleChunks = Flatten @ StringCases[lines, $lineAliasRegex];
-  StuffBag[$aliasBag, StringJoin["DefineAliasRules[", Riffle[ruleChunks, ", "], "]"]];
+  Internal`StuffBag[$aliasBag, StringJoin["DefineAliasRules[", Riffle[ruleChunks, ", "], "]"]];
 ];
 
 applyAliases[] := Block[{
-  $Context = $private,
+  $Context = $private, $NewSymbol,
   $ContextPath = {"System`", "CoreTools`", $public},
-  commands = BagPart[$aliasBag, All]},
+  commands = Internal`BagPart[$aliasBag, All]},
   ToExpression[commands, InputForm];
 ];
 

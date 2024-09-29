@@ -3,7 +3,8 @@ PackageExports[
     Dots, CDots, VDots,
     LAssoc, LBrace, LParen, LAngle, LGAngle, LBracket,
     RAssoc, RBrace, RParen, RAngle, RGAngle, RBracket,
-    Newline, DNewline,
+    Com, ComSpc, Spc,
+    Newline, DNewline, NL, NLNL,
     LSpan, TSpan,
     SQuote, DQuote, DQuoteEsc,
 
@@ -40,7 +41,12 @@ DefineLiteralRules[
   DNewline   -> "\n\n",
   SQuote     -> "'",
   DQuote     -> "\"",
-  DQuoteEsc  -> "\\\""
+  DQuoteEsc  -> "\\\"",
+  Com        -> ",",
+  ComSpc     -> ", ",
+  Spc        -> " ",
+  NL         -> "\n",
+  NLNL       -> "\n\n"
 ];
 
 DefineLiteralRules[

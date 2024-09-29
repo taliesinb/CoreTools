@@ -25,22 +25,22 @@ Begin["`Sublime`Private`"]
 
 (*************************************************************************************************)
 
-If[!IntegerQ[$SublimeRunCount], $SublimeRunCount = 0];
+If[!IntegerQ[Session`$SublimeRunCount], Session`$SublimeRunCount = 0];
 
 (* TODO: find equivalents for other OSes *)
-If[!StringQ[$SublimeApplicationPath],
-  $SublimeApplicationPath = "/Applications/Sublime\\ Text.app/Contents/SharedSupport/bin/subl"];
+If[!StringQ[Session`$SublimeApplicationPath],
+  Session`$SublimeApplicationPath = "/Applications/Sublime\\ Text.app/Contents/SharedSupport/bin/subl"];
 
-If[!StringQ[$SublimeProjectsPath],
-  $SublimeProjectsPath = ExpandFileName @ "~/git/project-files"];
+If[!StringQ[Session`$SublimeProjectsPath],
+  Session`$SublimeProjectsPath = ExpandFileName @ "~/git/project-files"];
 
 (*************************************************************************************************)
 
 SublimeRun[args2___] := Module[
   {args = Flatten @ List @ args2},
-  If[$SublimeRunCount++ > 16, Return[$Failed]];
+  If[Session`$SublimeRunCount++ > 16, Return[$Failed]];
   If[!VectorQ[args, StringQ], $Failed,
-    If[Run[StringJoin[$SublimeApplicationPath, " ", Riffle[Flatten @ List @ args, " "]]] === 0, Null, $Failed]
+    If[Run[StringJoin[Session`$SublimeApplicationPath, " ", Riffle[Flatten @ List @ args, " "]]] === 0, Null, $Failed]
   ]
 ]
 
@@ -64,7 +64,8 @@ SublimeOpen[spec_, OptionsPattern[]] := Block[
 (*************************************************************************************************)
 
 SublimeSeek[path_String, tcount_Integer] := Block[
-  {stream, pos1 = 1, pos2 = 1, count = 0, expr, chars1, chars2, $Context = "DummyContext`", $ContextPath = {"DummyContext`"}},
+  {stream, pos1 = 1, pos2 = 1, count = 0, expr, chars1, chars2, iline,
+    $NewSymbol, $Context = "DummyContext`", $ContextPath = {"DummyContext`", "System`"}},
   stream = OpenRead[path];
   Off[General::shdw];
   While[count < tcount,
@@ -76,7 +77,6 @@ SublimeSeek[path_String, tcount_Integer] := Block[
     If[expr === EndOfFile, Break[]];
   ];
   Clear[expr];
-  Quiet @ Remove["DummyContext`*"];
   On[General::shdw];
   SetStreamPosition[stream, pos1];
   While[
@@ -102,7 +102,7 @@ procSublimeArg[path_String] := StringJoin["'", $lastSubPath = ExpandFileName[pat
 
 (*************************************************************************************************)
 
-findCharPos[path_String, n_Int] := Module[{stream},
+findCharPos[path_String, n_Integer] := Module[{stream},
   If[!FileExistsQ[path], Return @ 1];
   stream = OpenRead[path];
   chars = ReadList[stream, Byte, n];
@@ -123,8 +123,8 @@ findProjFile0[path_String] := Block[{key, projPaths},
 ];
 
 $projectsPathsAssoc := $projectsPathsAssoc = If[
-  FileExistsQ[$SublimeProjectsPath],
-  Association @ Map[# -> loadSublimeProjectPaths[#]&, FileNames["*.sublime-project", $SublimeProjectsPath]],
+  FileExistsQ[Session`$SublimeProjectsPath],
+  Association @ Map[# -> loadSublimeProjectPaths[#]&, FileNames["*.sublime-project", Session`$SublimeProjectsPath]],
   Association[]
 ];
 
@@ -192,7 +192,7 @@ shortenPath[path_] := Module[{str, n, segs, segs2, str2},
   segs = Reverse @ FileNameSplit @ str;
   segs2 = Reverse @ TakeWhile[segs, (n += StringLength[#]) < 45&];
   If[segs2 === {}, segs2 = Take[segs, 1]];
-  If[Len[segs2] < Len[segs], PrependTo[segs2, "\[Ellipsis]"]];
+  If[Length[segs2] < Length[segs], PrependTo[segs2, "\[Ellipsis]"]];
   str2 = FileNameJoin @ segs2;
   If[StringLength[str2] > 45, str2 = truncateFileElemTo[str2, 45]];
   If[StringLength[str2] < StringLength[str], str2, str]

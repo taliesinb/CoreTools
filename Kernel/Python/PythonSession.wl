@@ -183,7 +183,7 @@ RegisterPackagePatchFunctions["ExternalEvaluate`", "OverrideDefaultExternalSessi
 
 (*************************************************************************************************)
 
-Prelude`Symbols`RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
+RegisterDynamicAliasFunction["P`", SymbolNameSetDelayed[#1, PythonVariable[#3]]&];
 
 PythonVariable[name_String] := Block[{$NewSymbol, res},
   res = ExternalEvaluate[$PythonSession, name];

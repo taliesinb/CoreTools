@@ -6,14 +6,14 @@ PackageExports[
 
 SetExcepting @ SetHoldF @ ReturnMessage;
 
-PartialMacroDefs[
-  ReturnMessage[args___] := FunctionReturn[ErrorMessage[args]]
-];
-
 ReturnMessage[args___] := Return @ ErrorMessage[args];
 
 ReturnMessage /: SetDelayed[$LHS_, ReturnMessage[args___]] :=
   SetDelayed @@ Hold[$LHS, ErrorMessage[args]];
+
+DefinePartialMacro[ReturnMessage,
+  HoldPattern[ReturnMessage[args___]] :> FunctionReturn[ErrorMessage[args]]
+];
 
 (*************************************************************************************************)
 

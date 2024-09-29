@@ -230,22 +230,22 @@ ZipScanP[f_, args___]   := ZipMapP[NullifyFn @ f, args];
 
 (**************************************************************************************************)
 
-
 General::invalidMapThread = "A malformed call to MapThread occurred: ``.";
 General::mapThreadDimMismatch = "Length mismatch for MapThread: ``.";
+
 EnsureNiceMessage[HoldP @ MapThread[_, args:{__List}]] :=
   ThrowMsg["mapThreadDimMismatch", Len /@ args];
 
 General::mapThreadKeyMismatch = "Key mismatch for MapThread: ``.";
 EnsureNiceMessage[HoldP @ MapThread[_, args:{__Dict}]] := Module[{keys = Keys /@ args},
-  ErrorMsg["mapThreadKeyMismatch", Complement[Union @@ keys, Intersection @@ keys]]
+  ThrowMsg["mapThreadKeyMismatch", Complement[Union @@ keys, Intersection @@ keys]]
 ];
 
 General::mapThreadHeadMismatch = "Head mismatch for MapThread: ``.";
 EnsureNiceMessage[HoldP @ MapThread[_, args_List]] :=
   ThrowMsg["mapThreadHeadMismatch", Head /@ args];
 
-EnsureNiceMessage[m_MapThread] := ErrorMsg["invalidMapThread", InputForm @ Hold @ m];
+EnsureNiceMessage[m_MapThread] := ThrowMsg["invalidMapThread", InputForm @ Hold @ m];
 EnsureNiceMessage[res_] := res;
 
 (**************************************************************************************************)

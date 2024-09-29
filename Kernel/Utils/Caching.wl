@@ -19,13 +19,13 @@ SetInitial[$MXCacheInfo, UDict[]];
 
 DeclaredHere[MXCached, MXCachedAs]
 
-$CachePrinting = True;
+SetInitial[$CachePrinting, False];
 
 MXCached::usage =
 "MXCached[head$, args$, opts$, body$] caches to a hidden MX file."
 
 ComplexMacroDefs[
-  MXCached[args_List, opts_List, body_]             := mMXCached[MacroHead[], args, opts, body],
+  MXCached[args_List, opts_List, body_]             := With[{head = First @ MacroHead[]}, mMXCached[head, args, opts, body]],
   MXCachedAs[head_Sym, args_List, opts_List, body_] := mMXCached[head, args, opts, body]
 ];
 
@@ -97,7 +97,7 @@ SetInitial[$SymbolDefinitionHashCache, UDict[]];
 
 SymbolDefinitionHash[sym_Sym | Hold[sym_Sym], otherHash_:0] := Module[{value},
   val = $SymbolDefinitionHashCache[Hold[sym]];
-  modTime = Lookup[Prelude`Packages`$PackageModTime, SymbolBaseContext @ sym, 0];
+  modTime = Lookup[Prelude`Packages`Private`$PackageModTime, SymbolBaseContext @ sym, 0];
   Switch[val,
     {_, modTime, otherHash}, CachePrint["Current symbol hash: ", val];  Return @ First @ val,
     {_, _, _},               CachePrint["Stale symbol hash for ", HoldForm @ sym, ": ", val, " =!= ", {_, modTime, otherHash}],

@@ -38,7 +38,7 @@ SystemBox[EchoForm[e_]]                               := MakeEchoBoxes[e];
 $lenStack = {16, 8, 6, 4, 2};
 $maxBytes = 2048;
 $maxDep = 4;
-$maxStrLen = 32;
+$maxStrLen = 48;
 $printPrecision = 4;
 $elidePacked = True;
 $multiline = True;
@@ -136,7 +136,7 @@ SetHoldC[MakeExprBoxes, MakeCodeBoxes, MakeEchoBoxes];
 MakeCodeBoxes[expr_, d_:Inf, l_:Inf] := Locals[
   $isStd = False;
   $maxDep = d;
-  $len = $maxStrLen = l; $lenStack = {l};
+  $len = $maxStrLen = l * 4; $lenStack = {l};
   $specialChars = False;
   exprBox @ expr
 ];
@@ -144,7 +144,7 @@ MakeCodeBoxes[expr_, d_:Inf, l_:Inf] := Locals[
 MakeEchoBoxes[expr_] := Locals[
   $isStd = False;
   $maxDep = 3;
-  $len = $maxStrLen = 16; $lenStack = {16};
+  $len = $maxStrLen = 48; $lenStack = {16};
   $specialChars = False;
   $isEcho = True;
   CodeStyleBox @ exprBox @ expr
@@ -509,7 +509,7 @@ stdBox = CaseOf[
   RawBoxes[b_]     := With[{d = $maxDep - $dep}, DepthTruncateBoxes[b, d]];
   HoldForm[e_]     := exprBox @ e;
   SystemForm[s_]   := MakeBoxes @ s;
-  InputForm[f_]    := Block[{$isStd = False, $maxDep = 32, $len = 256, $lenStack = {128}, $elidePacked = False}, exprBox @ f];
+  InputForm[f_]    := Block[{$isStd = False, $maxDep = 32, $maxStrLen = 512, $len = 256, $lenStack = {128}, $elidePacked = False}, exprBox @ f];
   StandardForm[f_] := Block[{$isStd = True}, exprBox @ f];
   c_CodeForm       := MakeBoxes @ c;
   d_DataForm       := MakeBoxes @ d;

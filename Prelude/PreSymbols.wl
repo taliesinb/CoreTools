@@ -152,8 +152,8 @@ DefinitionCounts[s_Symbol] := Rule[
   SymbolName @ Unevaluated @ s,
   DeleteCases[_ -> 0] @ Flatten @ List[
     Map[Function[fn, fn -> Length[fn[e]]], $defFunctions],
-    Attributes  -> Len[Attributes[s]],
-    KernelCodes -> Len[KernelCodes[s]]
+    Attributes  -> Length[Attributes[s]],
+    KernelCodes -> Length[KernelCodes[s]]
   ]
 ];
 

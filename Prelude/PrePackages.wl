@@ -15,6 +15,10 @@ SystemExports[
     GetHoldComplete,
     GetHidden,
 
+  "SpecialVariable",
+    $CurrentPackageFile,
+    $CurrentPackageDirectory,
+
   "MessageFunction",
     NonLethalPackageMessages,
 
@@ -40,18 +44,25 @@ PackageExports[
   "SpecialVariable",
 
     $CurrentPackageLineSentinel,
-    $CurrentPackageFile,
-    $CurrentPackageDirectory,
     $CurrentPackageFileHash,
     $CurrentPackageExpr,
     $CurrentPackageExprCount,
     $CurrentPackageMessageCount,
+    $CurrentPackageQueParent,
+    $CurrentPackageQueValue,
 
   "MessageFunction",
     LoadPrint,
 
+  "BoxFunction",
+    SourceLocationBox,
+
   "Function",
     PreludeLoadedPackages,
+
+  "SpecialFunction",
+    EnqueEvaluation,
+    EnquedValue,
 
   "IOFunction",
     PreludeLoadPackage,
@@ -76,7 +87,6 @@ PrivateExports[
     $PackageFileModTime,
     $PackageSymbolTable,
     $PackageSymbolAliases,
-    $PackageKindDeclarations,
     $PackagePreLoadActions,
     $PackagePostLoadActions,
     $PackageLoadFileTimings,
@@ -168,7 +178,7 @@ AbortPackageLoading[msgName_String, args___] := (
 );
 
 AbortPackageLoading[___] := AbortPackageLoading[];
-AbortPackageLoading[] := Throw[False, PreludeLoadPackage];
+AbortPackageLoading[] := If[$PackageCurrentlyLoading, Throw[False, PreludeLoadPackage], Abort[]];
 
 (*************************************************************************************************)
 
@@ -202,8 +212,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
    $lazySymbolClearers, $lazyQueueEvaluators, $baseLen, $exprEvalFn,
    $PackageCurrentlyLoading = True,
    $CurrentPackageMessageCount = 0,
-   $SessionCurrentEvaluationPrintCount = 0,
-   $SessionMaxEvaluationPrintCount = 32,
+   $MaxPrintRate = 200,
    externalAliases, sourceFiles, fileContexts, symbolTable},
 
   Catch[
@@ -290,7 +299,9 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
       If[metaSymbolTable =!= {},
         LoadPrint["* attaching enqueing definitions to metafunctions."];
         $lazySymbolClearers = $lazyQueueEvaluators = Data`UnorderedAssociation[];
-        KeyValueMap[attachLazyEnqueingDefs, SymbolTableGroups[metaSymbolTable, "Context", None]];
+        KeyValueMap[attachLazyEnqueingDefs, SymbolTableGroups[metaSymbolTable, "Path", None]];
+      ,
+        $lazySymbolClearers = $lazyQueueEvaluators = Null&;
       ];
     ];
 
@@ -393,7 +404,7 @@ toSourceFiles[File[path_String]] := Module[{lines, base},
 ];
 
 expandFileSpec[list_List] := Map[expandFileSpec, list];
-expandFileSpec[other_] := (Message[LoadPackage::ignoredFile, other]; Nothing);
+expandFileSpec[other_] := (Message[PreludeLoadPackage::ignoredFile, other]; Nothing);
 expandFileSpec[path_String] /; StringEndsQ[path, ".wl"] := path;
 expandFileSpec[path_String] /; StringEndsQ[path, ".txt"] := Splice @ toSourceFiles @ File @ path;
 
@@ -424,11 +435,9 @@ createCleanSymbolsIn[context_String, symbolsStrings_] :=
 (*************************************************************************************************)
 
 lazyQueueEval[path_, bag_] := If[Internal`BagLength[bag] > 0,
-  LoadPrint["* running unqueued evaluations for: ", Shallow[Internal`BagPart[bag, All, HoldForm], 3]];
-  Internal`BagPart[bag, All]
+  LoadPrint["* running unqueued evaluations for: ", Internal`BagPart[bag, All, HoldForm]];
+  Internal`BagPart[bag, All];
 ];
-
-m_attachLazyEnqueingDefs := (Print["BAD: ", HoldForm[m]]);
 
 attachLazyEnqueingDefs[path_String, table_List] := Module[{bag = Internal`Bag[]}, With[
   {symbols = Flatten @ SymbolTableInit[table, Identity]},
@@ -438,14 +447,63 @@ attachLazyEnqueingDefs[path_String, table_List] := Module[{bag = Internal`Bag[]}
   Map[attachEnqueingTo[#, bag]&, symbols];
 ]];
 
-attachEnqueingTo[fn_, bag_] := (
+attachEnqueingTo[fn_Symbol, bag_] := (
   SetAttributes[fn, HoldAllComplete];
-  SetDelayed[lhs_fn, Internal`StuffBag[LoadPrint["  * capturing: ", Shallow[HoldForm[lhs], 3]]; bag, Unevaluated @ lhs]]
+  SetDelayed[lhs_fn, EnqueEvaluation[bag, lhs]];
 );
 
 (*************************************************************************************************)
 
+SetAttributes[{EnqueEvaluation}, HoldAllComplete];
+
+EnqueEvaluation[bag_, expr_] := Module[
+  {src = SourceLocation[]},
+  LoadPrint["  * enquing evaluation of: ", HoldForm[expr], " to ", bag];
+  Internal`StuffBag[bag, Unevaluated @ evalEnqued[src, HoldComplete @ expr]];
+  EnquedValue[src]
+];
+
+evalEnqued[src_, expr_HoldComplete] := (
+  $CurrentPackageFile = Part[src, 1];
+  $CurrentPackageExprCount = Part[src, 2];
+  $CurrentPackageQueValue = expr;
+  $wrap$ @ ReleaseHold @ expr;
+  $CurrentPackageQueValue = None;
+);
+
+EnquedValue[s_][a___] := Message[EnquedValue::notReady, HoldForm[s[a]]];
+
+EnquedValue::notReady = "Attempt was made to apply enqued value: ``.";
+
+(*************************************************************************************************)
+
+(* TODO: $SourceLocation which expands to this, or issues a message and evaluates to SourceLocation["Unknown"] *)
 SourceLocation[] /; TrueQ[$PackageCurrentlyLoading] := SourceLocation[$CurrentPackageFile, $CurrentPackageExprCount];
+
+MakeBoxes[SourceLocation[path_String, exprNum_Integer], StandardForm] := SourceLocationBox[path, exprNum];
+MakeBoxes[_SourceLocation, StandardForm] := srcLocPathBox @ "[???]";
+
+(*************************************************************************************************)
+
+SourceLocationBox[___] := srcLocPathBox @ "[???]";
+SourceLocationBox[path_String, exprNum_Integer] := With[
+  {pathStr = StringJoin["[../", FileNameTake @ path, ":#", IntegerString @ exprNum, "]"]},
+  {handler = TagBox[srcLocPathBox @ pathStr,
+    EventHandlerTag[{
+      {"MouseClicked", 1} :> SublimeSeek[path, exprNum],
+      Method -> "Preemptive", PassEventsDown -> Automatic, PassEventsUp -> False
+    }]
+  ]},
+  TagBox[handler, MouseAppearanceTag["LinkHand"]]
+];
+
+srcLocPathBox[pathStr_String] := StyleBox[
+  ToBoxes @ pathStr,
+  FontFamily -> "Source Code Pro", FontWeight -> Plain, FontSlant -> Italic,
+  FontColor -> RGBColor[0.08627, 0.3686, 0.6157]
+];
+
+(*************************************************************************************************)
 
 SetAttributes[runPackageFileExpr, HoldAllComplete];
 
@@ -485,7 +543,9 @@ loadPackageFile[path_, context_] := Block[
         Scan[runPackageFileExpr, packageExpr];
       ];
     ];
+    $CurrentPackageQueParent = path;
     $lazyQueueEvaluators @ path;
+    $CurrentPackageQueParent = None;
   ];
 ];
 
@@ -514,11 +574,11 @@ getHoldCompleteCached[path_] := Module[
 
 SetAttributes[catchPackageThrows, HoldAllComplete];
 
-catchPackageThrows[e_] := Catch[e, Except[LoadPackage], PackageLoadUncaughtThrowHandler];
+catchPackageThrows[e_] := Catch[e, Except[PreludeLoadPackage], PackageLoadUncaughtThrowHandler];
 
-LoadPackage::uncaughtThrow = "Uncaught ``.";
+PreludeLoadPackage::uncaughtThrow = "Uncaught ``.";
 PackageLoadUncaughtThrowHandler[value_, tag_] :=
-  Message[LoadPackage::uncaughtThrow, HoldForm[Throw[value, tag]]];
+  Message[PreludeLoadPackage::uncaughtThrow, HoldForm[Throw[value, tag]]];
 
 (*************************************************************************************************)
 
@@ -533,6 +593,10 @@ SetAttributes[handleMessage, HoldAllComplete];
 
 handleMessage[Message[msgName_, ___]] /; !TrueQ[$handlerRunning] := Quiet @ Module[
   {ifile, iexprs, stream, pos1, pos2, chars1, chars2, iline, $handlerRunning = True, $CellPrintLabel},
+  If[StringQ @ $CurrentPackageQueParent,
+    ErrorPrint["*** Message while evaluating queue for ", $CurrentPackageQueParent];
+    ErrorPrint["*** Currently evaluating ", $CurrentPackageQueValue];
+  ];
   If[$CurrentPackageMessageCount++ > 4,
     ErrorPrint["*** Runaway evaluation occurred in ", FileLocation @ $CurrentPackageFile, ", aborting!"];
     Return[];
