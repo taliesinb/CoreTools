@@ -1,4 +1,5 @@
 Stores.wl
+PropTable.wl
 SetUtils.wl
 Sets.wl
 # UList.wl

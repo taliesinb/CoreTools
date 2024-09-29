@@ -12,7 +12,7 @@ BipartiteGraph[edges_List] := Locals[
   BipartiteGraph @ arr
 ];
 
-CoreBoxes[BipartiteGraph[adj_SparseArray]] := Locals[
+CoreBox[BipartiteGraph[adj_SparseArray]] := Locals[
   {ns, nt} = Dims @ adj;
   rules = ArrayRules[adj];
   srcPos = Thread @ {0, Range[ns]};

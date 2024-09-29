@@ -5,6 +5,7 @@ AliasLiterals.wl
 AliasPredicates.wl
 AliasPatterns.wl
 AliasFnsSys.wl
+AliasFnsInt.wl
 AliasFnsStr.wl
 AliasFnsDict.wl
 AliasFnsIO.wl

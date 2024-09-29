@@ -31,3 +31,4 @@ $DiscreteColorPalette = ColorPalette["Discrete"] = HexToColorList @ "#da3b26 #ee
 {$DarkRed, $DarkBlue, $DarkGreen, $DarkOrange, $DarkPurple, $DarkTeal, $DarkGray, $DarkPink, $DarkYellow, $DarkWhite, $DarkBlack} = $DarkColorPalette;
 
 $BoolColors = {GrayLevel[0.9], GrayLevel[0.1]};
+

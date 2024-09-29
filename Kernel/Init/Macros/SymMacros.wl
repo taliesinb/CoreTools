@@ -1,6 +1,6 @@
 SystemExports[
   "ControlFlow",
-    SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed,
+    IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor
 ];
@@ -9,22 +9,25 @@ SystemExports[
 
 SetHoldA[SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor]
 
-DefineSimpleMacro[SetAll,                   SetAll[lhs_, rhs_] :> If[lhs === All,       lhs = rhs, lhs]];
-DefineSimpleMacro[SetNone,                 SetNone[lhs_, rhs_] :> If[lhs === None,      lhs = rhs, lhs]];
-DefineSimpleMacro[SetAuto,                 SetAuto[lhs_, rhs_] :> If[lhs === Automatic, lhs = rhs, lhs]];
-DefineSimpleMacro[SetFailed,             SetFailed[lhs_, rhs_] :> If[FailureQ[lhs],     lhs = rhs, lhs]];
-DefineSimpleMacro[SetMissing,           SetMissing[lhs_, rhs_] :> If[MissingQ[lhs],     lhs = rhs, lhs]];
-DefineSimpleMacro[SetInherited,       SetInherited[lhs_, rhs_] :> If[lhs === Inherited, lhs = rhs, lhs]];
-DefineSimpleMacro[SetScaledFactor, SetScaledFactor[lhs_, rhs_] :> If[MatchQ[lhs, Scaled[_ ? NumericQ]], lhs //= First /* N; lhs *= rhs]];
+SimpleMacroDefs[
+  SetAll[lhs_, rhs_]          := If[lhs === All,       lhs = rhs, lhs],
+  SetNone[lhs_, rhs_]         := If[lhs === None,      lhs = rhs, lhs],
+  SetAuto[lhs_, rhs_]         := If[lhs === Automatic, lhs = rhs, lhs],
+  SetFailed[lhs_, rhs_]       := If[FailureQ[lhs],     lhs = rhs, lhs],
+  SetMissing[lhs_, rhs_]      := If[MissingQ[lhs],     lhs = rhs, lhs],
+  SetInherited[lhs_, rhs_]    := If[lhs === Inherited, lhs = rhs, lhs],
+  SetScaledFactor[lhs_, rhs_] := If[MatchQ[lhs, Scaled[_ ? NumericQ]], lhs //= First /* N; lhs *= rhs]
+];
 
 (*************************************************************************************************)
 
-(* TODO: rename these IfAll, IfNone, etc *)
-SetHoldA[SubAll, SubNone, SubAuto, SubInherited, SubMissing, SubFailed]
+SetHoldA[IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed]
 
-DefineSimpleMacro[SubAll,          {SubAll      [rhs_] :> Replace[All       :> rhs], SubAll      [lhs_, rhs_] :> Replace[lhs, All        :> rhs]}];
-DefineSimpleMacro[SubNone,         {SubNone     [rhs_] :> Replace[None      :> rhs], SubNone     [lhs_, rhs_] :> Replace[lhs, None       :> rhs]}];
-DefineSimpleMacro[SubAuto,         {SubAuto     [rhs_] :> Replace[Auto      :> rhs], SubAuto     [lhs_, rhs_] :> Replace[lhs, Auto       :> rhs]}];
-DefineSimpleMacro[SubInherited,    {SubInherited[rhs_] :> Replace[Inherited :> rhs], SubInherited[lhs_, rhs_] :> Replace[lhs, Inherited  :> rhs]}];
-DefineSimpleMacro[SubMissing,      {SubMissing  [rhs_] :> Replace[_Missing  :> rhs], SubMissing  [lhs_, rhs_] :> Replace[lhs, _Missing   :> rhs]}];
-DefineSimpleMacro[SubFailed,       {SubFailed   [rhs_] :> Replace[$Failed   :> rhs], SubFailed   [lhs_, rhs_] :> Replace[lhs, $Failed    :> rhs]}];
+SimpleMacroDefs[
+  IfAll      [rhs_] := Replace[All       :> rhs], IfAll      [lhs_, rhs_] := Replace[lhs, All        :> rhs],
+  IfNone     [rhs_] := Replace[None      :> rhs], IfNone     [lhs_, rhs_] := Replace[lhs, None       :> rhs],
+  IfAuto     [rhs_] := Replace[Auto      :> rhs], IfAuto     [lhs_, rhs_] := Replace[lhs, Auto       :> rhs],
+  IfInherited[rhs_] := Replace[Inherited :> rhs], IfInherited[lhs_, rhs_] := Replace[lhs, Inherited  :> rhs],
+  IfMissing  [rhs_] := Replace[_Missing  :> rhs], IfMissing  [lhs_, rhs_] := Replace[lhs, _Missing   :> rhs],
+  IfFailed   [rhs_] := Replace[$Failed   :> rhs], IfFailed   [lhs_, rhs_] := Replace[lhs, $Failed    :> rhs]
+];

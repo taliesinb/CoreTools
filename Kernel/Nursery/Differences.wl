@@ -9,7 +9,7 @@ PackageExports[
 
 (*************************************************************************************************)
 
-CoreBoxes[ed:ExprDelta[pos_List, crumbs_List, diff_]] :=
+CoreBox[ed:ExprDelta[pos_List, crumbs_List, diff_]] :=
   GridBox[
     List @ Map[ToBoxes, Append[crumbs, diff]],
     FrameStyle -> $LightGray,
@@ -19,7 +19,7 @@ CoreBoxes[ed:ExprDelta[pos_List, crumbs_List, diff_]] :=
     GridFrameMargins -> {{5, 5}, {3, 10}}
   ];
 
-CoreBoxes[d_DeltaPos] := dposBoxes @@ d;
+CoreBox[d_DeltaPos] := dposBoxes @@ d;
 With[{hp = _Str | _HoldC},
 dposBoxes[Head]            := dposSubBox["?", "head"];
 dposBoxes[Args, h:hp]      := dposSubBox[h, "args"];

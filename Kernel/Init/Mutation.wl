@@ -1,32 +1,35 @@
 SystemExports[
   "MutatingFunction",
-    SetNotMissing, SetSequence,
     BlockSet, BlockAssociate, BlockJoin, BlockAppend,
     BlockIncrement, BlockDecrement,
     BlockTrue, BlockFalse,
     BlockContext,
     BlockUnprotect,
-    MinTo, MaxTo, MinMaxTo
+    MinTo, MaxTo, MinMaxTo,
+    PushTo, PopFrom
+];
+
+PackageExports[
+  "MutatingFunction",
+    SetSeq
 ];
 
 (*************************************************************************************************)
 
-SetHoldF @ SetNotMissing;
+SetStrict @ SetHoldF @ PushTo;
+SetStrict @ SetHoldA @ PopFrom;
 
-SetNotMissing[{s___}][{v___}] := setNM[s][v];
-SetNotMissing[s_, v_] := SetNotMissing[s][v];
+PushTo[a_, e_] := Then[AppendTo[a, e], Null];
 
-SetHoldA @ setNM;
-
-setNM[][] := Null;
-setNM[s1_, sn___][v1_, vn___] := Then[If[NotMissingQ[v1], Set[s1, v1]], setNM[sn][vn]];
+PopFrom[a_ ? EmptyQ, else:None] := else;
+PopFrom[a_, _:None]             := Then1[Last @ a, a //= Most];
 
 (*************************************************************************************************)
 
-SetStrict @ SetHoldA[SetSequence, MinTo, MaxTo, MinMaxTo];
+SetStrict @ SetHoldA[SetSeq, MinTo, MaxTo, MinMaxTo];
 
-SetSequence[lhs1_, lhs2__, rhs_] := Set[lhs1, SetSequence[lhs2, rhs]];
-SetSequence[lhs1_, rhs_]         := Set[lhs1, rhs];
+SetSeq[lhs1_, lhs2__, rhs_] := Set[lhs1, SetSeq[lhs2, rhs]];
+SetSeq[lhs1_, rhs_]         := Set[lhs1, rhs];
 
 MinTo[s_, e_] := Set[s, Min[s, e]];
 MaxTo[s_, e_] := Set[s, Max[s, e]];

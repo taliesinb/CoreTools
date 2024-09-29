@@ -31,7 +31,7 @@ SystemExports[
     RuleVectorOf, HeadOf, VectorHeadOf,
     PairOf, RecordOf, TupleOf, StructureOf,
     IntBetween, RealBetween, NumBetween,
-  "OptionSymbol",
+  "Option",
     DefaultFunction
 ];
 

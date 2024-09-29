@@ -5,33 +5,25 @@
     {
         "black": "hsl(0, 0%, 0%)",
         "blue": "hsl(210, 50%, 60%)",
-
         "blue-vibrant": "hsl(210, 60%, 60%)",
         "blue2": "hsla(210, 13%, 40%, 0.7)",
         "blue3": "hsl(210, 15%, 22%)",
         "blue4": "hsl(210, 13%, 45%)",
-
         "teal": "hsl(180, 36%, 54%)",
-
         "blue6": "hsl(221, 12%, 69%)",
         "blue7": "hsl(210, 40%, 69%)",
-
         "green": "hsl(114, 31%, 68%)",
         "grey": "hsl(0, 0%, 20%)",
-
         "orange": "hsl(32, 93%, 66%)",
         "orangeDim": "hsl(40, 20%, 68%)",
         "orange2": "hsl(32, 85%, 55%)",
         "orange3": "hsl(40, 94%, 68%)",
-
         "pink": "hsl(300, 30%, 68%)",
         "purple": "hsl(250, 35%, 60%)",
         "purpleDim": "hsl(350, 35%, 70%)",
-
         "red": "hsl(357, 79%, 65%)",
         "red2": "hsl(13, 93%, 66%)",
         "red-vibrant": "hsl(0, 93%, 75%)",
-
         "white": "hsl(0, 0%, 100%)",
         "white2": "hsl(0, 0%, 97%)",
         "white3": "hsl(219, 28%, 88%)",
@@ -42,7 +34,20 @@
         "plainDim": "hsl(200, 20%, 60%)",
 
         "typesetting": "hsl(40, 94%, 68%)",
-        "ztypesetting": "hsl(240, 35%, 60%)",
+        "typesetting": "hsl(50, 35%, 70%)",
+
+        "debug": "hsl(357, 79%, 65%)",
+        "debugBg": "color(var(debug) alpha(0.25))",
+
+        "opt": "color(var(plain) alpha(0.9))",
+
+        "form": "hsl(40, 64%, 68%)",
+        "box": "hsl(50, 54%, 68%)",
+        "boxOpt": "color(var(box) blend(var(plain) 75%))",
+        "formOpt": "color(var(form) blend(var(plain) 75%))",
+
+        "formBg": "color(var(form) alpha(0.1))",
+        "boxBg": "color(var(box) alpha(0.1))",
 
         "string": "hsla(114, 31%, 68%, 0.8)",
         "message": "var(orange)",
@@ -51,22 +56,33 @@
         "unrecognizedBg": "hsl(210, 15%, 33%)",
         "function": "hsl(200, 55%, 66%)",
         "usersymbol": "color(var(plain) blend(var(plainDim) 30%))",
-        "variable": "hsl(210, 40%, 69%)",
+        "varBase": "hsl(210, 40%, 69%)",
+        "globalVar": "var(varBase)",
+        "variable": "color(var(plain) blend(var(varBase) 10%))",
+        "userVar": "color(var(plain) blend(var(varBase) 10%))",
         "mutating": "color(var(plain) blend(var(red) 50%))",
+
+        "dummy": "var(usersymbol)",
+        "dummyBg": "color(var(dummy) alpha(0.1))",
 
         "boundVar": "hsl(114, 31%, 50%)",
 
         "pattern": "hsl(200, 40%, 69%)",
         "strpattern": "color(var(pattern) blend(var(string) 50%))",
-        "typesetting": "hsl(50, 35%, 70%)",
         "graphics": "hsl(10, 35%, 70%)",
-        "special": "var(red2)",
+        "special": "hsl(13, 73%, 66%)",
+        "specialVar": "color(var(special) blend(var(plain) 50%))",
         "ioFunction": "color(var(plain) blend(var(red2) 50%))",
         "controlFlow": "color(var(plain) blend(var(red-vibrant) 50%))",
 
         "cache": "color(var(plain) blend(var(teal) 50%))",
-        "head": "hsl(250, 40%, 80%)",
-        "plainhead": "color(var(head) blend(var(plain) 50%))",
+        "head1": "color(hsla(250, 40%, 80%, 0.9) blend(var(plain) 40%))",
+        "head2": "hsl(250, 40%, 80%)",
+        "head3": "hsl(250, 70%, 80%)",
+        "head": "var(head1)",
+        "typeHead": "var(head1)",
+        "dataHead": "var(head2)",
+        "symHead": "var(head3)",
         "slot": "hsl(50, 60%, 60%)",
         "slot2": "hsl(40, 60%, 60%)",
         "operator": "var(blue7)",
@@ -101,396 +117,78 @@
     },
     "rules":
     [
-
-        {
-            "name": "Slot",
-            "scope": "keyword.other.Slot",
-            "foreground": "var(slot)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Slot",
-            "scope": "keyword.other.SlotSequence",
-            "foreground": "var(slot)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Slot symbol",
-            "scope": "constant.language.symbol.slot",
-            "foreground": "var(slot2)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Slot variable",
-            "scope": "support.function.slot.variable",
-            "foreground": "var(slot2)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Local function",
-            "scope": "entity.name.function",
-            "foreground": "var(usersymbol)",
-        },
-        {
-            "name": "Defined symbol",
-            "scope": "meta.highlight_def",
-            "font_style": "stippled_underline"
-        },
-        {
-            "name": "Local variable in definition",
-            "scope": "entity.name.constant variable.local.wolfram",
-            "foreground": "var(usersymbol)",
-        },
-        {
-            "name": "Global variable in definition",
-            "scope": "entity.name.constant variable.global.wolfram",
-            "foreground": "var(variable)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Global variable in definition",
-            "scope": "meta.highlight_def entity.name.constant variable.global.wolfram",
-            "foreground": "var(variable)",
-            "font_style": "bold stippled_underline"
-        },
-        {
-            "name": "Bound pattern symbol",
-            "scope": "variable.local.pattern",
-            "foreground": "var(boundVar)"
-        },
-        {
-            "name": "Local symbol",
-            "scope": "variable.local",
-            "foreground": "var(usersymbol)"
-        },
-        {
-            "name": "Unrecognized local symbol",
-            "scope": "variable.local.unrecognized",
-            "foreground": "var(usersymbol)",
-            "background": "var(unrecognizedBg)"
-        },
-        {
-            "name": "Unrecognized global symbol",
-            "scope": "symbol.unrecognized",
-            "foreground": "var(usersymbol)",
-            "background": "var(unrecognizedBg)"
-        },
-        {
-            "name": "Local $symbol",
-            "scope": "variable.global",
-            "foreground": "var(variable)"
-        },
-        {
-            "name": "Unrecognized local $Fymbol",
-            "scope": "variable.global.unrecognized",
-            "foreground": "var(variable)",
-            "background": "var(unrecognizedBg)",
-            "font_style": "bold"
-        },
-        {
-            "name": "User function",
-            "scope": "variable.function",
-            "foreground": "var(function)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Message name colon",
-            "scope": "keyword.operator.MessageName",
-            "foreground": "var(message)"
-        },
-        {
-            "name": "Special macro",
-            "scope": "keyword.operator.special",
-            "foreground": "var(message)"
-        },
-        {
-            "name": "Operators",
-            "scope": "keyword.operator",
-            "foreground": "var(operator)"
-        },
-        {
-            "name": "System function",
-            "scope": "support.function.builtin",
-            "foreground": "var(plain)",
-        },
-        {
-            "name": "Internal function",
-            "scope": "support.function.internal",
-            "foreground": "var(internal)",
-        },
-        {
-            "name": "Message function",
-            "scope": "support.function.message",
-            "foreground": "var(message)",
-        },
-        {
-            "name": "IOFunction",
-            "scope": "support.function.io",
-            "foreground": "var(ioFunction)",
-        },
-        {
-            "name": "BoxFunction",
-            "scope": "support.function.box.wolfram",
-            "foreground": "var(typesetting)",
-        },
-        {
-            "name": "BoxSymbol",
-            "scope": "support.function.box.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "italic"
-        },
-        {
-            "name": "DebuggingFunction",
-            "scope": "support.function.debugging.wolfram",
-            "foreground": "var(red)",
-            "background": "color(var(red) alpha(0.25))",
-        },
-        {
-            "name": "Function",
-            "scope": "support.function.builtin.wolfram",
-            "foreground": "var(plain)",
-        },
-        {
-            "name": "GraphicsBoxFunction",
-            "scope": "support.function.graphics.box.wolfram",
-            "foreground": "var(graphics)",
-        },
-        {
-            "name": "GraphicsDirective",
-            "scope": "support.function.graphics.directive.wolfram",
-            "foreground": "var(graphics)",
-            "font_style": "italic"
-        },
-        {
-            "name": "GraphicsDirective",
-            "scope": "meta.highlight_def support.function.graphics.directive.wolfram",
-            "foreground": "var(graphics)",
-            "font_style": "italic  stippled_underline"
-        },
-        {
-            "name": "GraphicsPrimitive",
-            "scope": "support.function.graphics.primitive.wolfram",
-            "foreground": "var(graphics)",
-            "font_style": "bold"
-        },
-        {
-            "name": "GraphicsPrimitive",
-            "scope": "meta.highlight_def support.function.graphics.primitive.wolfram",
-            "foreground": "var(graphics)",
-            "font_style": "bold stippled_underline"
-        },
-        {
-            "name": "Graphics",
-            "scope": "support.function.graphics.wolfram",
-            "foreground": "var(graphics)",
-        },
-        {
-            "name": "Operator",
-            "scope": "support.function.operator.wolfram",
-            "foreground": "var(operator)"
-        },
-        {
-            "name": "MutatingFunction",
-            "scope": "support.function.mutating.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "glow"
-        },
-        {
-            "name": "MutatingFunction",
-            "scope": "meta.highlight_def support.function.mutating.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "glow stippled_underline"
-        },
-        {
-            "name": "Object Head",
-            "scope": "support.function.object.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "bold"
-        },
-        {
-            "name": "Object Head",
-            "scope": "meta.highlight_def support.function.object.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "bold stippled_underline"
-        },
-        {
-            "name": "Option",
-            "scope": "constant.language.symbol.option.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "italic"
-        },
-        {
-            "name": "Option",
-            "scope": "meta.highlight_def constant.language.symbol.option.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "italic stippled_underline"
-        },
-        {
-            "name": "BoxOption",
-            "scope": "constant.language.symbol.option.box.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "italic"
-        },
-        {
-            "name": "BoxOption",
-            "scope": "meta.highlight_def constant.language.symbol.option.box.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "italic stippled_underline"
-        },
-        // {
-        //     "name": "Package",
-        //     "scope": "meta.package.wolfram, entity.name.function.package.item.wolfram",
-        //     "foreground": "var(black)",
-        //     "background": "var(pink)",
-        //     "font_style": "bold"
-        // },
-        {
-            "name": "PackageDeclaration",
-            "scope": "meta.package.declaration.wolfram",
-            "foreground": "var(pink)",
-            "background": "color(var(pink) alpha(0.25))",
-            "font_style": "bold"
-        },
-        {
-            "name": "PackageFunction",
-            "scope": "meta.package.function.wolfram",
-            "foreground": "var(pink)",
-            "background": "color(var(pink) alpha(0.25))",
-            "font_style": "bold"
-        },
-        {
-            "name": "PackageDeclaration",
-            "scope": "meta.package.declaration.contents.wolfram",
-        },
-        {
-            "name": "ScopingFunction",
-            "scope": "support.function.scoping",
-            "foreground": "var(pink)",
-        },
-        {
-            "name": "ControlFlowFunction",
-            "scope": "support.function.control.flow",
-            "foreground": "var(controlFlow)",
-        },
-        {
-            "name": "MetaFunction",
-            "scope": "support.function.meta",
-            "foreground": "var(meta)",
-            "font_style": "glow"
-        },
-        {
-            "name": "MetaFunction",
-            "scope": "meta.highlight_def support.function.meta",
-            "foreground": "var(meta)",
-            "font_style": "glow stippled_underline"
-        },
-        {
-            "name": "SpecialFunctionOrVariable",
-            "scope": "support.function.special",
-            "foreground": "var(special)"
-        },
-        {
-            "name": "Predicate",
-            "scope": "support.function.predicate",
-            "foreground": "var(predicate)"
-        },
-        {
-            "name": "CacheFunctionOrVariable",
-            "scope": "support.function.cache",
-            "foreground": "var(cache)",
-            "font_style": "glow"
-        },
-        {
-            "name": "CacheFunctionOrVariable",
-            "scope": "meta.highlight_def support.function.cache",
-            "foreground": "var(cache)",
-            "font_style": "glow stippled_underline"
-        },
-        {
-            "name": "Symbol",
-            "scope": "constant.language.symbol.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "italic"
-        },
-        {
-            "name": "Symbol2",
-            "scope": "meta.highlight_def constant.language.symbol.wolfram",
-            "foreground": "var(plain)",
-            "font_style": "italic stippled_underline"
-        },
-        {
-            "name": "FormSymbol",
-            "scope": "constant.language.symbol.form.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "italic"
-        },
-        {
-            "name": "FormSymbol",
-            "scope": "meta.highlight_def constant.language.symbol.form.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "italic stippled_underline"
-        },
-        {
-            "name": "PatternSymbol",
-            "scope": "constant.language.symbol.pattern.wolfram",
-            "foreground": "var(pattern)",
-            "font_style": "italic"
-        },
-        {
-            "name": "PatternSymbol",
-            "scope": "meta.highlight_def constant.language.symbol.pattern.wolfram",
-            "foreground": "var(pattern)",
-            "font_style": "italic stippled_underline"
-        },
-        {
-            "name": "StrPatternSymbol",
-            "scope": "constant.language.symbol.strpattern.wolfram",
-            "foreground": "var(strpattern)",
-            "font_style": "italic"
-        },
-        {
-            "name": "StrPatternSymbol",
-            "scope": "meta.highlight_def constant.language.symbol.strpattern.wolfram",
-            "foreground": "var(strpattern)",
-            "font_style": "italic stippled_underline"
-        },
-        {
-            "name": "Head",
-            "scope": "constant.language.head.wolfram",
-            "foreground": "var(head)"
-        },
-        {
-            "name": "TypeHead",
-            "scope": "constant.language.head.type.wolfram",
-            "foreground": "var(plainhead)"
-        },
-        {
-            "name": "DataHead",
-            "scope": "constant.language.head.data.wolfram",
-            "foreground": "var(plainhead)"
-        },
-        {
-            "name": "FormHead",
-            "scope": "constant.language.head.form.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "bold"
-        },
-        {
-            "name": "FormHead",
-            "scope": "meta.highlight_def constant.language.head.form.wolfram",
-            "foreground": "var(typesetting)",
-            "font_style": "bold stippled_underline"
-        },
-        {
-            "name": "PatternHead",
-            "scope": "constant.language.head.pattern.wolfram",
-            "foreground": "var(pattern)",
-        },
-        {
-            "name": "StrPatternHead",
-            "scope": "constant.language.head.strpattern.wolfram",
-            "foreground": "var(strpattern)",
-        },
+        {"name": "Hi"                  , "scope": "meta.highlight_def"                                              , "font_style": "stippled_underline"},
+        {"name": "Slot"                , "scope": "keyword.other.Slot"                                              , "foreground": "var(slot)"            , "font_style": "bold"},
+        {"name": "SlotSeq"             , "scope": "keyword.other.SlotSequence"                                      , "foreground": "var(slot)"            , "font_style": "bold"},
+        {"name": "SlotSym"             , "scope": "constant.language.symbol.slot"                                   , "foreground": "var(slot2)"           , "font_style": "bold"},
+        {"name": "SlotVar"             , "scope": "support.function.slot.variable"                                  , "foreground": "var(slot2)"           , "font_style": "bold"},
+        {"name": "FnSym"               , "scope": "entity.name.function"                                            , "foreground": "var(usersymbol)",},
+        {"name": "LocalVarDef"         , "scope": "entity.name.constant variable.local.wolfram"                     , "foreground": "var(usersymbol)",},
+        {"name": "GlobVar1"            , "scope": "variable.global.wolfram"                                         , "foreground": "var(globalVar)"       , "font_style": "bold"},
+        {"name": "GlobVar1Hi"          , "scope": "meta.highlight_def variable.global.wolfram"                      , "foreground": "var(globalVar)"       , "font_style": "bold stippled_underline"},
+        {"name": "GlobVar2"            , "scope": "entity.name.constant variable.global.wolfram"                    , "foreground": "var(special)"         , "font_style": "bold"},
+        {"name": "GlobVar2Hi"          , "scope": "meta.highlight_def entity.name.constant variable.global.wolfram" , "foreground": "var(special)"         , "font_style": "bold stippled_underline"},
+        {"name": "BoundPattSym"        , "scope": "variable.local.pattern"                                          , "foreground": "var(boundVar)"},
+        {"name": "LocalSym"            , "scope": "variable.local"                                                  , "foreground": "var(usersymbol)"},
+        {"name": "DummySym"            , "scope": "symbol.dummy"                                                    , "foreground": "var(dummy)"           , "background": "var(dummyBg)"},
+        {"name": "UnkFunc"             , "scope": "variable.local.unrecognized"                                     , "foreground": "var(usersymbol)"      , "background": "var(unrecognizedBg)"},
+        {"name": "UnkVar"              , "scope": "variable.global.unrecognized"                                    , "foreground": "var(usersymbol)"      , "background": "var(unrecognizedBg)"},
+        {"name": "LocalSym"            , "scope": "variable.global"                                                 , "foreground": "var(userVar)"},
+        {"name": "UnkLocalSym"         , "scope": "variable.global.unrecognized"                                    , "foreground": "var(userVar)"        , "background": "var(unrecognizedBg)"          , "font_style": "bold"},
+        {"name": "FnUser"              , "scope": "variable.function"                                               , "foreground": "var(function)"        , "font_style": "bold"},
+        {"name": "MsgName"             , "scope": "keyword.operator.MessageName"                                    , "foreground": "var(message)"},
+        {"name": "Operators"           , "scope": "keyword.operator"                                                , "foreground": "var(operator)"},
+        {"name": "System function"     , "scope": "support.function.builtin"                                        , "foreground": "var(plain)",},
+        {"name": "Internal function"   , "scope": "support.function.internal"                                       , "foreground": "var(internal)",},
+        {"name": "Message function"    , "scope": "support.function.message"                                        , "foreground": "var(message)",},
+        {"name": "IOFunction"          , "scope": "support.function.io"                                             , "foreground": "var(ioFunction)",},
+        {"name": "BoxFunction"         , "scope": "support.function.box.wolfram"                                    , "foreground": "var(box)",},
+        {"name": "BoxSymbol"           , "scope": "constant.language.symbol.box"                                    , "foreground": "var(box)"             , "background": "var(boxBg)"},
+        {"name": "DebuggingFunction"   , "scope": "support.function.debugging.wolfram"                              , "foreground": "var(debug)"           , "background": "var(debugBg)"},
+        {"name": "Function"            , "scope": "support.function.builtin.wolfram"                                , "foreground": "var(plain)",},
+        {"name": "GBoxFunction"        , "scope": "support.function.graphics.box.wolfram"                           , "foreground": "var(graphics)",},
+        {"name": "GDir"                , "scope": "support.function.graphics.directive.wolfram"                     , "foreground": "var(graphics)"        , "font_style": "italic"},
+        {"name": "GDir"                , "scope": "meta.highlight_def support.function.graphics.directive.wolfram"  , "foreground": "var(graphics)"        , "font_style": "italic  stippled_underline"},
+        {"name": "GPrim"               , "scope": "support.function.graphics.primitive.wolfram"                     , "foreground": "var(graphics)"        , "font_style": "bold"},
+        {"name": "GPrim"               , "scope": "meta.highlight_def support.function.graphics.primitive.wolfram"  , "foreground": "var(graphics)"        , "font_style": "bold stippled_underline"},
+        {"name": "GFn"                 , "scope": "support.function.graphics.wolfram"                               , "foreground": "var(graphics)",},
+        {"name": "Operator"            , "scope": "support.function.operator.wolfram"                               , "foreground": "var(operator)"},
+        {"name": "MutFn"               , "scope": "support.function.mutating.wolfram"                               , "foreground": "var(plain)"           , "font_style": "glow"},
+        {"name": "MutFn"               , "scope": "meta.highlight_def support.function.mutating.wolfram"            , "foreground": "var(plain)"           , "font_style": "glow stippled_underline"},
+        {"name": "ObjHead"             , "scope": "support.function.object.wolfram"                                 , "foreground": "var(plain)"           , "font_style": "bold"},
+        {"name": "ObjHeadHi"           , "scope": "meta.highlight_def support.function.object.wolfram"              , "foreground": "var(plain)"           , "font_style": "bold stippled_underline"},
+        {"name": "Opt"                 , "scope": "constant.language.symbol.option.wolfram"                         , "foreground": "var(opt)"             , "font_style": "italic"},
+        {"name": "OptHi"               , "scope": "meta.highlight_def constant.language.symbol.option.wolfram"      , "foreground": "var(opt)"             , "font_style": "italic stippled_underline"},
+        {"name": "BoxOpt"              , "scope": "constant.language.symbol.option.box.wolfram"                     , "foreground": "var(boxOpt)"          , "font_style": "italic"},
+        {"name": "BoxOptHi"            , "scope": "meta.highlight_def constant.language.symbol.option.box.wolfram"  , "foreground": "var(boxOpt)"          , "font_style": "italic stippled_underline"},
+        {"name": "PkgDec"              , "scope": "meta.package.declaration.wolfram"                                , "foreground": "var(pink)"            , "background": "color(var(pink) alpha(0.25))" , "font_style": "bold"},
+        {"name": "PkgFn"               , "scope": "meta.package.function.wolfram"                                   , "foreground": "var(pink)"            , "background": "color(var(pink) alpha(0.25))" , "font_style": "bold"},
+        {"name": "PkgDefCont"          , "scope": "meta.package.declaration.contents.wolfram"},
+        {"name": "Scope"               , "scope": "support.function.scoping"                                        , "foreground": "var(pink)",},
+        {"name": "ContFlow"            , "scope": "support.function.control.flow"                                   , "foreground": "var(controlFlow)",},
+        {"name": "Meta"                , "scope": "support.function.meta"                                           , "foreground": "var(meta)"            , "font_style": "glow"},
+        {"name": "MetaHi"              , "scope": "meta.highlight_def support.function.meta"                        , "foreground": "var(meta)"            , "font_style": "glow stippled_underline"},
+        {"name": "SpecOp"              , "scope": "keyword.operator.special"                                        , "foreground": "var(message)"},
+        {"name": "SpecVar"             , "scope": "support.function.special.variable"                               , "foreground": "var(specialVar)"      , "font_style": "glow"},
+        {"name": "SpecFn"              , "scope": "support.function.special"                                        , "foreground": "var(special)"},
+        {"name": "Pred"                , "scope": "support.function.predicate"                                      , "foreground": "var(predicate)"},
+        {"name": "CacheFn"             , "scope": "support.function.cache"                                          , "foreground": "var(cache)"           , "font_style": "glow"},
+        {"name": "CacheFnHi"           , "scope": "meta.highlight_def support.function.cache"                       , "foreground": "var(cache)"           , "font_style": "glow stippled_underline"},
+        {"name": "Symbol"              , "scope": "constant.language.symbol.wolfram"                                , "foreground": "var(plain)"           , "font_style": "italic"},
+        {"name": "Symbol2"             , "scope": "meta.highlight_def constant.language.symbol.wolfram"             , "foreground": "var(plain)"           , "font_style": "italic stippled_underline"},
+        {"name": "FormSym"             , "scope": "constant.language.symbol.form"                                   , "foreground": "var(form)"            , "background": "var(formBg)",},
+        {"name": "PattSym"             , "scope": "constant.language.symbol.pattern.wolfram"                        , "foreground": "var(pattern)"         , "font_style": "italic"},
+        {"name": "PattSymHi"           , "scope": "meta.highlight_def constant.language.symbol.pattern.wolfram"     , "foreground": "var(pattern)"         , "font_style": "italic stippled_underline"},
+        {"name": "StrPattSym"          , "scope": "constant.language.symbol.strpattern.wolfram"                     , "foreground": "var(strpattern)"      , "font_style": "italic"},
+        {"name": "StrPatternSymbol"    , "scope": "meta.highlight_def constant.language.symbol.strpattern.wolfram"  , "foreground": "var(strpattern)"      , "font_style": "italic stippled_underline"},
+        {"name": "Head"                , "scope": "constant.language.head.wolfram"                                  , "foreground": "var(head)"},
+        {"name": "TypeHead"            , "scope": "constant.language.head.type"                                     , "foreground": "var(typeHead)"},
+        {"name": "DataHead"            , "scope": "constant.language.head.data"                                     , "foreground": "var(dataHead)"},
+        {"name": "SymHead"             , "scope": "constant.language.head.symbolic"                                 , "foreground": "var(symHead)"},
+        {"name": "FormHead"            , "scope": "constant.language.head.form"                                     , "foreground": "var(form)"},
+        {"name": "PattHead"            , "scope": "constant.language.head.pattern.wolfram"                          , "foreground": "var(pattern)"},
+        {"name": "StrPattHead"         , "scope": "constant.language.head.strpattern.wolfram"                       , "foreground": "var(strpattern)"},
+        {"name": "String"              , "scope": "string"                                                          , "foreground": "var(string)"},
         {
             "name": "Comment",
             "scope": "comment, punctuation.definition.comment",
@@ -500,11 +198,6 @@
             "name": "Message Name",
             "scope": "string.unquoted.messagename.wolfram",
             "foreground": "var(message)"
-        },
-        {
-            "name": "String",
-            "scope": "string",
-            "foreground": "var(string)"
         },
         {
             "name": "String delimiters",
@@ -613,13 +306,13 @@
         {
             "name": "Function call",
             "scope": "variable.function, variable.annotation",
-            "foreground": "var(blue)"
+            "foreground": "var(userVar)"
         },
 
         {
             "name": "Variable",
             "scope": "support.function.variable",
-            "foreground": "var(blue)"
+            "foreground": "var(userVar)"
         },
         {
             "name": "Macro",

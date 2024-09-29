@@ -2,18 +2,20 @@ PackageExports[
 
   "SpecialFunction",
     MakeValid, MakeSealed,
-    WithTimestampsPreserved,
 
   "MutatingFunction",
     SetNoEntryFlag,  SetValidFlag,
     HSetNoEntryFlag, HSetValidFlag,
+
+  "IOFunction",
+    GetRefCount, GetContentCode,
 
   "Predicate",
     SealedQ, UnsealedQ,
     EntryFlagQ,   ValidFlagQ,  NoEntryFlagQ, NoValidFlagQ,
     HEntryFlagQ, HValidFlagQ, HNoEntryFlagQ, HNoValidFlagQ, MDataFlagQ,
     EvalRiskQ, NoEvalRiskQ, HMaybeFnQ, HNotFnQ, MaybeFnQ, NotFnQ,
-    HasAnyCodesQ, HasNoCodesQ, HasDownCodeQ, HasOwnCodeQ, HasSubCodeQ, HasUpCodeQ, HasPrintCodeQ,
+    HasAnyCodesQ, HasNoCodesQ, HasDownCodeQ, HasSubCodeQ, HasUpCodeQ, HasPrintCodeQ,
     HasAnyDefsQ,  HasNoDefsQ,  HasDownDefsQ, HasOwnDefsQ, HasSubDefsQ, HasUpDefsQ,
     HasIValueQ, HasDValueQ
 ];
@@ -21,9 +23,10 @@ PackageExports[
 (*************************************************************************************************)
 
 DefineAliasRules[
-  MakeValid        -> System`Private`ConstructValid,
   MakeSealed       -> System`Private`ConstructNoEntry
 ];
+
+MakeValid[sym_, args___] := System`Private`HoldSetValid[sym[args]];
 
 DefineAliasRules[
   SetNoEntryFlag   -> System`Private`SetNoEntry,
@@ -72,7 +75,6 @@ DefineAliasRules[
   HasNoDefsQ       -> System`Private`HasNoEvaluationsQ,
   HasDownCodeQ     -> System`Private`HasDownCodeQ,
   HasDownDefsQ     -> System`Private`HasDownEvaluationsQ,
-  HasOwnCodeQ      -> System`Private`HasOwnCodeQ,
   HasOwnDefsQ      -> System`Private`HasOwnEvaluationsQ,
   HasSubCodeQ      -> System`Private`HasSubCodeQ,
   HasSubDefsQ      -> System`Private`HasSubEvaluationsQ,
@@ -83,8 +85,11 @@ DefineAliasRules[
   HasDValueQ       -> System`Private`HasDelayedValueQ
 ];
 
+(* NOTE: HasOwnCodeQ has been removed, not sure why, we can't detect special symbols now *)
+
 (*************************************************************************************************)
 
 DefineAliasRules[
-  WithTimestampsPreserved -> Internal`WithTimestampsPreserved
+  GetRefCount      -> System`Private`GetRefCount,
+  GetContentCode   -> System`Private`GetContentCode
 ];

@@ -13,7 +13,7 @@ PackageExports[
     PrintInputCell, PrintOutputCell,
     PrintNextCellBoxData, PrintPreviousCellBoxData,
     DeleteNextGeneratedCells
-x];
+];
 
 (*************************************************************************************************)
 
@@ -87,6 +87,14 @@ CodeCellData[n_Int:1] := Locals[
 
 (*************************************************************************************************)
 
-PrintInputCell[e_]       := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[e, "Input", GeneratedCell -> False];
-PrintInputCell[Hold[e_]] := DisableCoreBoxFormatting @ CellPrint @ ExpressionCell[Defer @ e, "Input", GeneratedCell -> False];
-PrintOutputCell[e_]      := CellPrint @ ExpressionCell[e, "Output", GeneratedCell -> False];
+PrintInputCell[e_]        := iPrintInput @ e;
+PrintInputCell[Hold[e_]]  := iPrintInput @ PrivHold @ e;
+PrintInputCell[HoldC[e_]] := iPrintInput @ PrivHold @ e;
+
+PrintOutputCell[e_]       := iPrintOutput @ e;
+
+(*************************************************************************************************)
+
+iPrintInput[e_]  := CellPrint @ Cell[BoxData @ MakeExprBoxes @ InputForm @ e, "Input", GeneratedCell -> False];
+iPrintOutput[e_] := CellPrint @ Cell[BoxData @ MakeExprBoxes @ e, "Output", GeneratedCell -> False];
+

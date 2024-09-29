@@ -41,8 +41,8 @@ DefinePatternRules[
   NArrayTypeP -> HoldP[NArrayType[_, _, _]]
 ];
 
-DefinePatternMacro[MGraphDataP,
-  NArrayDataP[dsym_, tsym_] :> HoldP[NArray[InternalData[dsym, tsym]] ? SealedQ]
+PatternMacroDefs[
+  NArrayDataP[dsym_, tsym_] := HoldP[NArray[InternalData[dsym, tsym]] ? SealedQ]
 ];
 
 (**************************************************************************************************)
@@ -63,7 +63,7 @@ procArrayType = CaseOf[
 
 (**************************************************************************************************)
 
-CoreBoxes[na_NArray ? SealedQ] := nArrayBoxes @ na;
+CoreBox[na_NArray ? SealedQ] := nArrayBoxes @ na;
 
 nArrayBoxes[_] := FailEval;
 
@@ -86,11 +86,12 @@ NArrayDims[_] := $Failed;
 
 (**************************************************************************************************)
 
-CoreBoxes[GradedSum[dict_Dict]] := formalSumBoxes @ MapValues[ToBoxes, dict];
+CoreBox[GradedSum[dict_Dict]] := formalSumBoxes @ MapValues[ToBoxes, dict];
 
 formalSumBoxes[{}]    := NiceObjectBoxes["GradedSum", {}, .2];
 formalSumBoxes[list_] := RiffledRowBox[$formalPlus][list];
-$formalPlus = MarginBox[.5] @ StyleBox["+", FontFamily -> "Roboto", FontSize -> (2 + Inherited), FontColor -> Orange];
+
+$formalPlus := $formalPlus = MarginBox[.5] @ StyleBox["+", FontFamily -> "Roboto", FontSize -> (2 + Inherited), FontColor -> Orange];
 
 NArray /: FormalSum[a_NArray, b___] := NArrayPlus[a, b];
 

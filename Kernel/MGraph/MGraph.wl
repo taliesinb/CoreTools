@@ -120,8 +120,8 @@ DefinePatternRules[
   MGraphP -> HoldP[Multigraph[_InternalData] ? SealedQ]
 ];
 
-DefinePatternMacro[MGraphDataP,
-  MGraphDataP[sym_] :> HoldP[Multigraph[InternalData[sym]] ? SealedQ]
+PatternMacroDefs[
+  MGraphDataP[sym_] := HoldP[Multigraph[InternalData[sym]] ? SealedQ]
 ];
 
 (**************************************************************************************************)

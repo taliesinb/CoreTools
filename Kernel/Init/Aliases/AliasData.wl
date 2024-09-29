@@ -15,8 +15,8 @@ PackageExports[
     BagPart, BagLength, ExpandBags,
     HashTableGet, HashTableClone, HashTableToDict, HashTableKeys, HashTableValues, ExpandHashTables,
     GlobalWeakTableGet,
-    ToPacked, FromPacked, PackedType, ToPackedInts, ToPackedReals,
-    ToPackedTree, DimsTree, DimsProd, FlatProd,
+    ToPacked, FromPacked, PackedType, PackedSize, DimsSize, ToPackedInts, ToPackedReals,
+    ToPackedTree, DimsTree, DimsTreeProd, FlatProd,
 
   "FormHead",
     PackedForm,
@@ -129,6 +129,10 @@ DefineAliasRules[
 ToPackedInts[arr_]  := ToPacked[arr, Integer];
 ToPackedReals[arr_] := ToPacked[N @ arr, Real];
 
+DimsSize[arr_]             := Times @@ Dimensions[NoEval @ arr]
+PackedSize[arr_ ? PackedQ] := DimsSize @ arr;
+PackedSize[_]              := None;
+
 (*************************************************************************************************)
 (**************************************************************************************************)
 
@@ -136,7 +140,7 @@ ToPackedReals[arr_] := ToPacked[N @ arr, Real];
 DefineAliasRules[
   ToPackedTree         -> NumericalMath`Derivatives`ToPackedExpression,
   DimsTree             -> NumericalMath`Derivatives`RaggedDimensions,
-  DimsProd             -> NumericalMath`Derivatives`NumberOfElements,
+  DimsTreeProd         -> NumericalMath`Derivatives`NumberOfElements,
   FlatProd             -> FlatProduct
 ];
 

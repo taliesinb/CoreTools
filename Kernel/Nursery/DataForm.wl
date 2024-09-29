@@ -4,7 +4,7 @@ PackageExports[
 
 (*************************************************************************************************)
 
-CoreBoxes[DataForm[e_]] := PaneBox[
+CoreBox[DataForm[e_]] := PaneBox[
   DataFormBoxes[e],
   FrameStyle -> GrayLevel[0.9],
   DefaultBaseStyle -> ToList[AutoIndent -> False, LineBreakWithin -> False, $CodePaneBaseStyle]
@@ -15,7 +15,7 @@ $maxArrayElems = 200;
 $maxListLen = 50;
 $maxStrLen = 64;
 DataFormBoxes[e_, n_Int:80] := Check[
-  DisableCoreBoxFormatting @ LineFlowedBoxes[dataBox @ e, n],
+  BlockFormatting @ LineFlowedBoxes[dataBox @ e, n],
   StyleBox["(MessagesDuringFormatting)", $Red, Bold]
 ];
 
@@ -230,7 +230,7 @@ exprBox = CaseOf[
 (*
 SetHoldC[dShortQ, dShallowQ, dSmallQ];
 
-dShortQ[e_] := GuessInputStrLen[PrivateHold[e], PrintPrecision -> 3];
+dShortQ[e_] := GuessInputStrLen[PrivHold[e], PrintPrecision -> 3];
 dShallowQ[e_] := VectorQ[e, dSmallQ];
 dSmallQ[_Symbol[e_ ? dSmallQ]] := True;
 dSmallQ[e_Symbol ? HoldSymbolQ] := True;

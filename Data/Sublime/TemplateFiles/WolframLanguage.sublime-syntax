@@ -748,6 +748,8 @@ contexts:
       scope: variable.function.wolfram
     - match: '(?:`{{symbolSegment}})+'
       scope: symbol.unrecognized.wolfram
+    - match: '[$]{{symbolSegment}}[$]'
+      scope: symbol.dummy.wolfram
     - match: '[$][A-Z]{{symbolSegment}}'
       scope: variable.global.unrecognized.wolfram
     - match: '[$]{{symbolSegment}}'

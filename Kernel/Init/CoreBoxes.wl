@@ -1,47 +1,54 @@
 SystemExports[
-  "FormHead",          FormBlock, Themed, Unformatted, Uninteractive, ExpanderForm, OutlineForm, ElidedForm, HoldElidedForm,
+  "FormHead",          FormBlock, Themed, Unformatted, Uninteractive, ElidedForm, HoldElidedForm,
   "BoxSymbol",         Ellipsis
 ];
 
 PackageExports[
-  "IOFunction",        ThemeValue, MakeCoreBoxes, CoreBoxes, SystemBoxes, MapMakeBoxes, MapMakeBoxesSeq,
-  "DebuggingFunction", MakeCoreBoxesTraditional, MakeCoreBoxesModified,
-  "SpecialVariable",   $ThemeStack, $UseCoreBoxFormatting, $UseCoreBoxInteractivity, $CurrentCoreBoxModifiers, $UseTraditionalForm,
-  "ScopingFunction",   DisableCoreBoxFormatting, DisableCoreBoxInteractivity,
+  "IOFunction",        ThemeValue, MakeCoreBox, CoreBox, SystemBox, MapMakeBox, MapSeqMakeBox,
+  "SpecialVariable",   $ThemeStack, $CoreFormatting, $CoreInteractive,
+  "ScopingFunction",   BlockFormatting, BlockInteractive,
   "FormHead",          DotsForm, CDotsForm, MsgForm, StrForm,
-  "MetaFunction",      DeclareCoreBoxes, DeclareCoreSubBoxes, MakeBoxDefinitions, DeclareOutlineBoxes, DeclareExpanderBoxes, SetAtomFormHead, SetCompoundFormHead,
+  "MetaFunction",      DeclareCoreBox, DeclareCoreSubBoxes, MakeBoxDefinitions,
+                       SetForm0, SetForm1,
+                       SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn,
   "Function",          CompoundFormArity,
-  "BoxFunction",       DotsBox,  CDotsBox, HoldLenBox, LenBox, NiceErrorBox, MsgFormBoxes, StrFormBoxes,
-  "BoxFunction",       UnformattedBoxes, OutlineBoxes, ExpanderBoxes, HoldExpanderBoxes, ElidedBox, HoldElidedBox,
-  "Predicate",         HasCoreBoxesQ, CoreBoxHeadQ, AtomFormHeadQ, CompoundFormHeadQ
+  "BoxFunction",       DotsBox,  CDotsBox, HoldLenBox, LenBox, RedMsgFormBox, RedErrorBox, MsgFormBox, BoxFnErrorBox, StrFormBox,
+  "BoxFunction",       UnformattedBoxes, ElidedBox, HoldElidedBox,
+  "Predicate",         HasCoreBoxQ, HasCoreSubBoxQ, CoreBoxSubHeadQ, CoreBoxHeadQ, AtomFormHeadQ, CompoundFormHeadQ
 ];
 
 PrivateExports[
-  "CacheVariable",     $CoreBoxHeadDict, $OutlineBoxHeadDict,
-  "CacheVariable",     $CoreBoxStore, $OutlineBoxStore, $AtomFormStore, $CompoundFormStore
+  "CacheVariable",     $CoreBoxHeadDict, $CoreBoxStore, $CoreBoxSubStore, $AtomFormStore, $CompoundFormStore
 ];
 
 (**************************************************************************************************)
 
-DeclaredHere[MsgForm]
+SystemBox /: SetDelayed[SystemBox[lhs_], rhs_] := (
+  MakeBoxes[lhs, StandardForm | TraditionalForm] := rhs;
+);
 
-SetHoldF[MsgForm];
+Protect[SystemBox];
 
-MakeBoxes[MsgForm[args___], StandardForm | TraditionalForm] := MsgFormBoxes[args];
+(**************************************************************************************************)
 
-MsgFormBoxes = CaseOf[
+DeclaredHere @ MsgForm;
+SetHoldA @ MsgFormBox;
+
+SystemBox[MsgForm[args___]] := MsgFormBox[args];
+
+MsgFormBox = CaseOf[
   msg_Str            := MakeBoxes @ msg;
-  $[msg_Str, args__] := StrFormBoxes[msg, MapSeq[MsgPrePrint, args]];
-  $[args___]         := StrFormBoxes[MapSeq[MsgPrePrint, args]];
+  $[msg_Str, args__] := StrFormBox[msg, HoldMap[MsgArgForm, args]];
+  $[args___]         := StrFormBox[HoldMap[MsgArgForm, args]];
 ];
 
 (**************************************************************************************************)
 
-DeclaredHere[StrForm]
+DeclaredHere @ StrForm;
 
-MakeBoxes[StrForm[args___], StandardForm | TraditionalForm] := StrFormBoxes[args];
+SystemBox[StrForm[args___]] := StrFormBox[args];
 
-StrFormBoxes = CaseOf[
+StrFormBox = CaseOf[
   msg_Str            := MakeBoxes @ msg;
   $[msg_Str, args__] := First @ ToBoxes @ StringForm[msg, args];
   $[args___]         := ToBoxes @ RawRow[{LGAngle, args, RGAngle}, ";"]
@@ -50,21 +57,14 @@ StrFormBoxes = CaseOf[
 (**************************************************************************************************)
 
 Initially[
-  $CoreBoxHeadDict = UDict[];
-  $OutlineBoxHeadDict = UDict[];
+  $CoreBoxHeadDict   = UDict[];
   $CoreBoxStore      = KeyStoreNew[{}];
-  $OutlineBoxStore   = KeyStoreNew[{}];
+  $CoreBoxSubStore   = KeyStoreNew[{}];
   $AtomFormStore     = KeyStoreNew[{Image, Graph}];
-  $CompoundFormStore = StoreNew[{
-    Row -> 1, Column -> 1, Grid -> 1, Pane -> 1, Framed -> 1, Labeled -> 2, EventHandler -> 1,
-    TableForm -> 1, MatrixForm -> 1,
-    Annotation -> 1, Tooltip -> 2, Style -> 1, DirectedEdge -> All, UndirectedEdge -> All
-  }];
-  $ThemeStack = List[];
-  $UseTraditionalForm = False;
-  $CurrentCoreBoxModifiers = UDict[TraditionalForm :> $UseTraditionalForm];
-  $UseCoreBoxFormatting = True;
-  $UseCoreBoxInteractivity = True;
+  $CompoundFormStore = StoreNew[LoadSystemData["SystemForms.mx"]];
+  $ThemeStack        = List[];
+  $CoreFormatting    = True;
+  $CoreInteractive   = True;
 ];
 
 (**************************************************************************************************)
@@ -85,210 +85,190 @@ any recursion can return DefaultValue, which will cause us to keep looking.
 
 (**************************************************************************************************)
 
-SetHoldA[MapMakeBoxes, MapMakeBoxesSeq]
+SetHoldA[MapMakeBox, MapSeqMakeBox]
 
-MapMakeBoxes = CaseOf[
+MapMakeBox = CaseOf[
   items_Dict := KeyMapValueMap[MakeBoxes, MakeBoxes, items]; (* KMVM preserves holdness *)
   items_List := HoldMap[MakeBoxes, items];
 ];
 
-MapMakeBoxesSeq[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
+MapSeqMakeBox[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
 
 (**************************************************************************************************)
 
-SetHoldC[HasCoreBoxesQ]
-SetPred1[HasCoreBoxesQ]
+SetPred1 @ SetHoldC[HasCoreBoxQ, HasCoreSubBoxQ]
 
-HasCoreBoxesQ[s_] = Lookup[$CoreBoxHeadDict, Hold @ s, False];
-
-(**************************************************************************************************)
-
-SetHoldC[MakeCoreBoxes, DisableCoreBoxFormatting, DisableCoreBoxInteractivity]
-
-(* we'll add to these definitions *)
-MakeCoreBoxes[_] := FailEval;
-
-DisableCoreBoxFormatting[body_]    := Block[{$UseCoreBoxFormatting = False}, body];
-DisableCoreBoxInteractivity[body_] := Block[{$UseCoreBoxInteractivity = False}, body];
-
-(* TODO: make interactivity just a modifier *)
+(* TODO: switch to using $CoreBoxStore *)
+HasCoreBoxQ[s_Sym]    := Lookup[$CoreBoxHeadDict, Hold @ s, False];
+HasCoreSubBoxQ[s_Sym] := Lookup[$CoreBoxHeadDict, Hold @ s, False];
 
 (**************************************************************************************************)
 
-SetHoldC[MakeCoreBoxesModified, MakeCoreBoxesTraditional]
+SetHoldC[MakeCoreBox];
 
-MakeCoreBoxesModified[rules_, expr_] :=
-  BlockAssociate[$CurrentCoreBoxModifiers, rules, MakeCoreBoxes @ expr];
-
-MakeCoreBoxesTraditional[expr_] :=
-  BlockTrue[$UseTraditionalForm, MakeCoreBoxes @ expr];
+MakeCoreBox[_] := $Failed;
 
 (**************************************************************************************************)
 
-SetHoldA[DeclareCoreBoxes, DeclareCoreSubBoxes]
-DeclareDeclare[DeclareCoreBoxes, DeclareCoreSubBoxes]
+MakeBoxes[  Unformatted[lhs_], form_] /; $CoreFormatting :=  BlockFormatting @ MakeBoxes[lhs, form];
+MakeBoxes[Uninteractive[lhs_], form_] /; $CoreFormatting := BlockInteractive @ MakeBoxes[lhs, form];
 
+SetHoldC[BlockFormatting, BlockInteractive];
 
-DeclareCoreBoxes[sym_Symbol] := With[
-  {name = SymbolName[sym]},
+ BlockFormatting[body_] := Block[{ $CoreFormatting = False}, body];
+BlockInteractive[body_] := Block[{$CoreInteractive = False}, body];
+
+(**************************************************************************************************)
+
+SetHoldA @ DeclareCoreBox;
+DeclareDeclare @ DeclareCoreBox;
+
+DeclareCoreBox[sym_Symbol] := With[{name = SymName[sym]},
 
   $CoreBoxHeadDict[Hold[sym]] = True;
   KeyStoreAdd[$CoreBoxStore, NoEval @ sym];
 
-  MakeBoxes[$LHS:sym | _sym, StandardForm] /; $UseCoreBoxFormatting :=
-    MaybeEval @ MakeCoreBoxes @ $LHS;
-
-(*   MakeBoxes[$LHS:sym | _sym, StandardForm] /; $UseCoreBoxFormatting :=
-    MaybeEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
- *)
-  MakeBoxes[$LHS:sym | _sym, TraditionalForm] /; $UseCoreBoxFormatting :=
-    MaybeEval @ MakeCoreBoxesTraditional @ $LHS;
+  MakeBoxes[$LHS:sym | _sym, _] /; $CoreFormatting :=
+    With[{res = MakeCoreBox @ $LHS}, res /; res =!= $Failed];
 ];
 
-DeclareCoreSubBoxes[sym_Symbol] := With[
-  {name = SymbolName[sym]},
+(**************************************************************************************************)
+
+SetHoldA @ DeclareCoreSubBoxes;
+DeclareDeclare @ DeclareCoreSubBoxes;
+
+DeclareCoreSubBoxes[sym_Symbol] := With[{name = SymbolName[sym]},
 
   $CoreBoxHeadDict[Hold[sym]] = True;
-  KeyStoreAdd[$CoreBoxStore, NoEval @ sym];
 
-  MakeBoxes[$LHS:(_sym[___]), StandardForm] /; $UseCoreBoxFormatting :=
-    MaybeEval @ StatusAreaBox[MakeCoreBoxes @ $LHS, name];
+  KeyStoreAdd[$CoreBoxStore,    NoEval @ sym];
+  KeyStoreAdd[$CoreBoxSubStore, NoEval @ sym];
 
-  MakeBoxes[$LHS:(_sym[___]), TraditionalForm] /; $UseCoreBoxFormatting :=
-    MaybeEval @ MakeCoreBoxesTraditional @ $LHS;
+  MakeBoxes[$LHS:(_sym[___]), _] /; $CoreFormatting :=
+    With[{res = MakeCoreBox @ $LHS}, res /; res =!= $Failed];
 ];
 
 (**************************************************************************************************)
 
-CoreBoxes::unknownHead = "Don't know which symbol CoreBox rules are associated with."
-setupCoreBoxes[_] := Message[CoreBoxes::unknownHead];
-setupCoreBoxes[Hold[sym_Symbol]] := (DeclareCoreBoxes[sym]; setupCoreBoxes[sym] := Null);
+CoreBox::unknownHead = "Don't know which symbol CoreBox rules are associated with."
 
-CoreBoxes /: SetDelayed[CoreBoxes[lhs_], rhs_] := (
-  setupCoreBoxes @ PatHead @ lhs;
-  MakeCoreBoxes[lhs] := rhs;
+setupCoreBox[_]             := Message[CoreBox::unknownHead];
+setupCoreBox[Hold[sym_Sym]] := (DeclareCoreBox[sym]; setupCoreBox[sym] := Null);
+
+CoreBox /: SetDelayed[CoreBox[lhs_], rhs_] := (
+  setupCoreBox @ PatHead @ lhs;
+  MakeCoreBox[lhs] := rhs;
 );
 
-Protect[CoreBoxes];
+Protect[CoreBox];
 
 (**************************************************************************************************)
 
-SystemBoxes /: SetDelayed[SystemBoxes[lhs_], rhs_] := (
-  MakeBoxes[lhs, StandardForm | TraditionalForm] := rhs;
-);
-
-Protect[SystemBoxes];
-
-(**************************************************************************************************)
-
-SetHoldF[FormBlock]
+SetHoldF @ FormBlock;
 
 FormBlock::usage =
 "FormBlock[var$ = val$, expr$] typesets expr$ with the given override, applied at boxification.
 FormBlock[{var$1 = val$1, $$}, expr$] applies multiple settings."
 
-CoreBoxes[FormBlock[settings_, body_]] := formBlockBoxes[settings, body];
+CoreBox[FormBlock[settings_, body_]] := formBlockBoxes[settings, body];
 
-SetHoldA[formBlockBoxes];
+SetHoldA @ formBlockBoxes;
 
-formBlockBoxes[set_Set, expr_]    := formBlockBoxes[{set}, expr];
-formBlockBoxes[{set__Set}, expr_] := Block[{sym}, MakeBoxes @ expr];
-formBlockBoxes[bad_, expr_] := ErrorTooltipBox[MakeBoxes @ expr, FormBlock::badSettingArg, HoldForm @ bad];
+formBlockBoxes = CaseOf[
+  $[set_Set,    expr_] := formBlockBoxes[{set}, expr];
+  $[{set__Set}, expr_] := Block[{sym}, MakeBoxes @ expr];
+  $[bad_,       expr_] := ErrorTooltipBox[MakeBoxes @ expr, FormBlock::badSettingArg, HoldForm @ bad];
+  _                    := $Failed
+];
 
 FormBlock::badSettingArg = "Not a Set or list of Sets: ``"
 
 (**************************************************************************************************)
 
-MakeBoxes[Unformatted[lhs_], form:StandardForm | TraditionalForm] /; $UseCoreBoxFormatting :=
-  UnformattedBoxes[lhs, form];
+CoreBox[themed_Themed] := themedBoxes[themed];
 
-SetHoldC[UnformattedBoxes];
-
-UnformattedBoxes[lhs_, form_:StandardForm] :=
-  DisableCoreBoxFormatting @ MakeBoxes[lhs, form];
-
-(**************************************************************************************************)
-
-MakeBoxes[Uninteractive[lhs_], form:StandardForm | TraditionalForm] /; $UseCoreBoxFormatting := Block[
-  {$UseTraditionalForm = form === TraditionalForm, $UseCoreBoxInteractivity = False},
-  MakeBoxes[lhs, form]
-];
-
-(**************************************************************************************************)
-
-MakeBoxes[themed_Themed, form:StandardForm | TraditionalForm] /; $UseCoreBoxFormatting :=
-  themedBoxes[themed];
-
-SetHoldC[themedBoxes];
+SetHoldC @ themedBoxes;
 
 themedBoxes = CaseOf[
   Themed[expr_, theme_Str] := MakeBoxes @ expr;
   Themed[expr_]            := MakeBoxes @ expr;
-  Themed[]                 := RBox["Themed", "[", "]"];
+  _                        := $Failed;
 ];
 
 (*************************************************************************************************)
 
-NiceErrorBox[e_String, args__] := NiceErrorBox[StringForm[e, args]];
+RedMsgFormBox = CaseOf[
+  $[e_Str, args__]          := RedMsgFormBox[StringForm[e, args]];
+  $[e:(_Str | _StringForm)] := RedErrorBox[MakeBox @ e];
+  $[___]                    := RedErrorBox["InvalidRedMsgFormBox"];
+];
 
-NiceErrorBox[e:(_String | _StringForm)] := FrameBox[
-  MakeBoxes @ e,
-  Alignment -> Center,
+(*************************************************************************************************)
+
+RedErrorBox[boxes_, tooltip_] :=
+  NiceTooltipBox[RedErrorBox @ boxes, tooltip];
+
+RedErrorBox[None] := Make[GraphicsBox, {},
   Background -> $LightRed,
+  ImageSize -> {10,10}, BaselinePosition -> Scaled[0.1]
+];
+
+RedErrorBox[boxes_] := TagBox[FrameBox[boxes,
+  FrameMargins -> {{3, 3}, {-1, -1}}, BaselinePosition -> Baseline,
+  ContentPadding -> True,
+  Alignment -> Center,
+  Background -> Lighter[$LightRed],
   FrameStyle -> $DarkRed
+], RedErrorBox];
+
+_RedErrorBox := StyleBox["InvalidRedErrorBox", $Red];
+
+(* ensure errors propogate *)
+BlockUnprotect[TagBox,
+  ebox:TagBox[_, RedErrorBox][___] := ebox;
 ];
+
+(*************************************************************************************************)
+
+SetHoldC[BoxFnErrorBox, dynCodeBox];
+
+BoxFnErrorBox[h_Sym, e_] := RedErrorBox[StyleBox[AliasSymName @ h, FontSize -> 10], dynCodeBox @ e];
+BoxFnErrorBox[_, e_]     := RedErrorBox[None, dynCodeBox @ e];
+BoxFnErrorBox[e_]        := RedErrorBox[None, dynCodeBox @ e];
+BoxFnErrorBox[]          := RedErrorBox[None];
+
+dynCodeBox[expr_] := CreateCachedBox[CodeStyleBox @ MakeCodeBoxes[expr, 2, 4]]
 
 (**************************************************************************************************)
 
-CoreBoxes[OutlineForm[expr_]]           := OutlineBoxes[expr];
+DeclaredHere[SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn]
+
+setCurryBoxFnUnary[sym_Sym] := Then[
+  SetD[e:sym[BlankSeq2], BoxFnErrorBox[sym, e]],
+  SetD[sym[],            BoxFnErrorBox[sym, sym[]]]
+];
+
+setCurryBoxFnBinary[sym_Sym] := Then[
+  SetD[e:sym[BlankSeq3], BoxFnErrorBox[sym, e]],
+  SetD[sym[],          BoxFnErrorBox[sym, sym[]]]
+];
+
+DeclarationDefs[
+  SetBoxFn[sym_Sym]        := SetD[e_sym,           BoxFnErrorBox[sym, e]],
+  SetCurryBoxFn[sym_Sym]   := SetD[e:sym[___][___], BoxFnErrorBox[sym, e]],
+  SetCurry1BoxFn[sym_Sym]  := Then[SetCurryBoxFn @ SetCurry1[sym],  setCurryBoxFnUnary[sym]],
+  SetCurry2BoxFn[sym_Sym]  := Then[SetCurryBoxFn @ SetCurry2[sym],  setCurryBoxFnUnary[sym]],
+  SetCurry23BoxFn[sym_Sym] := Then[SetCurryBoxFn @ SetCurry23[sym], setCurryBoxFnBinary[sym]]
+]
 
 (**************************************************************************************************)
 
-SetHoldC[OutlineBoxes, outlineBoxesSmart, outlineBoxesFull, outlineBoxesArgs, outlineBoxesLeaf, outlineQ];
-
-OutlineBoxes[HoldForm[expr_]] := OutlineBoxes[expr];
-OutlineBoxes[expr_] := If[HoldLen[expr] <= 4, outlineBoxesFull @ expr, outlineBoxesSmart @ expr];
-
-outlineQ[head_] := TrueQ[$OutlineBoxHeadDict @ Hold @ head];
-
-outlineBoxesSmart = CaseOf[
-  expr:((head_Sym ? outlineQ)[___]) := outlineBoxesFull[expr];
-  expr:(head_Sym[___])              := HoldElidedBox @ expr;
-  expr_                             := outlineBoxesLeaf @ expr;
-];
-
-outlineBoxesFull = CaseOf[
-  expr:(head_Sym[args___])          := outlineHeadArgs[head, outlineBoxesArgs @ List[args]];
-  expr_                             := outlineBoxesLeaf @ expr;
-];
-
-outlineBoxesArgs = CaseOf[
-  {some:Repeated[_, {6}], rest__}   := CommaRowBox @ Append[DotsBox @ HoldSeqLen @ rest] @ HoldMap[outlineBoxesSmart, {some}];
-  args_List                         := CommaRowBox @ HoldMap[outlineBoxesSmart, args];
-];
-
-(* SetHoldF @ outlineHeadArgs;
-outlineHeadArgs = CaseOf[
-  $[_, argBoxes_]        := RBox[Dots, "[", GrayBox @ argBoxes, "]"];
-  $[sym_Sym, argBoxes_]  := RBox[AliasSymName @ sym, "[", GrayBox @ argBoxes, "]"];
-  $[List, argBoxes_]     := RBox[LBrace,    GrayBox @ argBoxes, RBrace];
-  $[Dict, argBoxes_]     := RBox[LAssoc, GrayBox @ argBoxes, RAssoc];
-];
- *)
-
-(* outlineBoxesLeaf = CaseOf[
-  i_Int                           := IntStr @ i;
-  s_Sym                           := AliasSymName @ s;
-  s_Str ? HAtomQ /; StrLen[s] < 4 := MakeBoxes @ s;
-  e_                              := HoldElidedBox @ e;
-];
- *)
-(**************************************************************************************************)
+DeclaredHere[ElidedForm, HoldElidedForm];
 
 SetHoldC[HoldElidedForm, HoldElidedBox];
 
-CoreBoxes[ElidedForm[expr_]]     := HoldElidedBox @ expr;
-CoreBoxes[HoldElidedForm[expr_]] := HoldElidedBox @ expr;
+CoreBox[ElidedForm[expr_]]     := HoldElidedBox @ expr;
+CoreBox[HoldElidedForm[expr_]] := HoldElidedBox @ expr;
 
 ElidedBox[expr_] := HoldElidedBox @ expr;
 
@@ -321,16 +301,16 @@ elidedDictBox[d_]          := RBox[LAssoc, HoldLenBox @ d, RAssoc];
 
 SetHoldC[HoldLenBox];
 
-LenBox[e_]     := HoldLenBox @ e;
+LenBox[e_] := HoldLenBox @ e;
 
-HoldLenBox[AtomP] := Dots;
+HoldLenBox[AtomP] := CDots;
 HoldLenBox[e_] := DotsBox @ HoldLen @ e;
 
 (**************************************************************************************************)
 
-CoreBoxes[Ellipsis]                     := Dots;
-CoreBoxes[DotsForm[expr_, pos_:Below]]  := DotsBox[MakeBoxes @ expr, pos];
-CoreBoxes[CDotsForm[expr_, pos_:Below]] := CDotsBox[MakeBoxes @ expr, pos];
+CoreBox[Ellipsis]                     := Dots;
+CoreBox[DotsForm[expr_, pos_:Below]]  := DotsBox[MakeBoxes @ expr, pos];
+CoreBox[CDotsForm[expr_, pos_:Below]] := CDotsBox[MakeBoxes @ expr, pos];
 
 DotsBox[]               := Dots;
 DotsBox[None]           := Dots;
@@ -346,101 +326,29 @@ CDotsBox[num_Int, True]  := SubscriptBox[CDots, RaiseBox[IntStr @ num, 1]];
 
 (**************************************************************************************************)
 
-DeclareSeqScan[DeclareOutlineBoxes]
-
-DeclareOutlineBoxes[sym_Symbol] := Then[
-  $OutlineBoxHeadDict[Hold[sym]] = True,
-  zStoreAdd[$OutlineBoxStore, NoEval @ sym];
-  CoreBoxes[s_sym] := outlineBoxesFull[s]
-];
-
-DeclareOutlineBoxes[InternalData];
-
-(**************************************************************************************************)
-
-DeclareSeqScan[DeclareExpanderBoxes]
-
-DeclareExpanderBoxes[sym_Sym] := CoreBoxes[sym[args___]] := HoldExpanderBoxes[sym, args];
-
-(**************************************************************************************************)
-
-$remExpansions = Inf;
-
-CoreBoxes[ExpanderForm[head_Sym[args___]]] :=
-  StyleBox[HoldExpanderBoxes[head, args], ShowStringCharacters -> True];
-
-CoreBoxes[ExpanderForm[head_Sym[args___], level_]] := StyleBox[
-  BlockSet[$remExpansions, level, HoldExpanderBoxes[head, args]],
-  StyleBox[HoldExpanderBoxes[head, args], ShowStringCharacters -> True]
-];
-
-SetHoldC[HoldExpanderBoxes, makeExpanderBoxes1, makeExpanderBoxes2, openHead, closeHead];
-
-ExpanderBoxes[args___] := HoldExpanderBoxes[args];
-HoldExpanderBoxes[head_Sym, args___] := makeExpanderBoxes2[head, {args}];
-
-makeExpanderBoxes1[expr_] := MakeBoxes[expr];
-makeExpanderBoxes1[head_Sym[args___]] := makeExpanderBoxes2[head, {args}];
-
-makeExpanderBoxes2[Rule, {d:DatumP, rhs_}] :=
-  joinFirstRow[RowBox[{MakeBoxes @ d, "\[Rule]", makeExpanderBoxes1 @ rhs}]];
-
-joinFirstRow[boxes_] := boxes;
-joinFirstRow[RowBox[{a_, b_, GridBox[{{f1_, fr___}, rest___}, opts___]}]] :=
-  GridBox[{{RowBox[{a, b, f1}], fr}, rest}, opts];
-
-
-makeExpanderBoxes2[head_Sym, {}] := RBox[openHead @ head, closeHead @ head];
-makeExpanderBoxes2[head_Sym, args_List] := ColumnBox[
-  FlatList[
-    openHead @ head,
-    MapMostLast[
-      addTabComma, RBox["\t", #]&,
-      If[$remExpansions > 0,
-        BlockDecrement[$remExpansions, HoldMap[makeExpanderBoxes1, args]],
-        MapMakeBoxes @ args
-      ]
-    ],
-    closeHead @ head
-  ],
-  Left,
-  RowAlignments -> Baseline
-];
-
-openHead[head_] := RBox[MakeBoxes @ head, "["];
-openHead[List]  := "{";
-openHead[Dict]  := LAssoc;
-
-closeHead[_]    := "]";
-closeHead[List] := "}";
-closeHead[Dict] := RAssoc;
-
-addTabComma[boxes_] := RBox["\t", boxes, ","];
-addTabComma[GridBox[grid_, opts___]] := RBox["\t", Make[GridBox, MapAt[addComma, grid, {-1, -1}], opts]];
-addComma[box_] := RBox[box, ","];
-
-(**************************************************************************************************)
-
 DeclareThenScan[MakeBoxDefinitions]
 
-(* TODO: why not use CoreBoxes for this? *)
+(* TODO: why not use CoreBox for this? *)
 MakeBoxDefinitions[SetDelayed[lhs_, rhs_]] := (
   MakeBoxes[lhs, StandardForm | TraditionalForm] := rhs;
 );
 
 (**************************************************************************************************)
 
+DeclaredHere[SetForm0, SetForm1];
+
 DeclarationDefs[
-  SetAtomFormHead[sym_Sym]     := KeyStoreAdd[$AtomFormStore, NoEval @ sym],
-  SetCompoundFormHead[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, 1]
+  SetForm0[sym_Sym] := KeyStoreAdd[$AtomFormStore, NoEval @ sym],
+  SetForm1[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, 1]
 ];
 
 (**************************************************************************************************)
 
-SetHoldC @ SetPred1[CoreBoxHeadQ, AtomFormHeadQ, CompoundFormHeadQ]
+SetHoldC @ SetPred1[CoreBoxHeadQ, CoreBoxSubHeadQ, AtomFormHeadQ, CompoundFormHeadQ]
 
-CoreBoxHeadQ[s_Sym]      := StoreKeyQ[$CoreBoxStore, NoEval @ s];
-AtomFormHeadQ[s_Sym]     := StoreKeyQ[$AtomFormStore, NoEval @ s];
+CoreBoxHeadQ[s_Sym]      := StoreKeyQ[$CoreBoxStore,      NoEval @ s];
+CoreBoxSubHeadQ[s_Sym]   := StoreKeyQ[$CoreBoxSubStore,   NoEval @ s];
+AtomFormHeadQ[s_Sym]     := StoreKeyQ[$AtomFormStore,     NoEval @ s];
 CompoundFormHeadQ[s_Sym] := StoreKeyQ[$CompoundFormStore, NoEval @ s];
-CompoundFormArity[s_Sym] := StoreGet[$CompoundFormStore, NoEval @ s];
+CompoundFormArity[s_Sym] := StoreGet[$CompoundFormStore,  NoEval @ s];
 

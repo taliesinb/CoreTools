@@ -143,12 +143,12 @@ attachAnnos[args___] := ReplaceAll[AnnoSplice[args], $annoRules];
 
 (*************************************************************************************************)
 
-CoreBoxes[GrammarAnnotation[tag_, body_]] :=
-  NiceTooltipBox[FrameBox[MakeBoxes @ body, FrameMargins -> 0, FrameStyle -> $DarkGreen, ContentPadding -> False], CodePaneBoxes @ tag];
+CoreBox[GrammarAnnotation[tag_, body_]] :=
+  NiceTooltipBox[FrameBox[MakeBoxes @ body, FrameMargins -> 0, FrameStyle -> $DarkGreen, ContentPadding -> False], CodePaneBox @ tag];
 
-CoreBoxes[GrammarSymbol[sym_]] := StyleBox[MakeBoxes @ sym, FontColor -> $DarkBlue];
+CoreBox[GrammarSymbol[sym_]] := StyleBox[MakeBoxes @ sym, FontColor -> $DarkBlue];
 
-CoreBoxes[GrammarPattern[body_]] := MakeBoxes @@ ReplaceRepeated[Hold[body], {VVerbatim[v_] :> v, VHoldP[v_] :> v}];
+CoreBox[GrammarPattern[body_]] := MakeBoxes @@ ReplaceRepeated[Hold[body], {VVerbatim[v_] :> v, VHoldP[v_] :> v}];
 
 (*************************************************************************************************)
 

@@ -9,6 +9,7 @@ SystemExports[
 
 PackageExports[
   "Function",
+    SetDsToRuleDs, ToHoldPRuleDs,
     ToBlankP, ToBlankSeqP, ToBlankNullSeqP, ToAltP,
     PatHead, DefHead, PatSyms, PatLHS,
     StripPatSyms, StripPatConds,
@@ -29,6 +30,17 @@ DefineAliasRules[
   StripPatSyms     -> StripPatternSymbols,
   StripPatConds    -> StripPatternConditions
 ];
+
+(*************************************************************************************************)
+
+SetDsToRuleDs[h:HoldC[{__SetD}]]  := Apply[RuleD, h, {2}];
+ToHoldPRuleDs[HoldC[r:{__RuleD}]] := MapAt[HoldP, NoEval @ r, {All, 1}];
+
+e_SetDsToRuleDs := Message[SetDsToRuleDs::internalError, HoldForm @ e];
+e_ToHoldPRuleDs := Message[ToHoldPRuleDs::internalError, HoldForm @ e];
+
+SetDsToRuleDs::internalError = "An internal error occurred: ``..";
+ToHoldPRuleDs::internalError = "An internal error occurred: ``.";
 
 (*************************************************************************************************)
 

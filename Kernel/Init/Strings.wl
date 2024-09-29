@@ -23,9 +23,6 @@ SystemExports[
     EscapeCharacters, UnescapeCharacters,
     EscapeDQuotes, EscapeSQuotes, EscapeNewlines,
 
-  "IOFunction",
-    HoldToInputString, ToInputString, FromInputString,
-
   "Predicate",
     CharQ, StringStartsEndsQ, UpperCase1Q, LowerCase1Q
 ];
@@ -35,31 +32,11 @@ PackageExports[
     DefineSeqRowStringForms,
   "Function",
     StringSelect, StringDiscard, StringSelectDiscard,
-    FnBracketStringRow, FnParenStringRow, FnBracketString, FnParenString,
+    FnStrRow, FnParenStrRow, FnStr, FnParenStr,
     StrTake1, StrTakeN,
-  "IOFunction",
-    HToInputStr, ToInputStr, FromInputStr,
   "Variable",
     $DQuote, $SQuote, $Newline, $DNewline, $Backslash
 ];
-
-(**************************************************************************************************)
-
-DefineAliasRules[
-  HToInputStr  -> HoldToInputString,
-  ToInputStr   -> ToInputString,
-  FromInputStr -> FromInputString
-];
-
-(**************************************************************************************************)
-
-HoldToInputString[e_]   := ToString[NoEval @ e, InputForm];
-ToInputString[e_]       := ToString[e, InputForm];
-
-SetStrict @ FromInputString;
-
-FromInputString[str_?StrOrVecQ]        := ToExpression[str, InputForm];
-FromInputString[str_?StrOrVecQ, head_] := ToExpression[str, InputForm, head];
 
 (**************************************************************************************************)
 
@@ -350,7 +327,7 @@ toStr2[i_Int]     := IntStr @ i;
 toStr2[Null]      := {};
 toStr2[s_StrExpr] := Map[toStr2, s];
 toStr2[l_List]    := Map[toStr2, l]
-toStr2[e_]        := (Echo[e]; "\[FilledSquare]");
+toStr2[e_]        := "\[FilledSquare]";
 
 stringyQ[_Str | _Int | Null] := True;
 stringyQ[l_List]             := VectorQ[l, stringyQ];
@@ -358,13 +335,13 @@ stringyQ[_]                  := False;
 
 (**************************************************************************************************)
 
-SetCurry1[FnBracketStringRow, FnParenStringRow]
+SetCurry1[FnStrRow, FnParenStrRow]
 
-FnBracketStringRow[f_ ? stringyQ, list_List ? stringyQ] := fnStr[f, "[", list, "]"];
-FnParenStringRow[f_ ? stringyQ, list_List ? stringyQ]   := fnStr[f, "(", list, ")"];
+FnStrRow[f_ ? stringyQ, list_List ? stringyQ] := fnStr[f, "[", list, "]"];
+FnParenStrRow[f_ ? stringyQ, list_List ? stringyQ]   := fnStr[f, "(", list, ")"];
 
-FnBracketString[f_ ? stringyQ][args___ ? stringyQ]      := fnStr[f, "[", {args}, "]"]
-FnParenString[f_ ? stringyQ][args___ ? stringyQ]        := fnStr[f, "(", {args}, ")"];
+FnStr[f_ ? stringyQ][args___ ? stringyQ]      := fnStr[f, "[", {args}, "]"]
+FnParenStr[f_ ? stringyQ][args___ ? stringyQ]        := fnStr[f, "(", {args}, ")"];
 
 fnStr[f_, l_, args_, r_] := toStr1 @ {f, l, Riffle[args, ", "], r};
 
@@ -384,6 +361,9 @@ DefineSeqRowStringForms[fnSeq_, fnRow_, tuples__List] := MapApply[
   ),
   {tuples}
 ];
+
+DeclaredHere[BraceString, AngleString, ParenString, BracketString]
+DeclaredHere[BraceStringRow, AngleStringRow, ParenStringRow, BracketStringRow]
 
 DefineSeqRowStringForms[
   DelimitedString, DelimitedStringRow,

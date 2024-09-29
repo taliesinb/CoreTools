@@ -1,7 +1,7 @@
 SystemExports[
   "Function",          NamedIconData,
   "GraphicsPrimitive", NamedIcon,
-  "OptionSymbol",      IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
+  "Option",            IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
   "Symbol",            Huge, MediumLarge, MediumSmall,
   "SymbolicHead",      Sized, Reversed
 ];
@@ -60,7 +60,7 @@ DefinePatternRules[
   namedIconP -> _Str | _Sized | _Reversed | _Repeating
 ];
 
-CoreBoxes[ni:NamedIcon[namedIconP, ___Rule]] := namedIconBoxes @ ni;
+CoreBox[ni:NamedIcon[namedIconP, ___Rule]] := namedIconBoxes @ ni;
 
 namedIconBoxes[_] := $Failed;
 namedIconBoxes[NamedIcon[name:namedIconP, opts___Rule]] := Locals @ CatchMessages[NamedIcon,
@@ -124,7 +124,7 @@ rawNamedIconBoxes[pos_, dir2_, name2_,
   iscaling = iscaling /. $scalingRules;
   align = align /. $alignmentRules;
   $imageSize = EnsurePair[imgSize * iscaling];
-  iconData = LookupOrThrow[$namedIconData, name, "unknownIcon", LiteralCommaStringForm @ Keys @ $namedIconData];
+  iconData = LookupOrThrow[$namedIconData, name, "unknownIcon", LiteralStringRow @ Keys @ $namedIconData];
   {prims, boxes, boxes3D, {{x1, x2}, {y1, y2}, {b1, b2}}, solid} = iconData;
   $styler = solidEmptyStyleBoxOp[solid, color, None, thickness];
   $originx = If[NumberQ @ align, Lerp[b1, b2, align], 0];

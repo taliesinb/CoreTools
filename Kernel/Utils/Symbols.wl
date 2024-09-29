@@ -1,8 +1,11 @@
-PackageExports[
+SystemExports[
   "Function",   FormalSymbol, FromFormalSymbol,
-  "FormHead",   SymbolNameForm, SymbolForm,
+  "FormHead",   SymbolNameForm, SymbolForm
+  "Function",   SymbolNameUsage, SymbolNameType, SymbolType, SymbolBaseContext
+];
+
+PackageExports[
   "TypeSymbol", FunctionSymbol, OperatorSymbol, ImmediateSymbol, DelayedSymbol, FormattingSymbol, InertSymbol, PatternSymbol, DataSymbol, UnknownSymbol
-  "Function",   SymbolNameUsage, SymbolNameType, SymbolType,
   "Predicate",  HasFormatDefsQ, HasBoxDefsQ,
   "TypeHead",   KernelSymbol
 ];
@@ -23,8 +26,14 @@ Initially[
 
 (**************************************************************************************************)
 
+SymbolBaseContext[sym_Sym | Hold[sym_Sym]] := baseContext @ Context @ NoEval @ sym;
+
+baseContext[context_Str] := baseContext[context] = NameFirst @ context;
+
+(**************************************************************************************************)
+
 SymbolNameUsage[name_Str ? NameQ] := Replace[
-  FromInputString[name, HoldCompFn[sym, MessageName[sym, "usage"]]],
+  FromInputStr[name, HoldCompFn[sym, MessageName[sym, "usage"]]],
   _MessageName :> None
 ];
 
@@ -34,8 +43,10 @@ SymbolNameUsage[_] := None;
 
 SetHoldC @ SymbolForm;
 
-SystemBoxes[SymbolForm[sym_Sym]]      := symbolNameBoxes[SymPath @ sym, SymbolType @ sym];
-SystemBoxes[SymbolNameForm[name_Str]] := symbolNameBoxes[name, SymbolNameType @ name];
+SetForm0[SymbolForm, SymbolNameForm];
+
+SystemBox[SymbolForm[sym_Sym]]      := symbolNameBoxes[SymPath @ sym, SymbolType @ sym];
+SystemBox[SymbolNameForm[name_Str]] := symbolNameBoxes[name, SymbolNameType @ name];
 
 (**************************************************************************************************)
 
@@ -134,7 +145,7 @@ $cachedBoxFormattingSymbols := $cachedBoxFormattingSymbols = $BoxFormattingSymbo
 
 $BoxFormattingSymbols := Union @ DelCases[$Failed] @ Map[getFmtTarget] @ Keys @ $BoxFormattingRules;
 
-$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes, DownValues @ MakeCoreBoxes];
+$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes, DownValues @ MakeCoreBox];
 
 (**************************************************************************************************)
 

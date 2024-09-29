@@ -1,5 +1,5 @@
 SystemExports[
-  "OptionSymbol",
+  "Option",
     TableHeadingStyle,
     FramePadding, RowFrames, RowFrameStyle, RowFramePadding, SpanningFrame,
     StylingFunction,
@@ -86,8 +86,8 @@ formToBlock = CaseOf[
 iToStrFallback = CaseOf[
   (head_ ? BurrowThroughHeadQ)[arg1_, ___] := formToBlock @ $ @ arg1;
   expr:(_Sym ? HasToStrFnQ)[___]           := makeSingleBlock @ checkToStr[expr, ToStrInternal @ expr];
-  head_Sym ? HasCoreBoxesQ                 := boxToBlock @ MakeBoxes @ head;
-  expr:(_Sym ? HasCoreBoxesQ)[___]         := boxToBlock @ MakeBoxes @ expr;
+  head_Sym ? HasCoreBoxQ                 := boxToBlock @ MakeBoxes @ head;
+  expr:(_Sym ? HasCoreBoxQ)[___]         := boxToBlock @ MakeBoxes @ expr;
   expr_                                    := makeSingleBlock @ checkToStr[expr, Null];
 ];
 
@@ -551,7 +551,7 @@ Options[StringBlockForm] = {
   StylingFunction -> "Linear"
 }
 
-CoreBoxes[sb:StringBlockForm[_, ___Rule]] :=
+CoreBox[sb:StringBlockForm[_, ___Rule]] :=
   MaybeEval @ Replace[stringBlockFormBoxes[sb], Except[_TemplateBox] :> Fail];
 
 (* the first template slot is linear syntax for FE display,

@@ -36,8 +36,8 @@ HoldTrieQ[Trie[_Store ? StoreQ]] := True;
 (* DefineSimpleMacro[TCount,     TCount[t_]         :> StoreGet[t, Tries`C]]
 DefineSimpleMacro[TLeaf,    TLeaf[t_]        :> StoreGet[t, Tries`L]]
  *)
-CoreBoxes[Tries`C] := StyleBox["C", $Gray];
-CoreBoxes[Tries`L] := StyleBox["L", $Red];
+CoreBox[Tries`C] := StyleBox["C", $Gray];
+CoreBox[Tries`L] := StyleBox["L", $Red];
 
 (*************************************************************************************************)
 
@@ -195,21 +195,21 @@ compareNodes[fn_, ignoreLeaves_, a_, b_] := And[
 
 SetInitial[$EnableTrieFormatting, True];
 
-CoreBoxes[t_Trie ? HoldTrieQ] := If[$EnableTrieFormatting,
+CoreBox[t_Trie ? HoldTrieQ] := If[$EnableTrieFormatting,
   NiceObjectBoxes["TNode", {trieGridBoxes @ t}, .2],
   trieExprBoxes @ t
 ];
 
-CoreBoxes[TrieGridForm[t_Trie ? HoldTrieQ]] := trieGridBoxes @ t;
+CoreBox[TrieGridForm[t_Trie ? HoldTrieQ]] := trieGridBoxes @ t;
 
-CoreBoxes[TrieExprForm[expr_]] := Block[{$EnableTrieFormatting = False}, MakeBoxes @ expr];
+CoreBox[TrieExprForm[expr_]] := Block[{$EnableTrieFormatting = False}, MakeBoxes @ expr];
 
 (*************************************************************************************************)
 
 ExpandTrieNodes[expr_] := ExpandBags @ ExpandStores @ expr;
 
 trieExprBoxes[Trie[node_Store]] :=
-  FnBracketBoxOp["Trie"][ToBoxes @ ExpandTrieNodes @ node];
+  FnRowBox["Trie"][ToBoxes @ ExpandTrieNodes @ node];
 
 (*************************************************************************************************)
 

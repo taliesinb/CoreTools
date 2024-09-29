@@ -9,73 +9,68 @@ SystemExports[
     EchoH, EchoHC, PEchoH,
     EchoArrow, PEchoArrow,
     EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
-  "SpecialVariable",
-    $EchoIndent, $EchoLHS,
-  "FormHead",
-    NicePaster
+  "SpecialVariable", $EchoIndent, $EchoLHS,
+  "FormHead",        NicePaster,
+  "DataHead",        StoredPaste
 ];
 
 PackageExports[
-  "DebuggingFunction",
-    EchoSet, EchoSetH, EchoSymbol, EchoBody,
-  "MessageFunction",
-    EchoBindingsBody, EchoBindingsCondition,
-  "BoxFunction",
-    NicePasterBoxes
+  "DebuggingFunction", EchoSet, EchoSetH, EchoSym, EchoBody,
+  "MessageFunction",   EchoBindingsBody, EchoBindingsCondition,
+  "IOFunction",        PasteStoredPaste,
+  "BoxFunction",       PasterBox
+];
+
+PrivateExports[
+  "Function",      StoredPasteGet, StoredPasteAdd,
+  "CacheVariable", $StoredPasteStore
 ];
 
 (*************************************************************************************************)
 
 Protect[$EchoLHS];
 
-NiceEcho[arg_]    := (printEchoPane @ PrivateHold @ arg; arg);
-NiceEcho[args___] := (printEchoPane @ PrivateSeq @ args; Construct[Sequence, args]);
-
-PEcho[arg_]    := Then[EchoPrint[arg], arg];
-PEcho[args___] := Then[EchoPrint[args], NoEval @ args];
-
-EchoL[lbl_][arg_]   := Then[echoLabel[lbl, arg], arg];
-EchoL[lbl_][args___] := Then[echoLabel[lbl, arg], NoEval @ args];
+NiceEcho[args___]    := With[{eval = args}, eval /; echoCode[eval]];
+PEcho[args___]       := With[{eval = args}, eval /; echoPrint[eval]];
+EchoL[lbl_][args___] := With[{eval = args}, eval /; echoLabel[lbl, eval]];
 
 (*************************************************************************************************)
 
-Echo1[arg_] := Then[echoLabel["1", arg], arg];
-Echo2[arg_] := Then[echoLabel["2", arg], arg];
-Echo3[arg_] := Then[echoLabel["3", arg], arg];
-Echo4[arg_] := Then[echoLabel["4", arg], arg];
-Echo5[arg_] := Then[echoLabel["5", arg], arg];
+Echo1[args___] := With[{eval = args}, eval /; echoLabel["1", eval]];
+Echo2[args___] := With[{eval = args}, eval /; echoLabel["2", eval]];
+Echo3[args___] := With[{eval = args}, eval /; echoLabel["3", eval]];
+Echo4[args___] := With[{eval = args}, eval /; echoLabel["4", eval]];
+Echo5[args___] := With[{eval = args}, eval /; echoLabel["5", eval]];
 
-SetHoldC @ echoLabel;
+SetHoldC[echoLabel, echoPrint, echoCode];
 
-echoLabel[lab_]         := labeledEchoPane[lab];
-echoLabel[lab_, arg_]   := labeledEchoPane[lab, PrivateHold @ arg];
-echoLabel[lab_, args__] := labeledEchoPane[lab, PrivateSeq @ args];
+echoLabel[lab_]         := (labeledEchoPane[lab]; True);
+echoLabel[lab_, args__] := (labeledEchoPane[lab, PrivHoldSeq @ args]; True);
+echoEval[arg_]          := (printEchoPane[arg]; True);
+echoCode[args___]       := (printEchoPane[PrivHold @ args]; True);
+echoPrint[args___]      := (EchoPrint[args]; True);
 
 (*************************************************************************************************)
 
-EchoBy[fn_, parts__][arg_] := With[{res = arg}, printEchoPane @ Apply[fn] @ FastQuietCheck[Part[Hold @ arg, All, parts], Missing]; res];
-EchoBy[fn_][arg_]          := With[{res = arg}, printEchoPane @ fn @ res; res];
-EchoBy[fn_][args___]       := Construct[Sequence, args];
+EchoBy[fn_][args___]          := iEchoBy[fn, args];
+EchoBy[fn_, parts__][args___] := iEchoBy[PartOp[parts] /* fn, args];
 
-EchoLen[arg_]     := With[{res = arg}, printEchoPane @ Length @ res; res];
-EchoLen[args___]  := Construct[Sequence, args];
+EchoLen[args___]  := iEchoBy[Len, args];
+EchoDims[args___] := iEchoBy[Dims, args];
+EchoOpts[args___] := iEchoBy[Options, args];
+EchoKeys[args___] := iEchoBy[Keys, args];
+EchoHead[args___] := iEchoBy[Head, args];
 
-EchoDims[arg_]    := With[{res = arg}, printEchoPane @ Dimensions @ res; res];
-EchoDims[args___] := Construct[Sequence, args];
+SetHoldA[iEchoBy];
 
-EchoOpts[arg_]    := With[{res = arg}, printEchoPane @ Options @ res; res];
-EchoOpts[args___] := Construct[Sequence, args];
-
-EchoKeys[arg_]    := With[{res = arg}, printEchoPane @ Keys @ res; res];
-EchoKeys[args___] := Construct[Sequence, args];
-
-EchoHead[arg_]    := With[{res = arg}, printEchoPane @ Head @ res; res];
-EchoHead[args___] := Construct[Sequence, args];
+iEchoBy[fn_, args__] := With[{eval = args}, eval /; echoEval[fn @ Seq1[eval]]];
+iEchoBy[fn_]         := With[{res = Seq[]}, res /; (EchoPrint["EchoBy: nothing to apply ", fn, " to!"]; True)];
 
 (*************************************************************************************************)
 
 SetHoldC[EchoTest]
-EchoTest[arg_] := (printEchoPane @ PrivateHold @ arg; True);
+
+EchoTest[args___] := echoCode[args];
 
 (*************************************************************************************************)
 
@@ -147,7 +142,7 @@ EchoBindingsBody[label_, names_, values_, body_] := Module[
     $RawPrintIndent--;
     With[{res2 = res}, printEchoArrowRaw["\[RuleDelayed]",
       namesValuesBoxes[label, names, values],
-      NicePasterBoxes[CodePaneBoxes[res2, {UpTo @ 500, UpTo @ 100}], res2]
+      PasterBox[MakeEchoBoxes[res2], res2]
     ]]
   ]
 ];
@@ -164,7 +159,7 @@ namesValuesBoxes[label_, names_, values_] := TightBox @ FontSizeBox[12] @ RBox[
 
 nameValueEntryBox[name_, HoldC[value___]] := RBox[
   StyleBox[name, $DarkGreen], ":",
-  NicePasterBoxes[CodePaneBoxes[PrivateHold @ value, {UpTo[150], UpTo[30]}], Hold[value]]
+  PasterBox[MakeEchoBoxes[PrivHold @ value], Hold[value]]
 ];
 
 $namesValuesGridOpts = Seq[
@@ -176,7 +171,7 @@ $namesValuesGridOpts = Seq[
 
 (*************************************************************************************************)
 
-AttachEchos[sym_Symbol] := (DownValues[sym] = Map[attachEchoRule, DownValues @ sym];);
+AttachEchos[sym_Sym] := (DownValues[sym] = Map[attachEchoRule, DownValues @ sym];);
 
 attachEchoRule[rule_] /; VContainsQ[rule, $EchoLHS] := rule;
 attachEchoRule[lhs_ :> rhs_] := RuleDelayed[$EchoLHS:lhs, EchoBody[$EchoLHS, rhs]];
@@ -237,11 +232,11 @@ EchoH[fn_[args___]] := Module[
   WithLocalSettings[
     $RawPrintIndent++
   ,
-    inner = Make[PrivateSeq, args];
+    inner = Make[PrivHoldSeq, args];
     res = Apply[fn, inner]
   ,
     $RawPrintIndent--;
-    With[{lhs2 = PrivateHold[fn[$inner]] /. $inner -> inner, res2 = res}, EchoArrow[lhs2, res2]]
+    With[{lhs2 = PrivHold[fn[$inner]] /. $inner -> inner, res2 = res}, EchoArrow[lhs2, res2]]
   ]
 ];
 
@@ -249,7 +244,6 @@ EchoH[fn_[args___]] := Module[
 (*************************************************************************************************)
 
 SetHoldC[EchoArrow, PEchoArrow]
-
 
 EchoArrow[a_, b_]         := printEchoArrow[a, b, True];
 EchoArrow[a_, b_, fill_]  := printEchoArrow[a, b, fill];
@@ -263,9 +257,9 @@ PEchoArrow[a:patt, b_]    := printPEchoArrow[a, b, False]
 
 (*************************************************************************************************)
 
-printEchoPane[e_] /; $EchoPrinting := EchoPrint @ CodePane[e, {{200, 300}, UpTo @ 100}];
+printEchoPane[e_] /; $EchoPrinting := EchoPrint @ RawBoxes @ MakeEchoBoxes @ e;
 
-labeledEchoPane[l_, e_] /; $EchoPrinting := EchoPrint[l, ": ", CodePane[e, {{200, 300}, UpTo @ 100}]];
+labeledEchoPane[l_, e_] /; $EchoPrinting := EchoPrint[l, ": ", RawBoxes @ MakeEchoBoxes @ e];
 
 (*************************************************************************************************)
 
@@ -274,22 +268,22 @@ SetHoldC[printPEchoArrow, printEchoArrow, printEchoArrowRaw]
 printPEchoArrow[lhs2_, rhs_, fill_] := With[
   {lhs = If[fill, fillImmediateVals, Identity] @ HoldForm @ lhs2},
   printEchoArrowRaw["\[Function]",
-    NicePasterBoxes[PaneBox[MakeBoxes @ lhs, ImageSize -> {{200, 300}, UpTo @ 100}], lhs],
-    NicePasterBoxes[PaneBox[MakeBoxes @ rhs, ImageSize -> {UpTo @ 500, UpTo @ 100}], rhs]
+    PasterBox[PaneBox[MakeBoxes @ lhs, ImageSize -> {{200, 300}, UpTo @ 100}], lhs],
+    PasterBox[PaneBox[MakeBoxes @ rhs, ImageSize -> {UpTo @ 500, UpTo @ 100}], rhs]
   ]
 ];
 
 printEchoArrow[lhs2_, rhs_, fill_] := With[
-  {lhs = If[fill, fillImmediateVals, Identity] @ PrivateHold @ lhs2},
+  {lhs = If[fill, fillImmediateVals, Identity] @ PrivHold @ lhs2},
   printEchoArrowRaw["\[Function]",
-    NicePasterBoxes[CodePaneBoxes[lhs, {{200, 300}, UpTo @ 100}], lhs],
-    NicePasterBoxes[CodePaneBoxes[rhs, {UpTo @ 500, UpTo @ 100}], rhs]
+    PasterBox[PaneBox[MakeEchoBoxes @ lhs, ImageSize -> {{200, 300}, UpTo @ 100}], lhs],
+    PasterBox[PaneBox[MakeEchoBoxes @ rhs, ImageSize -> {UpTo @ 500, UpTo @ 100}], rhs]
   ]
 ];
 
 (* avoid filling just a single value or list of these *)
-fillImmediateVals[e:PrivateHold[_Symbol | {__Symbol}]] := e;
-fillImmediateVals[e_] := ReplaceAll[e, s_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[s]];
+fillImmediateVals[e:PrivHold[_Sym | {__Sym}]] := e;
+fillImmediateVals[e_] := ReplaceAll[e, s_Sym ? HasIValueQ :> RuleCondition[s]];
 
 printEchoArrowRaw[arrow_, lhs_, rhs_] := EchoPrint @ RawBoxes @ GridBox[
   List @ {lhs, arrow, rhs},
@@ -300,19 +294,7 @@ printEchoArrowRaw[arrow_, lhs_, rhs_] := EchoPrint @ RawBoxes @ GridBox[
 
 (*************************************************************************************************)
 
-EchoF[fn_] := EchoFL[getFLabel @ fn, fn];
-
-SetHoldC[getFLabel];
-
-getFLabel = CaseOf[
-  Fn        := "Fn";
-  e_Symbol  := SymbolName @ e;
-  _Dict     := "\[LeftAssociation]\[Ellipsis]\[RightAssociation]";
-  h_[]      := getFLabel[h] <> "[]";
-  h_[i_Int] := getFLabel[h] <> "[" <> IntegerString[i] <> "]";
-  h_[___]   := getFLabel[h] <> "[\[Ellipsis]]";
-  _         := "\[FilledSquare]";
-];
+EchoF[fn_] := EchoFL[fn, fn];
 
 EchoFL[fnl_, fn_][args___] := Module[
   {res = $Aborted},
@@ -322,15 +304,13 @@ EchoFL[fnl_, fn_][args___] := Module[
     res = fn[args]
   ,
     $RawPrintIndent--;
-    With[{res2 = res}, EchoArrow[RawBoxes[StyleBox[fnl, Bold]][args], res2]]
+    With[{res2 = res}, EchoArrow[HoldAtForm[fnl, args], res2]]
   ]
 ];
 
 (*************************************************************************************************)
 
-EchoFH[fn_] := With[{label = getFLabel @ fn},
-  Function[Null, EchoFLH[label, fn, SlotSequence[]], HoldAllComplete]
-];
+EchoFH[fn_] := Function[Null, EchoFLH[label, fn, SlotSequence[]], HoldAllComplete];
 
 SetHoldC[EchoFLH];
 
@@ -342,7 +322,7 @@ EchoFLH[fnl_, fn_, args___] := Module[
     res = fn[args]
   ,
     $RawPrintIndent--;
-    With[{res2 = res}, EchoArrow[RawBoxes[StyleBox[fnl, Bold]][args], res2, False]]
+    With[{res2 = res}, EchoArrow[HoldAtForm[fnl, args], res2, False]]
   ]
 ];
 
@@ -352,22 +332,44 @@ NicePaster::usage =
 "NicePaster[display$, paste$] displays as display$ but when clicked pastes the held expression paste$.
 ";
 
-SetHoldR[NicePaster, NicePasterBoxes];
+SetForm0[NicePaster];
+SetHoldR[NicePaster, PasterBox];
 
-MakeBoxes[NicePaster[display_, paste_], _] := NicePasterBoxes[MakeBoxes @ display, paste];
+MakeBoxes[NicePaster[display_, paste_], _] :=
+  PasterBox[MakeBoxes @ display, paste];
 
-(* f[display_, PrivateHold[paste_]] := nicePasterBoxes[display, paste]; *)
-
-NicePasterBoxes[boxes_, paste_] := With[
-  {comp = Compress @ Defer @ paste},
-  TagBox[
-    TagBox[boxes, EventHandlerTag[{{"MouseClicked", 1} :> pasteExpr[comp], Method -> "Preemptive", PassEventsDown -> Automatic, PassEventsUp -> True}]],
-    MouseAppearanceTag["LinkHand"]
-  ]
+PasterBox[boxes_, paste_] := With[
+  {sexp = Most @ StoredPasteAdd[HoldC @ paste]},
+  ClickBox[boxes, sexp[]]
 ];
 
-(* TODO: switch to PrintInputCell? *)
-pasteExpr[expr_String] := (
-  (* the GeneratedCell -> False prevents the printed cell from mixing with echos and causing problems on re-evaluation *)
-  CellPrint @ ExpressionCell[Uncompress @ expr, "Input", GeneratedCell -> False];
-);
+
+(*************************************************************************************************)
+
+$StoredPasteStore = StoreNew[];
+
+StoredPasteGet[hash_] := StoreGet[$StoredPasteStore, hash];
+
+StoredPasteAdd[expr_] := Module[{hash, comp, size, sexp},
+  hash = Hash @ expr;
+  If[StoreKeyQ[$StoredPasteStore, hash], Return @ StoredPasteGet @ hash];
+  size = ByteCount @ expr;
+  comp = Compress @ expr;
+  sexp = StoredPaste[hash, size, comp];
+  StoreSet[$StoredPasteStore, hash, sexp];
+  sexp
+];
+
+StoredPaste[id_Int, _][]  := iStoredPaste @ StoreGet[$StoredPasteStore, id];
+
+iStoredPaste[_] := Beep[];
+iStoredPaste[StoredPaste[_, _, str_Str]] := PrintInputCell @ Uncompress @ str;
+
+(* the GeneratedCell -> False prevents the printed cell from mixing with echos and causing problems on re-evaluation *)
+
+(*************************************************************************************************)
+
+SetForm0[NicePaster];
+
+MakeBoxes[StoredPaste[_, size_Int, ___], _] := RBox["\[LeftSkeleton]", IntStr @ size, "\[RightSkeleton]"];
+

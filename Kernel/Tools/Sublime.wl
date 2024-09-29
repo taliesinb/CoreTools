@@ -5,19 +5,19 @@ SystemExports[
     LogToSublime
 ];
 
+PackageExports[
+  "Function", SystemSymbolKinds, CoreToolsSymbolKinds
+];
+
 PrivateExports[
-  "Function",
-    CoreToolsSymbolKinds
-  "SpecialVariable",
-    $SublimePackagesPath,
-    $SublimeKindColors
+  "SpecialVariable", $SublimePackagesPath, $SublimeKindColors
 ];
 
 (*************************************************************************************************)
 
 $SublimeKindColors := $SublimeKindColors = getSublimeKindColors[];
 
-(* CoreToolsSymbolKinds[]; *)
+SystemSymbolKinds[] := ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wl.txt";
 
 (*************************************************************************************************)
 
@@ -74,7 +74,7 @@ staticFile[name_]        := DataPath["Sublime", "StaticFiles", name];
 
 (*************************************************************************************************)
 
-CoreToolsSymbolKinds[] := Locals[
+(* CoreToolsSymbolKinds[] := Locals[
 
   coreKinds = PackageSymbolKinds["CoreTools`"];
   If[!symbolDictQ[coreKinds], ThrowMsg["badSymbols", "CoreTools`"]];
@@ -111,7 +111,7 @@ savePreludeExports[] := Null;
 savePreludeExports[kind_String, Longest[syms___Symbol], rest___] := (
   StuffBag[$preludeKindBag, kind -> HoldMap[HoldSymbolName, {syms}]];
   savePreludeExports[rest]
-);
+); *)
 
 (*************************************************************************************************)
 
@@ -136,17 +136,18 @@ SublimeUpdateSyntax[] := Locals[
   If[!DirectoryQ[targetDir], ReturnFailed["notInstalled", targetDir]];
 
   (* save any loaded packages (except CoreTools) to disk, they'll be reloaded below *)
-  Map[cachePackageSymbolKinds, Prelude`Packages`LoadedPackages[]];
+  Map[cachePackageSymbolKinds, PreludeLoadedPackages[]];
 
   (* load syntax groups from syntax files, and list of internal context -> symbols *)
-  builtinKinds = ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wl.txt";
+  builtinKinds = SystemSymbolKinds[];
   librarySymbolFiles = userSymbolFile @ FileList["*.wl.txt"];
   libraryKinds = Merge[ImportStringTable /@ librarySymbolFiles, Catenate];
 
-  coreToolsSymbolsKinds = CoreToolsSymbolKinds[];
+  coreToolsSymbolsKinds = Merge[PackageSymbolKinds /@ {"CoreTools`", "Prelude`"}, Catenate];
   coreSymbols = Union @ Flatten @ Values @ coreToolsSymbolsKinds;
   libraryKinds //= Map[Complement[#, coreSymbols]&];
   KeyValueMap[KeyUnionTo[libraryKinds, #1, #2]&, coreToolsSymbolsKinds];
+
 
   (* generate strings *)
   res = Check[
@@ -277,8 +278,8 @@ groupToSyntaxScope = CaseOf[
   "Head"               := "constant.language.head.wolfram";
   "ObjectHead"         := "support.function.object.wolfram";
   "Function"           := $$ @ "builtin";
-  "OptionSymbol"       := "constant.language.symbol.option.wolfram";
-  "BoxOptionSymbol"    := "constant.language.symbol.option.box.wolfram";
+  "Option"             := "constant.language.symbol.option.wolfram";
+  "BoxOption"          := "constant.language.symbol.option.box.wolfram";
   group_     := Which[
     StrEndsQ[group, "Symbol"],
       StrJoin["constant.language.symbol.", ToLowerCase @ StrDelete[group, "Symbol"], ".wolfram"],
@@ -316,8 +317,8 @@ $groupToSymbol = Association[
   "PatternSymbol"          -> "s",
   "SpecialSymbol"          -> "s",
   "PatternHead"            -> "s",
-  "OptionSymbol"           -> "\[RightArrow]",
-  "BoxOptionSymbol"        -> "\[RightArrow]",
+  "Option"                 -> "\[RightArrow]",
+  "BoxOption"              -> "\[RightArrow]",
   "ObjectHead"             -> "■",
   "FormHead"               -> "■",
   "FormSymbol"             -> "■",
@@ -333,8 +334,8 @@ $groupToSymbol = Association[
 groupToKindColorProxy = CaseOf[
   "Symbol" | "PatternSymbol" | "PatternHead" | "SpecialSymbol"      := "symbol";
   "ObjectHead"                                                      := "function";
-  "Function" | "MutationFunction" | "ScopingFunction" | "ControlFlow" := "function";
-  "PackageFunction" | "PackageDeclaration" | "DebuggingFunction" | "SpecialFunction"    := "function";
+  "Function" | "MutatingFunction" | "Scoping" | "ControlFlow"       := "function";
+  "PackageFunction" | "PackageDeclaration" | "DebuggingFunction" | "SpecialFunction" := "function";
   "Variable" | "SpecialVariable" | "CacheVariable"                  := "variable";
   "GraphicsBoxFunction" | "GraphicsPrimitive" |
   "GraphicsDirective" | "GraphicsFunction"                          := "navigation";

@@ -16,7 +16,7 @@ PackageExports[
   "Variable",
     $SideToCoords,
     $CoordsToSide,
-    $SideToRadians
+    $SideToRadians,
     $SideToUnitCoords,
     $SymbolicPointSizes
 ];

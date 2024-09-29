@@ -1,36 +1,40 @@
-BeginPackage["Prelude`Sublime`"]
+BeginPackage["Prelude`"]
 
-System`PackageExports[
-"IOFunction",
-System`SublimeOpen,
-System`SublimeSeek,
-System`SublimeRun,
+SystemExports[
+  "IOFunction",
+    SublimeOpen,
+    SublimeSeek,
+    SublimeRun,
 
-"Head",
-System`FileLocation,
+  "Head",
+    FileLocation,
 
-"OptionSymbol",
-System`SublimeProject,
-System`OpenInNewWindow,
+  "Option",
+    SublimeProject,
+    OpenInNewWindow
+];
 
-"SpecialVariables",
-System`$SublimeApplicationPath,
-System`$SublimeProjectsPath,
-System`$SublimeRunCount
-]
+SessionExports[
+  "Variable",
+    $SublimeApplicationPath,
+    $SublimeProjectsPath,
+    $SublimeRunCount
+];
 
-(*************************************************************************************************)
-
-Begin["`Private`"]
-
-$SublimeRunCount = 0;
+Begin["`Sublime`Private`"]
 
 (*************************************************************************************************)
-
-(* TODO: find equivalents for other OSes *)
-$SublimeApplicationPath = "/Applications/Sublime\\ Text.app/Contents/SharedSupport/bin/subl";
 
 If[!IntegerQ[$SublimeRunCount], $SublimeRunCount = 0];
+
+(* TODO: find equivalents for other OSes *)
+If[!StringQ[$SublimeApplicationPath],
+  $SublimeApplicationPath = "/Applications/Sublime\\ Text.app/Contents/SharedSupport/bin/subl"];
+
+If[!StringQ[$SublimeProjectsPath],
+  $SublimeProjectsPath = ExpandFileName @ "~/git/project-files"];
+
+(*************************************************************************************************)
 
 SublimeRun[args2___] := Module[
   {args = Flatten @ List @ args2},
@@ -92,12 +96,22 @@ SublimeSeek[path_String, tcount_Integer] := Block[
 SublimeOpen::invalid = "`` is not a valid element for SublimeOpen.";
 procSublimeArg[other_] := (Message[SublimeOpen::invalid, other]; $Failed);
 procSublimeArg[list_List] := Map[procSublimeArg, list];
+procSublimeArg[Rule[path_String, "StreamPos" -> n_Integer]] := procSublimeArg[path -> findCharPos[path, n]];
 procSublimeArg[Rule[path_String, n_Integer]] := StringJoin[procSublimeArg[path], ":", IntegerString[n]];
 procSublimeArg[path_String] := StringJoin["'", $lastSubPath = ExpandFileName[path], "'"];
 
 (*************************************************************************************************)
 
-$SublimeProjectsPath = ExpandFileName @ "~/git/project-files";
+findCharPos[path_String, n_Int] := Module[{stream},
+  If[!FileExistsQ[path], Return @ 1];
+  stream = OpenRead[path];
+  chars = ReadList[stream, Byte, n];
+  Close[path];
+  If[!ListQ[path], Return @ 1];
+  Count[chars, 10]
+]
+
+(*************************************************************************************************)
 
 findProjFile0[path_String] := Block[{key, projPaths},
   Do[

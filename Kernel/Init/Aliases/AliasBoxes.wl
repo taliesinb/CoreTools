@@ -1,44 +1,67 @@
 SystemExports[
-  "OptionSymbol",
+  "Option",
     ViewSize,
     MaxItems,
     MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
-    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction
+    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction,
+
+  "FormHead",
+    MessageArgumentForm, OutputExpressionForm, LiteralString
 ];
 
 PackageExports[
   "GraphicsDirective",
     APointSize, AThickness, ADashing,
 
+  "IOFunction",
+    MakeBox, ToBox,
+
   "BoxFunction",
-    SubBox, SuperBox, SubsuperBox, DotsBox,
+    SubBox, SuperBox, OverBox, UnderBox, SubsuperBox,
+    AdjBox, InterpBox, G2DBox, G3DBox, SBox, TBox,
+    LitStrBox, LitStrRowBox,
+    DotsBox, RawBox,
 
   "FormHead",
-    DotsForm, StrForm,
+    MsgArgForm, OutExprForm,
+    LitStr, LitStrRow, SrcLoc,
 
-  "BoxOptionSymbol",
+  "BoxOption",
     GridItemSize, GridItemStyle, GridMargins, GridDivs,
     RowSizes, RowGaps, RowJust, ColSizes, ColGaps, ColJust, ColLines, ColsEqual,
-    ItemsEqual,
+    ItemsEqual, ShowStrChars,
 
-  "OptionSymbol",
+  "Option",
     BaselinePos,
      ItemPos,  ItemGaps,  ItemDivs,  ItemJust,
     LabelPos, LabelGaps, LabelDivs, LabelJust,
 
-  "OptionSymbol",
+  "Option",
     ItemFn, LabelFn, ClickFn, TooltipFn, SizeFn,
     ColorFn, VertexColorFn
 ];
 
 (*************************************************************************************************)
 
+(* TODO: alias RBox for RowBox, SBox for SeqB[---] for RBox *)
+
 DefineAliasRules[
   SubBox         -> SubscriptBox,
   SuperBox       -> SuperscriptBox,
-  SubsuperBox    -> SubsuperscriptBox
+  OverBox        -> OverscriptBox,
+  UnderBox       -> UnderscriptBox,
+  SubsuperBox    -> SubsuperscriptBox,
+  AdjBox         -> AdjustmentBox,
+  InterpBox        -> InterpretationBox,
+  G2DBox         -> GraphicsBox,
+  G3DBox         -> Graphics3DBox,
+  SBox           -> StyleBox,
+  TBox           -> TemplateBox,
+  RawBox         -> RawBoxes,
+  LitStrBox      -> LiteralStringBox,
+  LitStrRowBox   -> LiteralStringRowBox
 ];
 
 (*************************************************************************************************)
@@ -52,6 +75,24 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
+  MakeBox       -> MakeBoxes,
+  ToBox         -> ToBoxes
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  SrcLoc         -> SourceLocation,
+  MsgArgForm     -> MessageArgumentForm,
+  OutExprForm    -> OutputExpressionForm,
+  LitStrRow      -> LiteralStringRow,
+  LitStr         -> $PrintLiteral,
+  LiteralString  -> $PrintLiteral
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
   GridItemSize   -> GridBoxItemSize,
   GridItemStyle  -> GridBoxItemStyle,
   GridMargins    -> GridFrameMargins,
@@ -59,7 +100,8 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  RowSizes       -> RowHeights,
+  ShowStrChars   -> ShowStringCharacters,
+  RowSizes       -> RowHeights, (* THIS IS A NO-OP *)
   RowGaps        -> RowSpacings,
   RowJust        -> RowAlignments,
   ColSizes       -> ColumnWidths,

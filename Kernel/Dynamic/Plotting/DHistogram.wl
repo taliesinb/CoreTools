@@ -1,6 +1,6 @@
 PackageExports[
   "GraphicsBoxFunction", DHistogramBox,
-  "OptionSymbol",        BinTicks
+  "Option",              BinTicks
 ];
 
 (**************************************************************************************************)

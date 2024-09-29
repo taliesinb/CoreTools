@@ -51,10 +51,10 @@ PutRefVal::badArguments = "Incorrect PutRef: ``.";
 
 (**************************************************************************************************)
 
-CoreBoxes[ref_Ref ? SealedQ] := makeRefBoxes[ref];
+CoreBox[ref_Ref ? SealedQ] := makeRefBoxes[ref];
 
-makeRefBoxes[ref_] := If[!$UseCoreBoxFormatting,
-  FnBracketBoxOp["Ref"][hashBoxes @ ref],
+makeRefBoxes[ref_] := If[!$CoreFormatting,
+  FnRBox["Ref", hashBoxes @ ref],
   NiceTooltipBox[
     ClickBox[circleBox @ ref, printRefCell @ ref],
     DynamicBox[ColumnBox @ {hashBoxes @ ref, valBoxes @ ref}, TrackedSymbols :> {}]
@@ -66,7 +66,7 @@ circleBox[ref_] := StyleBox["\[FilledCircle]", Lookup[$RefCols, ref, Gray]];
 
 valBoxes[ref_] := valBoxes2 @ Lookup[$Refs, ref, None];
 valBoxes2[None] := "<<Missing>>";
-valBoxes2[RefVal[expr_]] := CodePaneBoxes[expr, {UpTo[200], UpTo[50]}];
+valBoxes2[RefVal[expr_]] := CodePaneBox[expr, {UpTo[200], UpTo[50]}];
 
 hashBoxes[_] := "?";
 hashBoxes[ref:Ref[hash_Int]] := StyleBox[
@@ -84,7 +84,7 @@ DynamicRefPanel[] := Dynamic[
   SynchronousUpdating -> False, TrackedSymbols :> {$Refs}
 ];
 
-RefPanel[] := DisableCoreBoxInteractivity @ Framed[
+RefPanel[] := BlockInteractive @ Framed[
   RawGrid[
     KeyValueMap[{k, v} |-> {RawBoxes @ hashBoxes @ k, Style[v, "Output"]}, $Refs],
     ColumnAlignments -> Left, ColumnSpacings -> 2, RowSpacings -> 2

@@ -223,7 +223,7 @@ ReplaceRepeatedIn[e_, r_] := Set[e, ReplaceRepeated[e, r]];
 $UnthreadEnabled = True;
 
 SetHoldC[unthreadThroughQ];
-unthreadThroughQ[Set | SetDelayed | Hold | PrivateSeq | PrivateHold | Print | ToBoxes | MakeBoxes] := False;
+unthreadThroughQ[Set | SetDelayed | Hold | PrivSeq | PrivHold | PrivHoldSeq | Print | ToBoxes | MakeBoxes] := False;
 unthreadThroughQ[_] := $UnthreadEnabled;
 
 Unthread /: Rule[lhs_, Unthread[rhs_]] :=

@@ -1,5 +1,5 @@
 SystemExports[
-  "OptionSymbol",
+  "Option",
     GroupSettings
 ];
 
@@ -7,7 +7,7 @@ PackageExports[
   "Function",
     ParseItemOptions,
     CanonicalizeSpec,
-  "OptionSymbol",
+  "Option",
     ItemGroups,
     ItemData,
     UseBroadcast,
@@ -67,7 +67,7 @@ applyGroupSpecs[assignOpt_Sym, settingsOpt_Sym, itemSpecs_] := Locals[
   DPrint["Parsing group specs"];
   If[MatchQ[assignSpec, noneOrEmptyP] || MatchQ[settingsSpec, noneOrEmptyP], Return[]];
   settingsDict = Dict[settingsSpec];
-  If[!DictQ[settingsDict], ThrowOptionMsg[settingsOpt, settingsDict]];
+  If[!DictQ[settingsDict], ThrowOptMsg[settingsOpt, settingsDict]];
   $specKeys = Col1 @ itemSpecs; $specInd = DictThread[$specKeys, itemSpecs];
   AssociateTo[$ispecOpts, assignOpt -> assignSpec];
   assignItemSpec = ItemSpec[assignOpt, groupAssignmentQ, {}, ToList, UseBroadcast -> False];
@@ -185,7 +185,7 @@ parseMultiItemSpec[ItemSpec[key_, testFn_, defaultValue_, finalFn_, opts___Rule]
     ],
     SetNone[vectorResult, ConstList[scalarResult, $ispecLen]]
   ];
-  result = SubNone[vectorResult, Broadcast[scalarResult, $ispecLen]];
+  result = IfNone[vectorResult, Broadcast[scalarResult, $ispecLen]];
   key -> result
 ];
 
@@ -196,7 +196,7 @@ General::missingItemDataKey = "No key `` present in provided item data.";
 
 (* TODO: Validated[...] head, i can use above in RuleLVecQ to avoid resolving the scalarResult twice *)
 finalCheck[test_, final_][value_] :=
-  If[test[value], final[value], ThrowOptionMsg[$ispecKey, value]];
+  If[test[value], final[value], ThrowOptMsg[$ispecKey, value]];
 
 (**************************************************************************************************)
 
@@ -215,10 +215,10 @@ MethodResolutionFn[spec_, str_Str] := resolveStrSpec[str, spec];
 resolveStrSpec = CaseOf[
   (* $[str_, Rule[spec_, then_]] := then @ $[spec, str]; *)
   $[str_, dict_Dict]          := Lookup[dict, str, throwStrSpec[str, dict]];
-  $[str_, fn_]                := SubFailed[fn @ str, throwStrSpec @ str];
+  $[str_, fn_]                := IfFailed[fn @ str, throwStrSpec @ str];
 ];
 
 General::notKnownStringSpec1 = "`` is not a known named setting for ``. Valid named settinngs include ``.";
 General::notKnownStringSpec2 = "`` is not a known named setting for ``.";
 throwStrSpec[str_]        := ThrowMsg["notKnownStringSpec2", str, $ispecKey];
-throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $ispecKey, LiteralCommaStringForm @ Keys @ dict];
+throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $ispecKey, LiteralStringRow @ Keys @ dict];

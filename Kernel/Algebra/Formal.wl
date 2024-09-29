@@ -17,7 +17,6 @@ PackageExports[
   "BoxFunction",  FormalSymbolBox
 ];
 
-
 (**************************************************************************************************)
 
 DefineAliasRules[
@@ -43,9 +42,9 @@ FormalFn[fn_][args___] := FormalDistribute @ NoEval @ fn[args];
 
 (**************************************************************************************************)
 
-CoreBoxes[FormalPlus[args__]]  := RiffledRowBox[$formalPlus][MapMakeBoxes[{args}]];
-CoreBoxes[FormalTimes[args__]]   := RiffledRowBox[$formalTimes][MapMakeBoxes[{args}]];
-CoreBoxes[FormalPower[a_, b_]]  := SuperscriptBox[MakeBoxes @ a, MakeBoxes @ b];
+CoreBox[FormalPlus[args__]]  := RiffledRowBox[$formalPlus][MapMakeBox[{args}]];
+CoreBox[FormalTimes[args__]]   := RiffledRowBox[$formalTimes][MapMakeBox[{args}]];
+CoreBox[FormalPower[a_, b_]]  := SuperscriptBox[MakeBoxes @ a, MakeBoxes @ b];
 
 FormalSymbolBox[box_] := MarginBox[.5] @ StyleBox["\[RawPlus]",
   FontFamily -> "Roboto",

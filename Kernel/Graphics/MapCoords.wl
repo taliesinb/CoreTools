@@ -127,9 +127,9 @@ radDist3[v_] := Dist[$posFn @ v, $posFn @ {0, 0, 0}];
 
 ConvertGBoxesToGPrims[gboxes_] := ReplaceAll[gboxes, $convertGBoxToGPrimDispatch];
 
-$convertGBoxToGPrimDispatch := $convertGBoxToGPrimDispatch = Dispatch @ Normal @ $ConvertGBoxToGPrimRules;
+$convertGBoxToGPrimDispatch := $convertGBoxToGPrimDispatch = Dispatch @ Normal @ $convertGBoxToGPrimRules;
 
-$ConvertGBoxToGPrimRules := Normal @ $GBoxToGPrim;
+$convertGBoxToGPrimRules := Normal @ $GBoxToGPrim;
 
 (**************************************************************************************************)
 

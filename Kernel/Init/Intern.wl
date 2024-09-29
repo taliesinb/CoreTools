@@ -42,8 +42,3 @@ ToInternedData = CaseOf[
   InterningUniqueFn[index_, _]        := InternedUniqueData[index];
   InterningListDictFn[keyFn_, valFn_] := InternedListDictData[ToInternedData @ keyFn, ToInternedData @ valFn];
 ];
-
-(**************************************************************************************************)
-
-DeclareOutlineBoxes[InternedData, InterningUniqueFn, InterningListDictFn];
-

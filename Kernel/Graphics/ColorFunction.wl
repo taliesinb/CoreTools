@@ -17,7 +17,7 @@ PackageExports[
 
 (**************************************************************************************************)
 
-CoreBoxes[HashValue[hash_Int]] := TagBox[ToBoxes @ PixelHash @ hash, Deploy];
+CoreBox[HashValue[hash_Int]] := TagBox[ToBoxes @ PixelHash @ hash, Deploy];
 
 splitHash[hash_Int] := Mod[BitShiftRight[hash, {0, 16, 32, 48}], 2^16];
 PixelHash[None] := Image[{{Gray, Gray}, {Gray, Gray}}, ImageSize -> {8, 8}*2];
@@ -328,17 +328,21 @@ unitBoundsQ[{min_, max_}] := TrueQ[0 <= min <= max <= 1];
 discreteBoundsQ[{min_, max_}] := TrueQ[(0 <= min <= 1) && max < 8];
 
 ApplyColorFunctionToArray[colorFn_, array_, depth_] := Locals[
-  If[Head[colorFn] === NumericColorFunction,
-    rgbArray = CompileColorFunction[colorFn, depth] @ array
-  ,
-    rgbArray = ToPackedReals @ Map[colorFn, array, {depth}];
-    If[!PackedRealsQ[rgbArray] && ArrayQ[rgbArray, 2, ColorQ],
-      rgbArray //= ColorToRGBArray];
+  Which[
+    Head[colorFn] === NumericColorFunction,
+      rgbArray = CompileColorFunction[colorFn, depth] @ array,
+    MaybeFnQ @ colorFN,
+      rgbArray = ToPackedReals @ Map[colorFn, array, {depth}];
+      If[!PackedRealsQ[rgbArray] && ArrayQ[rgbArray, 2, ColorQ],
+        rgbArray //= ColorToRGBArray],
+    True,
+      ThrowMsg["notPossibleColorFunction", colorFn];
   ];
   EnsurePackedReals[rgbArray,
     ThrowMsg["badColorFunctionValues", colorFn, firstNonRGB @ rgbArray]]
 ];
 
+General::notPossibleColorFunction = "ColorFunction -> `` cannot evaluate.";
 General::badColorFunctionValues = "ColorFunction -> `` produced non-RGB values, first was: ``.";
 
 firstNonRGB[arr_] := Locals[

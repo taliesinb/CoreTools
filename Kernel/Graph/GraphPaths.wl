@@ -4,7 +4,7 @@ SystemExports[
 
 (**************************************************************************************************)
 
-CoreBoxes[GraphPath[e___List]] := GridBox[
+CoreBox[GraphPath[e___List]] := GridBox[
   List @ List @ ItemBox[
     RiffledRowBox["\[LeftArrow]"] @ Map[pathElemBoxes, {e}],
     Frame -> {{False, False}, {True, False}},

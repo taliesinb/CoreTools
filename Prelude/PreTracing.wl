@@ -1,53 +1,52 @@
-BeginPackage["Prelude`Tracing`"]
+BeginPackage["Prelude`"]
 
-System`PackageExports[
-"DebuggingFunction",
-System`BlockPrint,
-System`TraceAutoloads,
-System`Capture,
-System`RawPrintBoxes,
-System`HandleUnpacking,
-System`UnpacksDuringQ,
-System`CountUnpackings,
-System`BenchmarkUnpacking,
-System`BenchmarkUnpackingData,
-System`TraceUnpackings,
-System`EnableDebugPrinting,
-System`DisableEchoPrinting,
-System`FailureString,
-System`UnpackingTable,
-System`MicroTiming,
-System`MicroTimingTable,
+SystemExports[
+  "DebuggingFunction",
+    TraceAutoloads,
+    BlockPrint,
+    Capture,
+    RawPrintBoxes,
+    HandleUnpacking,
+    UnpacksDuringQ,
+    CountUnpackings,
+    BenchmarkUnpacking,
+    BenchmarkUnpackingData,
+    TraceUnpackings,
+    EnableDebugPrinting,
+    DisableEchoPrinting,
+    FailureString,
+    UnpackingTable,
+    MicroTiming,
+    MicroTimingTable,
 
-"IOFunction",
-System`CustomizedPrint,
-System`ErrorPrint,
-System`LogPrint,
-System`RawPrint,
-System`LabeledPrint,
-System`DPrint,
-System`EchoPrint,
-System`WithRawPrintIndent,
+  "IOFunction",
+    CustomizedPrint,
+    ErrorPrint,
+    LogPrint,
+    RawPrint,
+    CachePrint,
+    LabeledPrint,
+    DPrint,
+    EchoPrint,
+    WithRawPrintIndent,
 
-"SpecialVariable",
-System`$Captured,
-System`$RawPrintIndent,
-System`$RawPrintMaxRate,
-System`$CellPrintLabel,
-System`$DebugPrinting,
-System`$EchoPrinting,
-System`$CurrentlyTracingAutoloads,
-System`$CurrentPackageFile,
-System`$CurrentPackageExprCount,
-System`$CurrentPackageExpr,
-System`$ShouldPrint,
-System`$LastTraceback,
-System`$Disabled
+  "SpecialVariable",
+    $Captured,
+    $LastTraceback,
+    $RawPrintIndent,
+    $RawPrintMaxRate,
+    $CellPrintLabel,
+    $DebugPrinting,
+    $EchoPrinting,
+    $CachePrinting,
+    $CurrentlyTracingAutoloads,
+    $ShouldPrint,
+    $Disabled
 ]
 
-(*************************************************************************************************)
+Begin["`Tracing`Private`"]
 
-Begin["`Private`"]
+(*************************************************************************************************)
 
 Protect[$Disabled];
 
@@ -81,17 +80,20 @@ $logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"
 $echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
 $echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
 $debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+$cachePrintOpts = {FontSize -> 13, FontColor -> Cyan, CellLabel -> "Cache", CellLabelStyle -> Cyan};
 
 RawPrint[args___]   := CustomizedPrint[{}, args];
 LogPrint[args___]   := CustomizedPrint[$logPrintOpts, args];
 ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
+
+CachePrint[args___] := If[$CachePrinting, CustomizedPrint[$cachePrintOpts, args], $Disabled, $Disabled];
 EchoPrint[args___]  := If[$EchoPrinting, CustomizedPrint[$echoPrintOpts, args], $Disabled, $Disabled];
-DPrint[args___] := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
+DPrint[args___]     := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
 
 (*************************************************************************************************)
 
 $RawPrintIndent = 0;
-$RawPrintMaxRate = 50;
+If[!IntegerQ[$RawPrintMaxRate], $RawPrintMaxRate = 50];
 
 (*************************************************************************************************)
 

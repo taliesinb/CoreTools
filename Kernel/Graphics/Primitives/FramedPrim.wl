@@ -1,6 +1,6 @@
 SystemExports[
   "GraphicsPrimitive", FramedPrimitive,
-  "OptionSymbol", FrameColor, FrameThickness, FrameOpacity, FrameDashing
+  "Option", FrameColor, FrameThickness, FrameOpacity, FrameDashing
 ];
 
 (**************************************************************************************************)

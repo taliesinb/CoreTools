@@ -26,7 +26,7 @@ constructDF[DiscreteFunction[assoc:DictP, set_List:Auto]]    := makeFSF[assoc, s
 
 makeFSF[assoc_, set_] := MakeSealed[
   DiscreteFunction,
-  UDict @ assoc, UDict @ PositionIndex @ assoc, SubAuto[set, Union @ Vals @ assoc]
+  UDict @ assoc, UDict @ PositionIndex @ assoc, IfAuto[set, Union @ Vals @ assoc]
 ];
 
 evalDF[DiscreteFunction[fwd_, bwd_, _], x_] := Lookup[fwd, Key @ x, Indeterminate];
@@ -46,7 +46,7 @@ InjectiveFunction, BijectiveFunction, SurjectiveFunction,
 Relation[fromset, function, toset]
 *)
 
-CoreBoxes[DiscreteFunction[fwd_, bwd_, set_] ? SealedQ] :=
+CoreBox[DiscreteFunction[fwd_, bwd_, set_] ? SealedQ] :=
   NiceObjectBoxes["DiscreteFunction", {RiffledRowBox["\[Rule]"] @ Map[NatStr, {Len @ fwd, Len @ set}]}];
 
 (*************************************************************************************************)
@@ -65,7 +65,7 @@ constructFSF[StochasticFunction[assoc_]] := Locals @ CatchMessages[StochasticFun
   MakeSealed[StochasticFunction, assoc]
 ];
 
-CoreBoxes[StochasticFunction[a_] ? SealedQ] :=
+CoreBox[StochasticFunction[a_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
     {RiffledRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountUnique @ Catenate @ a]}];
 
@@ -84,7 +84,7 @@ constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchMessages[Stoc
   MakeSealed[StochasticFunction, assoc, values]
 ];
 
-CoreBoxes[StochasticFunction[a_, t_] ? SealedQ] :=
+CoreBox[StochasticFunction[a_, t_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
     {RiffledRBox["\[Rule]"][NatStr @ Len @ a, NatStr @ Len @ t]}];
 
@@ -137,5 +137,5 @@ evalFSF[StochasticFunction[f_, w_, t_], x_List] := WeightedRandomChoice[t, PartO
 badPartMsg[x_] := (Message[StochasticFunction::invalidInput, x]; 1);
 StochasticFunction::invalidInput = "Input to StochasticFunction was invalid: ``.";
 
-CoreBoxes[StochasticFunction[_, w_ ? HPackedQ, _] ? SealedQ] :=
+CoreBox[StochasticFunction[_, w_ ? HPackedQ, _] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction", {RiffledRowBox["\[Times]"] @ Map[ToBoxes, Dimensions @ w]}];

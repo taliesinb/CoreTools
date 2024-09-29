@@ -1,59 +1,67 @@
-BeginPackage["Prelude`Symbols`"]
+BeginPackage["Prelude`"]
 
-System`PackageExports[
-"Function",
-System`NamePaths,
-System`NamePathsGrouped,
+SystemExports[
 
-System`NameFirst,
-System`NameLast,
-System`NameMost,
-System`NameMostLast,
+  "Function",
+    NamePaths,
+    NamePathsGrouped,
 
-"Function",
-FindLikelySymbolName,
-LikelySymbolNames,
-RegisterDynamicAliasFunction,
-CreateDynamicAlias,
+    NameFirst,
+    NameLast,
+    NameMost,
+    NameMostLast
 
-"Head",
-AttachImmediateValue,
-AttachDelayedValue,
+  "IOFunction",
+    EnsureContext,
 
-"Predicates",
-CoreToolsContextQ,
-CoreToolsSymbolQ,
+  "Predicate",
+    SystemContextQ,
+    ActiveNameQ,
+    FormalSymbolQ,
+    UserSymbolQ,
+    SystemSymbolQ,
+    InertSymbolQ,
+    ActiveSymbolQ,
+    InertUserSymbolQ,
+    InertSystemSymbolQ,
+    CapitalizedSymbolQ,
+    DocumentedSymbolQ,
 
-"Predicate",
-System`SystemContextQ,
-System`ActiveNameQ,
-System`FormalSymbolQ,
-System`UserSymbolQ,
-System`SystemSymbolQ,
-System`InertSymbolQ,
-System`ActiveSymbolQ,
-System`InertUserSymbolQ,
-System`InertSystemSymbolQ,
-System`CapitalizedSymbolQ,
-System`DocumentedSymbolQ,
+  "SpecialFunction",
+    DefinitionRules,
+    DefinitionCounts,
+    KernelCodes,
 
-"MutatingFunction",
-System`UnprotectClearAll,
-System`SymbolNameSet,
-System`SymbolNameSetDelayed,
-
-"SpecialFunction",
-NewSymbolHandler
+  "MutatingFunction",
+    SymbolNameSet,
+    SymbolNameSetDelayed
 ];
 
+PackageExports[
+
+  "Predicate",
+    CoreToolsContextQ,
+    CoreToolsSymbolQ,
+
+  "Function",
+    FindLikelySymbolName,
+    LikelySymbolNames,
+    RegisterDynamicAliasFunction,
+    CreateDynamicAlias,
+
+  "SymbolicHead",
+    AttachImmediateValue,
+    AttachDelayedValue,
+
+  "SpecialFunction",
+    NewSymbolHandler
+];
+
+Begin["`Symbols`Private`"]
+
 (*************************************************************************************************)
 
-Begin["`Private`"]
-
-(*************************************************************************************************)
-
-SetAttributes[UnprotectClearAll, {HoldAllComplete}];
-UnprotectClearAll[e___] := (Unprotect[e]; ClearAll[e]);
+EnsureContext[context_] := If[!MemberQ[$ContextPath, context], AppendTo[$ContextPath, context];];
 
 (*************************************************************************************************)
 
@@ -125,6 +133,45 @@ NameFirst[str_String]    := If[StringFreeQ[str, "`"], None,        StringTake[st
 NameLast[str_String]     := If[StringFreeQ[str, "`"], str,         StringDrop[str, Max @ StringPosition[str, "`"]]];
 NameMost[str_String]     := If[StringFreeQ[str, "`"], None,        StringTake[str, Max @ StringPosition[str, "`"]]];
 NameMostLast[str_String] := If[StringFreeQ[str, "`"], {None, str}, StringTakeDrop[str, Max @ StringPosition[str, "`"]]];
+
+(*************************************************************************************************)
+
+ClearAll[DefinitionRules, DefinitionCounts, KernelCodes];
+
+SetAttributes[{DefinitionRules, DefinitionCounts, KernelCodes, getKernelCodes}, HoldAllComplete];
+
+$defFunctions = {OwnValues, SubValues, DownValues, UpValues, FormatValues};
+
+DefinitionRules[sym_Symbol] := Flatten @ List[
+    Map[Function[fn, fn[sym]], $defFunctions],
+    If[Attributes[sym] === {}, {}, HoldPattern[Attributes[sym]] -> Attributes[sym]],
+    If[System`Private`HasNoCodesQ[sym], {}, HoldPattern[KernelCodes[sym]] -> KernelCodes[sym]]
+  ];
+
+DefinitionCounts[s_Symbol] := Rule[
+  SymbolName @ Unevaluated @ s,
+  DeleteCases[_ -> 0] @ Flatten @ List[
+    Map[Function[fn, fn -> Length[fn[e]]], $defFunctions],
+    Attributes  -> Len[Attributes[s]],
+    KernelCodes -> Len[KernelCodes[s]]
+  ]
+];
+
+KernelCodes[s_Symbol] :=
+  If[System`Private`HasAnyCodesQ[s] || System`Private`HasPrintCodeQ[s], getKernelCodes[s], {}];
+
+getKernelCodes[s_Symbol] := DeleteCases[
+  List[
+    If[System`Private`HasDownCodeQ[s],       "Down"],
+    If[System`Private`HasUpCodeQ[s],         "Up"],
+    If[System`Private`HasSubCodeQ[s],        "Sub"],
+    If[System`Private`HasUpCodeQ[s],         "Up"],
+    If[System`Private`HasPrintCodeQ[s],      "Print"],
+    If[System`Private`HasImmediateValueQ[s], "ImmediateValue"],
+    If[System`Private`HasDelayedValueQ[s],   "DelayedValue"]
+  ],
+  Null
+]
 
 (*************************************************************************************************)
 

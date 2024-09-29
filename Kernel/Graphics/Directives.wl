@@ -16,7 +16,7 @@ PrivateExports[
 SetHoldA @ DefineDirective;
 
 DefineDirective[sym_Sym, defs__SetD] := Then[
-  SystemBoxes[s_sym[e_]] := StyleBox[MakeBoxes @ e, ResolveDirective @ s],
+  SystemBox[s_sym[e_]] := StyleBox[MakeBoxes @ e, ResolveDirective @ s],
   ReleaseHold @ MapCol1[ResolveDirective, Hold[defs]]
 ];
 

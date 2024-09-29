@@ -18,7 +18,7 @@ Initially[
 
 (**************************************************************************************************)
 
-CoreBoxes[m:Multiedge[ListDictP, _, ___] ? MultiedgeQ] := MaybeEval @ ClickBox[
+CoreBox[m:Multiedge[ListDictP, _, ___] ? MultiedgeQ] := MaybeEval @ ClickBox[
   MultiedgeIconBoxes @ m,
   PrintInputCell @ m
 ];

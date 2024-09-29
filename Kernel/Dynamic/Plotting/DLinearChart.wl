@@ -1,6 +1,6 @@
 PackageExports[
   "GraphicsBoxFunction", DLinearChartBox,
-  "OptionSymbol",        BinTicks
+  "Option",        BinTicks
 ];
 
 (**************************************************************************************************)

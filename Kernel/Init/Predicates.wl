@@ -10,8 +10,9 @@ SystemExports[
     UnorderedAssociationQ, OrderedAssociationQ,
     HoldUnorderedAssociationQ, HoldOrderedAssociationQ,
 
-    AtomicQ, NonAtomicQ,
+  "Predicate",
 
+    AtomicQ, NonAtomicQ,
     SingleQ, DatumQ,
     HoldDatumQ, HoldSingleQ, HoldEmptyQ, HoldNotEmptyQ,
     HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
@@ -28,16 +29,20 @@ SystemExports[
     RuleVectorQ, RuleLikeVectorQ, RuleDelayedVectorQ, AssociationLikeQ, OptionRuleVectorQ,
     RangeQ, PermutedRangeQ,
 
+  "Predicate",
+
     BooleanVectorQ, IntegerVectorQ, NaturalVectorQ, PositiveIntegerVectorQ, SymbolVectorQ, RealVectorQ, NumberVectorQ, ListVectorQ, ColorVectorQ, ExtendedNumberVectorQ,
     BooleanMatrixQ, IntegerMatrixQ, NaturalMatrixQ, PositiveIntegerMatrixQ, SymbolMatrixQ, RealMatrixQ, NumberMatrixQ, ListMatrixQ, ColorMatrixQ, ExtendedNumberMatrixQ, AnyMatrixQ,
     BooleanArrayQ,  IntegerArrayQ,  NaturalArrayQ,  PositiveIntegerArrayQ,  SymbolArrayQ,  RealArrayQ,  NumberArrayQ,  ListArrayQ,  ColorArrayQ,  ExtendedNumberArrayQ,
-    StringMatrixQ,  AssociationMatrixQ
+    StringMatrixQ,  AssociationMatrixQ,
     StringArrayQ,   AssociationArrayQ,
 
     NullQ, NoneQ, AutomaticQ, InheritedQ, InfinityQ,
     NotNullQ, NotNoneQ, NotAutomaticQ, NotInfinityQ,
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
+
+  "Predicate",
 
     ZipAllTrueQ,
     AllSameQ,            NonEmptyAllSameQ,
@@ -50,6 +55,8 @@ SystemExports[
     AllSameOrderedKeysQ, NonEmptyAllSameOrderedKeysQ,
 
     FalseQ, AllAreTrueQ, AnyAreTrueQ, NoneAreTrueQ, AllAreFalseQ, AnyAreFalseQ, NoneAreFalseQ,
+
+  "Predicate",
 
     ListableFunctionQ,
     ContainsQ, ContainsWithinQ, FreeWithinQ, ContainsAssociationQ,
@@ -73,7 +80,7 @@ PackageExports[
   "Predicate",
     WithinUQ, WithinSQ,
     EmptyQ,
-    Nat2Q, PosInt2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
+    Nat2Q, PosInt2Q, Int2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
     Num2Q, Num23Q, Num3Q,
     Pos2Q, Pos2ListQ, Pos2ListsQ, Pos2PairQ,
     Pos3Q, Pos3ListQ, Pos3ListsQ, Pos3PairQ,
@@ -347,7 +354,7 @@ HoldNotEmptyQ[NonEmptyP]   = True;
 
 (*************************************************************************************************)
 
-DeclarePatternPredicates[Nat2Q, PosInt2Q];
+DeclarePatternPredicates[Nat2Q, Int2Q, PosInt2Q];
 DeclarePatternPredicates[Num2Q, Num3Q, Num23Q];
 
 (*************************************************************************************************)

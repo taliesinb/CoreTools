@@ -14,7 +14,7 @@ DefinePatternRules[rules___Rule] := iDefineRules[definePattern, Hold @ rules];
 
 iDefineRules[fn_, held_] := With[
   {syms = Part[held, All, 1]},
-  Prelude`Packages`$SymbolAliasesDirty = True;
+  $SymbolAliasesDirty = True;
   UnprotectClearAll @@ syms;
   Scan[fn, held];
   Protect @@ syms;

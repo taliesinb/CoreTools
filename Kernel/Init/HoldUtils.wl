@@ -1,10 +1,10 @@
 SystemExports[
-  "ControlFlow", HoldMap, HoldScan, HoldHead, HoldApply, HoldTake, HoldTakeArgs, EvaluateMap
+  "ControlFlow", HoldMap, HoldScan, HoldHead, HoldHash, HoldApply, HoldTake, HoldTakeArgs, EvaluateMap
 ];
 
 PackageExports[
-  "ControlFlow", HMap, HScan, HHead, HApply, HTake, HTakeArgs, EvalMap,
-  "ControlFlow", HMake, HUnmake, HCUnmake,
+  "ControlFlow", HMap, HoldMap2, HMap2, HScan, HHead, HHash, HApply, HTake, HTakeArgs, EvalMap,
+  "ControlFlow", HMake, HUnmake, HCUnmake, HoldCMap, HoldCRaise, HoldCLower,
   "Function",    Unmake, Remake, HByteCount
 ];
 
@@ -12,14 +12,22 @@ PackageExports[
 
 DefineAliasRules[
   HMap       -> HoldMap,
+  HMap2      -> HoldMap2,
   HScan      -> HoldScan,
   HHead      -> HoldHead,
+  HHash      -> HoldHash,
   HApply     -> HoldApply,
   HTake      -> HoldTake,
   HTakeArgs  -> HoldTakeArgs,
   EvalMap    -> EvaluateMap,
   HByteCount -> HoldByteCount
 ];
+
+(*************************************************************************************************)
+
+HoldCMap[fn_, list_List] := HoldCRaise @ Map[fn, NoEval @ list];
+HoldCRaise[list_List]    := Thread[list, HoldC];
+HoldCLower[hold_HoldC]   := Thread[hold];
 
 (*************************************************************************************************)
 
@@ -56,24 +64,29 @@ HoldTakeArgs[d:DictP, n_Int, fn_] := Module[{bag = Bag[], i = 0},
 ];
 HoldTakeArgs[AtomP, _Int, _] := {};
 
-
 (**************************************************************************************************)
 
 HoldMap::usage = "HoldMap[fn$, args$] maps fn$ over args$ without evaluating args$.";
 HoldScan::usage = "HoldScan[fn$, args$] maps fn$ over args$ without evaluating args$.";
 
-SetStrict @ SetHoldC[HoldHead, HoldMap, HoldScan]
+SetStrict @ SetHoldC[HoldHead, HoldMap, HoldMap2, HoldScan, HoldHash]
 
 HoldMap[f_, args_]                      := Map[f, Unevaluated[args]];
 HoldMap[Function[body_], args_]         := Map[Function[Null, body, HoldAllComplete], Unevaluated[args]];
 HoldMap[Function[args_, body_], args_]  := Map[Function[args, body, HoldAllComplete], Unevaluated[args]];
 
+HoldMap2[f_, args_]                      := Map[f, Unevaluated[args], {2}];
+HoldMap2[Function[body_], args_]         := Map[Function[Null, body, HoldAllComplete], Unevaluated[args], {2}];
+HoldMap2[Function[args_, body_], args_]  := Map[Function[args, body, HoldAllComplete], Unevaluated[args], {2}];
+
 HoldScan[f_, args_]                     := Scan[f, Unevaluated[args]];
 HoldScan[Function[body_], args_]        := Scan[Function[Null, body, HoldAllComplete], Unevaluated[args]];
 HoldScan[Function[args_, body_], args_] := Scan[Function[args, body, HoldAllComplete], Unevaluated[args]];
 
-HoldHead[e_]      := Head @ NoEval @ e;
+HoldHead[e_]      := Head[NoEval @ e];
 HoldHead[e_, fn_] := Head[NoEval @ e, fn];
+
+HoldHash[e_] := Hash @ NoEval @ e;
 
 (**************************************************************************************************)
 

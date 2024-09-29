@@ -26,9 +26,13 @@ PackageExports[
   "Function",
     UnindexDicts, IndexDicts,
     Bind, UBind,
+  "DataHead",
+    SymbolProxy, LHSProxy,
+  "Symbol",
+    NullSym,
   "MutatingFunction",
     CachedTo,
-    BindTo,
+    BindTo, BindFrom,
     InternTo, InternUniqueTo,
     KeyApplyTo, KeyIncrement, KeyDecrement,
     KeyAddTo,   KeySubFrom,   KeyTimesBy,   KeyDivideBy,
@@ -493,6 +497,55 @@ BindTo[lhs_, {}]          := lhs;
 BindTo[lhs_, rule:RuleLP] := AssociateTo[lhs, rule];
 BindTo[lhs_, dict_Dict]   := AssociateTo[lhs, dict];
 BindTo[lhs_, rules_List]  := AssociateTo[lhs, rules];
+
+(**************************************************************************************************)
+
+SetStrict @ BindFrom;
+
+BindFrom::usage =
+"BindFrom[key$ :> sym$, dict$] sets sym$ to dict[$key$] if it exists.
+BindFrom[$$, fn$] calls fn$[key$] on an unknown key. Use UnkOptMsg[head] as a function to get a good error message.
+BindFrom[<|key$ :> sym$, key$ :> sym|>, dict$] processes keys from dict, binding each to sym$i when key$i matches."
+
+BindFrom[key_ :> sym_, vals_Dict]     := If[HasKeyQ[vals, key], sym[key] = vals[key];];
+
+BindFrom[keysSyms_, vals_]            := iBindFrom[keysSyms, vals, UnkOptMsg[General]];
+BindFrom[keysSyms_, vals_, fn_]       := iBindFrom[keysSyms, vals, fn];
+
+iBindFrom[_, EmptyP, _]               := Null;
+iBindFrom[keysSyms_, vals_List,  fn_] := iBindFrom[keysSyms, Dict @ vals, fn];
+iBindFrom[keysSyms_, vals:DictP, fn_] := (AssocScanWhileQ[vals, bindFromScan[keysSyms, fn]];)
+iBindFrom[_, _, _]                    := InternalError;
+
+bindFromScan[keysSyms_, fn_][key_ -> val_] := At[Set, Lookup[keysSyms, key, fn[key]; NullSym, SymbolProxy], val];
+
+(**************************************************************************************************)
+
+SetHoldC[SymbolProxy];
+
+(* This makes Null = 5 a no-op, which is very convenient for 'don't care' destructuring *)
+If[!TrueQ[System`Private`$CoreToolsFirstLoad],
+  System`Private`$CoreToolsFirstLoad = True;
+  (* Language`SetMutationHandler[Null,          HoldComplete]; dangerous? *)
+  Language`SetMutationHandler[NullSym,       mNullSym];
+  Language`SetMutationHandler[SymbolProxy,   mSymbolProxy];
+  Language`SetMutationHandler[LHSProxy,      mLHSProxy];
+];
+
+Protect[SymbolProxy, LHSProxy, NullSym];
+
+SetHoldC[mSymbolProxy, mLHSProxy, mNullSym];
+
+mNullSym[_] := Null;
+
+mSymbolProxy[Set[SymbolProxy[sym_Sym], rhs_]] := Set[sym, rhs];
+mSymbolProxy[e_] := Message[SymbolProxy::unsupportedMutation, HoldForm @ e];
+
+mLHSProxy[Set[LHSProxy[fn_], rhs_]] := fn[rhs];
+mLHSProxy[Set[LHSProxy[],    rhs_]] := Null;
+mLHSProxy[e_] := Message[SymbolProxy::unsupportedMutation, HoldForm @ e];
+
+General::unsupportedMutation = "Unsupported mutation pattern: ``.";
 
 (**************************************************************************************************)
 

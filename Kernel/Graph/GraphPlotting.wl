@@ -1,5 +1,5 @@
 SystemExports[
-  "OptionSymbol",
+  "Option",
     LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction,
     EdgeColor, EdgeThickness, ThemeParent,
     VertexColorFunction, VertexTooltips,
@@ -69,7 +69,7 @@ GraphThemeData[name_Str] := Locals[
 GraphThemeData[name_Str, key_] :=
   GraphThemeData[Lookup[$CustomGraphThemeData, name, Dict[]], key];
 
-GraphThemeData[dict_Dict, key_] := SubInherited[
+GraphThemeData[dict_Dict, key_] := IfInherited[
   Lookup[dict, key, Inherited],
   If[!StringQ[dict, ThemeParent], None,
     GraphThemeData[dict @ ThemeParent, key]]
@@ -201,7 +201,7 @@ Initially[
   $UserEdgeLabelFunction   = Id;
 ];
 
-CustomGraphMakeBoxes[expr_, _, fmt_] := DisableCoreBoxInteractivity @ ToBoxes[expr, fmt];
+CustomGraphMakeBoxes[expr_, _, fmt_] := BlockInteractive @ ToBoxes[expr, fmt];
 
 toLabelFn[None | $Failed | Null] := Id;
 toLabelFn[fn_] := passNull[fn];

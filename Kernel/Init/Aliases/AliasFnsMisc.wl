@@ -1,17 +1,26 @@
 PackageExports[
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
+    OptMsg, ThrowOptMsg, UnkOptMsg, ThrowUnkOpt,
   "Function",
     ToList, ToVals, ToRowVec, ToColVec, KeysVals,
     HLen, HoldLen, Len2, LenN, DimN, LenRange, RangeLen,
     MapVals, MapValsP, MapF, MapL, MapM, MapR,
     VecRep,
-    Index1, VecIndex1, VecIndex1Of, VecRep, Parts, Occs, OccsPos, NarrowOpts,
+    Index1, VecIndex1, VecIndex1Of, VecRep, Parts, Occs, UniOccs, OccsPos, NarrowOpts,
     DelNone, DelNull, DelMissing, DelFailed, DelEmpty, DelVerb,
     AliasSymName, SymName, SymContext, SymPath,
     MakeSetD, MakeTagSetD, MakeUpSetD,
   "MutatingFunction",
-    UnpackDict, PackDict, SetInherit
+    UnpackDict, PackDict, SetInherit,
+  "SymbolicHead",
+    Iff
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  Iff              -> Equivalent
 ];
 
 (*************************************************************************************************)
@@ -56,6 +65,7 @@ DefineAliasRules[
   VecRep           -> VectorReplace,
   Parts            -> ExtractIndices,
   Occs             -> Occurences,
+  UniOccs          -> UniqueOccurences,
   OccsPos          -> OccurencePositions,
   NarrowOpts       -> NarrowOptions
 ];
@@ -91,9 +101,13 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
-  ThrowMsg         -> ThrowMessage,
-  ErrorMsg         -> ErrorMessage,
-  ReturnMsg        -> ReturnMessage
+  ThrowMsg     -> ThrowMessage,
+  ErrorMsg     -> ErrorMessage,
+  ReturnMsg    -> ReturnMessage,
+  OptMsg       -> IssueOptionMessage,
+  ThrowOptMsg  -> ThrowOptionMessage,
+  UnkOptMsg    -> IssueUnknownOptionMessage,
+  ThrowUnkOpt  -> ThrowUnknownOptionMessage
 ];
 
 (*************************************************************************************************)

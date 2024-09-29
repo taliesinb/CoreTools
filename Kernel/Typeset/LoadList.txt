@@ -1,4 +1,5 @@
 BoxDefs.wl
+BoxFns.wl
 CodeBoxes.wl
 ExprBoxes.wl
 Views.wl

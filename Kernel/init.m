@@ -19,7 +19,7 @@ Begin["Init`Private`"];
 
 (*************************************************************************************************)
 
-System`$SymbolAliases = Data`UnorderedAssociation[];
+Prelude`$SymbolAliases = Data`UnorderedAssociation[];
 Get @ $PreludeInitFile;
 
 (*************************************************************************************************)
@@ -39,12 +39,14 @@ $derivativeSugarRules = Dispatch @ {
 
 (*************************************************************************************************)
 
-If[$MessagePrePrint === CoreTools`MsgPrePrint, Unset @ $MessagePrePrint];
+If[$MessagePrePrint === MessageArgumentForm, Unset @ $MessagePrePrint];
+If[$PrePrint === OutputExpressionForm, Unset @ $PrePrint];
 
-Prelude`Packages`LoadPackage[
+PreludeLoadPackage[
   "CoreTools`",
   File @ FileNameJoin[{$CoreToolsPath, "LoadList.txt"}],
-  "CodePreprocessor" -> ApplyEchoSugar
+  "CodePreprocessor" -> ApplyEchoSugar,
+  "ContextPath" -> {"Prelude`"}
 ];
 
 (*************************************************************************************************)
@@ -54,10 +56,12 @@ EndPackage[];
 
 (*************************************************************************************************)
 
-If[!Prelude`Packages`PackageLoadCompletedQ["CoreTools`"],
+If[!Prelude`PackageLoadCompletedQ["CoreTools`"],
+  System`Private`$CoreToolsLoaded = False;
   General::coreToolsLoadFailed = "CoreTools didn't load successfully.";
   Message[General::coreToolsLoadFailed];
   $ContextPath = DeleteCases[$ContextPath, "CoreTools`"]; (* allows us to retry later *)
 ,
-  If[DownValues[MsgPrePrint] =!= {}, $MessagePrePrint = MsgPrePrint];
+  System`Private`$CoreToolsLoaded = True;
+  If[TrueQ @ System`Private`$UseCoreToolsPrePrintFns, Symbol["CoreTools`SetPrePrintFns"][]];
 ];

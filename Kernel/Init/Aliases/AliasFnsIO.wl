@@ -1,6 +1,7 @@
 PackageExports[
   "IOFunction",
     ReadRawJSONFile, ReadRawJSONStream, WriteRawJSONFile, WriteRawJSONStream, CellInformation,
+    ToInputStr, HToInputStr, FromInputStr,
   "Function",
     ReadRawJSONString, WriteRawJSONString,
     DecodeBase64, EncodeBase64, DecodeBase64ToByteArray,
@@ -8,6 +9,12 @@ PackageExports[
 ];
 
 (*************************************************************************************************)
+
+DefineAliasRules[
+  HToInputStr              -> HoldToInputString,
+  ToInputStr               -> ToInputString,
+  FromInputStr             -> FromInputString
+];
 
 DefineAliasRules[
   ReadRawJSONFile          -> Developer`ReadRawJSONFile,

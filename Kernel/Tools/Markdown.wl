@@ -20,7 +20,7 @@ PackageExports[
     InlineMathBlock,
     InlineCodeBlock,
     DecorationBlock,
-  "OptionSymbol",
+  "Option",
     ForbiddenBlocks,
     GlobalStringReplacements,
     BlockRewriteRules,

@@ -1,33 +1,41 @@
 SystemExports[
-  "MetaFunction",
-    DefineVariableMacro, DefinePatternMacro, DefineSimpleMacro, DefineComplexMacro, DefinePartialMacro,
-  "ControlFlow",
-    FunctionReturn,
-  "SpecialFunction",
-    ExpandMacros, MacroHold, RefreshMacroRules,
-  "SpecialVariable",
-    $MacroParentSymbol, $MacroSourceLocation, $DollarSymbols
+  "ControlFlow",     FunctionReturn,
+  "SpecialVariable", $DollarSymbols
 ];
 
 PackageExports[
   "Function",
-    Ensure,
+    Ensure, MacroHead,
+  "SpecialFunction",
+    ExpandMacros, MacroHold, RefreshMacroRules,
   "MetaFunction",
-    DeclareMacroDefine,
+    DeclareMacroDefSym,
+    SimpleMacroDefs, PatternMacroDefs, ComplexMacroDefs, PartialMacroDefs,
   "Predicate",
     ContainsMacrosQ, FreeOfMacrosQ, FreeOfPureMacrosQ,
   "SpecialVariable",
-    $CompiledMacroRules,
-    $AllMacroSymbols, $PureMacroSymbols, $PartialMacroSymbols,
-    $MacroRules, $PartialMacroRules, $LastMacroFailure, $MacroSugarRules,
-    $FunctionReturnTag
+    $LastMacroFailure
 ];
 
 PrivateExports[
+  "Function",
+    HoldMMap, HoldMRaise, HoldMLower,
   "SpecialFunction",
-    TopLevelEvaluateMacro, TopLevelSetDelayedMacro,
+    MacroEval, MacroHook,
+  "TagVariable",
+    $ReturnTarget,
+    $MacroHead,
+    $MacroSrcLoc,
   "SpecialVariable",
-    $FunctionReturnTarget
+    $CompiledMacroRules,
+    $AllMacroSyms,
+    $PureMacroSyms,
+    $PartialMacroRules,
+    $PartialMacroSyms,
+    $MacroSugarRules,
+    $ReturnTag,
+    $MacroRules,
+    $PartialMacroRules
 ];
 
 (**************************************************************************************************)
@@ -39,12 +47,16 @@ Ensure[testFn_, else_][expr_] := If[TrueQ @ testFn @ expr, expr, else];
 
 (*************************************************************************************************)
 
+SetHoldA[MacroHold];
+
+MacroHold::usage = "MacroHold[$$] will be stripped during macro expansion.";
+
 $DollarSymbols = {$1, $2, $3, $4, $5, $6, $7, $8, $9};
 
 $MacroSugarRules = Data`UnorderedAssociation[
-  HoldPattern[Message] -> {
-  HoldPattern[Message[msgName_Str, msgArgs___]] :>
-    Message[MessageName[$MacroParentSymbol, msgName], msgArgs]
+  HoldP[Message] -> {
+  HoldP[Message[msgName_Str, msgArgs___]] :>
+    Message[MessageName[$MacroHead, msgName], msgArgs]
   }
 ];
 
@@ -52,186 +64,32 @@ RefreshMacroRules[] := (generateMacroRules[];)
 
 (* this ensures we have only one set of rules for each head *)
 $MacroRules = Data`UnorderedAssociation[
-  HoldPattern[$$]             -> {HoldPattern[$$] -> $MacroParentSymbol},
-  HoldPattern[FunctionReturn] -> {} (* ensure its a symbol *)
+  HoldP[$$]             -> {HoldP[$$] -> $MacroHead},
+  HoldP[FunctionReturn] -> {} (* ensure its a symbol *)
 ];
 
 $PartialMacroRules = Data`UnorderedAssociation[];
 
 invalidateMacroRules[] := (
-  Clear[$AllMacroSymbols, $PureMacroSymbols, $CompiledMacroRules];
-  $AllMacroSymbols    := (generateMacroRules[]; $AllMacroSymbols);
-  $PureMacroSymbols   := (generateMacroRules[]; $PureMacroSymbols);
+  Clear[$AllMacroSyms, $PureMacroSyms, $CompiledMacroRules];
+  $AllMacroSyms    := (generateMacroRules[]; $AllMacroSyms);
+  $PureMacroSyms   := (generateMacroRules[]; $PureMacroSyms);
   $CompiledMacroRules := (generateMacroRules[]; $CompiledMacroRules);
 );
 
 invalidateMacroRules[];
 
 generateMacroRules[] := (
-  Clear[$AllMacroSymbols, $PureMacroSymbols, $CompiledMacroRules];
-  $AllMacroSymbols = Sort @ Append[Join[Keys @ $MacroRules, Keys[$SymbolAliases, HoldPattern]], HoldPattern @ MacroHold];
-  $PartialMacroSymbols = Keys @ $PartialMacroRules;
-  $PureMacroSymbols = Complement[$AllMacroSymbols, $PartialMacroSymbols];
+  Clear[$AllMacroSyms, $PureMacroSyms, $CompiledMacroRules];
+  $AllMacroSyms = Sort @ Append[Join[Keys @ $MacroRules, Keys[$SymbolAliases, HoldP]], HoldP @ MacroHold];
+  $PartialMacroSyms = Keys @ $PartialMacroRules;
+  $PureMacroSyms = Complement[$AllMacroSyms, $PartialMacroSyms];
   defineMacroPredicates[
-    Extract[$AllMacroSymbols, {All, 1}, Hold],
-    Extract[$PureMacroSymbols, {All, 1}, Hold]
+    Extract[$AllMacroSyms, {All, 1}, Hold],
+    Extract[$PureMacroSyms, {All, 1}, Hold]
   ];
   $CompiledMacroRules = Dispatch @ Catenate @ Join[$MacroRules, $MacroSugarRules];
 );
-
-General::invalidMacroDefinition = "Not a valid macro definition: ``.";
-
-(*************************************************************************************************)
-
-defineMacroPredicates[Hold[symbols_List], Hold[pureSymbols_List]] := (
-  FreeOfMacrosQ[expr_]     :=    Internal`LiterallyAbsentQ[Unevaluated @ expr, Unevaluated @ symbols];
-  FreeOfPureMacrosQ[expr_] :=    Internal`LiterallyAbsentQ[Unevaluated @ expr, Unevaluated @ pureSymbols];
-  ContainsMacrosQ[expr_]   := Internal`LiterallyOccurringQ[Unevaluated @ expr, Unevaluated @ symbols];
-);
-
-(*************************************************************************************************)
-
-MacroHold::usage = "MacroHold[$$] will be stripped during macro expansion.";
-
-SetHoldA[MacroHold];
-
-(*************************************************************************************************)
-
-setupInvMacroMsg[macroDefSym_] := (
-  e_macroDefSym := (Message[macroDefSym::invalidMacroDefinition, HoldForm @ e]; $Failed)
-);
-
-(*************************************************************************************************)
-
-DefineVariableMacro::usage =
-"DefineVariableMacro[symbol, value] defines a macro that expands symbol to a value at load time."
-
-SetHoldA[DefineVariableMacro]
-setupInvMacroMsg[DefineVariableMacro]
-
-DefineVariableMacro[sym_Symbol, value_] := (
-  sym = value;
-  $MacroRules[HoldPattern[sym]] = {HoldPattern[sym] :> value};
-  invalidateMacroRules[];
-);
-
-(*************************************************************************************************)
-
-$macroDefineHeadP = Alt[];
-
-DeclareMacroDefine[macroDefSym_Symbol] := (
-  SetHoldA[macroDefSym];
-  (* we do this so that macros don't expand before they are defined, e.g. if they are already
-  defined and we reload a file *)
-  ExpandMacros[h:HoldComplete[_macroDefSym]] := h;
-  ExpandMacros[h:HoldComplete[CompoundExpression[_macroDefSym, Null]]] := h;
-  macroDefSym[sym_Symbol, rule_RuleDelayed] := macroDefSym[sym, {rule}];
-  setupInvMacroMsg[macroDefSym];
-);
-
-(*************************************************************************************************)
-
-DeclareMacroDefine[DefineSimpleMacro]
-
-DefineSimpleMacro::usage =
-"DefineSimpleMacro[symbol, lhs :> rhs] defines a simple macro associated with symbol that is expanded at load time.
-DefineSimpleMacro[symbol, rules] defines several rules.
-* the special symbol $MacroParentSymbol will be substituted with symbol whose top-level definition contains the macro.
-* if you wish to use MacroHold, you should be using DefineComplexMacro instead."
-
-(* since we may have previously set up downvalues for sym, we can't allow the rule LHS to evaluate *)
-DefineSimpleMacro[sym_Symbol, rules:{__RuleDelayed}] := With[
-  {heldRules = (Clear[sym]; toSimpleRules @ rules)},
-  If[!FreeQ[heldRules, MacroHold],
-    Message[DefineSimpleMacro::notSimpleMacro, sym];
-    $Failed
-  ,
-    DownValues[sym]               = heldRules;
-    $MacroRules[HoldPattern[sym]] = heldRules;
-    $PartialMacroRules[HoldPattern[sym]] = heldRules;
-    invalidateMacroRules[];
-  ]
-];
-DefineSimpleMacro::notSimpleMacro = "Macro rules for `` contains MacroHold, use DefineComplexMacro.";
-
-SetHoldA[toSimpleRules]
-toSimpleRules[rules_] := MapAt[HoldPattern, Unevaluated @ rules, {All, 1}];
-
-(*************************************************************************************************)
-
-DefinePatternMacro::usage =
-"DefinePatternMacro[symbol, lhs :> rhs] is like DefineSimpleMacro but is designed for symbols
-that represent patterns."
-
-DeclareMacroDefine[DefinePatternMacro]
-
-DefinePatternMacro[sym_Symbol, rules:{__RuleDelayed}] :=
-  DefineSimpleMacro[sym, rules];
-
-(*************************************************************************************************)
-
-DefinePartialMacro::usage =
-"DefinePartialMacro[symbol, lhs :> rhs] defines macro rules for a symbol that is also an ordinary
-function, but has certain usages that appear in macros."
-
-DeclareMacroDefine[DefinePartialMacro]
-
-DefinePartialMacro[sym_Symbol, rules:{__RuleDelayed}] := With[
-  {heldRules = toSimpleRules[rules]},
-  $MacroRules[HoldPattern[sym]] = heldRules;
-  $PartialMacroRules[HoldPattern[sym]] = heldRules;
-  invalidateMacroRules[];
-];
-
-(*************************************************************************************************)
-
-DefineComplexMacro::usage =
-"DefineComplexMacro[symbol, lhs :> rhs] defines a complex macro associated with symbol that is expanded at load time.
-DefineComplexMacro[symbol, rules] defines several rules.
-* unlike DefineSimpleMacro, DefineComplexMacro will set up top-level UpValues that automatically apply the macro,
-and will additionally allow it to use MacroHold.
-* $MacroParentSymbol is the name of the symbol using the macro in its definition."
-
-DeclareMacroDefine[DefineComplexMacro]
-
-DefineComplexMacro[sym_Symbol, rule_RuleDelayed] := DefineComplexMacro[sym, List @ rule];
-
-DefineComplexMacro[sym_Symbol, rules:{__RuleDelayed}] := (
-  Clear[sym];
-  UpValues[sym]                 = toUpRules[sym];
-  DownValues[sym]               = HoldMap[toDownRule, rules];
-  $MacroRules[HoldPattern[sym]] = HoldMap[toInnerRule, rules];
-  invalidateMacroRules[];
-);
-
-(*************************************************************************************************)
-
-SetHoldA[toDownRule, toUpRules, toInnerRule];
-
-toInnerRule[_[lhs_, rhs_]] := RuleDelayed[HoldPattern @ lhs, RuleCondition @ rhs];
-
-toDownRule[head_[lhs_, rhs_]] := head[HoldPattern[lhs], TopLevelEvaluateMacro @ Evaluate @ rhs];
-
-toUpRules[sym_] := {
-  HoldPattern[$LHS:       Set[_, _sym]] :> TopLevelSetDelayedMacro[$LHS],
-  HoldPattern[$LHS:SetDelayed[_, _sym]] :> TopLevelSetDelayedMacro[$LHS]
-};
-
-(*************************************************************************************************)
-
-SetHoldA[TopLevelEvaluateMacro, TopLevelSetDelayedMacro]
-
-TopLevelEvaluateMacro[expr_] :=
-  First @ ReplaceRepeated[ExpandMacros @ HoldComplete @ expr, MacroHold[h_] :> h];
-
-$currentMacroParentSymbol = $MacroParentSymbol;
-
-TopLevelSetDelayedMacro[___] := Null;
-TopLevelSetDelayedMacro[s_] := Block[
-  {$currentMacroParentSymbol = getParentHead @ s, head},
-  head = First @ $currentMacroParentSymbol;
-  CatchMessages[head, TopLevelEvaluateMacro @ s]
-];
 
 (*************************************************************************************************)
 
@@ -239,9 +97,184 @@ ContainsMacrosQ::usage = "ContainsMacrosQ[...] returns True if macro symbols are
 
 SetHoldA[ContainsMacrosQ, FreeOfMacrosQ, FreeOfPureMacrosQ]
 
+defineMacroPredicates[Hold[symbols_List], Hold[pureSymbols_List]] := (
+  FreeOfMacrosQ[e_]     := VFreeQ[NoEval @ e, NoEval @ symbols];
+  FreeOfPureMacrosQ[e_] := VFreeQ[NoEval @ e, NoEval @ pureSymbols];
+  ContainsMacrosQ[e_]   := VContainsQ[NoEval @ e, NoEval @ symbols];
+);
+
 (*************************************************************************************************)
 
-ExpandMacros::usage = "ExpandsMacros[HoldComplete[...]] expands macros that are present.";
+SetHoldC[HoldMMap]
+
+HoldMMap[fn_, list_List] := HoldMRaise @ Map[fn, NoEval @ list];
+
+HoldMRaise[list_List]  := Thread[list, HoldM];
+HoldMLower[hold_HoldM] := Thread[list, HoldM];
+
+(*************************************************************************************************)
+
+General::internalMacroError = "Internal macro error: ``.";
+General::invalidMacroDefinition = "Not a valid macro definition: ``.";
+
+setMacroHelper[sym_Sym] := SetD[e_sym, ErrorMessage[sym::internalMacroError,     HoldForm @ e]];
+setMacroDefSym[sym_Sym] := SetD[e_sym, ErrorMessage[sym::invalidMacroDefinition, HoldForm @ e]];
+
+(*************************************************************************************************)
+
+SetStrict @ DeclareMacroDefSym;
+
+DeclareMacroDefSym[defSym_Sym, fn_Sym] := Then[
+  SetHoldC @ defSym,
+  setMacroHelper @ fn,
+  setMacroDefSym @ defSym,
+  ExpandMacros[hc:HoldC[_defSym]]             := hc,
+  ExpandMacros[hc:HoldC[Then[_defSym, Null]]] := hc,
+  defSym[def_SetD]             := procMacroDefSingle[fn, HoldC @ def],
+  defSym[defs__SetD]           := procMacroDefGroup0[fn, HoldC @ {defs}],
+  defSym[head_Sym, defs__SetD] := procMacroDefManual[fn, HoldC @ {defs}, Hold @ head],
+  Null
+];
+
+setMacroHelper @ procMacroDefSingle;
+setMacroHelper @ procMacroDefGroup0;
+setMacroHelper @ procMacroDefManual;
+
+procMacroDefSingle[fn_, HoldC[_[lhs_, rhs_]]] := With[
+  {head = PatHead[lhs]},
+  Clear @@ head;
+  fn[head, HoldC @ List @ RuleD[lhs, rhs]];
+  invalidateMacroRules[]
+];
+
+procMacroDefGroup0[fn_, defs:HoldC[_List]] := Module[
+  {holds, grouped},
+  holds = HoldCLower @ defs;
+  grouped = Normal @ GroupBy[holds, Apply @ DefHead];
+  Scan[procMacroDefGroup1[fn], grouped];
+  invalidateMacroRules[]
+];
+
+procMacroDefManual[fn_, defs:HoldC[_List], head_Hold] := Then[
+  Clear @@ head,
+  fn[head, SetDsToRuleDs @ defs],
+  invalidateMacroRules[]
+];
+
+procMacroDefGroup1[fn_][head_Hold -> defs:List[__HoldC]] := Then[
+  Clear @@ head,
+  fn[head, SetDsToRuleDs @ HoldCRaise @ defs]
+];
+
+procMacroDefGroup1[fn_][e___] :=
+  ErrorMessage[General::internalMacroError, HoldC[fn, e]];
+
+(*************************************************************************************************)
+
+SimpleMacroDefs::usage =
+"SimpleMacroDefs[lhs := rhs, ...] defines simple macros that are expanded at load time.
+* the special symbol $MacroHead will be substituted with symbol whose top-level definition contains the macro.
+* if you wish to use MacroHold, you should be using DefineComplexMacro instead."
+
+PatternMacroDefs::usage =
+"PatternMacroDefs[lhs := rhs, ...] is like SimpleMacroDefs but is designed for symbols that represent patterns.";
+
+DeclareMacroDefSym[SimpleMacroDefs, simpleMacroDef];
+DeclareMacroDefSym[PatternMacroDefs, simpleMacroDef];
+
+simpleMacroDef[Hold[sym_], rules:HoldC[{__RuleD}]] := With[
+  {hrules = ToHoldPRuleDs @ rules},
+  If[FreeQ[hrules, MacroHold],
+    DownValues[sym]                = hrules;
+    $MacroRules[HoldP[sym]]        = hrules;
+    $PartialMacroRules[HoldP[sym]] = hrules;
+    invalidateMacroRules[],
+    ErrorMsg[SimpleMacroDefs::notSimpleMacro, HoldForm @ sym];
+  ]
+];
+
+SimpleMacroDefs::notSimpleMacro = "Macro rules for `` contains MacroHold, use ComplexMacroDefs.";
+
+(*************************************************************************************************)
+
+PartialMacroDefs::usage =
+"PartialMacroDefs[lhs := rhs, ...] defines macros for a symbol that is also an ordinary
+function, but has certain usages that appear in macros."
+
+DeclareMacroDefSym[PartialMacroDefs, partialMacroDef];
+
+partialMacroDef[Hold[sym_Sym], rules:HoldC[{__RuleD}]] := With[
+  {hrules = ToHoldPRuleDs @ rules},
+  $MacroRules[HoldP[sym]] = hrules;
+  $PartialMacroRules[HoldP[sym]] = hrules;
+];
+
+(*************************************************************************************************)
+
+ComplexMacroDefs::usage =
+"ComplexMacroDefs[lhs := rhs, ...] defines a complex macro associated with symbol that is expanded at load time.
+ComplexMacroDefs[head$, ...] gives a parent symbol if the head is not at top level.
+* unlike SimpleMacroDefs, ComplexMacroDefs will set up top-level UpValues that automatically apply the macro,
+and will additionally allow it to use MacroHold.
+* $MacroHead is the name of the symbol using the macro in its definition."
+
+DeclareMacroDefSym[ComplexMacroDefs, complexMacroDef];
+
+complexMacroDef[Hold[sym_Sym], HoldC[rules_List]] := Then[
+  UpValues[sym]           = toUpRules[sym],
+  DownValues[sym]         = Map[toDownRule,  NoEval @ rules],
+  $MacroRules[HoldP[sym]] = Map[toInnerRule, NoEval @ rules]
+];
+
+setMacroHelper @ toDownRule;
+setMacroHelper @ toUpRules;
+setMacroHelper @ toInnerRule;
+
+SetHoldA[toDownRule, toUpRules, toInnerRule];
+
+toUpRules[sym_] := {
+  HoldP[$LHS:Set [_, _sym]] :> MacroHook[$LHS],
+  HoldP[$LHS:SetD[_, _sym]] :> MacroHook[$LHS]
+};
+
+toInnerRule[_[lhs_, rhs_]]    := RuleD[HoldP @ lhs, RuleEval @ rhs];
+toDownRule[head_[lhs_, rhs_]] := head[HoldP[lhs], MacroEval @ Evaluate @ rhs];
+
+(*************************************************************************************************)
+
+SetHoldA @ MacroEval;
+
+MacroEval[expr_] :=
+  First @ ReplaceRepeated[ExpandMacros @ HoldC @ expr, MacroHold[h_] :> h];
+
+(*************************************************************************************************)
+
+SetHoldA @ MacroHook;
+
+MacroHook[___] := Null;
+MacroHook[s_] := Block[
+  {$activeMHead = getParentHead @ s, head},
+  head = First @ $activeMHead;
+  CatchMessages[head, MacroEval @ s]
+];
+
+MacroParent[] :=
+
+(*************************************************************************************************)
+
+DeclaredHere[$MacroHead];
+
+MacroHead[] := If[
+  HasIValueQ[$activeMHead],
+  $activeMHead,
+  None
+];
+
+(* $activeMHead = $MacroHead; *)
+
+(*************************************************************************************************)
+
+ExpandMacros::usage = "ExpandsMacros[HoldC[...]] expands macros that are present.";
 
 ExpandMacros::messagesOccurred = "Messages occurred during macro expansion.";
 ExpandMacros[hc_ ? FreeOfMacrosQ] := hc;
@@ -256,14 +289,14 @@ General::expansionFailed = "Macro(s) `` failed to expand in ``. Code available a
 checkDone[hc_ ? FreeOfPureMacrosQ] := hc;
 checkDone[hc_] := ThrowMsg["expansionFailed", Beep[];
   $LastMacroFailure = hc;
-  HoldForm @@@ Select[$PureMacroSymbols, !FreeQ[hc, #]&],
+  HoldForm @@@ Select[$PureMacroSyms, !FreeQ[hc, #]&],
   hc
 ];
 
 (*************************************************************************************************)
 
-attachSLocs[hc_] /; VFreeQ[hc, $ExceptingSymbols] && VFreeQ[hc, NoEval @ {Unimplemented, InternalError}] := hc;
-attachSLocs[hc_] := InsertWithSourceLocations @ hc;
+attachSLocs[hc_] /; VFreeQ[hc, $ExceptingSyms] && VFreeQ[hc, NoEval @ {Unimplemented, InternalError}] := hc;
+attachSLocs[hc_] := AttachSrcLocs @ hc;
 
 (*************************************************************************************************)
 
@@ -271,57 +304,57 @@ subHolds[hc_] := ReplaceRepeated[hc, MacroHold[e_] :> e];
 
 (*************************************************************************************************)
 
-subRets[hc_] /; Internal`LiterallyAbsentQ[hc, FunctionReturn] := hc;
+subRets[hc_] /; VFreeQ[hc, FunctionReturn] := hc;
 
-subRets[hc_] := If[System`Private`HasImmediateValueQ[$FunctionReturnTarget],
+subRets[hc_] := If[HasIValueQ[$ReturnTarget],
   hc /. FunctionReturn[a_] :> Return[a, Block],
   subRets2[hc]
 ];
 
-subRets2[hc:HoldComplete[SetDelayed[_, _Block] | _Block]] /; Count[hc, Block] === 1 :=
+subRets2[hc:HoldC[SetD[_, _Block] | _Block]] /; Count[hc, Block] === 1 :=
   hc /. FunctionReturn[a_] :> Return[a, Block];
 
-subRets2[hc:HoldComplete[SetDelayed[_, _Module] | _Module]] /; Count[hc, Module] === 1 :=
+subRets2[hc:HoldC[SetD[_, _Module] | _Module]] /; Count[hc, Module] === 1 :=
   hc /. FunctionReturn[a_] :> Return[a, Block];
 
-subRets2[HoldComplete[(sd:SetDelayed)[lhs_, FunctionReturn[a_]]]] :=
-  HoldComplete[sd[lhs, a]];
+subRets2[HoldC[(sd:SetD)[lhs_, FunctionReturn[a_]]]] :=
+  HoldC[sd[lhs, a]];
 
 $uniqueID = 0;
-subRets2[hc:HoldComplete[(sd:SetDelayed)[lhs_, rhs_]]] := With[{id = $uniqueID++},
-  HoldComplete[sd[lhs, Catch[rhs, $FunctionReturnTag[id]]]] /.
-    FunctionReturn[a_] :> Throw[a, $FunctionReturnTag[id]]];
+subRets2[hc:HoldC[(sd:SetD)[lhs_, rhs_]]] := With[{id = $uniqueID++},
+  HoldC[sd[lhs, Catch[rhs, $ReturnTag[id]]]] /.
+    FunctionReturn[a_] :> Throw[a, $ReturnTag[id]]];
 
-subRets2[HoldComplete[hc_;]] := subRets2 @ HoldComplete @ hc;
-subRets2[hc:HoldComplete[{__SetDelayed}]] := Thread[Map[subRets, Thread @ hc], HoldComplete];
+subRets2[HoldC[hc_;]] := subRets2 @ HoldC @ hc;
+subRets2[hc:HoldC[{__SetD}]] := Thread[Map[subRets, Thread @ hc], HoldC];
 
-(* subRets2[HoldComplete[e_]] := With[{id = $uniqueID++},
-  HoldComplete[Catch[e, $FunctionReturnTag[id]]] /.
-    FunctionReturn[a_] :> Throw[a, $FunctionReturnTag[id]]];
+(* subRets2[HoldC[e_]] := With[{id = $uniqueID++},
+  HoldC[Catch[e, $ReturnTag[id]]] /.
+    FunctionReturn[a_] :> Throw[a, $ReturnTag[id]]];
  *)
 subRets2[e_] := ErrorPrint["Error finding returns in: ", HoldForm @ e];
 
 (*************************************************************************************************)
 
-subMps[hc_] /; Internal`LiterallyAbsentQ[hc, {$MacroParentSymbol, $MacroSourceLocation}] := hc;
+subMps[hc_] /; VFreeQ[hc, NoEval @ {$MacroHead, $MacroSrcLoc}] := hc;
 subMps[hc_] := subSL @ subMps2 @ hc;
 
-subSL[hc_] := ReplaceAll[hc, $MacroSourceLocation :> RuleEval @ SourceLocation[]];
+subSL[hc_] := ReplaceAll[hc, $MacroSrcLoc :> RuleEval @ SourceLocation[]];
 
-subMps2[hc:HoldComplete[lhs_SetDelayed | lhs_Set | CompoundExpression[lhs_SetDelayed | lhs_Set, Null]]] :=
-  ReplaceAll[hc, $MacroParentSymbol -> getParentHead[lhs]];
+subMps2[hc:HoldC[lhs_SetD | lhs_Set | Then[lhs_SetD | lhs_Set, Null]]] :=
+  ReplaceAll[hc, $MacroHead -> getParentHead[lhs]];
 
 subMps2[hc_] := Block[
-  {mpsPositions = ReverseSortBy[Position[hc, $MacroParentSymbol], Length],
-   $sdPositions = Position[hc, _SetDelayed], $hc = hc},
+  {mpsPositions = ReverseSortBy[Position[hc, $MacroHead], Length],
+   $sdPositions = Position[hc, _SetD], $hc = hc},
   ReplacePart[hc, Map[pos |-> Rule[pos, findParentHead[pos]], mpsPositions]]
 ];
 
 findParentHead[pos_] := Block[{parentSD},
   parentSd = SelectFirst[$sdPositions, prefixListQ[#, pos]&, None];
   If[parentSd === None,
-    If[System`Private`HasImmediateValueQ[$currentMacroParentSymbol],
-      Return[$currentMacroParentSymbol, Block];
+    If[HasIValueQ[$activeMHead],
+      Return[$activeMHead, Block];
       ThrowMsg["noMacroParent", HoldForm @ hc];
     ]
   ];
@@ -337,7 +370,7 @@ General::noMacroParent = "Could not resolve macro parent in ``.";
 
 SetHoldC[getParentHead]
 
-getParentHead[(SetDelayed|Set)[lhs_, _]] :=
+getParentHead[(SetD|Set)[lhs_, _]] :=
   MacroHold @@ Replace[
     PatHead @ lhs,
     $Failed :> ThrowMsg["macroParentLHS", HoldForm @ lhs]
@@ -345,5 +378,5 @@ getParentHead[(SetDelayed|Set)[lhs_, _]] :=
 
 getParentHead[lhs_] := ThrowMsg["macroParentLHS", HoldForm @ lhs]
 
-General::macroParentLHS = "Could not find a head symbol for the LHS of SetDelayed, being ``.";
+General::macroParentLHS = "Could not find a head symbol for the LHS of SetD, being ``.";
 

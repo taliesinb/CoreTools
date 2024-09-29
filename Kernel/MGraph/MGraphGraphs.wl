@@ -1,6 +1,6 @@
 SystemExports[
   "Function",     MultigraphIncidenceGraph, MultigraphPlot,
-  "OptionSymbol", DuplicateTargets
+  "Option",       DuplicateTargets
 ];
 
 (**************************************************************************************************)

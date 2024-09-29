@@ -2,7 +2,7 @@ SystemExports[
   "Function",
     LookupKeys, ChainedLookup,
     OptionRules, HoldOptionRules,
-    LookupOptions, HoldLookupOptions,
+    LookupOptions, LookupOptionsAs, HoldLookupOptions,
     MissingApply,
     OptionKeys, OptionValueRules, OptionValueList,
     GraphOptions,
@@ -146,7 +146,7 @@ chainLookupN[obj_Fn][keys_]            := Map[obj, keys];
 chainLookupN[obj_][keys_]              := Lookup[obj, keys];
 
 chainLookup0[objs_, Key[key_] | key_]  := Apply[chainLookup1, objs][key]
-chainLookup1[obj_, rest__][key_]       := SubMissing[obj[key], chainLookup1[rest][key]];
+chainLookup1[obj_, rest__][key_]       := IfMissing[obj[key], chainLookup1[rest][key]];
 chainLookup1[obj_Fn][key_]             := obj[key];
 chainLookup1[obj_][key_]               := Lookup[obj, Key @ key];
 
@@ -183,6 +183,16 @@ DefaultOptionValueFn::usage =
 "DefaultOptionValueFn[head$][key$] looks up OptionValue[head$, key$]."
 
 DefaultOptionValueFn[head_Symbol][key_] := OptionValue[head, key];
+
+(*************************************************************************************************)
+
+SetStrict @ LookupOptionsAs;
+
+LookupOptionsAs::usage =
+"LookupOptionsAs[dict$, keys$, head$] looks up a list of option symbols in dict$, but falls back on Options[head$].";
+
+LookupOptionsAs[EmptyP, keys_List, head_Sym]         := Lookup[Options @ head, keys];
+LookupOptionsAs[opts:ListDictP, keys_List, head_Sym] := MissingApply[DefaultOptionValueFn @ head, Lookup[opts, keys]];
 
 (*************************************************************************************************)
 

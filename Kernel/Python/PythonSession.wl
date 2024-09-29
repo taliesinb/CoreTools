@@ -35,7 +35,6 @@ PackageExports[
 
 PrivateExports[
   "IOFunction",
-    PythonPrint,
     PythonRawPrint,
     PythonErrorPrint,
     PythonSessionInfo,
@@ -250,7 +249,7 @@ compactPythonResultBoxes = CaseOf[
   e_TorchTensor                  := smallTensors @ e;
   e_                             := Which[
     AtomQ[e] && ByteCount[e] < 20, e,
-    LeafCount[e] < 20,             CodePaneBoxes[e],
+    LeafCount[e] < 20,             CodePaneBox[e],
     True,                          Head[e]
   ];
 ];
@@ -258,7 +257,7 @@ compactPythonResultBoxes = CaseOf[
 compactPythonFailureBoxes[f_] :=
   NiceObjectBoxes[
     StyleBox[f["FailureCode"], "Message"],
-    Construct[NicePasterBoxes,
+    Construct[PasterBox,
       StyleBox[ToBoxes @ First @ f["StyledMessage"], FontWeight -> Bold, ShowStringCharacters -> True],
       formatTraceback @ f["Traceback"]
     ]
@@ -443,17 +442,17 @@ InitializeTorch[] := If[!$TorchInitialized,
 pyStyleBox[None][s_] := StyleBox[ToBoxes @ s, FontColor -> $DarkGreen];
 pyStyleBox[hash_][s_] := StyleBox[ToBoxes @ s, FontColor -> HashToColor[Hash @ hash]];
 
-(* CoreBoxes[PyFunction[name_String, args_List]] :=
+(* CoreBox[PyFunction[name_String, args_List]] :=
   NiceObjectBoxes[
     pyStyleBox @ "PyFunction",
     {ItalicBox @ BraceRowBox[ToBoxes /@ args], SkeletonBox @ pyStyleBox @ name},
     .2
   ];
  *)
-CoreBoxes[PyFunction[name_String, args_List]] :=
+CoreBox[PyFunction[name_String, args_List]] :=
   NiceObjectBoxes[
     pyStyleBox[None] @ "PyFunction",
-    {FnParenRowBox[ToBoxes @ name, ItalicBox /@ ToBoxes /@ args]},
+    {RowBox[ToBoxes @ name, "(", RowBox[ItalicBox /@ ToBoxes /@ args], ")"]},
     .2
   ];
 
@@ -464,10 +463,10 @@ PyFunction[name_String, _][in___] :=
 
 DeclareCoreSubBoxes[PyObject]
 
-MakeCoreBoxes[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
-MakeCoreBoxes[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];
+MakeCoreBox[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
+MakeCoreBox[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];
 
-CoreBoxes[PyObjectRef[name_String, hash_Integer]]  := RBox[SemiBoldBox @ pyStyleBox[hash] @ name, "[", "\[Ellipsis]", "]"];
+CoreBox[PyObjectRef[name_String, hash_Integer]]  := RBox[SemiBoldBox @ pyStyleBox[hash] @ name, "[", "\[Ellipsis]", "]"];
 
 pyObjectBoxes[name_, hash_, assoc_] := NiceObjectBoxes[pyStyleBox[hash] @ name, objectEntryBoxes @ assoc, .3];
 

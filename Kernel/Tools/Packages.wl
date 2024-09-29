@@ -1,23 +1,23 @@
 SystemExports[
   "IOFunction",
     GetPackageDirectory,
-  "OptionSymbol",
-    Verbose, PriorityRules, MacroRules
+  "Option",
+    Caching, Logging, LogLevel, Verbose, PriorityRules, MacroRules
 ];
 
 PackageExports[
-  "SpecialFunction",
-    PackageTopLevelEvaluate
+  "SpecialFunction", PackageTopLevelEvaluate
+  "SpecialVariable", $InputFileHash
 ];
 
 (*************************************************************************************************)
 
 SetHoldA[PackageTopLevelEvaluate]
 
-With[{ignoredSyms = Apply[Alt, Blank /@ Prelude`Packages`$PackageDeclarationSymbols]},
-PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
+With[{ignoredSyms = Apply[Alt, Blank /@ $SymbolExportFunctions]},
+(* PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
 PackageTopLevelEvaluate[HoldComplete[ignoredSyms;]] := Null;
-PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
+ *)PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
 ];
 
 (**************************************************************************************************)
@@ -33,14 +33,14 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   $aliasBag = Bag[];
   $publicContext = context;
   $privateContext = context <> "Private`";
-  codePreprocFn = ApplyEchoSugar;
+  codePreprocFn = ApplyEchoSugar /* insertInputFileHash;
   If[NonEmptyQ[macroRules = OptionValue[MacroRules]],
     codePreprocFn = codePreprocFn /* ReplaceRepeated[macroRules]];
   $SessionCurrentEvaluationPrintCount = 0;
-  DisableHandleExceptions @ Prelude`Packages`LoadPackage[
+  DisableHandleExceptions @ PreludeLoadPackage[
     context, path,
     "CodePreprocessor"    -> codePreprocFn,
-    "SymbolTableFunction" -> extractLineExportsFromFileList,
+    "SymbolTableFunction" -> SymbolTableFromDirectives,
     "PreLoadFunction"     -> applyAliases,
     "EvaluationFunction"  -> PackageTopLevelEvaluate,
     "ContextPath"         -> {$publicContext, $privateContext, "CoreTools`", "System`"},
@@ -49,46 +49,9 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   ]
 ];
 
+insertInputFileHash[e_] /; VFreeQ[e, $InputFileHash] := e;
+insertInputFileHash[e_] := ReplaceAll[expr, $InputFileHash :> RuleEval[$CurrentPackageFileHash]];
+
 General::loadFailure = "Could not load file ``.";
 General::loadMessage = "Message issued during package evaluation: ``.";
 
-(**************************************************************************************************)
-
-extractLineExportsFromFileList[_, files_] :=
-  Catenate @ Map[extractLineExportsFromFile, files];
-
-$directivePrefixes = {"Export", "Private"};
-extractLineExportsFromFile[file_] := Locals[
-  $path = file;
-  lines = FindList[file, $directivePrefixes, AnchoredSearch -> True];
-  lines //= Select[StringStartsQ[$directivePrefixes ~~ Regex["[A-Za-z]+\\["]]];
-  collectAliases[Select[lines, StringContainsQ["->"]]];
-  Map[extractLineExportsFromLine, lines]
-];
-
-General::nonLocalExport = "Non-local export encountered in ``: ``.";
-
-extractLineExportsFromLine[str_] := Module[{tokens},
-  {privacy, kind, decl} = StringSegment[str, {After["Export" | "Private"], "[", "]"}];
-  If[!StringQ[decl], Return @ Nothing];
-  decl = StrJoin["{", StringReplace[decl, "->" -> ","], "}"];
-  If[StrContainsQ[decl, "`"], AbortPackageLoading["nonLocalExport", $path, decl]];
-  context = If[privacy === "Export", $publicContext, $privateContext];
-  {kind, $path, context, decl}
-];
-
-(**************************************************************************************************)
-
-$aliasRegex = Regex["([$a-zA-Z0-9]+) -> ([$a-zA-Z0-9]+)"];
-collectAliases[{}] := Null
-collectAliases[lines_List] := Module[{ruleChunks},
-  ruleChunks = Flatten @ StringCases[lines, $aliasRegex];
-  StuffBag[$aliasBag, StringJoin["DefineAliasRules[", Riffle[ruleChunks, ", "], "]"]];
-];
-
-applyAliases[] := Locals[
-  commands = BagPart[$aliasBag, All];
-  Block[{$Context = $privateContext, $ContextPath = {"System`", "CoreTools`", $publicContext}},
-    ToExpression[commands, InputForm];
-  ];
-];

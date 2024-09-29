@@ -1,20 +1,10 @@
-BeginPackage["Prelude`Overrides`"]
+BeginPackage["Prelude`"]
 
-System`PackageExports[
-  "MutatingFunction", System`UnprotectClearAll, System`UnprotectClear
-];
-
-Begin["`Private`"]
+Begin["`Overrides`Private`"]
 
 (*************************************************************************************************)
 
-SetAttributes[{UnprotectClearAll, UnprotectClear}, {HoldAllComplete}];
-UnprotectClearAll[e___] := (Unprotect[e]; ClearAll[e]);
-UnprotectClear[e___] := (Unprotect[e]; Clear[e]);
-
-(*************************************************************************************************)
-
-zQuiet[
+List[
   UnprotectClearAll[
     System`Comap, System`PrintableASCIIQ, System`AssociationMap, System`StringPadLeft, System`StringPadRight,
     System`Into, System`DefaultValue,

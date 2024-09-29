@@ -1,5 +1,5 @@
 SystemExports[
-  "OptionSymbol",        GraphScale, NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, RootPosition
+  "Option",              GraphScale, NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, RootPosition
 ];
 
 PackageExports[

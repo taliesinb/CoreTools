@@ -1,4 +1,6 @@
 SystemExports[
+  "FormHead",
+    BinaryDigitsForm,
   "GraphicsFunction",
     CompactArrayPlot, BinaryArrayPlot, MeshImage, SmartArrayPlot,
   "SpecialVariable",
@@ -67,20 +69,20 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
   UnpackOptions[frame, mesh, frameStyle, meshStyle];
 
   If[!PosIntQ[blockSize], ReturnFailed["meshImageBlockSize", blockSize]];
-  If[!BoolQ[frame], ThrowOptionMsg[Frame, frame]];
-  If[!BoolQ[mesh],  ThrowOptionMsg[Mesh, mesh]];
+  If[!BoolQ[frame], ThrowOptMsg[Frame, frame]];
+  If[!BoolQ[mesh],  ThrowOptMsg[Mesh, mesh]];
 
   Switch[frameStyle,
     None,                frame = False,
     GrayLevel[UnitNumP], frameStyle = P1 @ frameStyle,
-    _,                   ThrowOptionMsg[FrameStyle, frameStyle]];
+    _,                   ThrowOptMsg[FrameStyle, frameStyle]];
 
   meshFading = None;
   Switch[meshStyle,
     None,                mesh = False,
     Opacity[UnitNumP],   meshFading = OneMinus @ P1 @ meshStyle,
     GrayLevel[UnitNumP], meshStyle = P1 @ meshStyle,
-    _,                   ThrowOptionMsg[Mesh, meshStyle]];
+    _,                   ThrowOptMsg[Mesh, meshStyle]];
 
   array = EnsurePackedReals[array2, ThrowRealArrayMsg[array2, {2, 3}]];
   dims = Dims @ array;
@@ -124,7 +126,7 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
 getFrameMeshColor = CaseOf[
   GrayLevel[n_]   := N @ n;
   Opacity[_]      := 0;
-  spec_           := ThrowOptionMsg[Frame, spec];
+  spec_           := ThrowOptMsg[Frame, spec];
 ]
 
 paintFrame[{cl___}, {cr___}] := (
@@ -308,8 +310,9 @@ Options[BinaryArrayPlot] = {
 BinaryArrayPlot[array_, opts:OptionsPattern[]] :=
   BinaryArrayPlot[array, Auto, opts];
 
-BinaryArrayPlot[array_, digits:(_Int|Auto), OptionsPattern[]] := Locals[
+BinaryArrayPlot[array2_, digits:(_Int|Auto), OptionsPattern[]] := Locals[
   UnpackOptions[pixelConstrained];
+  array = array2;
   {min, max} = MinMax @ array;
   Which[
     VecQ[array, NonNegativeIntegerQ],
@@ -327,4 +330,6 @@ BinaryArrayPlot[array_, digits:(_Int|Auto), OptionsPattern[]] := Locals[
   CompactArrayPlot[1 - array, PixelConstrained -> pixelConstrained]
 ];
 
+(**************************************************************************************************)
 
+BinaryDigitsForm

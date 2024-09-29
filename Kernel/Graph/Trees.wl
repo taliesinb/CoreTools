@@ -3,18 +3,15 @@ PackageExports[
   "GraphicsDirective",   FaceEdge,
   "GraphicsFunction",    ExprTreePlot, TreeNodeColor,
   "GraphicsBoxFunction", ExprTreePlotBoxes,
-  "Function",
-    AllTreesDepth, AllTrees,
-    ToTree, UnfoldTree, UnfoldTreeData, RemoveTreeData,
+  "Function",            AllTreesDepth, AllTrees, ToTree, UnfoldTree, UnfoldTreeData, RemoveTreeData,
   "PatternSymbol",       TreeNodeP,
   "Predicate",           TreeNodeQ, ValidTreeQ,
   "Head",                TreeNode, TreeLeaf, DataNode, DataLeaf, TreeSeed,
   "Function",            ToTree, ToTreePattern,
   "SpecialVariable",     $CurrentTreeDepth, $MaxTreeDepth,
   "Operator",            TreeSeedFn,
-  "OptionSymbol",        NodePattern
+  "Option",              NodePattern
 ];
-
 
 (**************************************************************************************************)
 
@@ -39,11 +36,11 @@ ValidTreeQ = CaseOf[
 TreeLeaf     := TreeNode[];
 DataLeaf[d_] := DataNode[d][];
 
-CoreBoxes[t_TreeSeed ? ValidTreeQ]   := treeNodeBoxes[t];
-CoreBoxes[t_TreeNode ? ValidTreeQ]   := treeNodeBoxes @ t;
+CoreBox[t_TreeSeed ? ValidTreeQ]   := treeNodeBoxes[t];
+CoreBox[t_TreeNode ? ValidTreeQ]   := treeNodeBoxes @ t;
 
 DeclareCoreSubBoxes[DataNode];
-MakeCoreBoxes[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
+MakeCoreBox[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
 
 (**************************************************************************************************)
 
@@ -54,7 +51,7 @@ treeNodeBoxes = CaseOf[
   s:TreeLeaf     := rootNodeBoxes["\[FilledCircle]", s];
   s:DataLeaf[_]  := rootNodeBoxes["\[FilledCircle]", s];
   expr_          := Which[
-    LeafCount[expr] > 256, FnBracketRowBox[ToBoxes @ Head @ expr, List @ SkeletonBox @ NatStr @ LeafCount @ expr],
+    LeafCount[expr] > 256, ElidedBox @ expr,
     Depth[expr] > 24,      ToBoxes @ ExprTreePlot[Replace[expr, e_ -> TreeSeed[e], {16}], $treeNodePlotOpts],
     True,                  ToBoxes @ ExprTreePlot[expr, $treeNodePlotOpts]
   ]

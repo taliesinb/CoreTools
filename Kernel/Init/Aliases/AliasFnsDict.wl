@@ -6,7 +6,7 @@ PackageExports[
     DictMapApply, DictMapThread, DictThread,
     UDictMap, UDictMapApply, UDictMapThread, UDictThread,
     RangeDict, RangeUDict, UDictRange, DictRange,
-    ConstRules, ConstDict, ConstUDict, TrueDict, FalseDict
+    ConstRules, ConstDict, ConstUDict, TrueDict, FalseDict,
     PairsToDict, RulesToDict, PairsToUDict, RulesToUDict, DictToPairs, DictToRules,
     LevelDict, OccDict, ArgDict, LeafDict, PartDict, ListDictParts
 ];

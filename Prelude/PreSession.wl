@@ -1,29 +1,35 @@
-BeginPackage["Prelude`Session`"]
+BeginPackage["Prelude`"]
 
-System`PackageExports[
-"SpecialVariable",
-System`$SessionLastEvaluationTime,
-System`$SessionEvaluationsCount,
-System`$SessionCurrentEvaluationStartTime,
-System`$SessionCurrentEvaluationPrintCount,
-System`$SessionMaxEvaluationPrintCount,
-System`$SublimeRunCount,
-$CurrentEvaluationCellState, $EvaluationsSinceDict,
-$PreEvaluationHook, $PostEvaluationHook, $ShiftReturnHookInstalled,
+SessionExports[
 
-"Function",
-DefaultPreEvaluationHook, DefaultPostEvaluationHook,
-SaveEvaluationCellState, RestoreEvaluationCellState,
-InstallSessionHooks, UninstallSessionHooks,
-System`UniqueSessionID,
+  "Variable",
+    $SessionLastEvaluationTime,
+    $SessionEvaluationsCount,
+    $SessionCurrentEvaluationStartTime,
+    $SessionCurrentEvaluationPrintCount,
+    $SessionMaxEvaluationPrintCount,
+    $CurrentEvaluationCellState, $EvaluationsSinceDict,
 
-"Predicate",
-SessionEvaluatedSinceQ
-]
+  "SpecialVariable",
+    $PreEvaluationHook, $PostEvaluationHook, $ShiftReturnHookInstalled,
+
+  "IOFunction",
+    CreateCachedBox,
+    CachedBox,
+
+  "Function",
+    DefaultPreEvaluationHook, DefaultPostEvaluationHook,
+    SaveEvaluationCellState, RestoreEvaluationCellState,
+    InstallSessionHooks, UninstallSessionHooks,
+    UniqueSessionID,
+
+  "Predicate",
+    SessionEvaluatedSinceQ
+];
+
+Begin["`Session`Private`"]
 
 (*************************************************************************************************)
-
-Begin["`Private`"]
 
 (* if $PreEvaluationHook etc are in the normal context path, the FE will save them wrong between reloads *)
 
@@ -36,6 +42,31 @@ Internal`$PrintFormatter = Function[Null,
   HoldAllComplete
 ];
 *)
+
+(*************************************************************************************************)
+
+SetAttributes[{CreateCachedBox, $held$}, HoldAllComplete];
+
+If[!AssociationQ[$boxCache], $boxCache = Association[]];
+
+CreateCachedBox[expr_]       := iCreateCachedBox[$held$ @ expr, Hash @ Unevaluated @ expr]
+CreateCachedBox[expr_, key_] := iCreateCachedBox[$held$ @ expr, key];
+
+iCreateCachedBox[held_, key_] := (
+  If[!KeyExistsQ[$boxCache, key],
+    If[Len[$boxCache] > 32, $boxCache = Drop[$boxCache, 8]];
+    $boxCache[key] = held;
+  ];
+  DynamicBox[Last @ CachedBox[key, {"\"EXPIRED\""}], TrackedSymbols :> {}]
+);
+
+(*************************************************************************************************)
+
+CachedBox[key_, _] := Quiet @ List @ iCachedBox[key, Lookup[$boxCache, Key @ key, $missing$]];
+
+iCachedBox[key_, evaluated_]    := evaluated;
+iCachedBox[key_, $missing$]     := StyleBox["\"EXPIRED\"", Red];
+iCachedBox[key_, $held$[body_]] := Set[$boxCache[key], Check[body, StyleBox["\"MESSAGES\"", Red]]];
 
 (*************************************************************************************************)
 

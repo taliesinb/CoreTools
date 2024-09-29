@@ -43,6 +43,7 @@ SetHoldC @ fromUnresName;
 
 fromUnresName[sym_Sym ? HasAnyDefsQ] := Nothing;
 fromUnresName[sym_Sym ? HasFormatDefsQ] := Nothing;
+fromUnresName[sym_Sym] /; $blacklistDict[SymName[sym]] := Nothing;
 fromUnresName[sym_Sym] := SymbolForm @ sym;
 
 internalNameQ[name_Str] := StringContainsQ[name, "`"];
@@ -52,15 +53,18 @@ FindUnresolvedSymbols[context_Str] := Locals[
   glob1 = context <> "*";
   glob2 = context <> "*`*";
   names = Join[Names @ glob1, Names @ glob2];
+  kinds = IfFailed[PackageSymbolKinds[context], {}];
+  blacklist = Catenate @ Lookup[kinds, {"TagSymbol", "SymbolicHead"}, {}];
+  $blacklistDict = TrueDict @ blacklist;
   candidates = Select[names, internalNameQ[#] && nameNeedsDefQ[#]&];
-  FromInputString[candidates, fromUnresName]
+  FromInputStr[candidates, fromUnresName]
 ];
 
 (**************************************************************************************************)
 
 SetStrict[FindFunctions, FindInertSymbols, FindDownSymbols, FindSubSymbols, FindUpSymbols, FindOwnSymbols, FindFormattingSymbols]
 
-defineFindFn[fn_, pred_] := fn[glob_String] := FromInputString[Names @ glob, toFinderFn @ pred];
+defineFindFn[fn_, pred_] := fn[glob_String] := FromInputStr[Names @ glob, toFinderFn @ pred];
 
 toFinderFn[pred_] := toFinderFn[pred] = Fn[sym, If[pred[sym], SymbolForm @ sym, Nothing], HoldAllComplete];
 
@@ -89,10 +93,10 @@ PrintFormatDefinitions[sym_Symbol] := Module[
 FindSymbolsContaining[context_, pattern_] := Locals[
   symbols = Names[If[context === "System`", "System`*", {context <> "*", context <> "**`*"}]];
   symbols = DeleteCases[symbols, "In" | "Out"];
-  active = FromInputString[symbols, HasAnyDefsQ];
+  active = FromInputStr[symbols, HasAnyDefsQ];
   symbols = Pick[symbols, active, True];
   $patt = pattern;
-  Quiet @ FromInputString[symbols, filterDefContainingPattQ]
+  Quiet @ FromInputStr[symbols, filterDefContainingPattQ]
 ]
 
 SetHoldC[filterDefContainingPattQ];
@@ -105,7 +109,7 @@ FindDefinitionsContaining[context_, pattern_] := Locals[
   definitions = GetPackageSymbol["GeneralUtilities`Definitions"];
   res = Null;
   symbols = Names[If[context === "System`", "System`*", {context <> "*", context <> "**`*"}]];
-  active = FromInputString[symbols, HasAnyDefsQ];
+  active = FromInputStr[symbols, HasAnyDefsQ];
   symbols = Pick[symbols, active, True];
   Flatten @ Map[definitionsContaining[pattern], symbols]
 ]

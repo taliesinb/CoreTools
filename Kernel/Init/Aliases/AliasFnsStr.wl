@@ -6,7 +6,70 @@ PackageExports[
     StrSplitPos, StrSplitL, StrSplitR,
     StrSegment, StrSegmentL, StrSegmentR,
     StrPre, StrApp,
-    NatStr, IntStr, HexStr
+    NatStr, IntStr, HexStr,
+    StrLines,
+    DelimStr, DelimStrRow,
+    BraceStr, BraceStrRow,
+    AngleStr, AngleStrRow,
+    ParenStr, ParenStrRow,
+    BracketStr, BracketStrRow,
+    DQuotedStr, SQuotedStr,
+  "StrPatSym",
+    WhiteC, DigitC, HexC, LetterC, WordC, PuncC, WordB, WhiteSP,
+    SpaceC, UCaseC, LCaseC, AlphaC, AlphaNumC,
+    UCaseSP, LCaseSP, AlphaSP, AlphaNumSP, DigitSP, HexSP, LetterSP, WordSP, SpaceSP, MSpaceSP,
+  "StrPatHead",
+    RegexSP, MaybeSP, CharSP,
+  "Function",
+    ParseStrPat, ToRegex
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  RegexSP     -> StringPattern`Dump`RE,
+  MaybeSP     -> StringPattern`Dump`QuestionMark,
+  CharSP      -> StringPattern`Dump`CharacterGroup,
+  ParseStrPat -> StringPattern`PatternConvert
+];
+
+DefineAliasRules[
+  WhiteC     -> WhitespaceCharacter,
+  DigitC     -> DigitCharacter,
+  HexC       -> HexadecimalCharacter,
+  LetterC    -> LetterCharacter,
+  WordC      -> WordCharacter,
+  PuncC      -> PunctuationCharacter,
+  WordB      -> WordBoundary,
+  WhiteSP    -> Whitespace
+];
+
+DefineLiteralRules[
+  UCaseC      -> Evaluate[CharSP["[:upper:]"]],
+  LCaseC      -> Evaluate[CharSP["[:lower:]"]],
+  AlphaC      -> Evaluate[CharSP["[:alpha:]"]],
+  AlphaNumC   -> Evaluate[CharSP["[:alnum:]"]],
+  SpaceC      -> Evaluate[CharSP["[:space:]"]]
+];
+
+DefineLiteralRules[
+  UCaseSP     -> UCaseC..,
+  LCaseSP     -> LCaseC..,
+  AlphaSP     -> AlphaC..,
+  AlphaNumSP  -> AlphaC..,
+  DigitSP     -> DigitC..,
+  HexSP       -> HexC..,
+  LetterSP    -> LetterC..,
+  WordSP      -> WordC..,
+  SpaceSP     -> SpaceC..,
+  MSpaceSP    -> SpaceC...
+];
+
+(*************************************************************************************************)
+
+ToRegex[patt_] := Module[
+  {result = ParseStrPat @ patt},
+  If[ListQ[result], Regex @ StringTrimLeft[First @ result, "(?ms)"], $Failed]
 ];
 
 (*************************************************************************************************)
@@ -34,7 +97,20 @@ DefineAliasRules[
   StrSegmentL      -> StringSegmentBefore,
   StrSegmentR      -> StringSegmentAfter,
   StrPre           -> StringPrepend,
-  StrApp           -> StringAppend
+  StrApp           -> StringAppend,
+  StrLines         -> StringLines,
+  DelimStr         -> DelimitedString,
+  DelimStrRow      -> DelimitedStringRow,
+  BraceStr         -> BraceString,
+  BraceStrRow      -> BraceStringRow,
+  AngleStr         -> AngleString,
+  AngleStrRow      -> AngleStringRow,
+  ParenStr         -> ParenString,
+  ParenStrRow      -> ParenStringRow,
+  BracketStr       -> BracketString,
+  BracketStrRow    -> BracketStringRow,
+  DQuotedStr       -> DQuotedString,
+  SQuotedStr       -> SQuotedString
 ];
 
 (*************************************************************************************************)

@@ -209,7 +209,7 @@ Eye = IdentityMatrix;
 
 makeConstArr[c_, args___] := ConstantArray[c, FlatList[args]];
 
-CoreBoxes[SymbolicDot] := "\[Bullet]";
+CoreBox[SymbolicDot] := "\[Bullet]";
 
 (**************************************************************************************************)
 

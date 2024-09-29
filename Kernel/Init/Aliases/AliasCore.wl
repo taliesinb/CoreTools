@@ -2,13 +2,14 @@ PackageExports[
   "ScopingFunction",  InheritedBlock, IBlock,
   "TypeHead",         Int, Rat, Sym, Str,
   "DataHead",         Dict, UDict, ODict, RuleD, DEdge, UEdge, DirInf, USet, OSet, MSet,
-  "ControlFlow",      Fn, Then, Seq, Eval, NoEval, RuleEval, MaybeEval, FailEval,
+  "ControlFlow",      Fn, Then, Seq, Eval, NoEval, RuleEval, MaybeEval, FailEval, PrivHold, PrivSeq, PrivHoldSeq,
+  "SymbolicHead",     NCTimes,
   "Predicate",        PackedQ,
   "SpecialVariable",  $Fail,
   "Symbol",           Auto, Inherit, HInf,
-  "StrPatternHead",   Regex, StrExpr,
+  "StrPatHead",       Regex, StrExpr,
   "MessageFunction",  MsgName,
-  "SpecialFunction",  HoldC, HoldComp,
+  "SpecialFunction",  HoldC, HoldComp, HoldM,
   "MutatingFunction", SetD, TagSetD, UpSetD, AssocTo, SubFrom,
   "SlotSymbol",       FmA, FmB, FmC, FmD, FmE, FmF, FmG, FmH, FmI, FmJ, FmK, FmL, FmM, FmN, FmO, FmP, FmQ, FmR, FmS, FmT, FmU, FmV, FmW, FmX, FmY, FmZ
 ];
@@ -20,6 +21,10 @@ DefineAliasRules[
   Dict       -> Association,
   UDict      -> Data`UnorderedAssociation,
   DirInf     -> DirectedInfinity
+];
+
+DefineAliasRules[
+  NCTimes    -> NonCommutativeMultiply
 ];
 
 DefineAliasRules[
@@ -76,6 +81,12 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  PrivHold    -> PrivateHoldComplete,
+  PrivSeq     -> PrivateSequence,
+  PrivHoldSeq -> PrivateHoldCompleteSequence
+];
+
+DefineAliasRules[
   Eval       -> Evaluate,
   NoEval     -> Unevaluated
 ];
@@ -88,6 +99,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   HoldC      -> HoldComplete,
+  HoldM      -> MacroHold,
   HoldComp   -> HoldComplete
 ];
 

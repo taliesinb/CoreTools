@@ -1,2 +1,4 @@
 Echoing.wl
 FindSymbols.wl
+FindMessages.wl
+PrePrintFns.wl

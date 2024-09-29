@@ -307,7 +307,6 @@ PathScanP::usage =
 "PathScanP[stackSymbol, fn, expr] is like ScanP, but appends the current part it is visiting onto stackSymbol."
 
 (* TODO: rename this to StackMap *)
-TopLevelEvaluateMacro[
 PathScanP[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[v, PN[s] = ++i], expr]];
 PathScanP[s_, f_, dict_Dict] := BlockAppend[s, Null, AssocScanWhileQ[dict, Apply[{k, v} |-> Then[PN[s] = k, f[v, k], True]]];];
 PathMapP[s_, f_, expr_]      := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[v, PN[s] = P1 @ i], expr]];
@@ -316,7 +315,6 @@ PathScan[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[
 PathScan[s_, f_, dict_Dict] := BlockAppend[s, Null, AssocScanWhileQ[dict, Apply[{k, v} |-> Then[PN[s] = k, f[v], True]]];];
 PathMap[s_, f_, expr_]      := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s] = P1 @ i; v], expr]];
 PathMap[s_, f_, dict_Dict]  := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s] = P11 @ i; v], dict]];
-];
 
 (**************************************************************************************************)
 

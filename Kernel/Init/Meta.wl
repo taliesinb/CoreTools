@@ -1,6 +1,5 @@
 PackageExports[
   "MetaFunction",
-    DeclaredHere,
     DeclareDeclare,
     DeclareSeqScan, DeclareThenScan,
     StrListableDefs, DeclarationDefs,
@@ -13,7 +12,7 @@ PackageExports[
     SetFlat, SetListable, SetListable1, SetListableOp,
     SetStrict, SetExcepting,
 
-    DefinePseudoMacro,
+    PseudoMacroDef,
 
   "Function",         CatenateSymbolLists, JoinSymbolLists,
   "ScopingFunction",  SubWith,
@@ -23,7 +22,7 @@ PackageExports[
 ];
 
 PrivateExports[
-  "SpecialVariable",  $ExceptingSymbols, $ExceptingSymbolP
+  "SpecialVariable",  $ExceptingSyms, $ExceptingSymP
   "CacheVariable",    $InitializationHashes
 ];
 
@@ -34,13 +33,13 @@ SetAttributes[Initially, HoldAllComplete];
 If[!HasIValueQ[$InitializationHashes], $InitializationHashes = UDict[]];
 
 Initially[body___] := Which[
-  Lookup[$InitializationHashes, $CurrentPackageFile] === Prelude`Packages`$CurrentPackageFileHash,
+  Lookup[$InitializationHashes, $CurrentPackageFile] === $CurrentPackageFileHash,
     "InitializationNotNeeded",
   Check[Then[body], $Failed] === $Failed,
     Lookup[$InitializationHashes, $CurrentPackageFile] = None;
     "InitializationFailed",
   True,
-    $InitializationHashes[$CurrentPackageFile] = Prelude`Packages`$CurrentPackageFileHash;
+    $InitializationHashes[$CurrentPackageFile] = $CurrentPackageFileHash;
     "Initialized"
 ];
 
@@ -116,12 +115,16 @@ declareFnScan[fn_, args___]       := Apply[SymbolList, Map[fn, NoEval @ {args}]]
 
 (*************************************************************************************************)
 
+DeclaredHere[SetListableOp, SetListable1];
+
 DeclarationDefs[
   SetListableOp[sym_Sym] := Set[ListableFunctionQ[_sym], True],
   SetListable1[sym_Sym]  := SetDelayed[sym[arg1_List, arg2_], Map[Function[a1, sym[a1, arg2]], arg1]]
 ];
 
 (*************************************************************************************************)
+
+DeclaredHere[SetCurry1, SetCurry2, SetCurry12,SetCurry23, SetCurry13];
 
 (* TODO: auto making of held operator forms via appropriate AttributeFn *)
 DeclarationDefs[
@@ -134,6 +137,8 @@ DeclarationDefs[
 
 (*************************************************************************************************)
 
+DeclaredHere[SetPred1, SetPred2, SetPred3, SetNPred1, SetNPred2, SetNPred3];
+
 DeclarationDefs[
   SetPred1[sym_Sym]  := Set[sym[_],       False],
   SetPred2[sym_Sym]  := Set[sym[_, _],    False],
@@ -144,6 +149,8 @@ DeclarationDefs[
 ];
 
 (*************************************************************************************************)
+
+DeclaredHere[SetHoldF, SetHoldR, SetHoldA, SetFlat, SetHoldC, SetListable, SetHoldSeq];
 
 DeclarationDefs[
   SetHoldF[syms__Sym]    := SetAttributes[{syms}, HoldFirst],
@@ -157,21 +164,25 @@ DeclarationDefs[
 
 (*************************************************************************************************)
 
-If[!ListQ[$ExceptingSymbols],
-  $ExceptingSymbols = {};
-  $ExceptingSymbolP = Alt[];
+If[!ListQ[$ExceptingSyms],
+  $ExceptingSyms = {};
+  $ExceptingSymP = Alt[];
 ];
+
+DeclaredHere[SetExcepting];
 
 DeclarationDefs[
   SetExcepting[syms__Sym] := Then[
-    $ExceptingSymbols = Join[$ExceptingSymbols, {syms}],
-    $ExceptingSymbolP = Join[$ExceptingSymbolP, Alt[syms]]
+    $ExceptingSyms = Join[$ExceptingSyms, {syms}],
+    $ExceptingSymP = Join[$ExceptingSymP, Alt[syms]]
   ]
 ];
 
 (*************************************************************************************************)
 
 SetStrict::usage = "SetStrict[sym$] declares that sym$[___] should throw an error if it doesn't match.";
+
+DeclaredHere[SetStrict, DeclareSeqScan, DeclareThenScan];
 
 SetHoldC[SetStrict, DeclareSeqScan, DeclareThenScan]
 
@@ -235,16 +246,16 @@ DefineOperator2Rules[opSym_Symbol -> fn_Symbol] := SetDelayed[opSym[arg2_][arg1_
 
 (**************************************************************************************************)
 
-SetStrict @ DefinePseudoMacro;
+SetStrict @ SetHoldA @ PseudoMacroDef;
 
-DefinePseudoMacro[sym_Sym, rule:RuleD[lhs_, rhs_]] := Then[
-  TagSetDelayed @@ iDefinePseudoMacro[sym, lhs, rhs],
-  DefinePartialMacro[sym, rule]
+PseudoMacroDef[sd:SetD[lhs_, rhs_]] := With[{sym = PatHead[lhs]},
+  TagSetDelayed @@ pseudoMacroDef[sym, lhs, rhs];
+  PartialMacroDefs[sym, sd]
 ];
 
-SetHoldC @ iDefinePseudoMacro;
+SetHoldC @ pseudoMacroDef;
 
-iDefinePseudoMacro[sym_Sym, lhs_, rhs_] :=
+pseudoMacroDef[Hold[sym_Sym], lhs_, rhs_] :=
   HoldC[
     sym,
     setdDummy[$LHS_, lhs],
@@ -255,10 +266,10 @@ iDefinePseudoMacro[sym_Sym, lhs_, rhs_] :=
   ] /. $pseudoMacroRules;
 
 $pseudoMacroRules = {
-  HoldP[$MacroParentSymbol]   :> lhsHead,
-  HoldP[$MacroSourceLocation] :> RuleEval[SourceLocation[]],
-  withDummy                   -> With,
-  setdDummy                   -> SetDelayed
+  HoldP[$MacroHead]   :> lhsHead,
+  HoldP[$MacroSrcLoc] :> RuleEval[SourceLocation[]],
+  withDummy           -> With,
+  setdDummy           -> SetDelayed
 };
 
 (**************************************************************************************************)

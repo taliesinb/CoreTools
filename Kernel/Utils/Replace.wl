@@ -1,5 +1,6 @@
 SystemExports[
   "Function",
+    UniqueOccurences,
     Occurences,         FirstOccurence,
     OccurencePositions, FirstOccurencePosition,
     ArgumentPositions,  FirstArgumentPosition,
@@ -37,12 +38,13 @@ FnRule[patt_, fn_] := RuleD[FmS:patt, fn[FmS]];
 
 (**************************************************************************************************)
 
-SetCurry2[Occurences, ArgumentPositions];
+SetCurry2[UniqueOccurences, Occurences, ArgumentPositions];
 SetCurry2[FirstOccurence, FirstOccurencePosition];
 SetHoldR[FirstOccurence, FirstOccurencePosition, FirstArgumentPosition];
 
-    Occurences[expr_, patt_, level_:All]        := Cases[expr, patt, level, Heads -> True];
-FirstOccurence[expr_, patt_, else_, level_:All] := FirstCase[expr, patt, else, level, Heads -> True];
+UniqueOccurences[expr_, patt_, level_:All]      := DelDups @ Occurences[expr, patt, level];
+      Occurences[expr_, patt_, level_:All]        := Cases[expr, patt, level, Heads -> True];
+  FirstOccurence[expr_, patt_, else_, level_:All] := FirstCase[expr, patt, else, level, Heads -> True];
 
 (* OccurencePositions matches how Position normally works *)
 DefineAliasRules[OccurencePositions -> Position];
@@ -76,7 +78,7 @@ partAssoc[expr_, parts_, fn_] := AssociationThread[parts, Extract[EnsureODict @ 
 
 (**************************************************************************************************)
 
-CoreBoxes[ExprPath[path___]] := exprPathBoxes[path];
+CoreBox[ExprPath[path___]] := exprPathBoxes[path];
 
 $dimDot = DimmedBox @ ".";
 

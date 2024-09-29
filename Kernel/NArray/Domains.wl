@@ -23,7 +23,7 @@ PackageExports[
   "PatternSymbol",
     ScalarDomainP, ArrayDomainP, CompoundDomainP, DomainP,
   "BoxFunction", DomainLetterBox,
-  "OptionSymbol", ListLength
+  "Option", ListLength
 ];
 
 PackageExports[
@@ -156,10 +156,10 @@ CompoundDomainQ = ExtendCaseOf[
 
 (*************************************************************************************************)
 
-CoreBoxes[d_NumericArraysOf ? DomainQ] := arrayDomainBoxes @ d;
-CoreBoxes[d_SparseArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
-CoreBoxes[d_PackedArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
-CoreBoxes[d_ArraysOf ? DomainQ]        := arrayDomainBoxes @ d;
+CoreBox[d_NumericArraysOf ? DomainQ] := arrayDomainBoxes @ d;
+CoreBox[d_SparseArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
+CoreBox[d_PackedArraysOf ? DomainQ]  := arrayDomainBoxes @ d;
+CoreBox[d_ArraysOf ? DomainQ]        := arrayDomainBoxes @ d;
 
 (*************************************************************************************************)
 
@@ -182,7 +182,7 @@ BlockUnprotect[{NonNegativeIntegers, Reals, Ints, Rationals, Booleans},
   FormatValues[Rationals] = {};
   FormatValues[Booleans] = {};
   KeyValueMap[{sym, letter} |->
-    SetD[SystemBoxes[sym], MarginBox[DomainLetterBox[letter], {.1,.1},{.1,.1}]],
+    SetD[SystemBox[sym], MarginBox[DomainLetterBox[letter], {.1,.1},{.1,.1}]],
     $domainLetterDict
   ]
 ];
@@ -197,7 +197,7 @@ DomainLetterBox[letter_, opts___Rule] :=
 (*************************************************************************************************)
 
 arrayDomainBoxes = CaseOf[
-  expr:(_[s:ScalarDomainP, dims_]) := NiceTooltipBox[DisableCoreBoxFormatting @ ToBoxes @ expr] @ StyleBox[
+  expr:(_[s:ScalarDomainP, dims_]) := NiceTooltipBox[BlockFormatting @ ToBoxes @ expr] @ StyleBox[
     FontSizeDeltaBox[5] @ SuperscriptBox[ToBoxes @ s, dimsBox @ dims],
     ScriptSizeMultipliers -> 0.65,
     ScriptBaselineShifts -> {0.5, 0.5}
@@ -411,7 +411,7 @@ singleType = CaseOf[
 
 (*************************************************************************************************)
 
-commonArrType[array_List, depth_Int] := SubNone[
+commonArrType[array_List, depth_Int] := IfNone[
   commonArrScalarType @ array,
   commonCompoundType @ sampleArray[array, depth]
 ];

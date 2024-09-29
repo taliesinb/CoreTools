@@ -1,6 +1,6 @@
 SystemExports[
   "Function",
-    PathJoin, NormalizePath, ArchiveInnerFile, NewTemporaryFilename, ShellEscape, ToJSON,
+    PathJoin, NormalizePath, EnsureDirectory, ArchiveInnerFile, NewTemporaryFilename, ShellEscape, ToJSON,
   "Head",
     FileList, RawString,
   "IOFunction",
@@ -13,9 +13,13 @@ SystemExports[
     $BinaryPaths
 ];
 
+PackageExports[
+  "Predicate",  UnsafePathQ
+];
+
 PrivateExports[
-  "Function",
-    DataPath
+  "Function",   DataPath,
+  "IOFunction", LoadSystemData, GenerateSystemData
 ];
 
 (**************************************************************************************************)
@@ -28,6 +32,22 @@ PathJoin[s__Str, FileList[patt_Str]]  := FileNames[patt, PathJoin @ s];
 
 DataPath[s_Str] := PathJoin[$CoreToolsRootPath, "Data", s]; (* TODO: replace / with $PathnameSeparator on Windows *)
 DataPath[spec___] := PathJoin[$CoreToolsRootPath, "Data", spec];
+
+(**************************************************************************************************)
+
+UnsafePathQ[path_Str] := !StrStartsQ[path, {$HomeDirectory, $TemporaryDirectory}];
+UnsafePathQ[_]        := True;
+
+(**************************************************************************************************)
+
+SetStrict @ EnsureDirectory;
+
+EnsureDirectory[path_Str ? UnsafePathQ] := ThrowMsg["unsafeDir", path];
+EnsureDirectory[path_Str ? FileExistsQ] := path;
+EnsureDirectory[path_Str] := If[FailureQ @ CreateDirectory[path], ThrowMsg["ensureDirFailed", path], path];
+
+General::unsafeDir       = "Unsafe directory: ``.";
+General::ensureDirFailed = "Could not create directory: ``.";
 
 (**************************************************************************************************)
 
@@ -55,9 +75,12 @@ ArchiveInnerFile::corrupt = "Archive file `` is corrupt."
 ArchiveInnerFile::ambiguous = "Archive file `` expanded to multiple files: ``.";
 ArchiveInnerFile::empty = "Archive file `` was empty."
 
-ArchiveInnerFile[path2_Str] := Locals[
+ArchiveInnerFile[path2_Str] := Module[
+  {path, hashStr, dirName, dirPath, files},
   path = NormalizePath @ path2;
-  If[!FileExistsQ[path], ReturnFailed["missing", path]];
+  If[!FileExistsQ[path],
+    Message[ArchiveInnerFile::missing, path];
+    Return @ $Failed];
   If[!StringEndsQ[path, {".zip", ".tar.gz", ".gz"}], Return @ path];
   hashStr = Base36String @ FileHash @ path;
   dirName = FileBaseName[path] <> "." <> hashStr;
@@ -68,11 +91,14 @@ ArchiveInnerFile[path2_Str] := Locals[
   ];
   If[files === {},
     files = ExtractArchive[path, dirPath, CreateIntermediateDirectories -> False];
-    If[!ListQ[files], ReturnFailed["corrupt", path]]];
+    If[!ListQ[files],
+      Message[ArchiveInnerFile::corrupt, path];
+      Return @ $Failed]
+  ];
   Switch[files,
-    {},  ReturnFailed["empty", path],
+    {},  Message[ArchiveInnerFile::empty, path]; $Failed,
     {_}, First @ files,
-    _,   ReturnFailed["ambiguous", path, files]
+    _,   Message[ArchiveInnerFile::ambiguous, path]; $Failed
   ]
 ];
 
@@ -169,7 +195,7 @@ SetStrict[ImportUTF8];
 
 ImportUTF8[path2_String] := Block[{path, bytes},
   path = NormalizePath @ path2;
-bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
+  bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
   Switch[bytes,
     EndOfFile,  "",
     _ByteArray, ByteArrayToString @ bytes,
@@ -187,7 +213,9 @@ ExportUTF8::writeFailure = "Cannot write to ``.";
 ExportUTF8[path2_String ? PrintableASCIIQ, string_String] := Module[
   {path = NormalizePath @ path2, stream},
   stream = OpenWrite[path, BinaryFormat -> True];
-  If[FailureQ[stream], ReturnFailed["openFailure", path]];
+  If[FailureQ[stream],
+    Message[ExportUTF8::openFailure, path];
+    Return @ $Failed];
   WithLocalSettings[
     Null,
     Check[
@@ -214,9 +242,11 @@ SetStrict[ImportStringTable]
 
 ImportStringTable::invalidSymbolTable = "`` does not contain a valid symbol table.";
 
-ImportStringTable[path_Str] := Locals[
+ImportStringTable[path_Str] := Module[{text},
   text = ImportUTF8 @ path;
-  If[!StrQ[text], ReturnFailed["invalidSymbolTable", path]];
+  If[!StrQ[text],
+    Message[ImportStringTable::invalidSymbolTable, path];
+    Return @ $Failed];
   PairsToDict @ Map[
     StringSplit /* FirstRest,
     StringLines @ text
@@ -231,16 +261,22 @@ ExportStringTable::invalidData = "`` is not an association from strings to lists
 
 Options[ExportStringTable] = {"Sort" -> False};
 
-ExportStringTable[path_Str, assoc2_Dict, OptionsPattern[]] := Locals[
+ExportStringTable[path_Str, assoc2_Dict, OptionsPattern[]] := Module[
+  {sort, assoc, len, str},
   sort = OptionValue["Sort"];
   assoc = KeyMap[ToStr, assoc2];
   len = Max @ StrLen @ Keys @ assoc;
-  If[!IntQ[len], ReturnFailed["invalidData", assoc]];
+  If[!IntQ[len],
+    Message[ExportStringTable::invalidData, assoc2];
+    Return @ $Failed];
   str = StrJoin @ KeyValueMap[
     {StringPadRight[#1, len + 1], Riffle[ToStr /@ #2, " "], "\n"}&,
     If[sort, KeySort /* Map[Sort], Id] @ assoc
   ];
-  If[!StrQ[str], ReturnFailed["invalidData", assoc]];
+  If[!StrQ[str],
+    Message[ExportStringTable::invalidData, assoc2];
+    Return @ $Failed
+  ];
   ExportUTF8[path, str]
 ];
 
@@ -266,10 +302,11 @@ RunCommand::noOutput = "Command `` terminated without output, see ``.";
 
 SetStrict[RunCommand];
 
-RunCommand[binary:(_String | File[_String]), rawArgs___] := Locals[
+RunCommand[binary:(_String | File[_String]), rawArgs___] := Module[
+  {binPath, args, cmdStr, cmdFile, outFile, errFile, argStr, exitCode},
 
   binPath = If[StringQ[binary], FindBinary @ binary, NormalizePath @ First @ binary];
-  If[!StringQ[binPath], ReturnFailed[]];
+  If[!StringQ[binPath], Return @ $Failed];
   args = procCommandArg /@ {rawArgs};
   cmdStr = StringRiffle[Flatten[{binPath, args}], " "];
 
@@ -280,29 +317,15 @@ RunCommand[binary:(_String | File[_String]), rawArgs___] := Locals[
   Export[cmdFile, argStr, "Text", CharacterEncoding -> "UTF-8"];
 
   exitCode = Run["/bin/bash -e " <> cmdFile];
-  If[exitCode != 0, ReturnFailed[]];
+  If[exitCode != 0, Return @ $Failed];
 
   If[!FileExistsQ[outFile],
-    ReturnFailed["toolNoOutput", cmd, cmdFile],
+    Message[RunCommand::noOutput, cmd, cmdFile];
+    $Failed
+  ,
     ImportUTF8[outFile]
   ]
 ];
-
-(* procCommandArg = CaseOf[
-  ignored        := Nothing;
-  _ -> ignored   := Nothing;
-  k_String -> v_ := k <> "=" <> %[v];
-  v_String       := ShellEscape @ v;
-  v_Integer      := IntegerString @ v;
-  r_Real         := TextString @ r;
-  r_Rational     := % @ N @ r;
-  False          := "false";
-  True           := "true";
-  File[f_]       := % @ NormalizePath @ f;
-  v_             := (Message[General::badCommandArgument, v]; ThrowException[]);
-,
-  {ignored -> Automatic | None}
-]; *)
 
 (**************************************************************************************************)
 
@@ -338,9 +361,9 @@ FindBinary[name_String] := FindBinary[name] = SelectFirst[
 
 SetStrict[RunAppleScript]
 
-RunAppleScript[cmd_String] := Locals[
+RunAppleScript[cmd_String] := Module[{file},
   file = NewTemporaryFilename["applescript.#.scpt"];
-  ExportUTF8[file, cmd];
+  If[FailureQ @ ExportUTF8[file, cmd], Return @ $Failed];
   If[Run["osascript " <> file] === 0, Null, $Failed]
 ];
 
@@ -356,9 +379,9 @@ CopyImageToClipboard[expr_] := (
 SetStrict[CopyTextToClipboard]
 
 (* TODO: undertake replacements of $ScriptLetters codepoints which mathematica substitutes for private use ones *)
-CopyTextToClipboard[text_Str] := Locals[
+CopyTextToClipboard[text_Str] := Module[{path, cmd},
   path = NewTemporaryFilename["clipboard.#.txt"];
-  ExportUTF8[path, text];
+  If[FailureQ @ ExportUTF8[path, text], Return @ $Failed];
   cmd = StrJoin["set the clipboard to ( do shell script \"cat ", path, "\" )"];
   If[RunAppleScript[cmd] === Null, text, $Failed]
 ];
@@ -383,5 +406,32 @@ handleJSONRawString[RawString[raw_Str]] := (StuffBag[$rawStringDict, raw]; $rawP
 
 (**************************************************************************************************)
 
+SetStrict @ LoadSystemData;
+
+LoadSystemData[name_Str] /; StrEndsQ[name, ".mx"] := Block[
+  {path = DataPath["SystemData", name]},
+  If[FileExistsQ[path],
+    ImportMX @ path,
+    GenerateSystemData @ StrDrop[name, -1]
+  ]
+];
+
+SetStrict @ GenerateSystemData;
+
+GenerateSystemData::genFileNotExists = "Generator file `` does not exist.";
+GenerateSystemData::genFileBadOutput = "Generator file `` produced a bad result: ``.";
+
+GenerateSystemData[name_Str] /; StrEndsQ[name, ".m"] := Module[{path, result, iresult},
+  path = DataPath["SystemData", name];
+  If[!FileExistsQ[path],
+    Message[GenerateSystemData::genFileNotExists, path];
+    Return @ $Failed];
+  result = BlockContext["DummyContext`", iresult = Check[Get @ path, $Failed]];
+  If[FailureQ[result] || result === Null,
+    Message[GenerateSystemData::genFileBadOutput, path, iresult];
+    Return @ $Failed];
+  ExportMX[path <> "x", result];
+  result
+];
 
 

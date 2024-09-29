@@ -13,7 +13,7 @@ PackageExports[
     AtomFormP, CompoundFormP,
     FormalSymP, UserSymP, InertSymP, SystemSymP,
 
-    PiP, TauP, InfP,
+    PiP, TauP, InfP, MathSymP, ExtMathSymP,
     ZeroIntP, ZeroRealP, ZeroNumP, NumE,
     IntP, NatP, RealP, NumP,
     ZeroIntP, ZeroRealP, ZeroNumP,
@@ -25,7 +25,7 @@ PackageExports[
     UnitIntP, UnitRealP, UnitNumP,
     ZeroP, NonZeroP,
 
-    Zero2P, PosInt2P, Nat2P, Num2P, Num3P, Num23P,
+    Zero2P, PosInt2P, Nat2P, Int2P, Num2P, Num3P, Num23P,
     Pos2P, Pos2ListP, Pos2ListsP, Pos2PairP,
     Pos3P, Pos3ListP, Pos3ListsP, Pos3PairP,
     PosAP, PosAListP, PosAListsP, PosAPairP,
@@ -35,7 +35,7 @@ PackageExports[
     NEListVecP, NEDictVecP, NEBoolVecP, NESymVecP, NEStrVecP, NEPairVecP, NEIntVecP, NENatVecP, NEPosIntVecP, NERealVecP, NENumVecP,
     NEListP, NEDictP, NEListDictP,
 
-    RuleP,    RuleLP,    ORuleP     SetLP,    DelayP,
+    RuleP,    RuleLP,    ORuleP,    SetLP,    DelayP,
     RuleSeqP, RuleLSeqP, ORuleSeqP, SetLSeqP, DelaySeqP,
     RuleVecP, RuleLVecP, ORuleVecP, SetLVecP, DelayVecP,
     RuleLSymP, SetLSymP, DelaySymP,
@@ -166,6 +166,11 @@ DefinePatternRules[
 ];
 
 DefinePatternRules[
+  MathSymP         -> Alt[Plus, Times, Minus, Subtract, Divide, Power],
+  ExtMathSymP      -> Alt[Re, Im, Arg, Abs, Root, CubeRoot, Surd, Sqrt, Exp, Log, Log10, Log2, NCTimes]
+];
+
+DefinePatternRules[
   ZeroIntP         -> 0,
   ZeroRealP        -> 0.,
   ZeroNumP         -> Alt[0, 0.],
@@ -234,6 +239,7 @@ DefinePatternRules[
 DefinePatternRules[
   Zero2P           -> {ZeroP, ZeroP},
   PosInt2P         -> {PosIntP, PosIntP},
+  Int2P            -> {IntP, IntP}
   Nat2P            -> {NatP, NatP},
   Num2P            -> Alt[List2P  ? PackedQ, {_ ? NumQ, _ ? NumQ}],
   Num3P            -> Alt[List3P  ? PackedQ, {_ ? NumQ, _ ? NumQ, _ ? NumQ}],

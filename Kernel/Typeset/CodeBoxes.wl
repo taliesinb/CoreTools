@@ -1,6 +1,6 @@
 PackageExports[
   "BoxFunction",     GuessInputStrLen, MakeTruncatedBoxes,
-  "SpecialFunction", PrivateHold, PrivateSeq, LineFlowedBoxes
+  "SpecialFunction", LineFlowedBoxes
 ];
 
 (*************************************************************************************************)
@@ -83,7 +83,7 @@ scientificBoxes[r_] := ReplaceAll[
 
 SetHoldC[cmSetObj];
 
-cmSetObj[set_] := Make[cmSymHead, HoldHead @ set, SetElems[NoEval @ set, PrivateHold]];
+cmSetObj[set_] := Make[cmSymHead, HoldHead @ set, SetElems[NoEval @ set, PrivHold]];
 
 (*************************************************************************************************)
 
@@ -189,14 +189,18 @@ DefinePatternRules[
 
 (* TODO: assume thing is square, and so typeset width and height will generate that (width * height) / font size chars *)
 
-cmFinal[PrivateSeq[a___]] := cmListSeq[{a}]; (* TODO: decstringlen *)
-cmFinal[PrivateHold[a_]]       := cmAny[a];
-cmFinal[PrivateHold[a___]]     := cmListSeq[{a}];
-cmFinal[(h:SymP)[PrivateSeq[a___]]] := cmAny[h[a]];
+cmFinal[PrivSeq[a___]]           := cmFinal[PrivHoldSeq[a]];
+cmFinal[PrivHoldSeq[]]           := "";
+cmFinal[PrivHoldSeq[a_]]         := cmAny[a]; (* TODO: decstringlen *)
+cmFinal[PrivHoldSeq[a__]]        := cmListSeq[{a}]; (* TODO: decstringlen *)
+cmFinal[PrivHold[a_]]            := cmAny[a];
+cmFinal[PrivHold[a___]]          := cmSymHead[Sequence, {a}];
+cmFinal[(h:SymP)[PrivSeq[a___]]]     := cmAny[h[a]];
+cmFinal[(h:SymP)[PrivHoldSeq[a___]]] := cmAny[h[a]];
 cmFinal[a:boxRecurse1P]          := ToBoxes @ MapAt[cmAny /* RawBoxes, NoEval @ a, 1];
 cmFinal[Style[a_, rest___]]      := StyleBox[cmAny @ a, rest];
 cmFinal[Row[a_List]]             := RowBox @ Riffle[holdMap[cmAny, a], ""];
-cmFinal[Row[a_List, b_]]         := Construct[cmFinal, Row @ Riffle[holdMap[PrivateHold, a], PrivateHold @ b]];
+cmFinal[Row[a_List, b_]]         := Construct[cmFinal, Row @ Riffle[holdMap[PrivHold, a], PrivHold @ b]];
 cmFinal[a:boxTypesetP]           := "\[EmptySquare]";
 cmFinal[RawBoxes[b_]]            := b;
 cmFinal[a_]                      := cmFinal2[a];

@@ -7,14 +7,14 @@ PrivateExports[
   "Predicate",    GPrimSymQ, GBoxSymQ,
   "IOFunction",   MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
   "GraphicsBoxFunction", EmptyRectangleBox, EmptyPolygonBox,
-  "MutatingFunction", BlockGStyles,
+  "MutatingFunction", BlockGStyle,
   "SpecialVariable",
     $GStyle, $GDim,
     $GPrimFns,
     $GPrimSyms, $GBoxSyms,
     $GPrimToGBoxes, $GPrimToGSigs, $GSigToGPrims, $GSig1ToGPrims,
     $GBoxToGPrim,   $GBoxToGSigs,  $GSigToGBoxes, $GSig1ToGBoxes,
-  "SpecialSymbol",
+  "TagSymbol",
     PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius, PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
 ];
 

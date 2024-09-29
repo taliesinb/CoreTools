@@ -51,6 +51,6 @@ SystemExports[
   "Predicate",
     MultiedgeQ,
 
-  "OptionSymbol",
+  "Option",
     DuplicateTargets
 ];

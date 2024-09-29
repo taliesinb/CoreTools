@@ -1,5 +1,5 @@
 PackageExports[
-  "StrPatternSymbol",
+  "StrPatSym",
     Dots, CDots, VDots,
     LAssoc, LBrace, LParen, LAngle, LGAngle, LBracket,
     RAssoc, RBrace, RParen, RAngle, RGAngle, RBracket,
@@ -17,6 +17,7 @@ PackageExports[
 (*************************************************************************************************)
 
 (* TODO: add suffix of S for String *)
+
 DefineLiteralRules[
   Dots       -> "\[Ellipsis]",
   CDots      -> "\[CenterEllipsis]",

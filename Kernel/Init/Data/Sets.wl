@@ -1,5 +1,5 @@
 SystemExports[
-  "Head",
+  "DataHead",
     UnorderedSet, OrderedSet, Multiset,
   "Function",
     ToUnorderedSet, ToOrderedSet, ToMultiset,
@@ -21,7 +21,7 @@ SystemExports[
 ];
 
 PackageExports[
-  "Head",
+  "DataHead",
     USet, OSet, MSet,
   "Function",
     ToUSet, ToOSet, ToMSet,
@@ -64,10 +64,10 @@ DefinePatternRules[
 ];
 
 AllowRHSPatterns[
-  DefinePatternMacro[USetD, VPattern[sym_Symbol, USetD] :> HoldP[USet[_sym] ? SealedQ]];
-  DefinePatternMacro[OSetD, VPattern[sym_Symbol, OSetD] :> HoldP[OSet[_sym] ? SealedQ]];
-  DefinePatternMacro[MSetD, VPattern[sym_Symbol, MSetD] :> HoldP[MSet[_sym] ? SealedQ]];
-  DefinePatternMacro[ASetD, VPattern[sym_Symbol, ASetD] :> HoldP[(USet|OSet|MSet)[_sym] ? SealedQ]];
+  PatternMacroDefs[USetD, VPattern[sym_Symbol, USetD] := HoldP[USet[_sym] ? SealedQ]];
+  PatternMacroDefs[OSetD, VPattern[sym_Symbol, OSetD] := HoldP[OSet[_sym] ? SealedQ]];
+  PatternMacroDefs[MSetD, VPattern[sym_Symbol, MSetD] := HoldP[MSet[_sym] ? SealedQ]];
+  PatternMacroDefs[ASetD, VPattern[sym_Symbol, ASetD] := HoldP[(USet|OSet|MSet)[_sym] ? SealedQ]];
 ];
 
 (*************************************************************************************************)
@@ -352,9 +352,9 @@ SetKeyDrop[dict_, (USet|OSet|MSet)[a_]] := KeyDrop[dict, Keys @ a];
 
 DefineSetDispatch2[Map, Lookup, LookupSet];
 
-LookupSet[expr_, USet[set_]] := ToUSet @ Lookup[expr, Keys @ set];
-LookupSet[expr_, OSet[set_]] := ToOSet @ Lookup[expr, Keys @ set];
-LookupSet[expr_, MSet[set_]] := ToMSet @ Lookup[expr, Keys @ set];
+LookupSet[expr_, USet[set_]] := ToUSet @ Lookup[expr, Keys @ set, Nothing];
+LookupSet[expr_, OSet[set_]] := ToOSet @ Lookup[expr, Keys @ set, Nothing];
+LookupSet[expr_, MSet[set_]] := ToMSet @ Lookup[expr, Keys @ set, Nothing];
 
 (*************************************************************************************************)
 

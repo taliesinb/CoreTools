@@ -36,7 +36,7 @@ freeze = CaseOf[
     CModule[Len @ ivars, id, cbody]
   ];
 
-  CompoundExpression[exprs___] := HoldMap[$, CSequential[exprs]];
+  Then[exprs___]               := HoldMap[$, CSequential[exprs]];
   s:$mutP[lhs_CSymbol, rhs__]  := CMutate[s, rhs];
   c_CSymbol                    := c;
   c_Symbol                     := CLiteral[c];
