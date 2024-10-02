@@ -75,8 +75,8 @@
 
         "boundVar": "hsl(114, 31%, 50%)",
 
-        "pattern": "hsl(200, 40%, 69%)",
-        "strpattern": "color(var(pattern) blend(var(string) 50%))",
+        "pat": "hsl(200, 40%, 69%)",
+        "strpat": "color(var(pat) blend(var(string) 50%))",
         "graphics": "hsl(10, 35%, 70%)",
         "special": "hsl(13, 73%, 66%)",
         "specialVar": "color(var(special) blend(var(plain) 50%))",
@@ -187,8 +187,8 @@
         {"name": "Symbol"        , "scope": "constant.language.symbol.wolfram"                        , "foreground": "var(plain)"           , "font_style": "italic"},
         {"name": "Symbol2"       , "scope": "meta.def constant.language.symbol.wolfram"               , "foreground": "var(plain)"           , "font_style": "italic stippled_underline"},
         {"name": "FormSym"       , "scope": "constant.language.symbol.form"                           , "foreground": "var(form)"            , "background": "var(formBg)",},
-        {"name": "PatSym"        , "scope": "constant.language.symbol.pattern.wolfram"                , "foreground": "var(pattern)"         , "font_style": "italic"},
-        {"name": "PatSymHi"      , "scope": "meta.def constant.language.symbol.pattern.wolfram"       , "foreground": "var(pattern)"         , "font_style": "italic stippled_underline"},
+        {"name": "PatSym"        , "scope": "constant.language.symbol.pattern.wolfram"                , "foreground": "var(pat)"         , "font_style": "italic"},
+        {"name": "PatSymHi"      , "scope": "meta.def constant.language.symbol.pattern.wolfram"       , "foreground": "var(pat)"         , "font_style": "italic stippled_underline"},
         {"name": "StrPatSym"     , "scope": "constant.language.symbol.stringpattern.wolfram"          , "foreground": "var(strpat)"          , "font_style": "italic"},
         {"name": "StrPatSymHi"   , "scope": "meta.def constant.language.symbol.stringpattern.wolfram" , "foreground": "var(strpat)"          , "font_style": "italic stippled_underline"},
         {"name": "Head"          , "scope": "constant.language.head.wolfram"                          , "foreground": "var(head)"},
@@ -196,7 +196,7 @@
         {"name": "DataHead"      , "scope": "constant.language.head.data"                             , "foreground": "var(dataHead)"},
         {"name": "SymHead"       , "scope": "constant.language.head.symbolic"                         , "foreground": "var(symHead)"},
         {"name": "FormHead"      , "scope": "constant.language.head.form"                             , "foreground": "var(form)"},
-        {"name": "PatHead"       , "scope": "constant.language.head.pattern.wolfram"                  , "foreground": "var(pattern)"},
+        {"name": "PatHead"       , "scope": "constant.language.head.pattern.wolfram"                  , "foreground": "var(pat)"},
         {"name": "StrPatHead"    , "scope": "constant.language.head.strpattern.wolfram"               , "foreground": "var(strpat)"},
         {"name": "String"              , "scope": "string"                                                          , "foreground": "var(string)"},
         {

@@ -175,7 +175,9 @@ ImportMX::fail = "File `` is corrupt.";
 
 ImportMX[path2_String] := Block[
   {System`Private`ConvertersPrivateDumpSymbol, path = NormalizePath @ path2},
-  If[FailureQ[Quiet @ Check[Get @ path, $Failed]] || !MatchQ[System`Private`ConvertersPrivateDumpSymbol, _HoldComplete],
+  If[Or[
+    FailureQ[Quiet @ Check[Get @ path, $Failed]],
+    !MatchQ[System`Private`ConvertersPrivateDumpSymbol, _HoldC]],
     importErrorMessage[ImportMX, path],
     First @ System`Private`ConvertersPrivateDumpSymbol
   ]
@@ -187,8 +189,10 @@ SetStrict[ExportMX];
 
 ExportMX::fail = "Could not write expression to ``.";
 ExportMX[path2_String, expr_] := Block[
-  {System`Private`ConvertersPrivateDumpSymbol = HoldComplete[expr], path = NormalizePath @ path2},
-  If[FailureQ @ Quiet @ Check[DumpSave[path, System`Private`ConvertersPrivateDumpSymbol], $Failed],
+  {System`Private`ConvertersPrivateDumpSymbol = HoldC[expr],
+   path = NormalizePath @ path2},
+  If[FailureQ @ Quiet @ Check[
+    DumpSave[path, System`Private`ConvertersPrivateDumpSymbol], $Failed],
     Message[ExportMX::fail, path]; $Failed,
     path2
   ]

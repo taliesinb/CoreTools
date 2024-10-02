@@ -33,13 +33,13 @@ HoldFormalDistribute[e_, h_Sym:FormalPlus] := iFormalDistribute[e, h];
 SetHoldA[iFormalDistribute];
 
 iFormalDistribute = CaseOf[
-  $[e_, h_] /; HoldVFreeQ[e, h]     := HoldComplete[e];
-  $[e_, h_] /; HoldArgsFreeQ[e, _h] := HoldComplete[e];
+  $[e_, h_] /; HoldVFreeQ[e, h]     := HoldC[e];
+  $[e_, h_] /; HoldArgsFreeQ[e, _h] := HoldC[e];
   $[e_, h_] := processResult[h, distribute[DIn[e] /. h -> DIn]]
 ];
 
 processResult[h_, _]             := InternalError;
-processResult[h_, DIn[a___DOut]] := Part[HoldComplete[h[a]], All, All, 1];
+processResult[h_, DIn[a___DOut]] := Part[HoldC[h[a]], All, All, 1];
 
 (**************************************************************************************************)
 

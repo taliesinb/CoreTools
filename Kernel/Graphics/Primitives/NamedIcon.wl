@@ -124,7 +124,7 @@ rawNamedIconBoxes[pos_, dir2_, name2_,
   iscaling = iscaling /. $scalingRules;
   align = align /. $alignmentRules;
   $imageSize = EnsurePair[imgSize * iscaling];
-  iconData = LookupOrThrow[$namedIconData, name, "unknownIcon", LiteralStringRow @ Keys @ $namedIconData];
+  iconData = LookupOrThrow[$namedIconData, name, "unknownIcon", LitStrRow @ Keys @ $namedIconData];
   {prims, boxes, boxes3D, {{x1, x2}, {y1, y2}, {b1, b2}}, solid} = iconData;
   $styler = solidEmptyStyleBoxOp[solid, color, None, thickness];
   $originx = If[NumberQ @ align, Lerp[b1, b2, align], 0];

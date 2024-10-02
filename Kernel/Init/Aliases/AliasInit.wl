@@ -3,14 +3,17 @@ SystemExports[
 ];
 
 PackageExports[
-  "SlotVariable", $, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS
+  "SlotVariable", $, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS,
+  "MetaFunction", NonCanonAliases
 ];
 
 (*************************************************************************************************)
 
 Protect[$, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS]
 
-SetAttributes[{DefineAliasRules, DefinePatternRules, DefineLiteralRules, defineAlias, definePattern}, HoldAllComplete];
+SetAttributes[{DefineAliasRules, DefinePatternRules, DefineLiteralRules, AsNonCanonAlias, defineAlias, definePattern}, HoldAllComplete];
+
+NonCanonAliases[body_] := Block[{$isCanon = False}, body];
 
 DefineAliasRules[rules___Rule]   := iDefineRules[defineAlias,   Hold @ rules];
 DefinePatternRules[rules___Rule] := iDefineRules[definePattern, Hold @ rules];
@@ -25,9 +28,10 @@ iDefineRules[fn_, held_] := With[
   invalidateMacroRules[];
 ];
 
+$isCanon = True;
 defineAlias[aliasSym_Symbol -> targetSym_Symbol] := (
   $SymbolAliases[aliasSym] = targetSym;
-  HoldSymbolNameAlias[targetSym] = HoldSymbolName[aliasSym];
+  If[$isCanon, HoldSymbolNameAlias[targetSym] = HoldSymbolName[aliasSym]];
   Set[aliasSym, targetSym];
 );
 

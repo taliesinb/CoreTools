@@ -7,7 +7,8 @@ SystemExports[
     RuleThread, RuleUnthread, UAssociationThread,
     RangeRules, RangeAssociation, RangeUAssociation,
     RulesRange, AssociationRange, UAssociationRange,
-    ConstantRules, ConstantAssociation, ConstantUAssociation,
+    ConstantRules, ConstantRulesFrom,
+    ConstantAssociation, ConstantUAssociation,
     ConstantTrueAssociation, ConstantFalseAssociation,
     TrueRules,
     UAssociationMapApply, UAssociationMapThread, UAssociationMap,
@@ -266,10 +267,16 @@ RulesRange[keys_] := RuleThread[keys, LengthRange @ keys];
 `ConstantUAssociation[{key_i}_i, c]` gives the unordered constant association `<|key_i -> c|>_i`.
 ?*)
 
-SetCurry1[ConstantRules, ConstantAssociation, ConstantUAssociation];
+SetCurry1[ConstantRules, ConstantRulesFrom];
 
 ConstantRules[keys_List, constant_List] := Map[key |-> Rule[key, constant], keys];
 ConstantRules[keys_List, constant_] := Thread @ Rule[keys, constant];
+
+ConstantRulesFrom[constant_List, keys_List] := Map[key |-> Rule[constant, key], keys];
+ConstantRulesFrom[constant_,     keys_List] := Thread @ Rule[constant, keys];
+
+SetCurry1[ConstantAssociation, ConstantUAssociation];
+
 ConstantAssociation[keys_List, constant_] := DictThread[keys, ConstantArray[constant, Len @ keys]];
 ConstantUAssociation[keys_List, constant_] := UDictThread[keys, ConstantArray[constant, Len @ keys]];
 ConstantTrueAssociation[keys_List]  := ConstantUAssociation[keys, True];

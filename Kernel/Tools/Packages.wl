@@ -15,8 +15,8 @@ PackageExports[
 SetHoldA[PackageTopLevelEvaluate]
 
 With[{ignoredSyms = Apply[Alt, Blank /@ $SymbolExportFunctions]},
-PackageTopLevelEvaluate[HoldComplete[ignoredSyms]] := Null;
-PackageTopLevelEvaluate[HoldComplete[ignoredSyms;]] := Null;
+PackageTopLevelEvaluate[HoldC[ignoredSyms]] := Null;
+PackageTopLevelEvaluate[HoldC[ignoredSyms;]] := Null;
 PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
 ];
 

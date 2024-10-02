@@ -1,6 +1,6 @@
 SystemExports[
-  "GraphicsDirective", OKColor, OKHue, ComplexHue, NiceHue,
-  "Function",          HashToColor, UniqueColor, ColorDuplicates
+  "GraphicsDirective", HashColor, OKColor, OKHue, ComplexHue, NiceHue,
+  "Function",          HashToColor, UniqueColor, ColorDuplicates, ColorUnique
 ];
 
 PackageExports[
@@ -13,20 +13,35 @@ PackageExports[
 
 (**************************************************************************************************)
 
-ColorDuplicates[expr_, patt_] := Locals[
+ColorDuplicates[expr_, patt_, fn_:Style, baseColor_:$DarkGray] := Locals[
   dups = Occurences[expr, patt];
   dups = Union @@ Duplicates @ dups;
   If[dups === {}, Return @ expr];
   colors = UniqueColor /@ Range @ Len @ dups;
   lhs = PatternLHS @ patt;
   If[FailureQ[lhs],
-    rules = ZipMap[Rule[Verbatim[#1], Style[#1, #2]]&, dups, colors];
+    rules = ZipMap[Rule[Verbatim[#1], fn[#1, #2]]&, dups, colors];
     expr /. rules
   ,
     colorDict = DictThread[dups, colors];
-    expr /. e:lhs :> RuleEval @ Style[e, Lookup[colorDict, Replace[e, patt], $Gray]]
+    expr /. e:lhs :> RuleEval @ fn[e, Lookup[colorDict, Replace[e, patt], baseColor]]
   ]
 ];
+
+(**************************************************************************************************)
+
+ColorUnique[expr_, patt_, fn_:Style, baseColor_:$DarkGray] := Locals[
+  dups = Occurences[expr, patt];
+  dups = Union @@ Duplicates @ dups;
+  colors = UniqueColor /@ Range @ Len @ dups;
+  lhs = PatternLHS @ patt;
+  colorDict = DictThread[dups, colors];
+  expr /. e:patt :> RuleEval @ fn[e, Lookup[colorDict, e, baseColor]]
+];
+
+(**************************************************************************************************)
+
+HashColor[e_] := HashToColor @ Hash @ e;
 
 (**************************************************************************************************)
 

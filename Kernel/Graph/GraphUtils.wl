@@ -1,5 +1,6 @@
 SystemExports[
   "Function",
+    VertexContractAgainst, VertexContractIndices,
     PrefixEdges, PrefixGraph,
     EdgeTagIndex,
     FromIndexGraph,
@@ -19,6 +20,45 @@ PackageExports[
     GraphVertexData, GraphEdgeData,
   "SymbolicHead",
     DebugRules
+];
+
+(*************************************************************************************************)
+
+SetStrict[VertexContractAgainst]
+
+VertexContractAgainst[graph_Graph, against_List] := Locals @ CatchMessages[
+  verts = VertexList @ graph;
+  SameLenQOrThrow[verts, against, "badAgainstList"];
+  If[DuplicateFreeQ[against], Return @ graph];
+  edges = EdgeList @ graph;
+  canonInds = Lookup[First /@ PositionIndex[against], against];
+  canonVerts = Part[verts, canonInds];
+  canonDict = DictThread[verts, canonVerts];
+  canonEdges = MapAt[canonDict, edges, {All, 1;;2}];
+  Graph[DelDups @ canonVerts, canonEdges, Seq @@ delVertexOpts[graph, verts, canonVerts]]
+];
+
+VertexContractAgainst::badAgainstList = "Length of list `` for doesn't match number of vertices ``.";
+
+(*************************************************************************************************)
+
+SetStrict[VertexContractIndices]
+
+VertexContractIndices[graph_Graph, {}] := graph;
+VertexContractIndices[graph_Graph, indices:{__List}] := Locals @ CatchMessages[
+  against = Range @ VertexCount @ graph;
+  MapP[{inds, p} |-> Set[Part[against, inds], -p], indices];
+  VertexContractAgainst[graph, against]
+];
+
+(*************************************************************************************************)
+
+delVertexOpts[graph_, oldVerts_, newVerts_] := Locals[
+  opts = Options @ graph;
+  If[!HasKeyQ[opts, AnnotationRules], Return @ opts];
+  delVerts = Complement[verts, canonVerts];
+  delVertRule = Rule[Apply[Alt] @ Map[Verbatim] @ delVerts, _];
+  DelCases[opts, delVertRule, {3}]
 ];
 
 (*************************************************************************************************)

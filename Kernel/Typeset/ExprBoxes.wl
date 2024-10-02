@@ -179,6 +179,7 @@ exprBox = CaseOf[
   d:DatumP       := datumBox @ d;
   s:ASetP        := setBox @ s;
   r:RuleLP       := ruleBox @ r;
+  p:PatternP     := patternBox @ p;
   h_PrivHold     := holdBox @ h;
   h_PrivHoldSeq  := holdBox @ h;
   l_LitStr       := literalBox @ l;
@@ -187,6 +188,54 @@ exprBox = CaseOf[
   h_HoldAtForm   := holdAtBox @ h;
   s_Slot         := slotBox @ s;
   e_             := stdInpBox @ e;
+];
+
+(*************************************************************************************************)
+
+SetHoldC[symBox];
+
+symBox[s_Sym] := symBox[s] = AliasSymName @ s;
+_symBox       := "?Symbol?";
+
+(*************************************************************************************************)
+
+SetHoldC[patternBox];
+
+patternBox = CaseOf[
+  VBlank[]                   := "_";
+  VBlankSeq[]                := "__";
+  VBlankNullSeq[]            := "___";
+  p_Pattern                  := patSymBox @ p;
+  VBlank[p:SymP]             := StrJoin["_", symBox @ p];
+  VBlankSeq[p:SymP]          := StrJoin["__", symBox @ p];
+  VBlankNullSeq[p:SymP]      := StrJoin["___", symBox @ p];
+  VPatternTest[p_, t:SymP]   := RBox[exprBox @ p,  "?", symBox @ t];
+  VPatternTest[p_, t_]       := RBox[exprBox @ p,  "?", ParenRBox @ exprBox @ t];
+  VCondition[p_, c_]         := RBox[exprBox @ p, "/;", parenify @ exprBox @ c];
+  a_Alt                      := altBox @ a;
+  expr_                      := genericBox @ expr;
+];
+
+SetHoldC[patSymBox, altBox, altArgBox];
+
+patSymBox = CaseOf[
+  VPattern[p:SymP, e_] := patColon[symBox @ p, exprBox @ e];
+  expr_                := genericBox @ expr;
+];
+
+patColon[s_Str, t_Str] /; StrStartsQ[t, "_"] := StrJoin[s, t];
+patColon[s_, t_]                             := RBox[s, ":", t];
+
+altBox = CaseOf[
+  VAlt[]       := FnRBox["Alt"];
+  VAlt[a_]     := FnRBox["Alt", exprBox @ a];
+  VAlt[args__] := RiffBox["|"] @ argBoxes[{args}, altArgBox, CDotsBox[#]&];
+  other_       := genericBox @ other;
+];
+
+altArgBox = CaseOf[
+  a_VAlt := ParenRBox @ patternBox @ a;
+  e_     := parenify @ exprBox @ e;
 ];
 
 (*************************************************************************************************)
@@ -212,7 +261,7 @@ holdAtBox[e_]                      := genericBox @ e;
 
 holdAtBox0 = CaseOf[
   Fn           := "Fn";
-  e_Symbol     := fastSymName @ e;
+  e_Symbol     := symBox @ e;
   _Dict        := RBox[LAssoc, Dots, RAssoc];
   h_[]         := FnRBox[$ @ h];
   h_[d:DatumP] := FnRBox[$ @ h, exprBox @ d];
@@ -282,7 +331,7 @@ setBox = CaseOf[
   USet[_[]]                   := RBox["USet", "[", "]"];
   OSet[_[]]                   := RBox["OSet", "[", "]"];
   MSet[_[]]                   := RBox["MSet", "[", "]"];
-  set:(h_Sym[_Dict ? HAtomQ]) := blockDepth[set, headBox2[fastSymName @ h, At[commaArgsBox, SetElems[set, PrivHold]]]];
+  set:(h_Sym[_Dict ? HAtomQ]) := blockDepth[set, headBox2[symBox @ h, At[commaArgsBox, SetElems[set, PrivHold]]]];
   expr_                       := genericBox @ expr;
 ];
 
@@ -371,7 +420,7 @@ delimBox2[l_, boxes_, r_] := Which[
 SetHoldC @ genericBox;
 
 genericBox = CaseOf[
-  sym_Sym[]               := RBox[fastSymName @ sym, "[", "]"];
+  sym_Sym[]               := RBox[symBox @ sym, "[", "]"];
   _ /; $noLenQ            := CDots;
   e:(sym_Sym[args___])    := blockDepth[e, headBox[sym, {args}]];
   e:head_[args___]        := bigHeadBox[head, {args}];
@@ -382,11 +431,11 @@ genericBox = CaseOf[
 
 SetHoldC[bigHeadBox];
 
-bigHeadBox[head_, args_] := headBox2[wrapHead @ exprBox @ head, blockDepth[e, commaArgsBox @ args]];
+bigHeadBox[head_, args_] := headBox2[parenify @ exprBox @ head, blockDepth[e, commaArgsBox @ args]];
 
-wrapHead[b_] := If[wrapHeadQ @ b, ParenRBox @ b, b];
+parenify[b_] := If[parenifyQ @ b, ParenRBox @ b, b];
 
-wrapHeadQ = CaseOf[
+parenifyQ = CaseOf[
   nowrapP                := False;
   RBox[_, "[", ___, "]"] := False;
   s_Str                  := !StrFreeQ[s, SpaceC];
@@ -400,19 +449,11 @@ wrapHeadQ = CaseOf[
 
 (*************************************************************************************************)
 
-SetHoldC[fastSymName];
-
-fastSymName[Fn] := "Function";
-fastSymName[HoldC] := "HoldComplete";
-fastSymName[sym_] := fastSymName[sym] = AliasSymName[sym];
-
-(*************************************************************************************************)
-
 SetHoldC[headBox];
 
 headBox = CaseOf[
   _ /; $noLenQ       := CDots;
-  $[head_Sym, expr_] := With[{name = fastSymName[head]}, headBox[name, expr]];
+  $[head_Sym, expr_] := With[{name = symBox[head]}, headBox[name, expr]];
   $[head_Str, _[]]   := RBox[head, "[", "]"];
   $[head_Str, expr_] := headBox2[head, commaArgsBox @ expr];
 ];
@@ -520,7 +561,7 @@ stdBox = CaseOf[
   l:directiveP     := directiveBoxes @ l;
   e_               := blockDepth[e, stdBox2 @ e];
 ,
-  {directiveP -> Alt[_Style, _ExprForm, _Shallow, _HoldExprForm, _Unlimited, _Limited]}
+  {directiveP -> Alt[_Style, _ExprForm, _Shallow, _HoldExprForm, _Unlimited, _Limited, _Unformatted]}
 ];
 
 (*************************************************************************************************)
@@ -540,7 +581,7 @@ stdBox2 = CaseOf[
   arb_Graphics                        := graphicsBox @ arb;
   arb:(_Sym ? CompoundFormHeadQ)[___] := compoundFormBox @ arb;
   arb:(_Sym ? AtomFormHeadQ)[___]     := atomFormBox @ arb;
-  arb:(_Sym ? HasCoreBoxQ)[___]       := With[{res = MakeCoreBox @ arb}, res /; res =!= $Failed];
+  arb:(_Sym ? HasCoreBoxQ)[___]       := MaybeEval @ coreBox @ arb;
   arb_                                := stdBox3 @ arb;
 ,
   {arrayP -> Alt[Grid, MatrixForm, TableForm],
@@ -551,10 +592,17 @@ stdBox2 = CaseOf[
 
 (*************************************************************************************************)
 
+SetHoldC @ coreBox;
+
+coreBox[e_] /; TrueQ[$CoreFormatting] := IfFailed[MakeCoreBox @ e, FailEval];
+coreBox[e_]                           := FailEval;
+
+(*************************************************************************************************)
+
 SetHoldC @ stdBox3;
 
 stdBox3 = CaseOf[
-  arb:(_Sym ? CoreBoxSubHeadQ[___][___]) := MakeBoxes @ arb;
+  arb:(_Sym ? CoreBoxSubHeadQ[___][___]) := MaybeEval @ coreBox @ arb;
   arb:_[___] ? HEntryFlagQ               := genericBox @ arb;
   arb_ ? LongBigExprQ                    := elidedBox @ arb;
   arb_                                   := MakeBoxes @ arb;
@@ -667,7 +715,7 @@ inpMathBox[e_] := With[{mb2 = mathBox2[e]},
 inpPostProcMath = CaseOf[
   RowBox[list_List ? spaceRifQ] := RowBox[inpAddTimes /@ list];
   FractionBox[a_, b_]    := inpFrac[$ @ a, $ @ b];
-  SuperBox[a_, b_]       := RBox[wrapHead @ $ @ a, "^", wrapHead @ $ @ b];
+  SuperBox[a_, b_]       := RBox[parenify @ $ @ a, "^", parenify @ $ @ b];
   SqrtBox[a_]            := FnRBox["Sqrt", $ @ a];
   RadicalBox[a_, n_]     := $ @ SuperBox[a, RBox["1", "/", n]];
   RowBox[bs_List]        := RowBox[$ /@ bs];
@@ -676,7 +724,7 @@ inpPostProcMath = CaseOf[
   box_                   := box /. $mathWrap$[e_] :> e (* shouldn't happen, slow *);
 ];
 
-inpFrac[a_, b_] := StyleBox[RBox[wrapHead @ a, "/", wrapHead @ b], AutoSpacing -> False];
+inpFrac[a_, b_] := StyleBox[RBox[parenify @ a, "/", parenify @ b], AutoSpacing -> False];
 
 inpAddTimes = CaseOf[
   " " := "*";
@@ -693,6 +741,8 @@ directiveBoxes = CaseOf[
   Shallow[e_, d_Int]                 := blockLimitDepth[exprBox @ e, d];
   Unlimited[e_, d_Int:1]             := blockUnlimited[exprBox @ e, d];
   Limited[e_, n_Int, d_Int:0]        := blockLimited[exprBox @ e, n, d];
+  Unformatted[e_]                    := BlockFormatting @ exprBox @ e;
+  Uninteractive[e_]                  := BlockInteractive @ exprBox @ e;
   expr_                              := genericBox @ expr;
 ,
   {exprFormP -> Alt[ExprForm, HoldExprForm]}

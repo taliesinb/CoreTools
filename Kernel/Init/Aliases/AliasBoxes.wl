@@ -5,10 +5,7 @@ SystemExports[
     MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
-    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction,
-
-  "FormHead",
-    MessageArgumentForm, OutputExpressionForm, LiteralString
+    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction
 ];
 
 PackageExports[
@@ -27,6 +24,7 @@ PackageExports[
   "FormHead",
     MsgArgForm, OutExprForm,
     LitStr, LitStrRow, SrcLoc,
+    StdForm, SysForm,
 
   "BoxOption",
     GridItemSize, GridItemStyle, GridMargins, GridDivs,
@@ -54,14 +52,12 @@ DefineAliasRules[
   UnderBox       -> UnderscriptBox,
   SubsuperBox    -> SubsuperscriptBox,
   AdjBox         -> AdjustmentBox,
-  InterpBox        -> InterpretationBox,
+  InterpBox      -> InterpretationBox,
   G2DBox         -> GraphicsBox,
   G3DBox         -> Graphics3DBox,
   SBox           -> StyleBox,
   TBox           -> TemplateBox,
-  RawBox         -> RawBoxes,
-  LitStrBox      -> LiteralStringBox,
-  LitStrRowBox   -> LiteralStringRowBox
+  RawBox         -> RawBoxes
 ];
 
 (*************************************************************************************************)
@@ -85,9 +81,10 @@ DefineAliasRules[
   SrcLoc         -> SourceLocation,
   MsgArgForm     -> MessageArgumentForm,
   OutExprForm    -> OutputExpressionForm,
-  LitStrRow      -> LiteralStringRow,
+  StdForm        -> StandardForm,
+  SysForm        -> SystemForm,
   LitStr         -> $PrintLiteral,
-  LiteralString  -> $PrintLiteral
+  LitStrRow      -> LiteralStringRow
 ];
 
 (*************************************************************************************************)

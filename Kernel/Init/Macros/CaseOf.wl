@@ -31,11 +31,12 @@ $::usage = "$ stands for the function currently being defined."
 
 ComplexMacroDefs[CaseOf,
   SetD[sym_Sym[pre___], CaseOf[args___]] := mCaseOf[sym, True, Hold[pre], args],
-  Set [sym_Sym,         CaseOf[args___]] := mCaseOf[sym, True, Hold[],    args]
+  Set [sym_Sym,         CaseOf[args___]] := mCaseOf[sym, True, None,    args]
 ];
 
 ComplexMacroDefs[ExtendCaseOf,
-  Set[sym_Sym, ExtendCaseOf[args___]]    := mCaseOf[sym, False, Hold[],   args]
+  SetD[sym_Sym[pre___], ExtendCaseOf[args___]] := mCaseOf[sym, False, Hold[pre], args],
+  Set[sym_Sym,          ExtendCaseOf[args___]] := mCaseOf[sym, False, None,    args]
 ];
 
 SetHoldC[mCaseOf]
@@ -47,20 +48,31 @@ mCaseOf[sym_, excl_, pre_, Then[args__SetD, rewrites_List]] :=
   mCaseOf[sym, excl, pre,  Then[args], rewrites];
 
 mCaseOf[sym_Sym, excl_, pre_, Then[args__SetD, Null...], rewrites_:{}] := Module[
-  {holds = Hold @@@ Hold[args]},
-  If[pre =!= Hold[], holds //= Map[sig |-> Join[pre, sig]]];
+  {holds = MapApply[RuleDM, NoEval @ {args}]},
   holds = ReplaceRepeated[holds, procRewrites @ rewrites];
-  If[excl, PrependTo[holds, With[{sloc = SourceLocation[]},
-    Hold[$LHS___, SetSrcLoc[sloc, ThrowUnmatchedError[sym, $LHS]]]]]]; (* TODO: why not _sym ? *)
-  (* holds = ReplaceAll[holds, HoldPattern[$$|$] :> sym]; *)
-  Replace[List @@ holds, {
-    Hold[lhs_$, rhs_]                     :> HoldM @ SetD[lhs, rhs],
-    Hold[lhs:VPatternTest[_$, _], rhs_]   :> HoldM @ SetD[lhs, rhs],
-    Hold[lhs:VCondition[_$, _],   rhs_]   :> HoldM @ SetD[lhs, rhs],
-    Hold[VPatternTest[lhs_, test_], rhs_] :> HoldM @ SetD[$ @ PatternTest[lhs, test], rhs],
-    Hold[  VCondition[lhs_, cond_], rhs_] :> HoldM @ SetD[Condition[$ @ lhs, cond], rhs],
-    Hold[lhs___, rhs_]                    :> HoldM @ SetD[$[lhs], rhs] (* <- remove the ___ *)
-  }, {1}] /. HoldPattern[$$|$] :> sym
+  If[excl, PrependTo[holds, unmatchedErrorRule[sym]]];
+  holds = applyPre[pre, Replace[holds, $sigRules, {1}]];
+  holds = holds /. HoldPattern[$$|$] :> sym;
+  holds
+];
+
+$sigRules = {
+  RuleDM[lhs_$, rhs_]                     :> SetDM[lhs, rhs],
+  RuleDM[lhs:VPatternTest[_$, _], rhs_]   :> SetDM[lhs, rhs],
+  RuleDM[lhs:VCondition[_$, _],   rhs_]   :> SetDM[lhs, rhs],
+  RuleDM[VPatternTest[lhs_, test_], rhs_] :> SetDM[$ @ PatternTest[lhs, test], rhs],
+  RuleDM[  VCondition[lhs_, cond_], rhs_] :> SetDM[Condition[$ @ lhs, cond], rhs],
+  RuleDM[lhs___, rhs_]                    :> SetDM[$[lhs], rhs] (* <- remove the ___ *)
+};
+
+applyPre[None,         sigs_] := sigs;
+applyPre[Hold[pre___], sigs_] := ReplaceAll[sigs, $[lhs___] :> $[pre, lhs]];
+
+SetHoldC[unmatchedErrorRule];
+
+unmatchedErrorRule[sym_] := With[
+  {sloc = SourceLocation[]},
+  RuleDM[$LHS___, SetSrcLoc[sloc, ThrowUnmatchedError[sym, $LHS]]]
 ];
 
 SetHoldC[procRewrites];

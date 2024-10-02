@@ -8,6 +8,7 @@ SystemExports[
     VertexAnnotation, EdgeAnnotation, TimePart,
 
   "Function",
+    AddVertexAnnotations,
     GraphVertexAnnotations, GraphEdgeAnnotations, GraphAnnotationRules, AddSelfAnnotations,
     GraphProperties,
 
@@ -357,6 +358,27 @@ addEdgeTags = CaseOf[
     Rule[edge, Append[annos, "EdgeTag" -> tag]];
   rule_ := rule
 ];
+
+(*************************************************************************************************)
+
+SetStrict[AddVertexAnnotations]
+
+AddVertexAnnotations[graph_Graph, EmptyP] := graph;
+AddVertexAnnotations[graph_Graph, rule__Rule] := AddVertexAnnotations[graph, Dict[rule]];
+AddVertexAnnotations[graph_Graph, dict_Dict] := Locals @ CatchMessages[
+  $verts = VertexList @ graph;
+  vrules = OutermostToInnermost @ KeyValueMap[toVRules, dict];
+  Graph[graph, AnnotationRules -> RuleThread[$verts, vrules]]
+];
+
+toVRules = CaseOf[
+  $[key_, list_List] := Then[SameLenQOrThrow[list, $verts, "badAnnoLen", key], Thread[key -> list]];
+  $[key_, dict_Dict] := Thread[key -> Lookup[dict, $verts]];
+  $[key_, expr_]     := ThrowMsg["badAnnoData", key, expr];
+];
+
+AddVertexAnnotations::badAnnoLen = "Length of list `1` for key `3` doesn't match number of vertices `2`.";
+AddVertexAnnotations::badAnnoData = "Data for key `` should be a list or dict, not ``.";
 
 (*************************************************************************************************)
 

@@ -9,7 +9,7 @@ PackageExports[
   "Symbol",           Auto, Inherit, HInf,
   "StrPatHead",       Regex, StrExpr,
   "MessageFunction",  MsgName,
-  "SpecialFunction",  HoldC, HoldComp, HoldM,
+  "SpecialFunction",  HoldC, HoldComp, HoldM, SetM, SetDM, RuleDM,
   "MutatingFunction", SetD, TagSetD, UpSetD, AssocTo, SubFrom,
   "SlotSymbol",       FmA, FmB, FmC, FmD, FmE, FmF, FmG, FmH, FmI, FmJ, FmK, FmL, FmM, FmN, FmO, FmP, FmQ, FmR, FmS, FmT, FmU, FmV, FmW, FmX, FmY, FmZ
 ];
@@ -75,7 +75,6 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  Fn         -> Function,
   Then       -> CompoundExpression,
   Seq        -> Sequence
 ];
@@ -97,13 +96,17 @@ DefineAliasRules[
   FailEval   -> Fail
 ];
 
-DefineAliasRules[
-  HoldC      -> HoldComplete,
+NonCanonAliases @ DefineAliasRules[
+  Fn         -> Function,
   HoldM      -> MacroHold,
-  HoldComp   -> HoldComplete
+  SetM       -> MacroSet,
+  SetDM      -> MacroSetDelayed,
+  RuleDM     -> MacroRuleDelayed,
+  HoldComp   -> HoldComplete,
+  HoldC      -> HoldComplete
 ];
 
-DefineAliasRules[
+NonCanonAliases @ DefineAliasRules[
   FmA        -> \[FormalCapitalA],
   FmB        -> \[FormalCapitalB],
   FmC        -> \[FormalCapitalC],

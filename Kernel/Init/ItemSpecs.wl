@@ -45,7 +45,12 @@ ParseItemOptions[head_, itemSpecs_List, items_, userOpts_, metaOpts___Rule] := L
   UnpackOptionsAs[ParseItemOptions, metaOpts, $useBroadcast, groupSettings, itemGroups, itemData];
   $ispecHead = head;
   $ispecItems = items;
-  $ispecItemData = If[NoneQ[itemData], Dict[], Lookup[userOpts, itemData, Dict[]]];
+  $ispecItemData = Which[
+    NoneQ[itemData], Dict[],
+    DictQ[itemData], itemData,
+    SymQ[itemData], Lookup[userOpts, itemData, Dict[]],
+    True, ThrowOptMsg[ItemData, itemData]
+  ];
   $ispecBcast = UDict[];
   $ispecOpts = If[DictQ @ userOpts, userOpts, UDict @ Rev @ userOpts]; (* TODO: RuleDict *)
   $ispecLen = Len @ items;
@@ -190,9 +195,11 @@ parseMultiItemSpec[ItemSpec[key_, testFn_, defaultValue_, finalFn_, opts___Rule]
 ];
 
 applyDataFn[items_, "Name" -> fn_] /; !KeyExistsQ[$ispecItemData, "Name"] := Map[fn, items];
-applyDataFn[items_, key_ -> fn_]  := Map[fn, LookupOrThrow[$ispecItemData, key, "missingItemDataKey"]];
+applyDataFn[items_, key_ -> fn_]  := Map[fn, throwMissing @ Lookup[$ispecItemData, key]];
 
-General::missingItemDataKey = "No key `` present in provided item data.";
+throwMissing[Missing[_, k_]] := ThrowMsg["missingItemDataKey", k, Keys @ $ispecItemData];
+throwMissing[e_] := e;
+General::missingItemDataKey = "No key `` present in provided item data. Present keys: ``.";
 
 (* TODO: Validated[...] head, i can use above in RuleLVecQ to avoid resolving the scalarResult twice *)
 finalCheck[test_, final_][value_] :=
@@ -221,4 +228,4 @@ resolveStrSpec = CaseOf[
 General::notKnownStringSpec1 = "`` is not a known named setting for ``. Valid named settinngs include ``.";
 General::notKnownStringSpec2 = "`` is not a known named setting for ``.";
 throwStrSpec[str_]        := ThrowMsg["notKnownStringSpec2", str, $ispecKey];
-throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $ispecKey, LiteralStringRow @ Keys @ dict];
+throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $ispecKey, LitStrRow @ Keys @ dict];

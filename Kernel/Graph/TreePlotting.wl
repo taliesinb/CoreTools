@@ -1,5 +1,11 @@
 SystemExports[
-  "Option",              GraphScale, NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, RootPosition
+  "Option",
+    GraphScale, AspectRatio,
+    NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape,
+    RootPosition,
+    NodeGroups, GroupStyles,
+    NodeBackground,
+    SharedLeaves
 ];
 
 PackageExports[
@@ -17,61 +23,75 @@ InsetNode[content_, fn_:Id, opts___][pos_, size_, color_] :=
 
 Options[NiceTreePlot] = {
   GraphScale        -> 10,
+  AspectRatio       -> 0.8,
   NodeTooltips      -> None,
   NodeColor         -> Auto,
   NodeSize          -> 5,
   NodeShape         -> "Disk",
-  NodeData          -> None,
-  FontSize          -> Automatic,
+  NodeData          -> Auto,
+  NodeGroups        -> None,
+  GroupStyles       -> None,
+  FontSize          -> Inherited,
+  FontFamily        -> Inherited,
+  FontWeight        -> Inherited,
+  NodeBackground    -> None,
   EdgeColor         -> Auto,
   EdgeThickness     -> 1,
   RootPosition      -> Top,
-  BaselinePosition  -> Root
+  BaselinePosition  -> Root,
+  SharedLeaves      -> {}
 };
-
-$knownShapes = Dict[
-  "Point"    -> pointShape,
-  "Disk"     -> diskShape,
-  "OpenDisk" -> circleShape,
-  "Square"   -> squareShape,
-  "OpenSquare" -> openSquareShape
-];
 
 SetPred1 @ extColorQ;
 extColorQ[FaceEdge[ColorP, ColorP] | ColorP] := True;
 
-$treePlotVertexSpecs = {
-  ItemSpec[NodeTooltips, TrueFn, None],
-  ItemSpec[NodeColor,    extColorQ, $DarkGray],
-  ItemSpec[NodeSize,     NumberQ],
-  ItemSpec[NodeShape,    TrueFn, Inherit, MethodResolution -> $knownShapes]
-};
+$defaultColor = RGBColor[0.4, 0.4, 0.4];
 
 NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
 
-  UnpackOptions[graphScale, edgeColor, edgeThickness, rootPosition, baselinePosition, fontSize];
+  UnpackOptions[graphScale, edgeColor, edgeThickness,
+    rootPosition, baselinePosition,
+    nodeData, aspectRatio,
+    fontSize, fontWeight, fontFamily,
+    sharedLeaves,
+    $nodeBackground
+  ];
 
   vertexCount = VertexCount @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
 
-  {vertexCoords, edgeCoords} = OrderedTreeLayout[graph, RootPosition -> rootPosition, $treePlotLayoutOptions];
-  {{plotL, plotR}, {plotB, plotT}} = plotBounds = CoordinateBounds[vertexCoords, {.5, .5}];
+  {vertexCoords, edgeCoords, plotBounds} = OrderedTreeLayout[graph,
+    RootPosition -> rootPosition, "LayerDepths" -> aspectRatio,
+    SharedLeaves -> sharedLeaves,
+    $treePlotLayoutOptions
+  ];
+  {{plotL, plotR}, {plotB, plotT}} = plotBounds;
   {plotW, plotH} = plotSize = Dist @@@ plotBounds;
   imageSize = plotSize * graphScale;
-  $diskScale = 0.5 / graphScale;
+  $scale = 0.5 / graphScale;
 
   edgeStyle = Directive[AbsoluteThickness @ edgeThickness];
 
+  SetAuto[nodeData, transposeDict @ GraphVertexAnnotations @ graph];
+
   vertexList = VertexList @ graph;
-  vertexSpecs = ParseItemOptions[NiceTreePlot, $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> Auto, ItemData -> NodeData];
+  vertexSpecs = ParseItemOptions[NiceTreePlot, $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> Auto,
+    ItemData -> nodeData, ItemGroups -> NodeGroups, GroupSettings -> GroupStyles
+  ];
   vertexSpecs = Lookup[vertexSpecs, {NodeShape, NodeSize, NodeTooltips, NodeColor}];
   vertexPrims = makePrimitives[vertexSpecs, vertexCoords];
   SetAuto[edgeColor, GrayLevel[0.5]];
   AppendTo[edgeStyle, edgeColor];
-  SetAuto[fontSize, Inherited];
+  fontStyle = DelCases[
+    List[FontSize -> fontSize, FontWeight -> fontWeight, FontFamily -> fontFamily],
+    _ -> Inherited
+  ];
 
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
-  primitives = {Style[Line @ edgeCoords, edgeStyle], Style[vertexPrims, FontSize -> fontSize]};
+  primitives = List[
+    Style[Line @ edgeCoords, edgeStyle],
+    Style[vertexPrims, Seq @@ fontStyle]
+  ];
 
   basePos = Switch[baselinePosition,
     Root, Scaled[(Part[vertexCoords, 1, 2] - plotB - $meanSize/graphScale/1.25) / plotH],
@@ -88,9 +108,25 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
   ]
 ];
 
+$treePlotLayoutOptions = Seq[
+  "BendRadius"      -> 0.25,
+  "FanoutStyle"     -> "Top",
+  "GlobalCentering" -> False
+];
+
+transposeDict[_]         := None;
+transposeDict[annos_Dict] := Locals[
+  {verts, dicts} = KeysVals @ Select[annos, DictQ];
+  keys = Union @@ Map[Keys, dicts];
+  vals = Map[key |-> Lookup[dicts, key, None], keys];
+  DictThread[keys, vals]
+];
+
 (* if they are all BCast, just do the make inside and wrap with BCast
 if none are bcasts, just do Make,
 if some are bcasts, turn them to lists and do a ZipMap *)
+
+(**************************************************************************************************)
 
 makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
   prims = BMap[makeShape, shape, coords, size, colors];
@@ -99,26 +135,89 @@ makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
   prims
 ];
 
-makeShape[fn_, pos_, size_, color_] := fn[pos, size, color];
+(**************************************************************************************************)
 
-pointShape[pos_, size_, color_]  := Style[Point @ pos, APointSize @ size, color];
-diskShape[pos_, size_, color_]   := edgedStyle[color, Disk[pos, size * $diskScale]];
-diskShape[pos_, size_, color_]   := edgedStyle[color, Disk[pos, size * $diskScale]];
-squareShape[pos_, size_, color_] := edgedStyle[color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
-openSquareShape[pos_, size_, color_] := faceEdgeStyle[White, color, Rectangle[pos - size * $diskScale, pos + size * $diskScale]];
-circleShape[pos_, size_, color_] := {noEdgeStyle[White, Disk[pos, size * $diskScale]], Style[Circle[pos, size * $diskScale], color]};
-
-edgedStyle[FaceEdge[f_, e_], prim_] := faceEdgeStyle[f, e, prim];
-edgedStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ Darker[c, .1]];
-noEdgeStyle[c_, prim_] := Style[prim, FaceForm @ c, EdgeForm @ None];
-faceEdgeStyle[f_, e_, prim_] := Style[prim, FaceForm @ f, EdgeForm[Directive[e, AbsoluteThickness[1.2]]]];
-
-$treePlotLayoutOptions = Seq[
-  "BendRadius"      -> 0.25,
-  "FanoutStyle"     -> "Top",
-  "LayerDepths"     -> 0.8,
-  "GlobalCentering" -> False
+makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
+  bg = toBackCol[color, $nodeBackground, White];
+  margins = If[bg == White, 0, {{2,1},{1,1}}];
+  Text[
+    Framed[
+      str, opts, $frameOpts,
+      If[color =!= $defaultColor, BaseStyle -> {FontColor -> color}, Seq @@ {}],
+      Background -> bg,
+      FrameStyle -> {AThickness[0], Darker[color,.1]}
+    ],
+    Offset[{0,2}, pos]
+  ]
 ];
+
+$frameOpts = Seq[
+  Alignment -> Scaled[0.5], ContentPadding -> False,
+  FrameMargins -> {{2,1},{1,1}}, RoundingRadius -> 2
+];
+
+(**************************************************************************************************)
+
+makeShape[Text[str_], pos_, size_, color_] := List[
+  mkText[str, Offset[{-0.75,2}, pos], White],
+  mkText[str, Offset[{0.75, 2}, pos], White],
+  mkText[str, Offset[{0,2}, pos], If[col === $defaultColor, Inherited, color]]
+];
+
+mkText[str_, pos_, col_, opts___] := Text[
+  Style[str, opts, FontColor -> col],
+  pos
+];
+
+(**************************************************************************************************)
+
+addTextColor[col_] := If[col === $defaultColor, Id, Append[BaseStyle -> {FontColor -> col}]];
+
+addBackCol[col_, None][tbox_]        := tbox;
+addBackCol[col_, bg_][tbox_]         := Append[tbox, Background -> bg];
+addBackCol[col_, Opacity[r_]][tbox_] := Append[tbox, Background -> Opacity[r, col]];
+
+toBackCol[col_, Opacity[r_], _] := Opacity[r, col];
+toBackCol[col_, bg_, def_]      := bg;
+toBackCol[col_, None, def_]     := def;
+
+(**************************************************************************************************)
+
+makeShape[fn_, pos_, size_, color_] :=
+  fn[pos, size, color];
+
+$knownShapes = Dict[
+  "Point"        -> Fn @ Style[Point @ #1, APointSize @ #2, #3],
+  "Disk"         -> Fn @ edged[#3] @ Disk[#1, #2 * $scale],
+  "OpenDisk"     -> Fn @ List[whiteDisk[#1, #2, #3], Style[Circle[#1, #2 * $scale], #3]],
+  "Ring"         -> Fn @ List[whiteDisk[#1, #2], edged[#3] @ Annulus[#1, {.8, 1.} * #2 * $scale]],
+  "Square"       -> Fn @ edged[#3] @ Rectangle[#1 - #2 * $scale, #1 + #2 * $scale],
+  "OpenSquare"   -> Fn @ faceEdged[White, #3] @ Rectangle[#1 - #2 * $scale, #1 + #2 * $scale],
+  "DownTriangle" -> Fn @ edged[#3] @ Polygon[Threaded[#1] + ($dtri * #2 * $scale)],
+  "Lozenge"      -> Fn @ edged[#3] @ Rectangle[
+    #1 - #2 * $scale * {1.5, 1}, #1 + #2 * $scale * {1.5, 1},
+    RoundingRadius -> (#2*$scale*0.5)]
+];
+
+whiteDisk[p_, sz_] := unedged[White] @ Disk[p, sz * $scale];
+
+$dtri = (Threaded[{0, .8}] + {{-1,0},{0,-1.5}, {1,0}}) * 1.5;
+
+(**************************************************************************************************)
+
+edged[FaceEdge[f_, e_]][pr_] := faceEdged[f, e, pr];
+edged[c_][pr_]               := Style[pr, FaceForm @ c, EdgeForm @ Darker[c, .1]];
+unedged[c_][pr_]             := Style[pr, FaceForm @ c, EdgeForm @ None];
+faceEdged[f_, e_][pr_]       := Style[pr, FaceForm @ f, EdgeForm[Directive[e, AThickness[1.2]]]];
+
+(**************************************************************************************************)
+
+$treePlotVertexSpecs = {
+  ItemSpec[NodeTooltips, TrueFn, None],
+  ItemSpec[NodeColor,    extColorQ, $defaultColor],
+  ItemSpec[NodeSize,     NumberQ],
+  ItemSpec[NodeShape,    TrueFn, Inherit, MethodResolution -> $knownShapes]
+};
 
 (*************************************************************************************************)
 
@@ -144,7 +243,8 @@ Options[OrderedTreeLayout] = {
   "FanoutStyle"     -> Auto,
   "LayerDepths"     -> Auto,
   "GlobalCentering" -> True,
-  "FirstLastDelta"  -> 0.00125
+  "FirstLastDelta"  -> 0.00125,
+  "SharedLeaves"    -> {}
 };
 
 OrderedTreeLayout::vertexCoordsError = "Couldn't construct vertex coordinates.";
@@ -176,6 +276,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   $xs = $ys = ConstList[0., vertexCount];
   $bounds = ConstList[{}, vertexCount];
   $isLast = $isFirst = ConstList[False, vertexCount];
+  isShared = ConstList[False, vertexCount];
   $inDeg = VertexInDegree @ indexGraph;
   $outDeg = VertexOutDegree @ indexGraph;
   Part[$ccount, rootVertex] = -1;
@@ -193,13 +294,17 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   childInds = PosIndex @ ReplacePart[$parent, ConstRules[roots, 0]];
   Part[$xs, roots] = Map[Median @ Part[$xs, Lookup[childInds, #1, {#1}]]&, roots];
   isInner = ZipMap[1 < #1 < #2 && #3 > 0&, $cindex, Part[$ccount, $parent], $inDeg];
+  isInnerShared = ConstList[False, vertexCount];
 
 (*   mids = Pick[vrange, isInner];
   Part[$xs, mids] += $firstLastDelta;
   Part[$xs, roots] =
  *)
   Label[done];
-  maxD = Max[$d] + 1;
+
+  numShared = Len @ sharedLeaves;
+
+  maxD = Max[$d] + 1 + If[numShared > 0, 1, 0];
   If[layerDepths =!= {},
     numDepths = Len @ layerDepths;
     PrependTo[layerDepths, 0];
@@ -210,19 +315,55 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     ];
     $ys = N @ Part[layerDepths, $ys + 1];
   ];
-
   $xDelta = $firstLastDelta / 128;
+
+  $share = UDict[];
+  If[numShared > 0,
+    shareInds = Range[numShared] + vertexCount;
+    $share = UDict @ ZipMap[ConstRules, sharedLeaves, shareInds];
+    sharedXs = Parts[$xs, sharedLeaves];
+    sharedLRs = MinMax /@ sharedXs;
+    ZipScan[
+      {inds, xs, lr} |-> Set[Part[isInnerShared, inds], Min[AbsDelta[lr, #]] > 0.01& /@ xs],
+      sharedLeaves, sharedXs, sharedLRs
+    ];
+    Scan[Set[Part[isShared, #], True]&, sharedLeaves];
+    sx = Mean[Part[$xs, #]]& /@ sharedLeaves;
+    sy = Max[$ys] - 0.5;
+    JoinTo[$xs, sx];
+    JoinTo[$ys, sy + Range[numShared]];
+  ];
 
   vertexCoords = EnsurePackedReals[Flip @ {$xs, maxD - $ys}, ReturnFailed["vertexCoordsError"]];
   coordFn = Switch[rootPosition, Bottom, FlipYOp, Top, Id, Left, Rot90LOp, Right, Rot90ROp,
     _, ReturnFailed["badRootPosition", rootPosition]];
 
-  $isInner = UDictThread[vertexCoords, isInner];
+  Module[{origCoords = Take[vertexCoords, vertexCount]},
+    $isInner = UDictThread[origCoords, isInner];
+    $isShared = UDictThread[origCoords, isShared];
+    $isInnerShared = UDictThread[origCoords, isInnerShared];
+  ];
+
+  $shrTargets = UDictThread[Part[vertexCoords, Keys @ $share], Part[vertexCoords, Vals @ $share]];
   edgePaths = ExtractIndices[vertexCoords, edgePairs];
   edgePaths = constructEdgePaths[edgePaths, bendRadius, fanoutStyle];
 
-  coordFn /@ {vertexCoords, edgePaths}
+  vertexCoords //= coordFn;
+  edgePaths //= coordFn;
+  bounds = CoordinateBounds[vertexCoords, {.5, .5}];
+  If[numShared > 0,
+    KeyValueScan[Set[Part[vertexCoords, #1], Part[vertexCoords, #2, All]]&, $share];
+    vertexCoords = Drop[vertexCoords, -numShared];
+  ];
+
+  {vertexCoords, edgePaths, bounds}
 ]
+
+makeFTF = CaseOf[
+  1  := {False};
+  2  := {False, False};
+  n_ := ToList[False, ConstList[True, n-2], False];
+];
 
 discoverVertex[t_, s_, d_] := (
   Part[$ccount, s]++;
@@ -243,10 +384,10 @@ postvisitVertex[v_] := (
   If[Part[$outDeg, v] > 0,
     Part[$xs, v] = If[$globalCentering,
       Avg[Part[$xs, v], ($x-1)],
-      Mean @ Part[$bounds, v]
+      Replace[Part[$bounds, v], {{} :> Part[$xs, v], e_ :> Mean[e]}]
     ];
   ];
-  If[!$globalCentering, Part[$bounds, Part[$parent, v]] //= MinMax[{#, Part[$xs, v]}]&];
+  If[!$globalCentering, Part[$bounds, Part[$parent, v]] //= MinMax[Flatten @ {#, Part[$xs, v]}]&];
 )
 
 (*************************************************************************************************)
@@ -272,7 +413,7 @@ constructEdgePaths[edgePaths_, bendRadius_, fanoutStyle_] := Locals[
 ]
 
 bendCenter[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
-  If[Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+  If[Min[Abs[ax - bx], Abs[ay - by]] < 0.0001, Return @ {a, b}];
   aby = (ay + by) / 2;
   abx = (ax + bx) / 2;
   c = {ax, aby}; d = {bx, aby};
@@ -280,11 +421,11 @@ bendCenter[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
   cd = ptAlong[c, d, $r]; Part[cd, 1] //= ClipOp[Sort @ {ax, abx}];
   dc = ptAlong[d, c, $r]; Part[dc, 1] //= ClipOp[Sort @ {bx, abx}];
   db = ptAlong[d, b, $r];
-  coords @ Join[{a}, BezierPoints[{ca, c, cd}], BezierPoints[{dc, d, db}], {b}]
+  Join[{a}, BezierPoints[{ca, c, cd}], BezierPoints[{dc, d, db}], {b}]
 ];
 
 bendCenterFraction[{a:{ax_, ay_}, b:{bx_, by_}}, f_] := Locals[
-  If[Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+  If[$trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.0001, Return @ {a, b}];
   aby = Lerp[ay, by, f];
   If[isMidX[bx], Return @ {{bx, aby}, {bx, by}}];
   c = {ax, aby}; d = {bx, aby};
@@ -296,10 +437,19 @@ bendCenterFraction[{a:{ax_, ay_}, b:{bx_, by_}}, f_] := Locals[
 ];
 
 isMidX[x_] := Norm[FractionalPart[x] - $firstLastDelta] < $xDelta;
-isInnerX[x:{bx_, by_}] := $isInner[x];
+
+$trimCorner = True;
+
+bendTop[{a:{ax_, ay_}, b:{bx_, by_}}] /; $isShared[b] := Then[
+  $isShared[b] = False,
+  Join[
+    bendTop[{a, b}],
+    BlockFalse[$trimCorner, bendBottom[{b, $shrTargets @ b}]]
+  ]
+];
 
 bendTop[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
-  If[Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+  If[$trimCorner && Abs[ax - bx], Abs[ay - by] < 0.001, Return @ {a, b}];
   If[$isInner[b], Return @ {{bx, ay}, {bx, by}}];
   c = {bx, ay};
   ca = ptAlong[c, a, $r];
@@ -308,7 +458,8 @@ bendTop[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
 ];
 
 bendBottom[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
-  If[Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+  If[$isInnerShared[a], Return @ {{ax,ay}, {ax, by}}];
+  If[False && $trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
   c = {ax, by};
   ca = ptAlong[c, a, $r];
   cb = ptAlong[c, b, $r];

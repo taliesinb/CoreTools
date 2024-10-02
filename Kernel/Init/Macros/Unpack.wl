@@ -77,7 +77,7 @@ SetHoldF[unpkOpts, unpkSyms, unpkDict, unpkAnnos, bindSyms];
 
 unpkOpts[None,   HoldM[vars_] <-> keys_]        := HoldM @ Set[vars, OptionValue[keys]]
 unpkOpts[rules_, HoldM[vars_] <-> keys_, head_] := HoldM @ Set[vars, OptionValue[head, {rules}, keys]]
-unpkOpts[rules_, HoldM[vars_] <-> syms_, head_] := HoldM @ Set[vars, LookupOptionsAs[ToList @ rules, syms, head]];
+(* unpkOpts[rules_, HoldM[vars_] <-> syms_, head_] := HoldM @ Set[vars, LookupOptionsAs[ToList @ rules, syms, head]]; *)
 
 unpkDict[assoc_, HoldM[vars_] <-> keys_]        := HoldM @ Set[vars, Lookup[assoc, keys, ThrowMsg["badAssociation", keys]]]
 

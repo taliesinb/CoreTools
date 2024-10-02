@@ -1,4 +1,4 @@
-PackageExports[
+SystemExports[
   "FormHead",
     LabelTop,
     RaiseForm, LowerForm, MarginForm, HMarginForm, VMarginForm,
@@ -14,7 +14,10 @@ PackageExports[
     ClickForm, ClickFormOp,
     FlattenStyle, BuryStyle,
     CodeStyle, BoldSyntaxForm,
-    ExpanderForm,
+    ExpanderForm
+];
+
+PackageExports[
   "BoxFunction",
     RBox,
     LabelTopBox,
@@ -26,7 +29,7 @@ PackageExports[
     DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox, AssocRowBox,
     GrayBox, DimmedBox,
     GridBoxRule, RowGridBox, ColGridBox, TightRowGridBox, TightColGridBox,
-    StatusAreaBox, CursorIconBox, LiteralStringBox, LiteralStringRowBox,
+    StatusAreaBox, CursorIconBox,
     ApplyEndStyleBox, ApplyIndentBox,
     UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox,
     FontColorBox, FontSizeBox, FontSizeDeltaBox, FontScaleBox,
@@ -125,14 +128,14 @@ CoreBox[UnlimitedRow[list_List, riff_]] := RiffledRowBox[MapMakeBox @ list, Make
 
 (**************************************************************************************************)
 
-CoreBox[LiteralStringRow[s:{StrP...}, r:StrP:","]] := LiteralStringRowBox[s, r];
+CoreBox[LiteralStringRow[s:{StrP...}, r:StrP:","]] := LitStrRowBox[s, r];
 
-SetBoxFn[LiteralStringRowBox];
+SetBoxFn[LitStrRowBox];
 
 LiteralStringBox[s_Str] := ToBoxes @ LitStr @ s; (* does this do anything ? *)
 
-LiteralStringRowBox[{}, ___]              := LiteralStringBox[""];
-LiteralStringRowBox[s:{__Str}, r_Str:","] := LiteralStringBox @ StrJoin @ Riffle[s, r];
+LitStrRowBox[{}, ___]              := LiteralStringBox[""];
+LitStrRowBox[s:{__Str}, r_Str:","] := LiteralStringBox @ StrJoin @ Riffle[s, r];
 
 (**************************************************************************************************)
 

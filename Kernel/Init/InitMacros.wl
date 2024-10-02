@@ -7,7 +7,8 @@ PackageExports[
   "Function",
     Ensure, MacroHead,
   "SpecialFunction",
-    ExpandMacros, MacroHold, RefreshMacroRules,
+    ExpandMacros, RefreshMacroRules,
+    MacroHold, MacroSet, MacroSetDelayed, MacroRuleDelayed
   "MessageFunction",
     MacroError,
   "MetaFunction",
@@ -53,17 +54,23 @@ Ensure[testFn_, else_][expr_] := If[TrueQ @ testFn @ expr, expr, else];
 SetHoldA @ MacroError;
 
 MacroError::error = "A macro error eccurred.";
+MacroError[msg_Str, args___] := With[
+  {head = First @ MacroHead[Hold @ General]},
+  MacroError[MessageName[head, msg], args]
+];
+
 MacroError[args___] /; TrueQ[$PackageCurrentlyLoading] := Then[
   ErrorPrint["Macro error at ", RawBoxes @ SourceLocationBox[$CurrentPackageFile, $CurrentPackageExprCount]];
-  Message[args];
+  ErrorMessage[args];
   AbortPackageLoading[];
 ];
 
-MacroError[args___] := Then[Message[args], Abort[]];
+MacroError[args___] := Then[ErrorMessage[args], Abort[]];
 
 (*************************************************************************************************)
 
 SetHoldA[MacroHold];
+SetHoldC[MacroSet, MacroSetDelayed, MacroRuleDelayed];
 
 MacroHold::usage = "MacroHold[$$] will be stripped during macro expansion.";
 
@@ -81,6 +88,9 @@ RefreshMacroRules[] := (generateMacroRules[];)
 (* this ensures we have only one set of rules for each head *)
 $MacroRules = Data`UnorderedAssociation[
   HoldP[$$]             -> {HoldP[$$] -> $MacroHead},
+  HoldP[SetM]           -> {HoldP[SetM] -> Set},
+  HoldP[SetDM]          -> {HoldP[SetDM] -> SetD},
+  HoldP[RuleDM]         -> {HoldP[RuleDM] -> RuleD},
   HoldP[FunctionReturn] -> {} (* ensure its a symbol *)
 ];
 
@@ -95,9 +105,11 @@ invalidateMacroRules[] := (
 
 invalidateMacroRules[];
 
+$basicMacroSymP = {HoldP[HoldM], HoldP[SetM], HoldP[SetDM], HoldP[RuleDM]};
+
 generateMacroRules[] := (
   Clear[$AllMacroSyms, $PureMacroSyms, $CompiledMacroRules];
-  $AllMacroSyms = Sort @ Append[Join[Keys @ $MacroRules, Keys[$SymbolAliases, HoldP]], HoldP @ MacroHold];
+  $AllMacroSyms = Sort @ Append[Join[Keys @ $MacroRules, Keys[$SymbolAliases, HoldP]], $basicMacroSymP];
   $PartialMacroSyms = Keys @ $PartialMacroRules;
   $PureMacroSyms = Complement[$AllMacroSyms, $PartialMacroSyms];
   defineMacroPredicates[
@@ -283,7 +295,7 @@ DeclaredHere[$MacroHead];
 SetHoldA @ MacroHead;
 
 MacroHead[] := MacroHead[MacroError[MacroHead::noHead]];
-MacroHead[else_] := If[HasIValueQ[$activeMHead], $activeMHead, other];
+MacroHead[else_] := If[HasIValueQ[$activeMHead], $activeMHead, else];
 
 MacroHead::noMacroHead = "No parent head found for macro invocation.";
 

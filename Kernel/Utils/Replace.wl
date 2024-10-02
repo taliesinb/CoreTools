@@ -34,7 +34,7 @@ MatchFn[rules___] := Replace @ ToList[rules, _ :> InternalError];
 (**************************************************************************************************)
 
 FnRule[_, Id]      := Nothing;
-FnRule[patt_, fn_] := RuleD[FmS:patt, fn[FmS]];
+FnRule[patt_, fn_] := Make[RuleD, Make[Pattern, FmS, patt], NoEval @ fn @ FmS];
 
 (**************************************************************************************************)
 

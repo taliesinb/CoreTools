@@ -36,7 +36,6 @@ SublimeUpdateSyntax[] := Locals[
 
   (* load syntax groups from syntax files, and list of internal context -> symbols *)
   systemKinds = SystemSymbolKinds[];
-
   librarySymbolFiles = userSymbolFile @ FileList["*.wl.txt"];
   libraryKinds = Merge[ImportStringTable /@ librarySymbolFiles, Catenate];
   ExportStringTable[staticFile @ "LibraryKinds.wl.txt", libraryKinds];
@@ -49,7 +48,7 @@ SublimeUpdateSyntax[] := Locals[
   (* generate strings *)
   res = Check[
     internalSymbols = ImportStringTable @ systemSymbolFile["InternalSymbols.wl.txt"];
-    preludeSymbols = GroupPairs[NameMostLast /@ Select[Names["Prelude`*`*"], StringFreeQ["`Private"]]];
+    preludeSymbols = Dict["Prelude`" -> Map[NameLast, Names @ "Prelude`*"]];
     JoinTo[internalSymbols, preludeSymbols];
     {builtinRegexs, builtinDefs, builtinContext} = makeGroupsRegexpsDefs[systemKinds,  "System"];
     {coreRegexs,    coreDefs,    coreContext}    = makeGroupsRegexpsDefs[coreKinds,    "Core"];
@@ -222,7 +221,7 @@ makeKindCompletions[group_, names_] := Locals[
   Map[
     name |-> Dict[
       "trigger" -> name,
-      "contents" -> escapeDollarsTwice @ name,
+      "contents" -> escapeDollars @ name,
       "kind" -> kindString
     ],
     Select[names, StrLen[#] > 3&]

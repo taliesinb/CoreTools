@@ -91,7 +91,7 @@ makeRoot[(Rule | RuleDelayed)[lhs_, rhs_]] := With[
   Rule[gs, ReplaceAll[HoldComplete[args], $leafRule]]
 ];
 
-makeRoot[head_Sym[args___]] := With[{gs = GrammarSymbol[head]}, Rule[gs, ReplaceAll[HoldComplete[args], $leafRule]]];
+makeRoot[head_Sym[args___]] := With[{gs = GrammarSymbol[head]}, Rule[gs, ReplaceAll[HoldC[args], $leafRule]]];
 makeRoot[head_]             := GrammarSymbol[head] -> None;
 
 makeLeaf[head_Sym[args___]] := GrammarSymbol[head];

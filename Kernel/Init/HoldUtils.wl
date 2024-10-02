@@ -34,9 +34,9 @@ HoldCLower[hold_HoldC]   := Thread[hold];
 SetHoldA[HMake, HUnmake];
 SetHoldC[HCUnmake];
 
-HMake[f_, a___]                     := f[a];
-HUnmake[h_[a___], w_:Hold]          := w[h, a];
-HCUnmake[h_[a___], w_:HoldComplete] := w[h, a];
+HMake[f_, a___]              := f[a];
+HUnmake[h_[a___], w_:Hold]   := w[h, a];
+HCUnmake[h_[a___], w_:HoldC] := w[h, a];
 
 Unmake[h_[a___], w_:List] := w[h, a];
 Remake[w_[h_, a___]]      := w[h[a]];

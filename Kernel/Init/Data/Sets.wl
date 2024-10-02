@@ -95,8 +95,8 @@ MakeBoxes[h_OSet ? SealedQ, TraditionalForm] := SetBoxes[h];
 MakeBoxes[h_MSet ? SealedQ, StandardForm]    := SetBoxes[h];
 MakeBoxes[h_MSet ? SealedQ, TraditionalForm] := SetBoxes[h];
 
-SetBoxes[USet[a_Dict]] := AngleRowBox @ MapApply[MakeBoxes, Keys[a, HoldComplete]];
-SetBoxes[OSet[a_Dict]] := AngleRowBox @ MapApply[MakeBoxes, Keys[a, HoldComplete]];
+SetBoxes[USet[a_Dict]] := AngleRowBox @ MapApply[MakeBoxes, Keys[a, HoldC]];
+SetBoxes[OSet[a_Dict]] := AngleRowBox @ MapApply[MakeBoxes, Keys[a, HoldC]];
 SetBoxes[MSet[a_Dict]] := AngleRowBox @ KeyValueMap[msetBoxes, a];
 
 msetBoxes[k_, 1]  := MakeBoxes @ k;

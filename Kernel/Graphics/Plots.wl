@@ -9,22 +9,28 @@ SystemExports[
 
 PackageExports[
   "FormHead",
-    NiceObject,
+    NiceObject, ObjectField,
   "BoxFunction",
-    NiceObjectBoxes
+    NiceObjectBoxes, ObjectFieldBox
 ];
 
 (*************************************************************************************************)
 
 MakeBoxes[NiceObject[head_String, args_, opts___], StandardForm] := Locals[
-  argBoxes = If[ListQ[args], ToBoxes /@ args, ToBoxes @ args];
+  argBoxes = Which[
+    ListQ[args], ToBoxes /@ args,
+    DictQ[args], ToBoxes /@ KeyValueMap[ObjectField, args],
+    True,        ToBoxes  @ args
+  ];
   argBoxes /. InterpretationBox[b_, _] :> b;
   NiceObjectBoxes[head, argBoxes, opts]
 ];
 
 NiceObjectBoxes[head_, args2_, margin:Except[_Rule]:0, opts___Rule] := Locals[
+  args = args2;
   cLines = TrueQ @ Lookup[{opts}, ColumnLines, False];
-  args = If[!cLines && ListQ[args2], commaSep @ args2, args2];
+  If[DictQ[args], args = KeyValueMap[ObjectFieldBox, args]];
+  args = If[!cLines && ListQ[args], commaSep @ args, args];
   argItems = Which[
     EmptyQ[args],  "",
     SingleQ[args] || cLines, MarginBox[margin] /@ args,
@@ -48,6 +54,15 @@ NiceObjectBoxes[head_, args2_, margin:Except[_Rule]:0, opts___Rule] := Locals[
 ];
 
 commaSep[list_] := Riffle[list, StyleBox[",\[ThinSpace]", Gray]];
+
+(*************************************************************************************************)
+
+MakeBoxes[ObjectField[k_, v_], StandardForm] := ObjectFieldBox[MakeBox @ k, MakeBox @ v];
+
+ObjectFieldBox[k_, v_] := RBox[
+  StyleBox[k, $DarkGray, Italic],
+  ":", "\[VeryThinSpace]", v
+  ];
 
 (**************************************************************************************************)
 

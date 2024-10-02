@@ -214,7 +214,7 @@ toHeldKeysItems = CaseOf[
 $rowColViewOptions = {
    ItemFn -> None,  ItemDivs -> False,  ItemGaps -> 1,  ItemStyle -> None,
   LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> Bold,
-  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 500
+  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1500
 };
 
 $multiRowColViewOptions = FlatList[
@@ -316,7 +316,7 @@ RowViewGridBox = CaseOf[
   {}                     := "";
   {e1:Except[_List]}     := e1;
   boxes_List             := GridBox[ToRowVec @ boxes, $rcViewOpts];
-  boxes_List ? dictRowsQ := GridBox[Flip @ boxes, $rcViewOpts, $rViewLabelStyle];
+  boxes_List ? dictRowsQ := GridBox[Flip @ boxes, $rViewLabelStyle, $rcViewOpts];
   e_                     := RedMsgFormBox["bad data: ``", Head @ e]
 ];
 
@@ -324,14 +324,14 @@ ColViewGridBox = CaseOf[
   {}                     := "";
   {e1:Except[_List]}     := e1;
   boxes_List             := GridBox[ToColVec @ boxes, $rcViewOpts];
-  boxes_List ? dictRowsQ := GridBox[boxes, $rcViewOpts, $cViewLabelStyle];
+  boxes_List ? dictRowsQ := GridBox[boxes, $cViewLabelStyle, $rcViewOpts];
   e_                     := RedMsgFormBox["bad data: ``", Head @ e]
 ];
 
 dictRowsQ[boxes_] := ListQ @ P1 @ boxes;
 
 $cViewLabelStyle := GridBoxRule[ItemStyle, None, {Directive @ rcOptVal @ LabelStyle, None}]
-$rViewLabelStyle := GridBoxRule[ItemStyle, {None, Directive @ rcOptVal @ LabelStyle}, None]
+$rViewLabelStyle := Seq[ColumnAlignments -> Center, GridBoxRule[ItemStyle, {None, Directive @ rcOptVal @ LabelStyle}, None]];
 
 $rcViewOpts := Seq[
   ColumnAlignments -> Left, RowMinHeight -> 1.2, BaselinePosition -> {1, 1},

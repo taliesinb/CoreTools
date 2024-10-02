@@ -6,6 +6,8 @@ PackageExports[
     VFn, VFunction, VSet, VSetD, VTagSetD, VRule, VRuleD,
 
   "PatternSymbol",
+    PatternP,
+
     SingleP, PairP, TripleP,
     List1P, List2P, List3P, List4P, List23P,
     DictP, UDictP, ODictP, ListDictP, EmptyP, NonEmptyP, EmptyDataP, AtomP, BoolP, SymP, StrP, SymStrP,
@@ -91,6 +93,17 @@ DefinePatternRules[
   VSetD            -> HoldPattern[SetD],
   VTagSetD         -> HoldPattern[TagSetD],
   VRuleD           -> HoldPattern[RuleD]
+];
+
+DefinePatternRules[
+  PatternP -> Alt[
+    _Pattern, _Alt,
+    _PatternTest, _Condition,
+    _Blank, _BlankSeq, _BlankNullSeq,
+    _Repeated, _RepeatedNull, _Longest, _Shortest,
+    _Except, _HoldPattern,
+    _Verbatim, _Optional
+  ]
 ];
 
 (*************************************************************************************************)

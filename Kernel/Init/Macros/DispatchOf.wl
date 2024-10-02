@@ -27,7 +27,7 @@ attachedDispatchOf[lhs_, excl_, pre_, arg_SetD] := attachedCaseOf[lhs, excl, pre
 attachedDispatchOf[lhs_, excl_, pre_, Then[args__SetD, Null...]] := Module[
   {holds, sym},
   sym = PatHead @ lhs;
-  holds = MapApply[HoldComplete, NoEval @ List @ args];
+  holds = MapApply[HoldC, NoEval @ List @ args];
   res = holds /. $ :> lhs;
   If[excl,
     blank = ToBlankP @ sym;
@@ -36,4 +36,4 @@ attachedDispatchOf[lhs_, excl_, pre_, Then[args__SetD, Null...]] := Module[
   SetD @@@ res;
 ];
 
-toUnmatched[Hold[sym_]][HoldComp[lhs_, _]] := HoldComp[$LHS:lhs, ThrowUnmatchedError[sym, $LHS]];
+toUnmatched[Hold[sym_]][HoldC[lhs_, _]] := HoldC[$LHS:lhs, ThrowUnmatchedError[sym, $LHS]];
