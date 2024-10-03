@@ -4,7 +4,6 @@ PackageExports[
   "Function",
     TrieNew,
     TrieLeaves, TriePart, TrieCount,
-    TrieScanNodes, TrieScanLeaves,
     TrieLists,
     ExpandTrieNodes,
   "MutatingFunction",

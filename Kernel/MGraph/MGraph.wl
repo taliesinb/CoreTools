@@ -54,7 +54,7 @@ SystemExports[
 
 PackageExports[
   "Head",
-    MGraph, MEdge, MEField,
+    MGraph, MEdge,
 
   "SpecialFunction",
     MakeMultigraph,

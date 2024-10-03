@@ -74,7 +74,7 @@ PublicOption[DynamicSelection, DynamicFilter]
 
 PublicMutatingFunction[DSet]
 
-SetUsage @ "
+DeclareUsage @ "
 DModule[vars$, body$] runs body$ to assemble a %DynamicModuleBox[$$] expression.
 * vars$ are local variables, with no special meaning.
 

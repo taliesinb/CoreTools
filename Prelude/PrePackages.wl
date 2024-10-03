@@ -1,12 +1,6 @@
-BeginPackage["Prelude`"]
+BeginPackage["Prelude`", {"Session`"}];
 
 SystemExports[
-
-  "Option",
-    Caching,
-    Logging,
-    LogLevel,
-    Verbose,
 
   "FormHead",
     SourceLocation,
@@ -37,12 +31,8 @@ PackageExports[
     $SymbolAliases,
     $SymbolAliasesDirty,
     $PackageLoadVerbose,
-    $PackageCurrentlyLoading,
-    $LastFailedExpression,
-    $PackageLoadCompleteQ,
 
-  "SpecialVariable",
-
+  "TransientVariable",
     $CurrentPackageLineSentinel,
     $CurrentPackageFileHash,
     $CurrentPackageExpr,
@@ -50,6 +40,9 @@ PackageExports[
     $CurrentPackageMessageCount,
     $CurrentPackageQueParent,
     $CurrentPackageQueValue,
+    $PackageCurrentlyLoading,
+    $PackageFailedExpr,
+    $PackageErrorStack,
 
   "MessageFunction",
     LoadPrint,
@@ -82,7 +75,7 @@ PrivateExports[
     PackageLoadUncaughtThrowHandler,
 
   "SpecialVariable",
-
+    $PackageLoadCompleteQ,
     $PackageFileCache,
     $PackageFileModTime,
     $PackageSymbolTable,
@@ -140,11 +133,6 @@ $PackageFileModTime         = Data`UnorderedAssociation[];
 
 (* allow stand-alone running *)
 
-System`ErrorPrint;
-System`LogPrint;
-System`$CellPrintLabel;
-System`SublimeOpen;
-
 If[DownValues[ErrorPrint] === {},
   ErrorPrint = Print;
   LogPrint = Print;
@@ -198,8 +186,12 @@ PreludeLoadPackage::invalid = "Invalid usage: ``.";
 PreludeLoadPackage::invalidBaseContext = "Invalid base context: ``.";
 PreludeLoadPackage::invalidSourceSpec = "Invalid source spec: ``.";
 PreludeLoadPackage::invalidSymbolTable = "SymbolTableFunction returned invalid result: ``.";
+PreludeLoadPackage::missingFile = "Source file `` does not exist.";
 PreludeLoadPackage::ignoredFile = "Ignoring file whose extension does not end with '.wl' or '.txt': ``.";
 PreludeLoadPackage::symbolInitFailed = "SymbolTableInit returned an invalid result.";
+
+PreludeLoadPackage::uncaughtThrow = "Uncaught ``.";
+PreludeLoadPackage::abortOccured = "Abort occurred.";
 
 g_PreludeLoadPackage := (Message[PreludeLoadPackage::invalid, HoldForm @ g]; False);
 
@@ -222,6 +214,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
 
     LoadPrint["PreludeLoadPackage[\"", baseContext, "\"]"];
     $PackageLoadCompleteQ[baseContext] = False;
+    $PackageErrorStack = None;
 
     $baseContext = baseContext;
     $basePrivateContext = baseContext <> "Private`";
@@ -282,7 +275,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
     ];
 
     LoadPrint["* scanning ", Length @ sourceFiles, " files for symbol exports."];
-    Global`$ST = symbolTable = OptionValue["SymbolTableFunction"][sourceFiles, baseContext];
+    symbolTable = OptionValue["SymbolTableFunction"][sourceFiles, baseContext];
     (* ^ this is a list of SymbolTableRow[kind, path, context, decl]} *)
     If[!MatchQ[symbolTable, {__SymbolTableRow}], AbortPackageLoading["invalidSymbolTable", symbolTable]];
     $PackageSymbolTable[baseContext] = symbolTable;
@@ -320,7 +313,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
       Internal`HandlerBlock[
         {"Message", PackageLoadMessageHandler},
         $PackageModTime[baseContext] = updateModTimes @ sourceFiles;
-        MapThread[loadPackageFile, {sourceFiles, fileContexts}]
+        MapThread[loadPackageFile, {sourceFiles, fileContexts}];
       ];
     ,
       On[General::shdw];
@@ -379,7 +372,7 @@ procPriorityRules[rules_] := Append[_ -> 0] @ ReplaceAll[rules,
 
 (*************************************************************************************************)
 
-toSourceFiles[list_List] := Map[expandFileSpec, list];
+toSourceFiles[list_List] := Flatten @ expandFileSpec @ list;
 
 toSourceFiles[dir_String] := Block[
   {fileList},
@@ -397,41 +390,38 @@ sortInitFirst[files_List] := SortBy[files, fileSortOrder, LexicographicOrder];
 
 toSourceFiles[File[path_String]] := Module[{lines, base},
   base = FileNameDrop @ path;
-  lines = ReadList[path, Record, RecordSeparators -> "\n", NullRecords -> False];
-  If[!Developer`StringVectorQ[lines], Return[$Failed]];
+  lines = Quiet @ Check[ReadList[path, Record, RecordSeparators -> "\n", NullRecords -> False], $Failed];
+  If[!Developer`StringVectorQ[lines],
+    Message[PreludeLoadPackage::missingFile, path];
+    Return[$Failed]
+  ];
   lines = Select[lines, !StringStartsQ[#, "#"]&];
-  expandFileSpec[FileNameJoin[{base, #}]& /@ lines]
+  Flatten @ expandFileSpec @ Map[StringJoin[{base, $PathnameSeparator, #}]&, lines]
 ];
 
 expandFileSpec[list_List] := Map[expandFileSpec, list];
-expandFileSpec[other_] := (Message[PreludeLoadPackage::ignoredFile, other]; Nothing);
-expandFileSpec[path_String] /; StringEndsQ[path, ".wl"] := path;
-expandFileSpec[path_String] /; StringEndsQ[path, ".txt"] := Splice @ toSourceFiles @ File @ path;
+
+expandFileSpec[other_] := (
+  Message[PreludeLoadPackage::ignoredFile, other];
+  {}
+);
+
+expandFileSpec[path_String] := Which[
+  StringEndsQ[path, ".wl"],  path,
+  StringEndsQ[path, "/"],    toSourceFiles @ File @ defaultListPath @ StringDrop[path, -1],
+  StringEndsQ[path, ".txt"], toSourceFiles @ File @ path,
+  True,                      Message[PreludeLoadPackage::ignoredFile, path]; {}
+];
+
+defaultListPath[path_] := FileNameJoin[{path, StringJoin["_", FileNameTake @ path, ".txt"]}];
 
 (*************************************************************************************************)
 
-toFileContext[file_] := StringJoin[$basePrivateContext, FileBaseName @ file, "`"];
+toFileContext[file_] := StringJoin[$basePrivateContext, StringDelete[FileBaseName @ file, "_"], "`"];
 
 toRelativeFileContext[n_][file_] :=
   toFileContext @ StringReplace[FileNameDrop[file, n], $PathnameSeparator -> "`"];
 
-(*************************************************************************************************)
-
-(* createPackageSymbolsIn["Variable" | "SpecialVariable" | "CacheVariable", assoc_] :=
-  KeyValueMap[createSymbolsIn, assoc];
-
-createPackageSymbolsIn[_, assoc_] :=
-  KeyValueMap[createCleanSymbolsIn, assoc];
-
-General::invalidContextName = "Invalid context name: ``.";
-createSymbolsIn[context_String, symbolsStrings_, fn_:Hold] := Block[
-  {$Context = context, $ContextPath = {context, "System`"}},
-  ToExpression[symbolsStrings, InputForm, fn]
-];
-
-createCleanSymbolsIn[context_String, symbolsStrings_] :=
-  createSymbolsIn[context, symbolsStrings, If[context =!= $dontCleanContext, UnprotectClearAll, Identity]];
- *)
 (*************************************************************************************************)
 
 lazyQueueEval[path_, bag_] := If[Internal`BagLength[bag] > 0,
@@ -505,20 +495,6 @@ srcLocPathBox[pathStr_String] := StyleBox[
 
 (*************************************************************************************************)
 
-SetAttributes[runPackageFileExpr, HoldAllComplete];
-
-runPackageFileExpr[expr_] /; $SymbolAliasesDirty := (
-  $CurrentPackageExprCount++;
-  $CurrentPackageExpr = HoldComplete[expr];
-  $exprEvalFn @ ReplaceAll[HoldComplete @ expr, $SymbolAliases]
-);
-
-runPackageFileExpr[expr_] := (
-  $CurrentPackageExprCount++;
-  $CurrentPackageExpr = HoldComplete[expr];
-  $exprEvalFn @ HoldComplete @ expr
-);
-
 General::coreToolsError = "Error loading file \"``\".";
 loadPackageFile[path_, context_] := Block[
   {$CurrentPackageFile = path,
@@ -549,6 +525,31 @@ loadPackageFile[path_, context_] := Block[
   ];
 ];
 
+SetAttributes[runPackageFileExpr, HoldAllComplete];
+
+runPackageFileExpr[str_String] := DeclareUsage @ str;
+
+runPackageFileExpr[expr_] /; $SymbolAliasesDirty := runPackageFileExpr2 @ ReplaceAll[HoldComplete @ expr, $SymbolAliases];
+runPackageFileExpr[expr_]                        := runPackageFileExpr2 @ HoldComplete @ expr;
+
+runPackageFileExpr2[hexpr_] := (
+  $CurrentPackageExprCount++;
+  $CurrentPackageExpr = hexpr;
+  $exprEvalFn @ hexpr
+);
+
+(* runPackageFileExpr[expr_] /; $SymbolAliasesDirty :=
+  $CurrentPackageExprCount++;
+  $CurrentPackageExpr = HoldComplete[expr];
+  $exprEvalFn @ ReplaceAll[HoldComplete @ expr, $SymbolAliases]
+);
+
+runPackageFileExpr[expr_] := (
+  $CurrentPackageExprCount++;
+  $CurrentPackageExpr = HoldComplete[expr];
+  StackBegin @ $exprEvalFn @ $preExprEvalFn @ HoldComplete @ expr
+);
+ *)
 (*************************************************************************************************)
 
 updateModTimes[sourceFiles_List] := Max @ Map[
@@ -574,20 +575,32 @@ getHoldCompleteCached[path_] := Module[
 
 SetAttributes[catchPackageThrows, HoldAllComplete];
 
-catchPackageThrows[e_] := Catch[e, Except[PreludeLoadPackage], PackageLoadUncaughtThrowHandler];
+catchPackageThrows[e_] := CheckAbort[
+  Catch[e, Except[PreludeLoadPackage], PackageLoadUncaughtThrowHandler],
+  Message[PreludeLoadPackage::abort]
+];
 
-PreludeLoadPackage::uncaughtThrow = "Uncaught ``.";
 PackageLoadUncaughtThrowHandler[value_, tag_] :=
   Message[PreludeLoadPackage::uncaughtThrow, HoldForm[Throw[value, tag]]];
 
 (*************************************************************************************************)
 
 $LethalPackageMessages = True;
+
 PackageLoadMessageHandler[Hold[msg_, True]] := (
+  saveStack[];
   handleMessage[msg]; (* this will shortly be defined in init2.m *)
   If[$LethalPackageMessages, AbortPackageLoading[]];
 );
 
+$PackageErrorStack = None;
+
+saveStack[] := Module[{stack, pos},
+  stack = Stack[_];
+  pos = FirstPosition[stack, HoldForm[_Message | _saveStack | _PackageLoadMessageHandler], None];
+  If[pos =!= None, stack = Take[stack, First @ pos]];
+  $PackageErrorStack = Block[{$ContextPath = {"System`"}, $Context = "Dummy`Stack`"}, Compress @ stack];
+];
 
 SetAttributes[handleMessage, HoldAllComplete];
 
@@ -601,7 +614,7 @@ handleMessage[Message[msgName_, ___]] /; !TrueQ[$handlerRunning] := Quiet @ Modu
     ErrorPrint["*** Runaway evaluation occurred in ", FileLocation @ $CurrentPackageFile, ", aborting!"];
     Return[];
   ];
-  $LastFailedExpression = $CurrentPackageExpr;
+  $PackageFailedExpr = $CurrentPackageExpr;
   ifile = $CurrentPackageFile;
   iexprs = $CurrentPackageExprCount;
   If[!IntegerQ[iexprs], ErrorPrint["Message in ", FileLocation @ ifile]; Return[]];
@@ -615,7 +628,7 @@ handleMessage[Message[msgName_, ___]] /; !TrueQ[$handlerRunning] := Quiet @ Modu
     If[expr === $Failed, Break[]];
     If[expr === EndOfFile,
       ErrorPrint["Message ", HoldForm[msgName], " occurred *somewhere* in ", FileLocation @ ifile];
-      ErrorPrint["$LastFailedExpression = ", Shallow[HoldForm @@ $CurrentPackageExpr, 6, 10]];
+      ErrorPrint["$PackageFailedExpr = ", Shallow[HoldForm @@ $CurrentPackageExpr, 6, 10]];
       Return[];
     ];
     expr =!= $Failed && expr =!= $CurrentPackageExpr, Null];
@@ -631,17 +644,16 @@ handleMessage[Message[msgName_, ___]] /; !TrueQ[$handlerRunning] := Quiet @ Modu
   iline = Count[chars1, 10] + 1;
   Close[stream];
   ErrorPrint["Message ", HoldForm[msgName], " occurred at ", FileLocation[ifile, iline]];
-  ErrorPrint["$LastFailedExpression = ", Shallow[HoldForm @@ $CurrentPackageExpr, 6, 10]];
+  ErrorPrint["$PackageFailedExpr = ", Shallow[HoldForm @@ $CurrentPackageExpr, 6, 10]];
 ];
 
 (*************************************************************************************************)
 
 (* TODO: add System here! *)
 
-PackageSymbolTable["Prelude`"] := PreludeSymbolTable[];
+PackageSymbolTable["Prelude`"]     := PreludeSymbolTable[];
 
-PackageSymbolTable[context_String] :=
-  Lookup[$PackageSymbolTable, Key @ context, None];
+PackageSymbolTable[context_String] := Lookup[$PackageSymbolTable, Key @ context, None];
 
 (*************************************************************************************************)
 

@@ -92,7 +92,8 @@ DefinePatternRules[
   VSet             -> HoldPattern[Set],
   VSetD            -> HoldPattern[SetD],
   VTagSetD         -> HoldPattern[TagSetD],
-  VRuleD           -> HoldPattern[RuleD]
+  VRuleD           -> HoldPattern[RuleD],
+  VRule            -> HoldPattern[Rule]
 ];
 
 DefinePatternRules[
@@ -252,7 +253,7 @@ DefinePatternRules[
 DefinePatternRules[
   Zero2P           -> {ZeroP, ZeroP},
   PosInt2P         -> {PosIntP, PosIntP},
-  Int2P            -> {IntP, IntP}
+  Int2P            -> {IntP, IntP},
   Nat2P            -> {NatP, NatP},
   Num2P            -> Alt[List2P  ? PackedQ, {_ ? NumQ, _ ? NumQ}],
   Num3P            -> Alt[List3P  ? PackedQ, {_ ? NumQ, _ ? NumQ, _ ? NumQ}],

@@ -11,7 +11,7 @@ PackageExports[
 
 Protect[$, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS]
 
-SetAttributes[{DefineAliasRules, DefinePatternRules, DefineLiteralRules, AsNonCanonAlias, defineAlias, definePattern}, HoldAllComplete];
+SetAttributes[{DefineAliasRules, DefinePatternRules, DefineLiteralRules, NonCanonAliases, defineAlias, definePattern}, HoldAllComplete];
 
 NonCanonAliases[body_] := Block[{$isCanon = False}, body];
 

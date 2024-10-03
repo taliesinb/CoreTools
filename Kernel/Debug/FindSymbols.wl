@@ -1,7 +1,7 @@
 PackageExports[
   "Function",          BrowseSymbols, FindFunctions, FindInertSymbols, FindDownSymbols, FindSubSymbols, FindUpSymbols, FindOwnSymbols, FindFormattingSymbols,
   "Function",          FindDefinitionsContaining, FindSymbolsContaining, FindUnresolvedSymbols, FindFormatDefinitions,
-  "Predicate",         UnresolvedSymbolQ,
+  "Predicate",         UnresolvedSymbolQ, UnresolvedNameQ,
   "DebuggingFunction", PrintDefinitions, PrintDefinitionsLocal, PrintDefinitionsContaining, PrintFormatDefinitions, PrintStack
 ];
 
@@ -29,12 +29,14 @@ getFmtTarget[_] := $Failed;
 
 (**************************************************************************************************)
 
-SetHoldC @ UnresolvedSymbolQ;
+SetHoldC[UnresolvedSymbolQ, UnresolvedNameQ];
 
 $unresolvedSymRegex = Regex["[$i]*[A-Z]"];
-nameNeedsDefQ[name_Str] := StringStartsQ[NameLast @ name, $unresolvedSymRegex] || StringEndsQ[name, {"Q", "P"}];
 
-UnresolvedSymbolQ[sym_Sym ? HasNoDefsQ] := And[nameNeedsDefQ @ SymName @ sym, Not @ HasFormatDefsQ @ sym];
+(* this is cheap, purely string-based *)
+UnresolvedNameQ[name_Str] := StringStartsQ[NameLast @ name, $unresolvedSymRegex] || StringEndsQ[name, {"Q", "P"}];
+
+UnresolvedSymbolQ[sym_Sym ? HasNoDefsQ] := And[UnresolvedNameQ @ SymName @ sym, Not @ HasFormatDefsQ @ sym];
 UnresolvedSymbolQ[_Sym]                 := False;
 
 (**************************************************************************************************)
@@ -48,6 +50,10 @@ fromUnresName[sym_Sym] := SymbolForm @ sym;
 
 internalNameQ[name_Str] := StringContainsQ[name, "`"];
 
+$noDefKinds = StrSplit[
+  "Option TagSymbol TagHead TagVariable SlotVariable TransientVariable SymbolicHead DataHead TypeSymbol Symbol BoxOption TypeHead PackageFunction PackageDeclaration"
+];
+
 FindUnresolvedSymbols[context_Str:None] := Locals[
   If[StringQ[context],
     If[!StringEndsQ[context, "`"], ReturnFailed[]];
@@ -59,11 +65,13 @@ FindUnresolvedSymbols[context_Str:None] := Locals[
     names = Names[{"CoreTools`*", "CoreTools`*`*", "Prelude`*", "Prelude`*`*"}];
     kinds = CoreToolsSymbolKinds[];
   ];
-  blacklist = Catenate @ Lookup[kinds, {"TagSymbol", "SymbolicHead"}, {}];
+  blacklist = Catenate @ Lookup[kinds, $noDefKinds, {}];
   $blacklistDict = TrueDict @ blacklist;
-  candidates = Select[names, internalNameQ[#] && nameNeedsDefQ[#]&];
+  candidates = Select[names, UnresolvedNameQ];
   FromInputStr[candidates, fromUnresName]
 ];
+
+(* internalUnresolvedQ[name_] := And[internalNameQ[name], UnresolvedNameQ[name]] || StringStartsQ[name, $unresolvedSymRegex]; *)
 
 (**************************************************************************************************)
 
@@ -144,11 +152,15 @@ PrintDefinitions[args___] := Module[{currentNb = EvaluationNotebook[], hold = Ho
   ]
 ];
 
+$pdBG = "GeneralUtilities`Debugging`PackagePrivate`$PrintDefinitionsBackground";
+
 PrintDefinitionsLocal[sym_ ? System`Private`PrintDefinitionsHook] := Null;
-PrintDefinitionsLocal[args___] := Block[{
-  GeneralUtilities`Debugging`PackagePrivate`$PrintDefinitionsBackground = If[DarkModeQ[], $darkDefColor, $lightDefColor]},
+PrintDefinitionsLocal[args___] := Block[
+  {pdfl = GetPackageSymbol["GeneralUtilities`PrintDefinitionsLocal"], color = Symbol[$pdBG]},
   DeleteNextGeneratedCells[];
-  GetPackageSymbol["GeneralUtilities`PrintDefinitionsLocal"][args]
+  SymbolNameSet[$pdBG, If[DarkModeQ[], $darkDefColor, $lightDefColor]];
+  pdfl[args];
+  SymbolNameSet[$pdBG, color];
 ];
 
 $lightDefColor = RGBColor[0.98, 0.945, 0.97];

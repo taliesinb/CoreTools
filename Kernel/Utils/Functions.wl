@@ -5,9 +5,11 @@ PackageExports[
     MakeHoldComplete, ApplyHoldComplete,
     Applied,
     NullFn, ConstFn, HoldConstFn,
-    TrueFn, FalseFn, Const,
+    TrueFn, FalseFn,
     Supply1, Supply2, Supply3,
-    AttributeFn, HoldFirstFn, HoldRestFn, HoldAllFn, HoldCompFn
+    AttributeFn, HoldFirstFn, HoldRestFn, HoldAllFn, HoldCompFn,
+  "SymbolicHead",
+    Const
 ];
 
 (**************************************************************************************************)

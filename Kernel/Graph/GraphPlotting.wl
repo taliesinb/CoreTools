@@ -17,11 +17,6 @@ SystemExports[
 ];
 
 PackageExports[
-  "SpecialVariable",
-    $CurrentGraph,
-    $CurrentVertexLabels, $CurrentVertexAnnotations, $UserVertexLabelFunction,
-    $CurrentEdgeLabels,   $CurrentEdgeAnnotations,   $UserEdgeLabelFunction,
-    $CustomGraphThemeData, $SystemGraphThemeNames,
 
   "MutatingFunction",
     DefineGraphTheme,
@@ -35,9 +30,17 @@ PackageExports[
   "GraphicsFunction",
     CustomGraphDrawing, CustomGraphMakeBoxes,
     CustomSetGraphStyle,
-    GraphVertexAnimate,
 
     GraphDiskFn, GraphTooltipFn
+];
+
+SessionExports[
+  "TransientVariable",
+    $CurrentGraph,
+    $CurrentVertexLabels, $CurrentVertexAnnotations, $UserVertexLabelFunction,
+    $CurrentEdgeLabels,   $CurrentEdgeAnnotations,   $UserEdgeLabelFunction,
+  "Variable",
+    $CustomGraphThemeData, $SystemGraphThemeNames
 ];
 
 (*************************************************************************************************)

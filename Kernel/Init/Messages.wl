@@ -28,7 +28,6 @@ PrivateExports[
   "Function",        AttachSrcLocs,
   "SymbolicHead",    MessageException, FailureException, LiteralException,
   "ControlFlow",     SetSrcLoc, HandleExceptions, DisableHandleExceptions, UnhandledException, ExceptionHandlerStack,
-  "Predicate",       SrcLocQ,
   "SpecialFunction", TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
   "TagSymbol",       ExceptionTag,
   "SpecialVariable", $HandlerSet, $SrcLocStack
@@ -44,12 +43,13 @@ ThrowErrorMessage[...] postpones this, throwing and catching at a CatchMessages,
 *)
 
 (* this is a general catch-all. *)
-General::badUsage          = "`` is not a valid usage."
+General::invalidUsage      = "Invalid arguments: ``."
+General::unimplemented     = "An unimplemented code path was encountered.";
+General::internalError     = "An internal error occurred.";
+
 General::unknownOption     = "`` is not a known option to ``, which are: ``.";
 General::unknownOptionAnon = "`` is not a known option.";
 General::invalidOption     = "The setting `` -> `` is not valid.";
-General::unimplemented     = "An unimplemented code path was encountered.";
-General::internalError     = "An internal error occurred.";
 
 Unimplemented := ThrowMessage["unimplemented"];
 InternalError := ThrowMessage["internalError"];

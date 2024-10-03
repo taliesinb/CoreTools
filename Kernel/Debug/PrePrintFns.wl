@@ -12,7 +12,7 @@ PackageExports[
 (*************************************************************************************************)
 
 SetPrePrintFns[] := List[
-  If[ToBoxes[MsgArgForm[LitStrForm["x"]]] === "\"x\"", $MessagePrePrint = MsgArgForm; True, False],
+  If[ToBoxes[MsgArgForm[PrivHoldSeq[]]] === "()", $MessagePrePrint = MsgArgForm; True, False],
   If[ToBoxes[OutExprForm[{1,2,3}]] === RowBox[{"{", "1", ",", "2", ",", "3", "}"}], $PrePrint = OutputExpressionForm; True, False]
 ];
 
@@ -35,6 +35,7 @@ OutExprBox = CaseOf[
   $[g_Graphics]     := MakeBoxes @ g;
   $[g_Graph]        := MakeBoxes @ g;
   $[g_Image]        := MakeBoxes @ g;
+  $[i_InformationData] := MakeBoxes @ i;
   $[SystemForm[e_]] := MakeBoxes @ e;
   $[f:FullForm[_]]  := MakeBoxes @ f;
   $[e___]           := With[

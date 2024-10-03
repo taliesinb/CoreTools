@@ -3,7 +3,7 @@ PrivateExports[
     MergeUSetData, MergeOSetData, MergeMSetData,
        ToUSetDict,    ToOSetDict,    ToMSetDict,
        ToOSetData,    ToUSetData,    ToMSetData,
-  "Head",
+  "SymbolicHead",
     ArgList,
   "MessageFunction",
     ThrowOrderedSetMsg, ThrowNotSetLikeMsg, ThrowNotSetMsg

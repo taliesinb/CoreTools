@@ -3,10 +3,8 @@ PackageExports[
     ParseMarkdownFile,
     ParseMarkdownString,
     ExportToJupyter,
-    ExportToLiterateHaskell,
     ExportToNotebook,
     ExportToMarkdown,
-    RenumberNumberedBlocks,
   "SymbolicHead",
     ParagraphBlock,
     TitleBlock,
@@ -106,7 +104,7 @@ ExportToJupyter[file_, blockData_, OptionsPattern[]] := Locals @ CatchMessages[E
     $tabSpacings, $maxItems, $forbiddenBlocks, $renumberItems, $blockRewriteRules
   ];
   blocks = toBlocksList @ blockData;
-  If[renumberItems, blocks //= RenumberNumberedBlocks];
+  If[renumberItems, blocks //= renumberBlocks];
   blocks //= mergeTextBlocks;
   cells = Flatten @ Map[blocksToJupyter] @ blocks;
   json = jupyterTemplate["Notebook.ipynb", "#cells" -> cells];

@@ -1,4 +1,4 @@
-BeginPackage["Prelude`"]
+BeginPackage["Prelude`", {"Session`"}];
 
 PackageExports[
   "SymbolicHead",
@@ -87,13 +87,13 @@ DeclaredHere[$SymbolTableKinds];
 $kindRules = List[
   ". Special ControlFlow Declare Define Holding Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
   ". Special Box Form Data Object Pattern StringPattern Type Symbolic Field Sort Slot Type Tag" <-> "Symbol Head",
-  ". Special Cache Slot Tag" <-> "Variable",
+  ". Special Cache Slot Tag Transient" <-> "Variable",
   ". Special Box Form Graphics" <-> "Option",
   "Graphics" <-> "Directive Primitive",
-  "Predicate PredicateOperator Operator"
+  "Predicate PredicateOperator Operator Deprecated"
 ];
 
-enumerateSymbolKinds[] = DeleteCases["SymbolicSymbol"] @ procKindSpecList @ $kindRules;
+enumerateSymbolKinds[] := DeleteCases["SymbolicSymbol"] @ procKindSpecList @ $kindRules;
 
 procKindSpecList[list_List] := DeleteDuplicates @ StringDelete["."] @ Flatten @ Map[procKindSpec] @ list;
 
@@ -213,12 +213,13 @@ fromHeaders[path_, context_] := Block[
 
 findDecl[str_, patt_, name_] := First[StringCases[str, patt, 1], failExports["missingDecl", name]];
 
-$begin1SR = RegularExpression["BeginPackage\\[\"([^\"]+)\"\\]"] :> "$1";
+$begin1SR = RegularExpression["BeginPackage\\[\"([^\"]+)\"[^\n]*\\]"] :> "$1";
 $begin2SR = RegularExpression["Begin\\[\"([^\"]+)\"\\]"] :> "$1";
 
 $exportFnToContext = Association[
   "SystemExports"  -> "System`",
   "SessionExports" -> "Session`",
+  "CustomExports"  -> Null,
   "PackageExports" :> $public,
   "PrivateExports" :> $private
 ];
@@ -235,6 +236,7 @@ SymbolTableFromHeaders::missingDecl   = "Missing `` declaration in \"``\".";
 SymbolTableFromHeaders::internalError = "Bad header file \"``\": ``.";
 SymbolTableFromHeaders::corruptHeader = "Corrupt header string in \"``\": ``.";
 SymbolTableFromHeaders::unknownExport = "Unknown export declaration in \"``\": ``.";
+SymbolTableFromHeaders::badCustomExports = "First argument of CustomExports should be a string, not: ``.";
 
 failInternal[e_] := failExports["internalError", Shallow[e]];
 
@@ -251,6 +253,15 @@ procExports0[chunk_String] :=
   Apply[procExports1, StringTrim[StringSplit[chunk, "[", 2]]];
 
 procExports1["Begin"|"BeginPackage", symbols_String] := Nothing;
+
+procExports1["CustomExports", symbols_String] := Module[{split},
+  If[!StringStartsQ[symbols, $contextSP],
+    failExports["badCustomExports", StringTake[symbols, UpTo[16]]]];
+  split = StringSplit[symbols, {"', ","'"}, 3];
+  procExports2[Part[split, 2], Part[split, 3]]
+];
+
+$contextSP = RegularExpression["\"([A-Za-z]+`)+\""];
 
 procExports1[exportFn_String, symbols_String] := procExports2[
   Lookup[$exportFnToContext, exportFn, failExports["unknownExport", exportFn]],

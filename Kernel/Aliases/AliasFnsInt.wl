@@ -1,7 +1,7 @@
 PackageExports[
   "ControlFlow", WithTimestampsPreserved,
   "Predicate",   HasLValFnQ,
-  "MutatingFn",  SetLValFn,
+  "MetaFn",      SetLValFn,
   "ControlFlow", LValEval,  LValEvalFail,
   "Function",    LValParts, LValHead
 ];
@@ -13,8 +13,8 @@ LValEval::usage = "LValEval[a = b] gives None if no mut handler on a, $Failed if
 DefineAliasRules[
   HasLValFnQ     -> Language`HasMutationHandlerQ,
   SetLValFn      -> Language`SetMutationHandler,
-  LValEvalFail   -> Language`HandleMutation,
-  LValFail       -> Language`MutationFallthrough,
+  LValEval       -> Language`HandleMutation,
+  LValEvalFail   -> Language`MutationFallthrough,
   LValParts      -> Language`DestructureLValue,
   LValHead       -> Language`GetLValueSymbol
 ];

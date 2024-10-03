@@ -1,6 +1,6 @@
 PrivateExports[
   "GraphicsFunction", MapGPrimCoords, MapGBoxCoords, ConvertGBoxesToGPrims,
-  "SpecialVariable",  $MapGPrimRules, $MapGBoxRules, $ConvertGPrimToGBoxRules, $ConvertGBoxToPrimRules
+  "SpecialVariable",  $MapGPrimRules, $MapGBoxRules, $ConvertGPrimToGBoxRules
 ];
 
 (**************************************************************************************************)

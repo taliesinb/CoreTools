@@ -79,6 +79,7 @@ SystemExports[
 PackageExports[
   "Predicate",
     WithinUQ, WithinSQ,
+    OutsideUQ, OutsideSQ,
     EmptyQ,
     Nat2Q, PosInt2Q, Int2Q, ExtNatQ, ExtIntQ, ExtPosIntQ,
     Num2Q, Num23Q, Num3Q,
@@ -162,9 +163,12 @@ $ArrayPredicateFns = List[
 (*************************************************************************************************)
 
 SetPred1[WithinUQ, WithinSQ];
+SetNPred1[OutsideUQ, OutsideSQ];
 
 WithinUQ[e_ /;  0 <= e <= 1] = True;
 WithinSQ[e_ /; -1 <= e <= 1] = True;
+OutsideUQ[e_ /;  0 <= e <= 1] = False;
+OutsideSQ[e_ /; -1 <= e <= 1] = False;
 
 (*************************************************************************************************)
 
@@ -328,7 +332,7 @@ DeclarePatternPredicates[syms___Symbol] := Locals[
   If[AnyAreFalseQ @ StringEndsQ[predicateNames, "Q"], ReturnMsg["notP", predicateNames]];
   patternNames = StringAppend[StringDrop[predicateNames, -1], "P"];
   If[!AllTrue[patternNames, NameQ], ReturnMsg["notQ", Select[patternNames, NameQ /* Not]]];
-  ZipScan[setPattPred, predicateSyms, patternNames];
+  MapThread[setPattPred, {predicateSyms, patternNames}];
 ];
 
 setPattPred[sym_, pattName_Str] := With[{patt = Symbol @ pattName},
@@ -401,6 +405,7 @@ PosAPairQ[a_List] := NumArrQ[a] && MatchQ[Dims @ a, {2, 2|3}];
 
 SetPred1 @ Pos2ListOrListsQ;
 
+(* TODO: use CoordinateDimension here *)
 Pos2ListOrListsQ[a_List] := Pos2ListsQ[a] || Pos2ListQ[a];
 
 (*************************************************************************************************)
@@ -518,11 +523,11 @@ SubsetQ is super slow! it does a lot of heads checking and doesn't special case 
 DisjointQ is the same.
 *)
 
-SameSetQ[a_List, b_List] := Language`EmptyComplementQ[a, b] && Language`EmptyComplementQ[b, a];
-SubsetOfQ[a_List, b_List] := Language`EmptyComplementQ[a, b];
-SupersetOfQ[a_List, b_List] := Language`EmptyComplementQ[b, a];
-IntersectsQ[a_List, b_List] := !Language`EmptyIntersectionQ[a, b];
-NotIntersectsQ[a_List, b_List] := Language`EmptyIntersectionQ[a, b];
+SameSetQ[a_List, b_List] := EmptyComplementQ[a, b] && EmptyComplementQ[b, a];
+SubsetOfQ[a_List, b_List] := EmptyComplementQ[a, b];
+SupersetOfQ[a_List, b_List] := EmptyComplementQ[b, a];
+IntersectsQ[a_List, b_List] := !EmptyIntersectionQ[a, b];
+NotIntersectsQ[a_List, b_List] := EmptyIntersectionQ[a, b];
 
 PrefixListQ[a_List, b_List] := Length[a] <= Length[b] && a === Take[b, Length @ a];
 

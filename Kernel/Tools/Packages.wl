@@ -2,12 +2,12 @@ SystemExports[
   "IOFunction",
     GetPackageDirectory,
   "Option",
-    Caching, Logging, LogLevel, Verbose, PriorityRules, MacroRules
+    PriorityRules, MacroRules
 ];
 
 PackageExports[
-  "SpecialFunction", PackageTopLevelEvaluate
-  "SpecialVariable", $InputFileHash
+  "SpecialFunction",   PackageTopLevelEvaluate
+  "TransientVariable", $InputFileHash
 ];
 
 (*************************************************************************************************)

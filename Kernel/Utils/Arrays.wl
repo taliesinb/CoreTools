@@ -32,8 +32,8 @@ PackageExports[
   "Function",            SymbolicDots,
   "SymbolicHead",        Broad,
   "Predicate",           BroadQ, BSameShapeQ,
-  "Function",            BDims, LikeB, BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
-  "ControlFlow",         BSeq, BVal, BSeqN
+  "Function",            BAt, BMap, FromB, ToB, ToBN, BLen, BLike,
+  "ControlFlow",         BSeq, BVal
 ];
 
 (**************************************************************************************************)

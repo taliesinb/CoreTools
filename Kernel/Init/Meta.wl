@@ -7,6 +7,7 @@ PackageExports[
     DefineOperator1Rules, DefineOperator2Rules,
 
     SetCurry1, SetCurry2, SetCurry12, SetCurry23, SetCurry13,
+    SetCurry123, SetCurry234,
     SetPred1, SetPred2, SetPred3, SetNPred1, SetNPred2, SetNPred3,
     SetHoldF, SetHoldR, SetHoldA, SetHoldC, SetHoldSeq,
     SetFlat, SetListable, SetListable1, SetListableOp,
@@ -18,7 +19,7 @@ PackageExports[
   "ScopingFunction",  SubWith,
   "ControlFlow",      Initially,
   "IOFunction",       ToImplementationSymbol,
-  "Head",             SymbolList
+  "DataHead",         SymbolList
 ];
 
 PrivateExports[
@@ -77,12 +78,12 @@ DeclareDeclare[head_Symbol] := (
 
 (*************************************************************************************************)
 
-General::declarationExpectedSetDelayed = "Expected SetDelayed instead of ``.";
+General::declarationExpectedSetD = "Expected SetD instead of ``.";
 
 declareDeclarationDefinitions[sym_] := (
   SetAttributes[sym, HoldAllComplete];
   sym[defs:BlankSeq2] := Scan[sym, Hold[defs]];
-  sym[expr_]          := (Message[sym::declarationExpectedSetDelayed, HoldForm @ expr]; $Failed)
+  sym[expr_]          := (Message[sym::declarationExpectedSetD, HoldForm @ expr]; $Failed)
 );
 
 (*************************************************************************************************)
@@ -91,13 +92,13 @@ SetAttributes[declareFnScan, HoldAllComplete];
 
 declareDeclarationDefinitions[DeclarationDefs];
 
-DeclarationDefs[HoldP[SetDelayed][(fn_Symbol)[VPattern[var_Symbol, VBlank[Symbol]]], rhs_]] := With[
+DeclarationDefs[HoldP[SetD][(fn_Symbol)[VPattern[var_Symbol, VBlank[Symbol]]], rhs_]] := With[
   {lhs = Make[Pattern, var, Blank @ Symbol]},
   If[!declareSymbolQ[fn], setupDeclareSym[fn]];
   fn[lhs] := Then[rhs, SymbolList[var]];
 ];
 
-DeclarationDefs[HoldP[SetDelayed][(fn_Symbol)[VPattern[var_Symbol, VBlankSeq[Symbol]]], rhs_]] := With[
+DeclarationDefs[HoldP[SetD][(fn_Symbol)[VPattern[var_Symbol, VBlankSeq[Symbol]]], rhs_]] := With[
   {lhs = Make[Pattern, var, BlankSeq @ Symbol]},
   If[!declareSymbolQ[fn], setupDeclareSym[fn]];
   fn[lhs] := Then[rhs, SymbolList[var]];
@@ -120,20 +121,22 @@ DeclaredHere[SetListableOp, SetListable1];
 
 DeclarationDefs[
   SetListableOp[sym_Sym] := Set[ListableFunctionQ[_sym], True],
-  SetListable1[sym_Sym]  := SetDelayed[sym[arg1_List, arg2_], Map[Function[a1, sym[a1, arg2]], arg1]]
+  SetListable1[sym_Sym]  := SetD[sym[FmA_List, FmB_], Map[Function[a1, sym[a1, FmB]], FmA]]
 ];
 
 (*************************************************************************************************)
 
-DeclaredHere[SetCurry1, SetCurry2, SetCurry12,SetCurry23, SetCurry13];
+DeclaredHere[SetCurry1, SetCurry2, SetCurry12, SetCurry23, SetCurry13, SetCurry123, SetCurry234];
 
 (* TODO: auto making of held operator forms via appropriate AttributeFn *)
 DeclarationDefs[
-   SetCurry1[sym_Sym] := SetDelayed[sym[arg1_][rest___],      sym[arg1, rest]],
-   SetCurry2[sym_Sym] := SetDelayed[sym[arg2_][arg1_],        sym[arg1, arg2]],
-  SetCurry12[sym_Sym] := SetDelayed[sym[arg1_, arg2_][arg3_], sym[arg1, arg2, arg3]],
-  SetCurry23[sym_Sym] := SetDelayed[sym[arg2_, arg3_][arg1_], sym[arg1, arg2, arg3]],
-  SetCurry13[sym_Sym] := SetDelayed[sym[arg1_, arg3_][arg2_], sym[arg1, arg2, arg3]]
+    SetCurry1[sym_Sym] := SetD[sym[FmA_][FmR___],           sym[FmA, FmR]],
+    SetCurry2[sym_Sym] := SetD[sym[FmB_][FmA_],             sym[FmA, FmB]],
+   SetCurry12[sym_Sym] := SetD[sym[FmA_, FmB_][FmC_],       sym[FmA, FmB, FmC]],
+   SetCurry23[sym_Sym] := SetD[sym[FmB_, FmC_][FmA_],       sym[FmA, FmB, FmC]],
+   SetCurry13[sym_Sym] := SetD[sym[FmA_, FmC_][FmB_],       sym[FmA, FmB, FmC]],
+  SetCurry123[sym_Sym] := SetD[sym[FmA_, FmB_, FmC_][FmD_], sym[FmA, FmB, FmC, FmD]],
+  SetCurry234[sym_Sym] := SetD[sym[FmB_, FmC_, FmD_][FmA_], sym[FmA, FmB, FmC, FmD]]
 ];
 
 (*************************************************************************************************)
@@ -197,22 +200,22 @@ StrictMsg[head_, sloc_, lhs_] := If[HasDownDefsQ[IssueMessage],
 
 DeclarationDefs[
   SetStrict[head_Sym] := With[{sloc = SourceLocation[]}, Apply[
-    SetDelayed,
+    SetD,
     Hold[$LHS_head, StrictMsg[head, sloc, HoldForm @ $LHS]]
   ]],
 
   DeclareSeqScan[head_Sym] := (
     SetStrict[head];
-    SetDelayed[e_head, Message[General::badSeqScanArg, head, HoldForm @ e]; $Failed];
-    SetDelayed[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
+    SetD[e_head, Message[General::badSeqScanArg, head, HoldForm @ e]; $Failed];
+    SetD[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
   ),
 
   DeclareThenScan[head_Sym] := (
     SetHoldC[head];
-    SetDelayed[head[$LHS_], Message[MessageName[head, "badArguments"], HoldForm @ $LHS]; $Failed];
-    SetDelayed[head[Null], Null];
-    SetDelayed[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
-    SetDelayed[head[Then[args___]], head[args]];
+    SetD[head[$LHS_], Message[MessageName[head, "badArguments"], HoldForm @ $LHS]; $Failed];
+    SetD[head[Null], Null];
+    SetD[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
+    SetD[head[Then[args___]], head[args]];
   )
 ];
 
@@ -247,8 +250,8 @@ badImplArgs[sym_, _[args___]] := ErrorMsg[sym::badArguments, HoldForm[sym[args]]
 
 DeclareSeqScan[DefineOperator1Rules, DefineOperator2Rules]
 
-DefineOperator1Rules[opSym_Symbol -> fn_Symbol] := SetDelayed[opSym[arg1_][arg2_], fn[arg1, arg2]];
-DefineOperator2Rules[opSym_Symbol -> fn_Symbol] := SetDelayed[opSym[arg2_][arg1_], fn[arg1, arg2]];
+DefineOperator1Rules[opSym_Symbol -> fn_Symbol] := SetD[opSym[FmA_][FmB_], fn[FmA, FmB]];
+DefineOperator2Rules[opSym_Symbol -> fn_Symbol] := SetD[opSym[FmB_][FmA_], fn[FmA, FmB]];
 
 (**************************************************************************************************)
 

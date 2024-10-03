@@ -4,8 +4,8 @@ SystemExports[
 ];
 
 PackageExports[
-  "IOFunction",        ThemeValue, MakeCoreBox, CoreBox, SystemBox, MapMakeBox, MapSeqMakeBox,
-  "SpecialVariable",   $ThemeStack, $CoreFormatting, $CoreInteractive,
+  "IOFunction",        CoreBox, SystemBox, MakeCoreBox, ToCoreBox, MapMakeBox, MapSeqMakeBox,
+  "SpecialVariable",   $CoreFormatting, $CoreInteractive, $ThemeStack,
   "ScopingFunction",   BlockFormatting, BlockInteractive,
   "FormHead",          DotsForm, CDotsForm, MsgForm, StrForm,
   "MetaFunction",      DeclareCoreBox, DeclareCoreSubBoxes, MakeBoxDefinitions,
@@ -13,12 +13,13 @@ PackageExports[
                        SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn,
   "Function",          CompoundFormArity,
   "BoxFunction",       DotsBox,  CDotsBox, HoldLenBox, LenBox, RedMsgFormBox, RedErrorBox, MsgFormBox, BoxFnErrorBox, StrFormBox,
-  "BoxFunction",       UnformattedBoxes, ElidedBox, HoldElidedBox,
+  "BoxFunction",       ElidedBox, HoldElidedBox,
   "Predicate",         HasCoreBoxQ, HasCoreSubBoxQ, CoreBoxSubHeadQ, CoreBoxHeadQ, AtomFormHeadQ, CompoundFormHeadQ
 ];
 
-PrivateExports[
-  "CacheVariable",     $CoreBoxHeadDict, $CoreBoxStore, $CoreBoxSubStore, $AtomFormStore, $CompoundFormStore
+SessionExports[
+  "CacheVariable",     $CoreBoxHeadDict, $CoreBoxStore, $CoreBoxSubStore, $AtomFormStore, $CompoundFormStore,
+  "IOFunction",        MakeCBox
 ];
 
 (**************************************************************************************************)
@@ -56,19 +57,6 @@ StrFormBox = CaseOf[
 
 (**************************************************************************************************)
 
-Initially[
-  $CoreBoxHeadDict   = UDict[];
-  $CoreBoxStore      = KeyStoreNew[{}];
-  $CoreBoxSubStore   = KeyStoreNew[{}];
-  $AtomFormStore     = KeyStoreNew[{Image, Graph, SourceLocation}];
-  $CompoundFormStore = StoreNew[LoadSystemData["SystemForms.mx"]];
-  $ThemeStack        = List[];
-  $CoreFormatting    = True;
-  $CoreInteractive   = True;
-];
-
-(**************************************************************************************************)
-
 (* approach:
 have an option called Theme, which is our version of PlotTheme.
 RegisterTheme[head, name, opts] will set $ThemeData[head, name] = UDict[opts].
@@ -96,17 +84,52 @@ MapSeqMakeBox[items___] := Seq @@ HoldMap[MakeBoxes, {items}]
 
 (**************************************************************************************************)
 
-SetPred1 @ SetHoldC[HasCoreBoxQ, HasCoreSubBoxQ]
+SetHoldC[MakeCBox];
 
-(* TODO: switch to using $CoreBoxStore *)
-HasCoreBoxQ[s_Sym]    := Lookup[$CoreBoxHeadDict, Hold @ s, False];
-HasCoreSubBoxQ[s_Sym] := Lookup[$CoreBoxHeadDict, Hold @ s, False];
+MakeCBox[_] := $Failed;
+
+(**************************************************************************************************)
+
+CoreBox /: SetDelayed[CoreBox[lhs_], rhs_] := (
+  setupCoreBox @ PatHead @ lhs;
+  MakeCBox[lhs] := rhs;
+);
+
+CoreBox::unknownHead = "Don't know which symbol CoreBox rules are associated with."
+setupCoreBox[_]             := Message[CoreBox::unknownHead];
+setupCoreBox[Hold[sym_Sym]] := (DeclareCoreBox[sym]; setupCoreBox[sym] := Null);
+
+Protect[CoreBox];
 
 (**************************************************************************************************)
 
 SetHoldC[MakeCoreBox];
 
-MakeCoreBox[_] := $Failed;
+ToCoreBox[e_]   := MakeCBox @ e;
+MakeCoreBox[e_] := MakeCBox @ e;
+
+Protect[MakeCoreBox];
+
+(**************************************************************************************************)
+
+Initially[
+  $CoreBoxHeadDict   = UDict[];
+  $CoreBoxStore      = KeyStoreNew[{}];
+  $CoreBoxSubStore   = KeyStoreNew[{}];
+  $AtomFormStore     = KeyStoreNew[{Image, Graph, Graphics, SourceLocation, Spacer}];
+  $CompoundFormStore = StoreNew[LoadSystemData["SystemForms.mx"]];
+  $ThemeStack        = List[];
+  $CoreFormatting    = True;
+  $CoreInteractive   = True;
+];
+
+(**************************************************************************************************)
+
+SetPred1 @ SetHoldC[HasCoreBoxQ, HasCoreSubBoxQ]
+
+(* TODO: switch to using $CoreBoxStore *)
+HasCoreBoxQ[s_Sym]    := Lookup[$CoreBoxHeadDict, Hold @ s, False];
+HasCoreSubBoxQ[s_Sym] := Lookup[$CoreBoxHeadDict, Hold @ s, False];
 
 (**************************************************************************************************)
 
@@ -129,7 +152,7 @@ DeclareCoreBox[sym_Symbol] := With[{name = SymName[sym]},
   KeyStoreAdd[$CoreBoxStore, NoEval @ sym];
 
   MakeBoxes[$LHS:sym | _sym, _] /; $CoreFormatting :=
-    With[{res = MakeCoreBox @ $LHS}, res /; res =!= $Failed];
+    With[{res = MakeCBox @ $LHS}, res /; res =!= $Failed];
 ];
 
 (**************************************************************************************************)
@@ -145,22 +168,8 @@ DeclareCoreSubBoxes[sym_Symbol] := With[{name = SymbolName[sym]},
   KeyStoreAdd[$CoreBoxSubStore, NoEval @ sym];
 
   MakeBoxes[$LHS:(_sym[___]), _] /; $CoreFormatting :=
-    With[{res = MakeCoreBox @ $LHS}, res /; res =!= $Failed];
+    With[{res = MakeCBox @ $LHS}, res /; res =!= $Failed];
 ];
-
-(**************************************************************************************************)
-
-CoreBox::unknownHead = "Don't know which symbol CoreBox rules are associated with."
-
-setupCoreBox[_]             := Message[CoreBox::unknownHead];
-setupCoreBox[Hold[sym_Sym]] := (DeclareCoreBox[sym]; setupCoreBox[sym] := Null);
-
-CoreBox /: SetDelayed[CoreBox[lhs_], rhs_] := (
-  setupCoreBox @ PatHead @ lhs;
-  MakeCoreBox[lhs] := rhs;
-);
-
-Protect[CoreBox];
 
 (**************************************************************************************************)
 
@@ -290,7 +299,7 @@ elidedListBox[{}]          := RBox[LBrace, RBrace];
 elidedListBox[l_List]      := RBox[LBrace, HoldLenBox @ l, RBrace];
 
 elidedStrBox[""]           := RBox[DQuote, DQuote];
-elidedStrBox[s_Str]        := RBox[DQuote, DotsBox @ StrLen @ s, DQuote];
+elidedStrBox[s_Str]        := RBox["\[OpenCurlyDoubleQuote]", DotsBox @ StrLen @ s, "\[CloseCurlyDoubleQuote]"];
 
 elidedDictBox[EmptyDict]   := RBox[LAssoc, RAssoc];
 elidedDictBox[EmptyUDict]  := RBox["UDict", "[", "]"];

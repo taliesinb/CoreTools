@@ -167,6 +167,7 @@ DefineAliasRules[
   ExtNumQ          -> ExtendedNumberQ,
   ExtPosRealQ      -> ExtendedPositiveRealQ,
   ExtPosNumQ       -> ExtendedPositiveNumberQ,
+  ExtPosIntQ       -> ExtendedPositiveIntegerQ,
   ExtNonNegRealQ   -> ExtendedNonNegativeRealQ,
   ExtNonNegNumQ    -> ExtendedNonNegativeNumberQ
 ];

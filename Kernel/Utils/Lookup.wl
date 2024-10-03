@@ -17,8 +17,9 @@ PackageExports[
     DefaultOptionValueFn,
   "Function",
     JoinOptions,
-    LookupOption, KeyAbsentFn,
-    TakeOptions, NarrowOptions
+    KeyAbsentFn,
+    TakeOptions,
+    NarrowOptions
 ];
 
 (*************************************************************************************************)

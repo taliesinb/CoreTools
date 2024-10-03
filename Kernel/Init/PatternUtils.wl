@@ -58,15 +58,15 @@ PatHead[h_[___]]                      := PatHead[h];
 PatHead[s_Symbol ? HAtomQ]            := Hold[s];
 PatHead[___]                          := $Failed;
 
-DefHead[Set[l_, _]]              := PatHead @ l;
-DefHead[SetDelayed[l_, _]]       := PatHead @ l;
-DefHead[TagSetDelayed[_, l_, _]] := PatHead @ l;
-DefHead[TagSet[_, l_, _]]        := PatHead @ l;
-DefHead[RuleDelayed[l_, _]]      := PatHead @ l;
-DefHead[Rule[l_, _]]             := PatHead @ l;
-DefHead[_UpSetDelayed]           := Unimplemented;
-DefHead[_UpSet]                  := Unimplemented;
-DefHead[___]                     := $Failed;
+DefHead[Set[l_, _]]                   := PatHead @ l;
+DefHead[SetDelayed[l_, _]]            := PatHead @ l;
+DefHead[TagSetDelayed[_, l_, _]]      := PatHead @ l;
+DefHead[TagSet[_, l_, _]]             := PatHead @ l;
+DefHead[RuleDelayed[l_, _]]           := PatHead @ l;
+DefHead[Rule[l_, _]]                  := PatHead @ l;
+DefHead[_UpSetDelayed]                := Unimplemented;
+DefHead[_UpSet]                       := Unimplemented;
+DefHead[___]                          := $Failed;
 
 PatSyms[e_]  := DeleteDuplicates @ Cases[NoEval @ e, VPattern[s:SymP, _] :> Hold[s]];
 PatSyms[___] := $Failed;

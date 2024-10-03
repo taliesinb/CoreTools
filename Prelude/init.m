@@ -1,19 +1,25 @@
-If[!TrueQ[Prelude`$PreludeLoaded] || True, Check[
+BeginPackage["Session`"];
+EndPackage[];
+
+Session`$PreludeInitFile = $InputFileName;
+Session`$PreludeDir = FileNameDrop @ $InputFileName;
+
+If[!TrueQ[Session`$PreludeLoaded] || True, Check[
   Block[{$NewSymbol, $PrePrint, $MessagePrePrint},
-    Prelude`$PreludeDir = FileNameDrop @ $InputFileName;
-    Get @ FileNameJoin[{Prelude`$PreludeDir, "Data", "PreludeInit.m"}];
-    Prelude`$PreludeFiles = Thread @ Map[FileNameJoin] @ Thread @ {
-      Prelude`$PreludeDir,
-      StringSplit @ "PreBase.wl PreOverrides.wl PreSymbolTable.wl PreSublime.wl PreTracing.wl PrePackages.wl PreSession.wl PreSymbols.wl"
+    Get @ FileNameJoin[{Session`$PreludeDir, "Data", "PreludeInit.m"}];
+    Session`$PreludeFiles = Thread @ Map[FileNameJoin] @ Thread @ {
+      Session`$PreludeDir,
+      If[TrueQ[Prelude`$CurrentlyTracingAutoloads], DeleteCases["PreTracing.wl"], Identity] @ StringSplit @
+        "PreBase.wl PreOverrides.wl PreSymbolTable.wl PreSublime.wl PreTracing.wl PrePackages.wl PreSession.wl PreSymbols.wl"
     };
-    Scan[Get] @ Prelude`$PreludeFiles;
+    Scan[Get] @ Session`$PreludeFiles;
   ];
   $NewSymbol = Prelude`NewSymbolHandler;
-  Prelude`$PreludeLoaded = True;
+  Session`$PreludeLoaded = True;
 ,
   $NewSymbol =.;
   General::preludeLoadFailure = "Failed to load prelude.";
   Message[General::preludeLoadFailure];
-  Prelude`$PreludeLoaded = False
+  Session`$PreludeLoaded = False
 ]];
 

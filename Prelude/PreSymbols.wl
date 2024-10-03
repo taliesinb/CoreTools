@@ -1,4 +1,4 @@
-BeginPackage["Prelude`"]
+BeginPackage["Prelude`", {"Session`"}];
 
 SystemExports[
 

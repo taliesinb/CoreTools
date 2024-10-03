@@ -1,7 +1,8 @@
-BeginPackage["Prelude`"]
+BeginPackage["Prelude`", {"Session`"}];
 
 SystemExports[
   "DebuggingFunction",
+    TraceSymbolChanges,
     TraceAutoloads,
     BlockPrint,
     Capture,
@@ -19,6 +20,9 @@ SystemExports[
     MicroTiming,
     MicroTimingTable,
 
+  "ControlFlowFunction",
+    HandleSymbolChanges,
+
   "IOFunction",
     CustomizedPrint,
     ErrorPrint,
@@ -26,23 +30,33 @@ SystemExports[
     RawPrint,
     CachePrint,
     LabeledPrint,
+    ValueChangePrint,
     DPrint,
     EchoPrint,
+    MutationPrint,
     WithRawPrintIndent,
 
   "SpecialVariable",
     $Captured,
     $LastTraceback,
+
+    $ShouldPrint,
     $PrintIndent,
     $MaxPrintRate,
-    $CellPrintLabel,
     $DebugPrinting,
     $EchoPrinting,
     $CachePrinting,
-    $CurrentlyTracingAutoloads,
-    $ShouldPrint,
+    $MutationPrinting,
+
+  "TagVariable",
     $Disabled
 ]
+
+PackageExports[
+  "SpecialVariable",
+    $CellPrintLabel,
+    $CurrentlyTracingAutoloads
+];
 
 Begin["`Tracing`Private`"]
 
@@ -52,21 +66,22 @@ Protect[$Disabled];
 
 (*************************************************************************************************)
 
-SetAttributes[{BlockPrint, EnableDebugPrinting, DisableEchoPrinting, WithRawPrintIndent}, HoldAll];
+DeclareHoldAllComplete[BlockPrint, EnableDebugPrinting, DisableEchoPrinting, DisableMutationPrinting, WithRawPrintIndent];
 
 BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
 
-$DebugPrinting = False;
-$EchoPrinting = True;
+$DebugPrinting    = False;
+$EchoPrinting     = True;
+$MutationPrinting = True;
 
-EnableDebugPrinting[body_] := Block[{$DebugPrinting = True}, body];
-DisableEchoPrinting[body_] := Block[{$EchoPrinting = False}, body];
-
-WithRawPrintIndent[body_] := Block[{$PrintIndent = $PrintIndent + 1}, body];
+EnableDebugPrinting[body_]     := Block[{$DebugPrinting    = True},  body];
+DisableEchoPrinting[body_]     := Block[{$EchoPrinting     = False}, body];
+DisableMutationPrinting[body_] := Block[{$MutationPrinting = False}, body];
+WithRawPrintIndent[body_]      := Block[{$PrintIndent = $PrintIndent + 1}, body];
 
 (*************************************************************************************************)
 
-SetAttributes[{RawPrint, LogPrint, ErrorPrint, EchoPrint, DPrint}, HoldAllComplete];
+DeclareHoldAllComplete[RawPrint, LogPrint, ErrorPrint, EchoPrint, MutationPrint, DPrint];
 
 (*************************************************************************************************)
 
@@ -81,14 +96,16 @@ $echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor
 $echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
 $debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
 $cachePrintOpts = {FontSize -> 13, FontColor -> Cyan, CellLabel -> "Cache", CellLabelStyle -> Cyan};
+$mutationPrintOpts = {FontSize -> 13, FontColor -> Green, CellLabel -> "Mut", CellLabelStyle -> Green};
 
 RawPrint[args___]   := CustomizedPrint[{}, args];
 LogPrint[args___]   := CustomizedPrint[$logPrintOpts, args];
 ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
 
-CachePrint[args___] := If[$CachePrinting, CustomizedPrint[$cachePrintOpts, args], $Disabled, $Disabled];
-EchoPrint[args___]  := If[$EchoPrinting, CustomizedPrint[$echoPrintOpts, args], $Disabled, $Disabled];
-DPrint[args___]     := If[$DebugPrinting, CustomizedPrint[$debugPrintOpts, args], $Disabled, $Disabled];
+CachePrint[args___]    := If[$CachePrinting,    CustomizedPrint[$cachePrintOpts, args],    $Disabled, $Disabled];
+EchoPrint[args___]     := If[$EchoPrinting,     CustomizedPrint[$echoPrintOpts, args],     $Disabled, $Disabled];
+DPrint[args___]        := If[$DebugPrinting,    CustomizedPrint[$debugPrintOpts, args],    $Disabled, $Disabled];
+MutationPrint[args___] := If[$MutationPrinting, CustomizedPrint[$mutationPrintOpts, args], $Disabled, $Disabled];
 
 (*************************************************************************************************)
 
@@ -179,6 +196,7 @@ CustomizedPrint[opts_List, args___] := If[!$ShouldPrint, $TimedOut,
 ];
 
 toPrintBoxes[RawBoxes[boxes_]] := boxes;
+toPrintBoxes[arg_]    := printArgBoxes @ arg;
 toPrintBoxes[args___] := printSeqBoxes @@ Map[printArgBoxes, {args}];
 
 printSeqBoxes[e___] := RowBox @ Riffle[{e}, "\[InvisibleSpace]"];
@@ -186,6 +204,9 @@ printSeqBoxes[e_] := e;
 
 printArgBoxes[e_] := ToBoxes @ e;
 printArgBoxes[HoldPattern[f:Failure[_, _Association ? Developer`HoldAtomQ]]] := ToBoxes @ FailureString[f];
+
+printArgBoxes[PrivateSequence[a___]]   := Splice @ Map[printArgBoxes, {a}];
+printArgBoxes[PrivateHoldComplete[e_]] := MakeBoxes @ e;
 
 (*************************************************************************************************)
 
@@ -243,11 +264,68 @@ fmtFrameLine[line_] := First[
 (*************************************************************************************************)
 
 SetAttributes[Capture, HoldAll];
+
 Capture[e_] := Block[
   {res = $Captured = HoldComplete[e]},
   $Captured = $Captured /. sym_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[sym];
   ReleaseHold[res]
 ];
+
+(*************************************************************************************************)
+
+DeclareHoldAllComplete[TraceSymbolChanges];
+DeclareStrict[TraceSymbolChanges];
+
+TraceSymbolChanges[sym_, body_] :=
+  HandleSymbolChanges[sym, body, printSymbolChange];
+
+printSymbolChange[HoldComplete[sym_Symbol, old_, new_, OwnValues]] :=
+  MutationPrint[PrivateHoldComplete[sym], " = ", PrivateHoldComplete[new]];
+
+printSymbolChange[HoldComplete[sym_Symbol, lhs_, rhs_, _, UpValues]] :=
+  MutationPrint[PrivateHoldComplete[lhs],  " ^:= ", PrivateHoldComplete[rhs]];
+
+printSymbolChange[HoldComplete[sym_Symbol, lhs_, rhs_, _, _]] :=
+  MutationPrint[PrivateHoldComplete[lhs], " := ", PrivateHoldComplete[rhs]];
+
+printSymbolChange[HoldComplete[sym_Symbol, Attributes]] :=
+  MutationPrint[PrivateHoldComplete[Attributes @ sym], " = ", Attributes[sym]];
+
+printSymbolChange[hc_] := MutationPrint[hc];
+
+(*************************************************************************************************)
+
+DeclareHoldAllComplete[HandleSymbolChanges, handleValueChange];
+DeclareStrict[HandleSymbolChanges];
+
+$CurrentlyTracingSymbols = False;
+
+HandleSymbolChanges[sym_Symbol, body_, fn_] :=
+  HandleSymbolChanges[{sym}, body, fn];
+
+HandleSymbolChanges[syms:{___Symbol}, body_, fn_] := If[
+  TrueQ @ $CurrentlyTracingSymbols, Message[HandleSymbolChanges::usage]; Abort[],
+  Block[{$CurrentlyTracingSymbols = True},
+    Internal`SetValueMonitor[syms, True];
+    WithCleanup[
+      Internal`HandlerBlock[{"ValueChange", handleValueChange[syms, fn]}, body],
+      Internal`SetValueMonitor[syms, False]
+    ]
+  ]
+];
+
+h_HandleSymbolChanges := (
+  Message[HandleSymbolChanges::badArgs, HoldForm[h]];
+  $Failed
+);
+
+handleValueChange[syms_, fn_][hc_HoldComplete] := If[
+  Internal`LiterallyOccurringQ[hc, Unevaluated @ syms],
+  fn @ hc
+];
+
+HandleSymbolChanges::badArgs = "Invalid arguments: ``.";
+HandleSymbolChanges::usage = "HandleSymbolChanges already running.";
 
 (*************************************************************************************************)
 
@@ -373,7 +451,7 @@ MicroTimingTable[fn_, list_List] := Map[Function[z, MicroTiming[fn[z]]], list];
 (*************************************************************************************************)
 
 SetAttributes[TraceAutoloads, HoldFirst];
-SetAttributes[{$hookAutoload, $autoLoadHandler, $getHandler}, HoldAllComplete];
+DeclareHoldAllComplete[$hookAutoload, $autoLoadHandler, $getHandler];
 
 $loadDepth = 0;
 tlPrint[args__] :=

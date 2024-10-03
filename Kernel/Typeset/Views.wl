@@ -9,14 +9,14 @@ PackageExports[
     LabeledFlipView,
     PickView, MapView, EitherView,
   "BoxFunction",
-    ClickAnimateBoxes, DynamicProgressBarBox,
+    DynamicProgressBarBox,
     NiceClickBox, DeployBox,
     RowViewGridBox, ColViewGridBox,
     OpenerColumnBox, DeployBox,
   "Option",
-    MultiGaps, MultiDivs,
+    MultiGaps, MultiDivs, ViewSampling,
   "Function",
-    LabelBy, ViewSampling,
+    LabelBy,
   "BoxFunction",
     ListDictMakeBoxes1D, ListDictMakeBoxes2D
 ];

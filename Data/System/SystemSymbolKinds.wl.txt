@@ -1,3 +1,5 @@
+Deprecated
+	Commonest CountDistinct CountDistinctBy DeleteDuplicatesBy DisjointQ ErrorBox IntersectingQ SubsetQ
 BoxFunction
 	ActionMenuBox AdjustmentBox AnimatorBox Box ButtonBox CheckboxBox ColorSetterBox CounterBox
 	DynamicBox DynamicModuleBox DynamicWrapperBox FormBox FractionBox FrameBox Graphics3DBox GraphicsBox
@@ -38,7 +40,7 @@ BoxOption
 	UnderoverscriptBoxOptions UnderscriptBoxOptions ValueBoxOptions
 ControlFlowFunction
 	Break Catch Check CheckAbort CompoundExpression Continue Evaluate Function Goto Label
-	ReleaseHold Return RuleCondition Sequence Throw Unevaluated
+	ReleaseHold Return RuleCondition Sequence Throw Unevaluated WithCleanup
 DataHead
 	Association DirectedEdge File List Rule RuleDelayed UndirectedEdge URL
 DebuggingFunction
@@ -214,7 +216,7 @@ Function
 	DefaultValue DefineExternal DefineInputStreamMethod DefineOutputStreamMethod DefineResourceFunction
 	DegreeCentrality DegreeGraphDistribution DegreeLexicographic DegreeReverseLexicographic DEigensystem
 	DEigenvalues DelaunayMesh Delayed Delete DeleteAdjacentDuplicates DeleteAnomalies DeleteBorderComponents
-	DeleteCases DeleteDirectory DeleteDuplicates DeleteDuplicatesBy DeleteElements DeleteFile DeleteMissing
+	DeleteCases DeleteDirectory DeleteDuplicates DeleteElements DeleteFile DeleteMissing
 	DeleteObject DeletePermissionsKey DeleteSearchIndex DeleteSmallComponents DeleteStopwords
 	DeleteWithContents DeletionWarning DelimitedArray DelimitedSequence DelimiterMatching Dendrogram Denominator
 	DensityGraphics DensityHistogram DensityPlot DensityPlot3D Depth DepthFirstScan Derivative DerivativeFilter
@@ -502,7 +504,7 @@ Function
 	ParentDirectory ParentForm Parenthesize ParentList ParentNotebook ParetoDistribution
 	ParetoPickandsDistribution ParkData Part PartialCorrelationFunction PartialD ParticleAcceleratorData ParticleData
 	Partition PartitionsP ParzenWindow PascalDistribution Paste PasteAutoQuoteCharacters
-	PasteBoxFormInlineCells PathGraph PatternFilling PatternReaction PauliMatrix Pause PausedTime PD PDF PeakDetect
+	PasteBoxFormInlineCells PathGraph PatternFilling PatternReaction PauliMatrix Pause PausedTime PDF PeakDetect
 	PeanoCurve PearsonChiSquareTest PearsonCorrelationTest PearsonDistribution PerfectNumber Perimeter
 	PeriodicBoundaryCondition PeriodicInterpolation Periodogram PeriodogramArray Permanent PermissionsGroup
 	PermissionsGroups PermissionsKey PermissionsKeys PermutationCycles PermutationGroup PermutationLength
@@ -696,7 +698,7 @@ Function
 	WholeCellGroupOpener WienerFilter WignerD WignerSemicircleDistribution WikidataData WikidataSearch WikipediaData
 	WikipediaSearch WilksW WilksWTest WindDirectionData WindingCount WindingPolygon WindowMovable
 	WindowPersistentStyles WindowSelected WindowWidth WindSpeedData WindVectorData WinsorizedMean WinsorizedVariance
-	WishartMatrixDistribution WithCleanup WithLock WolframAlpha WolframAlphaDate WolframAlphaQuantity WolframAlphaResult
+	WishartMatrixDistribution WithLock WolframAlpha WolframAlphaDate WolframAlphaQuantity WolframAlphaResult
 	WolframLanguageData WordCount WordCounts WordData WordDefinition WordFrequency WordFrequencyData WordList
 	WordStem WordTranslation Wronskian XMLTemplate Xnor Xor Yesterday YuleDissimilarity ZernikeR
 	ZeroSymmetric ZeroWidthTimes Zeta ZetaZero ZIPCodeData ZipfDistribution ZTest ZTransform
@@ -767,8 +769,6 @@ Object
 	SystemCredentialStoreObject TaskObject TemplateObject TestObject TestReportObject TestResultObject TextData
 	ThreadingLayer TimeObject TotalLayer TransposeLayer UnitVectorLayer UnmanageObject WebElementObject
 	WebSessionObject WebWindowObject XMLElement XMLObject
-ObseleteSymbol
-	CountDistinct CountDistinctBy DeleteDuplicatesBy DisjointQ ErrorBox IntersectingQ SubsetQ
 Operator
 	Threaded
 Option

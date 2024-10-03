@@ -1,7 +1,7 @@
 PackageExports[
   "BoxFunction",   DepthTruncateBoxes,
   "FormHead",      DepthTruncateForm,
-  "Predicate",     MaybeBoxesQ, ValidBoxesQ, BoxSymQ,
+  "Predicate",     MaybeBoxesQ,
   "PatternSymbol", MaybeBoxesP, BoxSymP
 ];
 
@@ -37,6 +37,13 @@ DefinePatternRules[
 
 (*************************************************************************************************)
 
+SetPred1 @ SetHoldC[BoxSymQ, MaybeBoxesQ];
+
+BoxSymQ[BoxSymP]         := True;
+MaybeBoxesQ[MaybeBoxesP] := True;
+
+(*************************************************************************************************)
+
 SystemBox[DepthTruncateForm[expr_, n_Int]] := At[DepthTruncateBoxes, MakeBoxes @ expr, n];
 
 (*************************************************************************************************)
@@ -57,11 +64,11 @@ truncBox = CaseOf[
   (h:Box1VecSymP)[a_List, r___]     := With[{a1 = HoldMap[$, a]},    h[a1, r]];
   (h:Box1MatSymP)[a:{__List}, r___] := With[{a1 = HoldMap2[$, a]},     h[a1, r]] // incDepth2;
   (h:Box2SymP)[a_, b_, r___]        := With[{a1 = $ @ a, b1 = $ @ b}, h[a1, b1, r]];
-  e:otherSymP[___]                  := e;
+  e:otherSym$[___]                  := e;
   e:(h:SymP)[___]                   := BoxFnErrorBox[h, e];
   e_                                := BoxFnErrorBox[e];
 ,
-  {otherSymP -> Join[Box1RVecSymP, Box2RVecSymP, BoxDValSymP, BoxDSymP]}
+  {otherSym$ -> Join[Box1RVecSymP, Box2RVecSymP, BoxDValSymP, BoxDSymP]}
 ];
 
 incDepth1[body_] := If[$d <= 1, CDots, Block[{$d = $d - 1}, body]];

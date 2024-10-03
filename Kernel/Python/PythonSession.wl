@@ -14,10 +14,7 @@ SystemExports[
   "IOFunction",
     SetupTorchSerialization, PythonSessionPrint, PythonSessionError,
   "Function",
-    SplitOnAxis,
-  "Variable",
-    $PythonSession,
-    $PythonPath
+    SplitOnAxis
 ];
 
 PackageExports[
@@ -25,12 +22,7 @@ PackageExports[
     DefaultPythonSession,
     InitializeTorch,
   "Function",
-    PythonObjectGraph,
-  "Variable",
-    $PythonPrintCallback,
-    $PythonErrorCallback,
-    $PythonResultPostProcessor,
-    $PythonSessionParameters
+    PythonObjectGraph
 ];
 
 PrivateExports[
@@ -40,12 +32,21 @@ PrivateExports[
     PythonSessionInfo,
   "SpecialFunction",
     CustomExternalEvaluateCatch,
-    ExternalEvaluatePostProcessor,
-  "SpecialVariable",
+    ExternalEvaluatePostProcessor
+];
+
+SessionExports[
+  "Variable",
+    $PythonSession,
+    $PythonPath,
+    $PythonPrintCallback,
+    $PythonErrorCallback,
+    $PythonResultPostProcessor,
+    $PythonSessionParameters,
     $PythonSessionName,
     $TorchInitialized,
-    $WolframClientPath,
-    $PathToNotebookCache
+    $PathToNotebookCache,
+    $WolframClientPath
 ];
 
 (*************************************************************************************************)
@@ -89,19 +90,19 @@ Initially[
   SetInitial[$PythonPath, None];
   SetInitial[$PythonSessionName, "Python"];
   SetInitial[$TorchInitialized, False];
-  $PythonSessionParameters = Dict[
+  SetInitial[$PythonSessionParameters, Dict[
     "Name"                   :> $PythonSessionName,
     "System"                 -> "Python",
     "StandardOutputFunction" -> PythonSessionPrint,
     "StandardErrorFunction"  -> PythonSessionError,
     "SessionProlog"          -> File @ DataPath["Python", "ct_prelude.py"],
     "ID"                     :> $PythonSessionName
-  ];
-  $PythonPrintCallback = PythonRawPrint;
-  $PythonErrorCallback = PythonErrorPrint;
-  $PythonResultPostProcessor = Id;
-  SetCached[$PythonSession, DefaultPythonSession[]];
-  SetCached[$WolframClientPath, findWolframClient[]];
+  ]];
+  SetInitial[$PythonPrintCallback, PythonRawPrint];
+  SetInitial[$PythonErrorCallback, PythonErrorPrint];
+  SetInitial[$PythonResultPostProcessor, Id];
+  SetCachedInitial[$PythonSession, DefaultPythonSession[]];
+  SetCachedInitial[$WolframClientPath, findWolframClient[]];
 ];
 
 findWolframClient[] := First[PacletFind["WolframClientForPython"]]["Location"];
@@ -239,6 +240,11 @@ PythonRun[cmd_String] := ExternalEvaluate[$PythonSession, cmd];
 
 (*************************************************************************************************)
 
+MakeBoxes[PythonResult[e_], StandardForm] :=
+  NiceObjectBoxes["PythonResult", compactPythonResultBoxes @ e];
+
+SetHoldC @ compactPythonResultBoxes;
+
 PythonResult /: Normal[PythonResult[res_]] := res;
 
 compactPythonResultBoxes = CaseOf[
@@ -269,9 +275,6 @@ smallTensors[expr_] := ReplaceAll[expr,
 ];
 
 errorBoxes[e_] := StyleBox[RowBox[{"\[LeftSkeleton]", e, "\[RightSkeleton]"}], $Red];
-
-MakeBoxes[PythonResult[e_], StandardForm] :=
-  NiceObjectBoxes["PythonResult", compactPythonResultBoxes @ e];
 
 (*************************************************************************************************)
 
@@ -463,8 +466,8 @@ PyFunction[name_String, _][in___] :=
 
 DeclareCoreSubBoxes[PyObject]
 
-MakeCoreBox[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
-MakeCoreBox[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];
+MakeCBox[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
+MakeCBox[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];
 
 CoreBox[PyObjectRef[name_String, hash_Integer]]  := RBox[SemiBoldBox @ pyStyleBox[hash] @ name, "[", "\[Ellipsis]", "]"];
 

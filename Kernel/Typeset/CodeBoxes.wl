@@ -1,6 +1,5 @@
 PackageExports[
-  "BoxFunction",     GuessInputStrLen, MakeTruncatedBoxes,
-  "SpecialFunction", LineFlowedBoxes
+  "BoxFunction",     GuessInputStrLen, MakeTruncatedBoxes
 ];
 
 (*************************************************************************************************)

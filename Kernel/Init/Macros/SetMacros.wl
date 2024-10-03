@@ -1,5 +1,5 @@
 SystemExports[
-  "MutatingFunction", SetInitial, SetDelayedInitial, SetCached
+  "MutatingFunction", SetInitial, SetCached, SetCachedInitial, SetDelayedInitial
 ];
 
 (**************************************************************************************************)
@@ -22,17 +22,18 @@ setMultiInitial[lhs_Hold, rhs2_] := Module[{rhs := (rhs = rhs2)},
 
 (**************************************************************************************************)
 
-SetHoldA @ SetDelayedInitial
-
-SimpleMacroDefs[
-  SetDelayedInitial[lhs_, rhs_] := If[HasNoDefsQ[lhs], SetDelayed[lhs, rhs]]
-]
-
-(**************************************************************************************************)
-
 SetHoldA @ SetCached
 
 SimpleMacroDefs[
   SetCached[lhs_, rhs_] := SetDelayed[lhs, Set[lhs, rhs]]
+]
+
+(**************************************************************************************************)
+
+SetHoldA[SetDelayedInitial, SetCachedInitial];
+
+SimpleMacroDefs[
+  SetCachedInitial[lhs_, rhs_]  := If[HasNoDefsQ[lhs], SetCached[lhs, rhs]],
+  SetDelayedInitial[lhs_, rhs_] := If[HasNoDefsQ[lhs], SetDelayed[lhs, rhs]]
 ]
 

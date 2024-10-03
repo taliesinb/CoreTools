@@ -33,7 +33,6 @@ PackageExports[
   "Function",
     StringSelect, StringDiscard, StringSelectDiscard,
     FnStrRow, FnParenStrRow, FnStr, FnParenStr,
-    StrTake1, StrTakeN,
   "Variable",
     $DQuote, $SQuote, $Newline, $DNewline, $Backslash
 ];

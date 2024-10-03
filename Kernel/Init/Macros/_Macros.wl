@@ -8,17 +8,18 @@ PackageExports[
     Ensure, MacroHead,
   "SpecialFunction",
     ExpandMacros, RefreshMacroRules,
+  "TagHead",
     MacroHold, MacroSet, MacroSetDelayed, MacroRuleDelayed
   "MessageFunction",
     MacroError,
   "MetaFunction",
     DefinePartialMacro,
     DeclareMacroDefSym,
-    SimpleMacroDefs, PatternMacroDefs, ComplexMacroDefs, PartialMacroDefs,
+    SimpleMacroDefs, PatternMacroDefs, ComplexMacroDefs,
   "Predicate",
     ContainsMacrosQ, FreeOfMacrosQ, FreeOfPureMacrosQ,
-  "SpecialVariable",
-    $LastMacroFailure
+  "TransientVariable",
+    $LastMacro
 ];
 
 PrivateExports[
@@ -26,7 +27,7 @@ PrivateExports[
     HoldMMap, HoldMRaise, HoldMLower,
   "SpecialFunction",
     MacroEval, MacroHook,
-  "TagVariable",
+  "SlotVariable",
     $ReturnTarget,
     $MacroHead,
     $MacroSrcLoc,
@@ -37,9 +38,10 @@ PrivateExports[
     $PartialMacroRules,
     $PartialMacroSyms,
     $MacroSugarRules,
-    $ReturnTag,
     $MacroRules,
-    $PartialMacroRules
+    $PartialMacroRules,
+  "TagVariable",
+    $ReturnTag
 ];
 
 (**************************************************************************************************)
@@ -311,10 +313,10 @@ ExpandMacros[hc_] := Check[
 
 (*************************************************************************************************)
 
-General::expansionFailed = "Macro(s) `` failed to expand in ``. Code available as $LastMacroFailure.";
+General::expansionFailed = "Macro(s) `` failed to expand in ``. Code available as $LastMacro.";
 checkDone[hc_ ? FreeOfPureMacrosQ] := hc;
 checkDone[hc_] := MacroError["expansionFailed",
-  $LastMacroFailure = hc;
+  $LastMacro = hc;
   HoldForm @@@ Select[$PureMacroSyms, !FreeQ[hc, #]&],
   hc
 ];

@@ -15,9 +15,8 @@ SystemExports[
 ];
 
 PackageExports[
-  "DebuggingFunction", EchoSet, EchoSetH, EchoSym, EchoBody,
+  "DebuggingFunction", EchoBody,
   "MessageFunction",   EchoBindingsBody, EchoBindingsCondition,
-  "IOFunction",        PasteStoredPaste,
   "BoxFunction",       PasterBox
 ];
 

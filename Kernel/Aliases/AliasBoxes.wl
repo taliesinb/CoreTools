@@ -5,7 +5,9 @@ SystemExports[
     MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
-    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction
+    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction,
+  "Symbol",
+    TopLeft, TopRight, BottomLeft, BottomRight
 ];
 
 PackageExports[
@@ -18,7 +20,6 @@ PackageExports[
   "BoxFunction",
     SubBox, SuperBox, OverBox, UnderBox, SubsuperBox,
     AdjBox, InterpBox, G2DBox, G3DBox, SBox, TBox,
-    LitStrBox, LitStrRowBox,
     DotsBox, RawBox,
 
   "FormHead",
@@ -38,7 +39,31 @@ PackageExports[
 
   "Option",
     ItemFn, LabelFn, ClickFn, TooltipFn, SizeFn,
-    ColorFn, VertexColorFn
+    ColorFn, VertexColorFn, Bend,
+
+  "Symbol",
+    Bef, Aft,
+    Hor, Ver, Cen,
+    Lef, Rig,
+    Bot,
+    TopL, TopR, BotL, BotR
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  Bef        -> Before,
+  Aft        -> After,
+  Hor        -> Horizontal,
+  Ver        -> Vertical,
+  Cen        -> Center,
+  Lef        -> Left,
+  Rig        -> Right,
+  Bot        -> Bottom,
+  TopL       -> TopLeft,
+  TopR       -> TopRight,
+  BotL       -> BottomLeft,
+  BotR       -> BottomRight
 ];
 
 (*************************************************************************************************)
@@ -132,6 +157,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   ColorFn        -> ColorFunction,
-  VertexColorFn  -> VertexColorFunction
+  VertexColorFn  -> VertexColorFunction,
+  Bend           -> RoundingRadius
 ];
 

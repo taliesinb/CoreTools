@@ -218,8 +218,8 @@ makeIcon[pos_, dir_, prims_, scale_] :=
 
 (* this optimization doesn't handle multilines!
 makeIconInset[pos_, dirx_, LineBox[path:{_, _}]] := Locals[
-  If[$originx =!= 0, path //= TranslateVector[-$origin]];
-  path = RotateVectorTo[path, dirx * $imageSize/2];
+  If[$originx =!= 0, path //= VecTrans[-$origin]];
+  path = VecRotTo[path, dirx * $imageSize/2];
   offsets = Offset[#, pos]& /@ path;
   $styler @ Construct[LineBox, SimplifyOffsets @ offsets]
 ];
@@ -254,8 +254,8 @@ addDebugBounds[boxes_] := List[
 
 (* this optimization doesn't handle multilines!
 makeIconInline[pos_, dirx_, LineBox[path:{_, _}], graphicsScale_] := Locals[
-  If[$originx =!= 0, path //= TranslateVector[-$origin]];
-  path = RotateVectorTo[path, dirx * $imageSize / graphicsScale / 2] + Threaded[pos];
+  If[$originx =!= 0, path //= VecTrans[-$origin]];
+  path = VecRotTo[path, dirx * $imageSize / graphicsScale / 2] + Threaded[pos];
   $styler @ Construct[LineBox, path]
 ];
 *)
@@ -264,7 +264,7 @@ makeIconInline[pos_, dirx_, prims_, graphicsScale_] := Locals[
   If[$debugBounds, prims //= addDebugBounds];
   If[$originx != 0,
     prims = Construct[GeometricTransformationBox, prims, -$origin]];
-  rotMatrix = RotateToMatrix[dirx * 0.5 / graphicsScale, $imageSize];
+  rotMatrix = RotToMatrix[dirx * 0.5 / graphicsScale, $imageSize];
   transform = {rotMatrix, pos};
   $styler @ Construct[GeometricTransformationBox, prims, transform]
 ];
@@ -306,8 +306,8 @@ makeArrowHead[name_ -> head_[upperPath2_]] := Locals[
   (* center the primitive *)
   {x1, x2} = MinMax @ Col1[upperPath];
   dx = -Avg[x1, x2];
-  upperPath = TranslateVector[{dx, 0}, upperPath];
-  lowerPath = VectorReflectVertical @ upperPath;
+  upperPath = VecTrans[{dx, 0}, upperPath];
+  lowerPath = VecReflectV @ upperPath;
   symmetricCurve = toJoinedCurve[head @ upperPath, head @ Rev @ Most @ lowerPath];
   {x, {y1, y2}} = CoordinateBounds @ upperPath;
   l = If[Part[upperPath, 1, 2] == 0, P11[upperPath], P1 @ x];

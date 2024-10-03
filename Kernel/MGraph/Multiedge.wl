@@ -12,7 +12,6 @@ PrivateExports[
 
 Initially[
   $MultiedgeIconScale = 1;
-  $MultiedgeTheme = None;
   $MultiedgeAutoColoring = True;
 ];
 

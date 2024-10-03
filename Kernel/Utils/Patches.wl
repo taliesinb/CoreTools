@@ -8,12 +8,7 @@ PackageExports[
     $DefinitionNotebookWidth,
 
   "SpecialFunction",
-    RegisterPackagePatchFunctions, GetPackageSymbol, HiddenLoadPackage, ApplyPackagePatches,
-
-  "SpecialVariable",
-    $PackageNeedsPatchesQ,
-    $PackageLoadedCache, $PackagePatchFunctions, $PackageAppliedPatches,
-    $IsPacletManagerHooked, $PacletManagerHook, $PatchDebugging
+    RegisterPackagePatchFunctions, GetPackageSymbol, HiddenLoadPackage, ApplyPackagePatches
 ];
 
 PrivateExports[
@@ -21,6 +16,13 @@ PrivateExports[
     PatchPrint,
   "Variable",
     $DefinitionNotebookOffset
+];
+
+SessionExports[
+  "SpecialVariable",
+    $PackageNeedsPatchesQ,
+    $PackageLoadedCache, $PackagePatchFunctions, $PackageAppliedPatches,
+    $IsPacletManagerHooked, $PacletManagerHook, $PatchDebugging
 ];
 
 (*************************************************************************************************)

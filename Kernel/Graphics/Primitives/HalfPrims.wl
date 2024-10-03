@@ -9,8 +9,8 @@ DefineGPrim[HalfDisk,   "Pos,PosDelta", halfDiskBoxes]
 
 halfCircleBoxes[HalfCircle[p:Pos2P, d:Pos2P]] := Locals[
   ang = PairAngle[d];
-  p1 = p + VectorRotate90[d];
-  p2 = p + VectorRotate90CW[d];
+  p1 = p + VecRot90[d];
+  p2 = p + VecRot90CW[d];
   List[
     Construct[CircleBox, p, Norm @ d, {ang - Pi/2, ang + Pi/2}],
     Construct[LineBox, {p1, p2}]

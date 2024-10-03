@@ -2,14 +2,12 @@ PackageExports[
   "Function",            OrderedTreeLayout,
   "GraphicsDirective",   FaceEdge,
   "GraphicsFunction",    ExprTreePlot, TreeNodeColor,
-  "GraphicsBoxFunction", ExprTreePlotBoxes,
   "Function",            AllTreesDepth, AllTrees, ToTree, UnfoldTree, UnfoldTreeData, RemoveTreeData,
   "PatternSymbol",       TreeNodeP,
   "Predicate",           TreeNodeQ, ValidTreeQ,
   "Head",                TreeNode, TreeLeaf, DataNode, DataLeaf, TreeSeed,
-  "Function",            ToTree, ToTreePattern,
-  "SpecialVariable",     $CurrentTreeDepth, $MaxTreeDepth,
-  "Operator",            TreeSeedFn,
+  "Function",            ToTree,
+  "TransientVariable",   $CurrentTreeDepth, $MaxTreeDepth,
   "Option",              NodePattern
 ];
 
@@ -40,7 +38,8 @@ CoreBox[t_TreeSeed ? ValidTreeQ]   := treeNodeBoxes[t];
 CoreBox[t_TreeNode ? ValidTreeQ]   := treeNodeBoxes @ t;
 
 DeclareCoreSubBoxes[DataNode];
-MakeCoreBox[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
+
+MakeCBox[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
 
 (**************************************************************************************************)
 
@@ -64,7 +63,7 @@ rootNodeBoxes[str_, node_] := NiceTooltipBox[
 
 (**************************************************************************************************)
 
-Options[ExprTreePlot] = Options[ExprTreePlotBoxes] = JoinOptions[
+Options[ExprTreePlot] = JoinOptions[
   {NodePattern -> Auto, NodeColor -> TreeNodeColor, GraphScale -> 20},
   Options @ NiceTreePlot
 ];

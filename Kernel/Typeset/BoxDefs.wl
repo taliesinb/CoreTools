@@ -29,6 +29,7 @@ PackageExports[
     DelimitedRowBox, RiffledRowBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox, BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox, AssocRowBox,
     GrayBox, DimmedBox,
     GridBoxRule, RowGridBox, ColGridBox, TightRowGridBox, TightColGridBox,
+    LitStrBox, LitStrRowBox,
     StatusAreaBox, CursorIconBox,
     ApplyEndStyleBox, ApplyIndentBox,
     UnderlinedBox, ItalicBox, SemiBoldBox, BoldBox, PlainBox,
@@ -132,10 +133,10 @@ CoreBox[LiteralStringRow[s:{StrP...}, r:StrP:","]] := LitStrRowBox[s, r];
 
 SetBoxFn[LitStrRowBox];
 
-LiteralStringBox[s_Str] := ToBoxes @ LitStr @ s; (* does this do anything ? *)
+LitStrBox[s_Str] := ToBoxes @ LitStr @ s; (* does this do anything ? *)
 
-LitStrRowBox[{}, ___]              := LiteralStringBox[""];
-LitStrRowBox[s:{__Str}, r_Str:","] := LiteralStringBox @ StrJoin @ Riffle[s, r];
+LitStrRowBox[{}, ___]              := LitStrBox @ "";
+LitStrRowBox[s:{__Str}, r_Str:","] := LitStrBox @ StrJoin @ Riffle[s, r];
 
 (**************************************************************************************************)
 
@@ -585,6 +586,7 @@ DimmedBox[e_] := StyleBox[e, Opacity[0.3]];
 (**************************************************************************************************)
 
 GridBoxRule = CaseOf[
+  $[ItemsEqual, rows_, cols_] := Make[Seq, Rule[RowsEqual, rows],      Rule[ColsEqual, cols]];
   $[ItemDivs, rows_, cols_]   := Make[Seq, Rule[RowLines, rows],       Rule[ColLines, cols]];
   $[ItemJust, rows_, cols_]   := Make[Seq, Rule[RowJust, rows],        Rule[ColJust, cols]];
   $[ItemGaps, rows_, cols_]   := Make[Seq, Rule[RowGaps, rows],        Rule[ColGaps, cols]];

@@ -28,7 +28,7 @@ PackageExports[
     UnindexDicts, IndexDicts,
     Bind, UBind,
   "DataHead",
-    SymbolProxy, LHSProxy,
+    SymProxy, LHSProxy,
   "Symbol",
     NullSym,
   "MutatingFunction",
@@ -532,7 +532,7 @@ bindFromScan[keysSyms_, fn_][key_ -> value_] := Then[
     Lookup[
       keysSyms, key,
       fn[key]; NullSym,
-      SymbolProxy
+      SymProxy
     ],
     value
   ],
@@ -541,29 +541,33 @@ bindFromScan[keysSyms_, fn_][key_ -> value_] := Then[
 
 (**************************************************************************************************)
 
-SetHoldC[SymbolProxy];
+DeclareUsage @ "NullSym is a symbol which attempts to set have no effect.".
+DeclareUsage @ "SymProxy[sym$] is a value that attempts to set, set sym$ instead.";
+DeclareUsage @ "LHSProxy[fn$] is a value that attempts to set to value$, call fn[$value] instead.";
+
+DeclaredHere[NullSym];
+
+SetHoldC[SymProxy];
 
 (* This makes Null = 5 a no-op, which is very convenient for 'don't care' destructuring *)
-If[!TrueQ[System`Private`$CoreToolsFirstLoad],
-  System`Private`$CoreToolsFirstLoad = True;
-  (* Language`SetMutationHandler[Null,          HoldComplete]; dangerous? *)
-  Language`SetMutationHandler[NullSym,       mNullSym];
-  Language`SetMutationHandler[SymbolProxy,   mSymbolProxy];
-  Language`SetMutationHandler[LHSProxy,      mLHSProxy];
+If[!HasLValFnQ[NullSym],
+  SetLValFn[NullSym,        mNullSym];
+  SetLValFn[SymProxy,   mSymbolProxy];
+  SetLValFn[LHSProxy,      mLHSProxy];
 ];
 
-Protect[SymbolProxy, LHSProxy, NullSym];
+Protect[SymProxy, LHSProxy, NullSym];
 
 SetHoldC[mSymbolProxy, mLHSProxy, mNullSym];
 
 mNullSym[_] := Null;
 
-mSymbolProxy[Set[SymbolProxy[sym_Sym], rhs_]] := Set[sym, rhs];
-mSymbolProxy[e_] := Message[SymbolProxy::unsupportedMutation, HoldForm @ e];
+mSymbolProxy[Set[SymProxy[sym_Sym], rhs_]] := Set[sym, rhs];
+mSymbolProxy[e_] := Message[SymProxy::unsupportedMutation, HoldForm @ e];
 
 mLHSProxy[Set[LHSProxy[fn_], rhs_]] := fn[rhs];
 mLHSProxy[Set[LHSProxy[],    rhs_]] := Null;
-mLHSProxy[e_] := Message[SymbolProxy::unsupportedMutation, HoldForm @ e];
+mLHSProxy[e_] := Message[LHSProxy::unsupportedMutation, HoldForm @ e];
 
 General::unsupportedMutation = "Unsupported mutation pattern: ``.";
 

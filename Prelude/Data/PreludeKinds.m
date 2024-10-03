@@ -3,6 +3,8 @@
 SystemExports
 PackageExports
 PrivateExports
+SessionExports
+CustomExports
 DeclareFilePrivates
 DeclareFileLocals
 DeclarePackagePrivates
@@ -12,44 +14,35 @@ DeclareSystemPrivates
 DeclareSystemGlobals
 
 
-(*SpecialVariable*)
+(*MetaFunction*)
 
-$PreludeLoaded
-$PreludeDir
-$PreludeFiles
-$CurrentPackageFile
-$CurrentPackageDirectory
-$CurrentPackageLineSentinel
-$CurrentPackageFileHash
-$CurrentPackageExpr
-$CurrentPackageExprCount
-$CurrentPackageMessageCount
-$CurrentPackageQueParent
-$CurrentPackageQueValue
-$PackageFileCache
-$PackageFileModTime
-$PackageSymbolTable
-$PackageSymbolAliases
-$PackagePreLoadActions
-$PackagePostLoadActions
-$PackageLoadFileTimings
-$PackageModTime
-$LethalPackageMessages
-$PreEvaluationHook
-$PostEvaluationHook
-$ShiftReturnHookInstalled
-$SessionIDs
-$Captured
-$LastTraceback
-$PrintIndent
-$MaxPrintRate
-$CellPrintLabel
-$DebugPrinting
-$EchoPrinting
-$CachePrinting
-$CurrentlyTracingAutoloads
-$ShouldPrint
-$Disabled
+DeclareArity
+DeclareStrict
+DeclareHoldFirst
+DeclareHoldRest
+DeclareHoldAll
+DeclareHoldAllComplete
+DeclareUsage
+DeclaredHere
+
+
+(*Option*)
+
+Caching
+Logging
+LogLevel
+Verbose
+SublimeProject
+OpenInNewWindow
+
+
+(*SymbolicHead*)
+
+Rectangular
+Circular
+AttachImmediateValue
+AttachDelayedValue
+SymbolTableRow
 
 
 (*MutatingFunction*)
@@ -84,8 +77,10 @@ LogPrint
 RawPrint
 CachePrint
 LabeledPrint
+ValueChangePrint
 DPrint
 EchoPrint
+MutationPrint
 WithRawPrintIndent
 
 
@@ -134,6 +129,16 @@ SymbolTableSymbolString
 SymbolTableSymbolCount
 
 
+(*MessageFunction*)
+
+CheckedRHS
+NonLethalPackageMessages
+LoadPrint
+PackageLoadMessageHandler
+PackageLoadUncaughtThrowHandler
+WithShadowingFixup
+
+
 (*Predicate*)
 
 HoldListQ
@@ -169,9 +174,6 @@ $FormalSymbols
 $SymbolAliases
 $SymbolAliasesDirty
 $PackageLoadVerbose
-$PackageCurrentlyLoading
-$LastFailedExpression
-$PackageLoadCompleteQ
 $LastEvaluationTime
 $EvaluationsCount
 $CurrentEvaluationStartTime
@@ -189,11 +191,7 @@ $SymbolExportFunctions
 PrivateHoldComplete
 PrivateSequence
 PrivateHoldCompleteSequence
-
-
-(*MetaFunction*)
-
-DeclaredHere
+HandleSymbolChanges
 
 
 (*FormHead*)
@@ -203,28 +201,47 @@ MessageArgumentForm
 SourceLocation
 
 
-(*Option*)
+(*SpecialVariable*)
 
-Caching
-Logging
-LogLevel
-Verbose
-SublimeProject
-OpenInNewWindow
-
-
-(*MessageFunction*)
-
-NonLethalPackageMessages
-LoadPrint
-PackageLoadMessageHandler
-PackageLoadUncaughtThrowHandler
-WithShadowingFixup
+$PreludeLoaded
+$PreludeDir
+$PreludeFiles
+$CoreToolsLoaded
+$CoreToolsDir
+$CoreToolsRootDir
+$CurrentPackageFile
+$CurrentPackageDirectory
+$PackageLoadCompleteQ
+$PackageFileCache
+$PackageFileModTime
+$PackageSymbolTable
+$PackageSymbolAliases
+$PackagePreLoadActions
+$PackagePostLoadActions
+$PackageLoadFileTimings
+$PackageModTime
+$LethalPackageMessages
+$PreEvaluationHook
+$PostEvaluationHook
+$ShiftReturnHookInstalled
+$SessionIDs
+$Captured
+$LastTraceback
+$ShouldPrint
+$PrintIndent
+$MaxPrintRate
+$DebugPrinting
+$EchoPrinting
+$CachePrinting
+$MutationPrinting
+$CellPrintLabel
+$CurrentlyTracingAutoloads
 
 
 (*DebuggingFunction*)
 
 AbortPackageLoading
+TraceSymbolChanges
 TraceAutoloads
 BlockPrint
 Capture
@@ -241,6 +258,20 @@ FailureString
 UnpackingTable
 MicroTiming
 MicroTimingTable
+
+
+(*TransientVariable*)
+
+$CurrentPackageLineSentinel
+$CurrentPackageFileHash
+$CurrentPackageExpr
+$CurrentPackageExprCount
+$CurrentPackageMessageCount
+$CurrentPackageQueParent
+$CurrentPackageQueValue
+$PackageCurrentlyLoading
+$PackageFailedExpr
+$PackageErrorStack
 
 
 (*BoxFunction*)
@@ -265,11 +296,9 @@ SymbolTableInitString
 FileLocation
 
 
-(*SymbolicHead*)
+(*TagVariable*)
 
-AttachImmediateValue
-AttachDelayedValue
-SymbolTableRow
+$Disabled
 
 
 (*PackageDeclaration*)
@@ -322,6 +351,7 @@ ExportSpecialVariable
 ExportCacheVariable
 ExportSlotVariable
 ExportTagVariable
+ExportTransientVariable
 ExportOption
 ExportSpecialOption
 ExportBoxOption
@@ -332,6 +362,7 @@ ExportGraphicsPrimitive
 ExportPredicate
 ExportPredicateOperator
 ExportOperator
+ExportDeprecated
 PrivateFunction
 PrivateSpecialFunction
 PrivateControlFlowFunction
@@ -380,6 +411,7 @@ PrivateSpecialVariable
 PrivateCacheVariable
 PrivateSlotVariable
 PrivateTagVariable
+PrivateTransientVariable
 PrivateOption
 PrivateSpecialOption
 PrivateBoxOption
@@ -390,5 +422,6 @@ PrivateGraphicsPrimitive
 PrivatePredicate
 PrivatePredicateOperator
 PrivateOperator
+PrivateDeprecated
 
 

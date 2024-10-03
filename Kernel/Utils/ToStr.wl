@@ -12,11 +12,15 @@ SystemExports[
 
 PackageExports[
   "Function",
-    ToStr, BoxToString, ToStrBlock, ToStrInternal,
-  "Head",
+    ToStr, ToStrBlock,
+  "DataHead",
     StrBlock, HSpace, HStrBlock, VStrBlock,
   "Predicate",
     HasToStrFnQ
+];
+
+PrivateExports[
+  "SpecialFunction", ToStrInternal
 ];
 
 (**************************************************************************************************)
@@ -36,6 +40,11 @@ iToStr[e_] := CatchMessages[ToStr, StrJoin @ blockToStrs @ formToBlock @ e];
 (**************************************************************************************************)
 
 SetHoldC @ ToStrInternal;
+
+ToStrInternal[_] := "?";
+
+(**************************************************************************************************)
+
 SetPred1 @ SetHoldC @ HasToStrFnQ;
 
 ToStr /: SetDelayed[ToStr[$LHS_], $RHS_] := With[
@@ -86,8 +95,8 @@ formToBlock = CaseOf[
 iToStrFallback = CaseOf[
   (head_ ? BurrowThroughHeadQ)[arg1_, ___] := formToBlock @ $ @ arg1;
   expr:(_Sym ? HasToStrFnQ)[___]           := makeSingleBlock @ checkToStr[expr, ToStrInternal @ expr];
-  head_Sym ? HasCoreBoxQ                 := boxToBlock @ MakeBoxes @ head;
-  expr:(_Sym ? HasCoreBoxQ)[___]         := boxToBlock @ MakeBoxes @ expr;
+  head_Sym ? HasCoreBoxQ                   := boxToBlock @ MakeBoxes @ head;
+  expr:(_Sym ? HasCoreBoxQ)[___]           := boxToBlock @ MakeBoxes @ expr;
   expr_                                    := makeSingleBlock @ checkToStr[expr, Null];
 ];
 

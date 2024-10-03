@@ -9,9 +9,8 @@ SystemExports[
 ];
 
 PackageExports[
-  "GraphicsDirective",   FaceEdge,
-  "GraphicsFunction",    ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor,
-  "GraphicsBoxFunction", ExprTreePlotBoxes, TreeNodePlotBoxes
+  "SymbolicHead",     FaceEdge,
+  "GraphicsFunction", ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor
 ];
 
 (**************************************************************************************************)
@@ -404,7 +403,7 @@ constructEdgePaths[edgePaths_, bendRadius_, fanoutStyle_] := Locals[
     "Circuit",         Map[bendCenter, edgePaths],
     "Center" | Center, Map[bendCenterFraction[#, 0.5]&, edgePaths],
     Center -> _,       Map[bendCenterFraction[#, Last @ fanoutStyle]&, edgePaths],
-    "Bottom" | Bottom, Map[bendBottom, edgePaths],
+    "Bottom" | Bottom, Map[bendBot, edgePaths],
     Auto | None,       edgePaths,
     _,
       Message[OrderedTreeLayout::badopt, fanoutStyle -> fanoutStyle];
@@ -444,7 +443,7 @@ bendTop[{a:{ax_, ay_}, b:{bx_, by_}}] /; $isShared[b] := Then[
   $isShared[b] = False,
   Join[
     bendTop[{a, b}],
-    BlockFalse[$trimCorner, bendBottom[{b, $shrTargets @ b}]]
+    BlockFalse[$trimCorner, bendBot[{b, $shrTargets @ b}]]
   ]
 ];
 
@@ -457,18 +456,23 @@ bendTop[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
   Join[{a}, BezierPoints[{ca, c, cb}], If[$isInner[b], {b, b + {-2, -2}}, {b}]]
 ];
 
-bendBottom[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
-  If[$isInnerShared[a], Return @ {{ax,ay}, {ax, by}}];
-  If[False && $trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+
+bendBot[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
+  If[$trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.001, Return @ {a, b}];
+  If[$isInner[b], Return @ {{ax,ay}, {ax, by}}];
   c = {ax, by};
   ca = ptAlong[c, a, $r];
   cb = ptAlong[c, b, $r];
   Join[{a}, BezierPoints[{ca, c, cb}], {b}]
 ];
 
-bendBottom[line_] := line;
+bendBot[line_] := line;
 bendTop[line_] := line;
 bendCenter[line_] := line;
 bendCenterFraction[line_, _] := line;
 
 ptAlong[a_, b_, d_] := Which[d <= 0, a, d >= Dist[a, b], b, True, PointAlongLine[{a, b}, d]];
+
+
+(*************************************************************************************************)
+

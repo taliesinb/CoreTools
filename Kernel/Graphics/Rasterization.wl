@@ -6,7 +6,7 @@ PackageExports[
     ErrorImageQ
 ];
 
-PrivateExports[
+SessionExports[
   "CacheVariable", $ToImageCache, $ToImageSizeCache, $ToImageDataCache
 ];
 

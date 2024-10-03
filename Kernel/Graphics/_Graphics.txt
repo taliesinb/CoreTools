@@ -1,9 +1,9 @@
 Primitives.wl
-Primitives/LoadList.txt
+Primitives/
 MapCoords.wl
 Transforms.wl
+Offsets.wl
 PlotRange.wl
-Geometry.wl
 Colors.wl
 ColorFunction.wl
 Plots.wl

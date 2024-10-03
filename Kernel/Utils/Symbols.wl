@@ -145,7 +145,7 @@ $cachedBoxFormattingSymbols := $cachedBoxFormattingSymbols = $BoxFormattingSymbo
 
 $BoxFormattingSymbols := Union @ DelCases[$Failed] @ Map[getFmtTarget] @ Keys @ $BoxFormattingRules;
 
-$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes, DownValues @ MakeCoreBox];
+$BoxFormattingRules   := Join[FormatValues @ MakeBoxes, DownValues @ Typeset`MakeBoxes, DownValues @ MakeCBox];
 
 (**************************************************************************************************)
 

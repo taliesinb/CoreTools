@@ -1,12 +1,11 @@
 SystemExports[
-  "Option",       MaxLength, MaxBytes, MaxDepth, MaxStrLen, ElidePacked, Multiline
+  "Option",       MaxLength, MaxBytes, MaxDepth, MaxStrLen, ElidePacked, Multiline, SpecialChars
 ];
 
 PackageExports[
-  "FormHead",      SystemForm, CodeForm, DataForm, ExprForm, EchoForm, HoldExprForm, Unlimited, Limited, RichElidedForm, SpecialChars, HoldAtForm,
+  "FormHead",      SystemForm, CodeForm, DataForm, ExprForm, EchoForm, HoldExprForm, Unlimited, Limited, RichElidedForm, HoldAtForm,
   "BoxFunction",   MakeExprBoxes, MakeCodeBoxes, MakeEchoBoxes, ToExprBoxes, HoldRichElidedBox,
-  "Predicate",     LongExprQ, BigExprQ, LongBigExprQ,
-  "Variable",      $ExprOpts
+  "Predicate",     LongExprQ, BigExprQ, LongBigExprQ
 ];
 
 (*************************************************************************************************)
@@ -19,7 +18,6 @@ SystemBox[SystemForm[e_]]                := MakeBoxes @ e;
 SystemBox[ExprForm[e_, opts___Rule]]     := MakeExprBoxes[e, opts];
 SystemBox[HoldExprForm[e_, opts___Rule]] := MakeExprBoxes[e, opts];
 SystemBox[RichElidedForm[e_]]            := HoldRichElidedBox[e];
-
 SystemBox[Unlimited[e_, d_Int:1]]            := blockUnlimited[MakeBox @ e, d];
 SystemBox[Limited[e_, n:IntOrVecP, d_Int:0]] := blockLimited[MakeBox @ e, n, d];
 
@@ -32,6 +30,16 @@ SetHoldC[CodeForm];
 SystemBox[CodeForm[e_, n:PatRep[ExtPosIntP, {0, 2}]]] := CodeStyleBox @ MakeCodeBoxes[e, n];
 SystemBox[DataForm[e_, n:PatRep[ExtPosIntP, {0, 2}]]] := CodeStyleBox @ MakeCodeBoxes[e, n];
 SystemBox[EchoForm[e_]]                               := MakeEchoBoxes[e];
+
+(*************************************************************************************************)
+
+SystemBox[h_HoldAtForm] := coreHoldAtBox @ h;
+
+SetHoldC[coreHoldAtBox];
+
+coreHoldAtBox[HoldAtForm[a_, args___]] := FnRBox[MakeBox @ a, CommaRowBox @ MapMakeBox @ {args}];
+coreHoldAtBox[HoldAtForm[a_, arg_]]    := RBox[MakeBox @ a, "@", MakeBox @ arg];
+coreHoldAtBox[e_]                      := $Failed;
 
 (*************************************************************************************************)
 
@@ -109,15 +117,15 @@ decDepth[body_] := Block[
 (*************************************************************************************************)
 
 $exprFormOptions = {
-  MaxLength   -> $lenStack,
-  MaxBytes    -> $maxBytes,
-  MaxDepth    -> $maxDep,
-  MaxStrLen   -> $maxStrLen,
-  ElidePacked -> $elidePacked,
+  MaxLength      -> $lenStack,
+  MaxBytes       -> $maxBytes,
+  MaxDepth       -> $maxDep,
+  MaxStrLen      -> $maxStrLen,
+  ElidePacked    -> $elidePacked,
   PrintPrecision -> $printPrecision,
-  FormatType  -> $formatType,
-  Multiline   -> $multiline,
-  SpecialChars -> $specialChars
+  FormatType     -> $formatType,
+  Multiline      -> $multiline,
+  SpecialChars   -> $specialChars
 };
 
 Options[ExprForm] = $exprFormOptions;
@@ -248,20 +256,21 @@ slotBox = CaseOf[
   expr_        := genericBox @ expr;
 ];
 
-
 (*************************************************************************************************)
 
-SetHoldC[holdAtBox, holdAtBox0];
+SetHoldC[holdAtBox, holdAtHeadBox0, holdAtHeadBox1];
 
-holdAtBox[HoldAtForm[f_, args___]] /; !$isEcho := genericBox @ f[args];
-(* holdAtBox[HoldAtForm[a_, PrivHoldSeq[s_]]]    := RBox[holdAtBox0 @ a, "@", exprBox @ arg]; *)
-holdAtBox[HoldAtForm[a_, arg_]]    := RBox[holdAtBox0 @ a, "@", exprBox @ arg];
-holdAtBox[HoldAtForm[a_, args___]] := headBox2[holdAtBox0 @ head, commaArgsBox @ {args}];
+holdAtBox[HoldAtForm[f_, arg_]]    := RBox[holdAtHeadBox0 @ f, "@", exprBox @ arg];
+holdAtBox[HoldAtForm[f_, args___]] := headBox2[holdAtHeadBox0 @ f, commaArgsBox @ {args}];
 holdAtBox[e_]                      := genericBox @ e;
 
-holdAtBox0 = CaseOf[
+holdAtHeadBox0[f_] /; $isEcho := holdAtHeadBox1 @ f;
+holdAtHeadBox0[f_]            := genericBox @ f;
+
+holdAtHeadBox1 = CaseOf[
   Fn           := "Fn";
   e_Symbol     := symBox @ e;
+  d:DatumP     := datumBox @ d;
   _Dict        := RBox[LAssoc, Dots, RAssoc];
   h_[]         := FnRBox[$ @ h];
   h_[d:DatumP] := FnRBox[$ @ h, exprBox @ d];
@@ -279,7 +288,7 @@ SetHoldC[datumBox, strBox, litBox, symBox];
 
 strBox[""] := "\"\"";
 strBox[s_] := Which[
-  StrLen[s] > $maxStrLen,       HoldElidedBox @ s,
+  StrLen[s] > $maxStrLen,       If[StrLen[s] < 512, InterpBox[#, s]&, Id] @ HoldElidedBox @ s,
   !$specialChars && !ASCIIQ[s], MakeBoxes @ Style[s, ShowSpecialCharacters -> False],
   True,                         MakeBoxes @ s
 ];
@@ -436,15 +445,15 @@ bigHeadBox[head_, args_] := headBox2[parenify @ exprBox @ head, blockDepth[e, co
 parenify[b_] := If[parenifyQ @ b, ParenRBox @ b, b];
 
 parenifyQ = CaseOf[
-  nowrapP                := False;
+  nowrap$                := False;
   RBox[_, "[", ___, "]"] := False;
   s_Str                  := !StrFreeQ[s, SpaceC];
   CDots                  := False;
-  rec1P[b_, ___]         := $ @ b;
+  rec1$[b_, ___]         := $ @ b;
   _                      := True;
 ,
-  {rec1P -> Alt[StyleBox, TagBox, TooltipBox, AdjBox],
-   nowrapP -> Alt[_GridBox, _G2DBox, _SubBox, _SuperBox, _SubsuperBox]}
+  {rec1$ -> Alt[StyleBox, TagBox, TooltipBox, AdjBox],
+   nowrap$ -> Alt[_GridBox, _G2DBox, _SubBox, _SuperBox, _SubsuperBox]}
 ];
 
 (*************************************************************************************************)
@@ -558,10 +567,10 @@ stdBox = CaseOf[
   c_CodePane       := MakeBoxes @ c;
   f_MsgArgForm     := MakeBoxes @ f;
   o_OutExprForm    := MakeBoxes @ o;
-  l:directiveP     := directiveBoxes @ l;
+  l:directive$     := directiveBoxes @ l;
   e_               := blockDepth[e, stdBox2 @ e];
 ,
-  {directiveP -> Alt[_Style, _ExprForm, _Shallow, _HoldExprForm, _Unlimited, _Limited, _Unformatted]}
+  {directive$ -> Alt[_Style, _ExprForm, _Shallow, _HoldExprForm, _Unlimited, _Limited, _Unformatted]}
 ];
 
 (*************************************************************************************************)
@@ -570,12 +579,12 @@ SetHoldC @ stdBox2;
 
 stdBox2 = CaseOf[
   _ /; $noLenQ                        := CDots;
-  m:(mathP)[__]                       := mathBox @ m;
+  m:(math$)[__]                       := mathBox @ m;
   DirInf[] | DirInf[1]                := "\[Infinity]";
   DirInf[-1]                          := RBox["\[Minus]", "\[Infinity]"];
-  arb:rowColP[_List, ___]             := rowColBoxes @ arb;
-  arb:arrayP[_List, ___]              := arrayFormBoxes @ arb;
-  arb:scriptP[__]                     := scriptBoxes @ arb;
+  arb:rowCol$[_List, ___]             := rowColBoxes @ arb;
+  arb:array$[_List, ___]              := arrayFormBoxes @ arb;
+  arb:script$[__]                     := scriptBoxes @ arb;
   arb:Image ? ValidFlagQ              := imageBox @ img;
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
@@ -584,17 +593,17 @@ stdBox2 = CaseOf[
   arb:(_Sym ? HasCoreBoxQ)[___]       := MaybeEval @ coreBox @ arb;
   arb_                                := stdBox3 @ arb;
 ,
-  {arrayP -> Alt[Grid, MatrixForm, TableForm],
-   rowColP -> Alt[Row, Column],
-   scriptP -> Alt[Superscript, Subscript, Subsuperscript, Overscript, Underscript],
-   mathP -> Join[MathSymP, ExtMathSymP]}
+  {array$ -> Alt[Grid, MatrixForm, TableForm],
+   rowCol$ -> Alt[Row, Column],
+   script$ -> Alt[Superscript, Subscript, Subsuperscript, Overscript, Underscript],
+   math$ -> Join[MathSymP, ExtMathSymP]}
 ];
 
 (*************************************************************************************************)
 
 SetHoldC @ coreBox;
 
-coreBox[e_] /; TrueQ[$CoreFormatting] := IfFailed[MakeCoreBox @ e, FailEval];
+coreBox[e_] /; TrueQ[$CoreFormatting] := IfFailed[MakeCBox @ e, FailEval];
 coreBox[e_]                           := FailEval;
 
 (*************************************************************************************************)
@@ -635,11 +644,11 @@ mathBox[e_] := postProcMath @ Apply[
 mathBox2 = CaseOf[
   (h:Plus|Times)[a_]       := mathLeaf @ FnRBox[SymName @ h, exprBox @ a];
   Power[a_, b_]            := decapMath[Power][$ @ a, blockScript[$ @ b, mathLeaf @ CDots]];
-  (h:mathP)[args__]        := decapMath[h][Map[$, NoEval @ args]];
+  (h:math$)[args__]        := decapMath[h][Map[$, NoEval @ args]];
   n:NumP                   := n;
   e_                       := mathLeaf @ exprBox @ e;
 ,
-  {mathP -> Join[MathSymP, ExtMathSymP]}
+  {math$ -> Join[MathSymP, ExtMathSymP]}
 ];
 
 mathLeaf[e_] := RawBoxes @ $mathWrap$ @ e;
@@ -696,12 +705,12 @@ SetHoldC @ inpBox;
 
 inpBox = CaseOf[
   _ /; $noLenQ         := CDots;
-  m:(mathP)[__]        := inpMathBox @ m;
+  m:(math$)[__]        := inpMathBox @ m;
   DirInf[] | DirInf[1] := "Inf";
   DirInf[-1]           := RBox["\[Minus]", "Inf"];
   e_                   := genericBox @ e;
 ,
-  {mathP -> Join[MathSymP, ExtMathSymP]}
+  {math$ -> Join[MathSymP, ExtMathSymP]}
 ];
 
 SetHoldC @ inpMathBox;
@@ -737,7 +746,7 @@ SetHoldC @ directiveBoxes;
 
 directiveBoxes = CaseOf[
   Style[e_, opts___]                 := StyleBox[exprBox @ e, opts];
-  exprFormP[e_, opts___Rule]         := MakeExprBoxes[e, opts];
+  exprForm$[e_, opts___Rule]         := MakeExprBoxes[e, opts];
   Shallow[e_, d_Int]                 := blockLimitDepth[exprBox @ e, d];
   Unlimited[e_, d_Int:1]             := blockUnlimited[exprBox @ e, d];
   Limited[e_, n_Int, d_Int:0]        := blockLimited[exprBox @ e, n, d];
@@ -745,7 +754,7 @@ directiveBoxes = CaseOf[
   Uninteractive[e_]                  := BlockInteractive @ exprBox @ e;
   expr_                              := genericBox @ expr;
 ,
-  {exprFormP -> Alt[ExprForm, HoldExprForm]}
+  {exprForm$ -> Alt[ExprForm, HoldExprForm]}
 ];
 
 (*************************************************************************************************)

@@ -1,5 +1,5 @@
 PackageExports[
-  "Head",
+  "DataHead",
     PyClass, PyField
 ];
 

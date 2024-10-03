@@ -1,9 +1,14 @@
-BeginPackage["Prelude`"]
+BeginPackage["Prelude`", {"Session`"}];
 
 PackageExports[
 
   "PackageFunction",
-    SystemExports, PackageExports, PrivateExports,
+    SystemExports,
+    PackageExports,
+    PrivateExports,
+    SessionExports,
+    CustomExports,
+
     DeclareFilePrivates,
     DeclareFileLocals,
     DeclarePackagePrivates,
@@ -12,13 +17,27 @@ PackageExports[
     DeclareSystemPrivates,
     DeclareSystemGlobals,
 
-  "SpecialVariable",
-    $PreludeLoaded,
-    $PreludeDir,
-    $PreludeFiles
+  "MetaFunction",
+    DeclareArity,
+    DeclareStrict,
+    DeclareHoldFirst,
+    DeclareHoldRest,
+    DeclareHoldAll,
+    DeclareHoldAllComplete,
+    DeclareUsage
 ];
 
 SystemExports[
+
+  "Option",
+    Caching,
+    Logging,
+    LogLevel,
+    Verbose,
+
+  "SymbolicHead",
+    Rectangular,
+    Circular,
 
   "MutatingFunction",
     UnprotectClearAll, UnprotectClear,
@@ -27,22 +46,25 @@ SystemExports[
     ToInputString, HoldToInputString, FromInputString,
 
   "DataHead",
-     UAssociation,
+    UAssociation,
 
   "Function",
-     HoldLength, HoldSequenceLength, HoldByteCount,
-     HoldSymbolName, HoldSymbolNameAlias, HoldSymbolContext, HoldSymbolPath,
-     NaturalNumberString, FullIntegerString,
+    HoldLength, HoldSequenceLength, HoldByteCount,
+    HoldSymbolName, HoldSymbolNameAlias, HoldSymbolContext, HoldSymbolPath,
+    NaturalNumberString, FullIntegerString,
+
+  "MessageFunction",
+    CheckedRHS,
 
   "Predicate",
-     HoldListQ, HoldAssociationQ, HoldPackedArrayQ, PackedListQ,
-     HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ,
+    HoldListQ, HoldAssociationQ, HoldPackedArrayQ, PackedListQ,
+    HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ,
 
   "Variable",
      $FormalSymbols,
 
   "ControlFlow",
-     PrivateHoldComplete, PrivateSequence, PrivateHoldCompleteSequence,
+    PrivateHoldComplete, PrivateSequence, PrivateHoldCompleteSequence,
 
   "MetaFunction",
     DeclaredHere,
@@ -51,20 +73,113 @@ SystemExports[
     OutputExpressionForm, MessageArgumentForm
 ];
 
+SessionExports[
+  "SpecialVariable",
+    $PreludeLoaded,
+    $PreludeDir,
+    $PreludeFiles,
+    $CoreToolsLoaded,
+    $CoreToolsDir,
+    $CoreToolsRootDir
+];
+
 Begin["`Base`Private`"]
 
 (**************************************************************************************************)
 
-SetAttributes[{UnprotectClearAll, UnprotectClear}, {HoldAllComplete}];
+General::invalidUsage      = "Invalid arguments: ``."
+General::unimplemented     = "An unimplemented code path was encountered.";
+General::internalError     = "An internal error occurred.";
+
+(**************************************************************************************************)
+
+DeclareStrict[fns__Symbol] := Scan[DeclareStrict, Unevaluated @ fns];
+
+DeclareStrict[fn_Symbol] := SetDelayed[
+  \[FormalCapitalL]_fn,
+  Message[DeclareArity::args, HoldForm @ \[FormalCapitalL]];
+  $Failed
+];
+
+DeclareStrict[DeclareStrict];
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[fns__Symbol] := SetAttributes[{fns}, HoldAllComplete];
+DeclareHoldFirst[fns__Symbol]       := SetAttributes[{fns}, HoldFirst];
+DeclareHoldRest[fns__Symbol]        := SetAttributes[{fns}, HoldRest];
+DeclareHoldAll[fns__Symbol]         := SetAttributes[{fns}, HoldAll];
+
+DeclareStrict[DeclareHoldAllComplete];
+
+(**************************************************************************************************)
+
+DeclareUsage::noResolve = "Could not resolve symbol name ``.";
+DeclareUsage[usage2_String] := Module[{name, str, usage},
+  usage = StringTrim @ usage2;
+  {name, str} = StringSplit[usage, {" ", "["}, 2];
+  If[!NameQ[name], Message[DeclareUsage::noResolve, name]; Return @ $Failed];
+  hsym = ToExpression[name, InputForm, Hold];
+  setUsage[hsym, usage];
+];
+
+setUsage[Hold[sym_], str_String] := MessageName[sym, "usage"] = str;
+
+DeclareStrict @ DeclareUsage;
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[CheckedRHS, iCheckedRHS1];
+
+CheckedRHS /: SetDelayed[\[FormalCapitalL]_, \[FormalCapitalR]_CheckedRHS] :=
+  iCheckedRHS1[\[FormalCapitalL], \[FormalCapitalR]];
+
+iCheckedRHS1[lhs_, CheckedRHS[test:Except[_List], body_]] :=
+  iCheckedRHS1[lhs, CheckedRHS[{test, "invalidUsage", Internal`ConditionalValueLHS}, body]];
+
+iCheckedRHS1[lhs:(head_Symbol[___]), CheckedRHS[conds:{_, _String, ___}.., body_]] := iCheckedRHS2[
+  head, HoldComplete[lhs],
+  Part[HoldComplete @ conds, All, 1],
+  Part[HoldComplete @ conds, All, 2;;],
+  HoldComplete @ body
+];
+
+iCheckedRHS1[lhs_, rhs_] := Message[General::invalidUsage, HoldForm[lhs := rhs]];
+
+iCheckedRHS2[head_, HoldComplete[lhs_], HoldComplete[conds__], HoldComplete[msgs__List], HoldComplete[body_]] := (
+  SetDelayed[\[FormalCapitalL]_head, $Failed];
+  SetDelayed[lhs, Internal`ConditionalValueBody[head, List @ conds, List @ msgs, body]]
+);
+
+(**************************************************************************************************)
+
+DeclareArity[n_Integer,            s__Symbol] := decArity[n, n, List @ s];
+DeclareArity[n_Integer;;m_Integer, s__Symbol] := decArity[n, m, List @ s];
+DeclareArity[n_Integer;;All,       s__Symbol] := decArity[n, Infinity, List @ s];
+
+SetAttributes[decArity, Listable];
+
+decArity[min_, max_, sym_] := SetDelayed[
+  \[FormalCapitalL]_sym,
+  Developer`CheckArgumentCount[\[FormalCapitalL], min, max]; $Failed
+];
+
+DeclareStrict[DeclareArity];
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[UnprotectClearAll, UnprotectClear];
 
 UnprotectClearAll[e___] := (Unprotect[e]; ClearAll[e]);
 UnprotectClear[e___]    := (Unprotect[e]; Clear[e]);
 
-SetAttributes[{SystemExports, PackageExports, PrivateExports}, HoldAllComplete];
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[SystemExports, PackageExports, PrivateExports, SessionExports, CustomExports];
 
 (**************************************************************************************************)
 
-SetAttributes[HoldToInputString, HoldAllComplete];
+DeclareHoldAllComplete[HoldToInputString];
 
 HoldToInputString[e_]   := ToString[Unevaluated @ e, InputForm];
 ToInputString[e_]       := ToString[Unevaluated @ e, InputForm];
@@ -72,9 +187,9 @@ ToInputString[e_]       := ToString[Unevaluated @ e, InputForm];
 FromInputString[str_ ? Developer`StringOrStringVectorQ]        := ToExpression[str, InputForm];
 FromInputString[str_ ? Developer`StringOrStringVectorQ, head_] := ToExpression[str, InputForm, head];
 
-_FromInputString := (Message[FromInputString::badArgs]; $Failed);
+_FromInputString := (Message[FromInputString::invalidUsage]; $Failed);
 
-FromInputString::badArgs = "Invalid call to FromInputString.";
+FromInputString::invalidUsage = "Invalid call to FromInputString.";
 
 (*************************************************************************************************)
 
@@ -84,8 +199,7 @@ MakeBoxes[MessageArgumentForm[e_], StandardForm]  := MakeBoxes @ e;
  *)
 (*************************************************************************************************)
 
-SetAttributes[PrivateHoldComplete, HoldAllComplete];
-SetAttributes[privateHoldBoxes, HoldAllComplete];
+DeclareHoldAllComplete[PrivateHoldComplete, privateHoldBoxes];
 
 (* we use this to wrap e.g. held values in Assocs and RuleDelayeds but we know it won't be
 shown and won't be generated by any other code that these functions might be trying to debug *)
@@ -100,7 +214,7 @@ privateHoldBoxes[PrivateHoldComplete[es__]]     := RowBox @ {"Sequence", "[", Ro
 
 (*************************************************************************************************)
 
-SetAttributes[privateSeqBoxes, HoldAllComplete];
+DeclareHoldAllComplete[privateSeqBoxes];
 
 MakeBoxes[p_PrivateSequence, StandardForm] := privateSeqBoxes[p];
 
@@ -109,8 +223,7 @@ privateSeqBoxes[PrivateSequence[es___]] := MakeBoxes[Sequence[es]];
 
 (*************************************************************************************************)
 
-SetAttributes[PrivateHoldCompleteSequence, HoldAllComplete];
-SetAttributes[privateHoldSeqBoxes, HoldAllComplete];
+DeclareHoldAllComplete[PrivateHoldCompleteSequence, privateHoldSeqBoxes];
 
 MakeBoxes[p_PrivateHoldCompleteSequence, StandardForm] := privateHoldSeqBoxes[p];
 
@@ -129,7 +242,7 @@ PackedListQ  = Developer`PackedArrayQ;
 
 (*************************************************************************************************)
 
-SetAttributes[{HoldLength, HoldByteCount, HoldSequenceLength}, HoldAllComplete];
+DeclareHoldAllComplete[HoldLength, HoldByteCount, HoldSequenceLength];
 
 HoldByteCount[e_]    := ByteCount @ Unevaluated @ e;
 HoldLength[e_]       := Length @ Unevaluated @ e;
@@ -138,7 +251,7 @@ e_SequenceLength     := Length @ Unevaluated @ e;
 
 (*************************************************************************************************)
 
-SetAttributes[{HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ}, HoldAllComplete];
+DeclareHoldAllComplete[HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ];
 
 HoldStringQ[_String ? Developer`HoldAtomQ] = True;
 HoldIntegerQ[_Integer ? Developer`HoldAtomQ] = True;
@@ -154,7 +267,7 @@ _HoldBooleanQ = False;
 
 (*************************************************************************************************)
 
-SetAttributes[{HoldListQ, HoldAssociationQ, HoldPackedArrayQ}, HoldAllComplete];
+DeclareHoldAllComplete[HoldListQ, HoldAssociationQ, HoldPackedArrayQ];
 
 HoldListQ[_List] = True;
 
@@ -168,7 +281,7 @@ _HoldPackedArrayQ = False;
 
 (*************************************************************************************************)
 
-SetAttributes[{HoldSymbolNameAlias, HoldSymbolName, HoldSymbolContext, HoldSymbolPath}, HoldAllComplete];
+DeclareHoldAllComplete[HoldSymbolNameAlias, HoldSymbolName, HoldSymbolContext, HoldSymbolPath];
 
 HoldSymbolName::usage = "HoldSymbolName[sym$] gives the name of sym$ without evaluating sym$.";
 HoldSymbolContext::usage = "HoldSymbolContext[sym$] gives the full context of sym$ without evaluating sym$.";

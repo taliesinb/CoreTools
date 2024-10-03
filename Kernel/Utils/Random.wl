@@ -81,15 +81,15 @@ SetCurry2[WeightedRandomChoice]
 
 WeightedRandomChoice[set_List, weights_ ? VectorQ] := RandomChoice[weights -> set];
 WeightedRandomChoice[set_List, weights_ ? ArrayQ] := Map[w |-> RandomChoice[w -> set], weights, {-2}];
-_WeightedRandomChoice := ReturnMsg[WeightedRandomChoice::badUsage];
-WeightedRandomChoice::badUsage = "First argument should be set and second argument should be weights."
+_WeightedRandomChoice := ReturnMsg[WeightedRandomChoice::invalidUsage];
+WeightedRandomChoice::invalidUsage = "First argument should be set and second argument should be weights."
 
 (*************************************************************************************************)
 
 RandomChoiceArray[weights_List ? VectorQ] := FastQuietCheck[RandomChoice[weights], RandomChoiceArray[]];
 RandomChoiceArray[weights_List ? ListVectorQ]  := MapLastAxis[RandomChoiceArray, weights];
-_RandomChoiceArray := ReturnMsg[RandomChoiceArray::badUsage];
-RandomChoiceArray::badUsage = "Input was not an array of numbers.";
+_RandomChoiceArray := ReturnMsg[RandomChoiceArray::invalidUsage];
+RandomChoiceArray::invalidUsage = "Input was not an array of numbers.";
 
 (*************************************************************************************************)
 
