@@ -1,7 +1,10 @@
 PackageExports[
   "PatternHead",
     Alt, HoldP, BlankSeq, BlankNullSeq, Opt, PatRep,
-    Blank1, Blank2, Blank3, Blank01, Blank02, Blank12, Blank13, Blank23, BlankSeq2, BlankSeq3,
+    Blank1, Blank2, Blank3,
+    Blank01, Blank02, Blank03,
+    Blank12, Blank13, Blank23,
+    BlankSeq2, BlankSeq3,
     VPattern, VCondition, VPatternTest, VBlank, VBlankSeq, VBlankNullSeq, VAlt, VRepeated, VExcept, VVerbatim, VHoldP,
     VFn, VFunction, VSet, VSetD, VTagSetD, VRule, VRuleD,
 
@@ -65,6 +68,7 @@ DefinePatternRules[
   Blank3           -> Repeated[_, {3}],
   Blank01          -> Repeated[_, {0,1}],
   Blank02          -> Repeated[_, {0,2}],
+  Blank03          -> Repeated[_, {0,3}],
   Blank12          -> Repeated[_, {1,2}],
   Blank13          -> Repeated[_, {1,3}],
   Blank23          -> Repeated[_, {2,3}],

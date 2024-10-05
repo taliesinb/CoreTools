@@ -47,7 +47,7 @@ Relation[fromset, function, toset]
 *)
 
 CoreBox[DiscreteFunction[fwd_, bwd_, set_] ? SealedQ] :=
-  NiceObjectBoxes["DiscreteFunction", {RiffledRowBox["\[Rule]"] @ Map[NatStr, {Len @ fwd, Len @ set}]}];
+  NiceObjectBoxes["DiscreteFunction", {RiffRowBox["\[Rule]"] @ Map[NatStr, {Len @ fwd, Len @ set}]}];
 
 (*************************************************************************************************)
 
@@ -67,7 +67,7 @@ constructFSF[StochasticFunction[assoc_]] := Locals @ CatchMessages[StochasticFun
 
 CoreBox[StochasticFunction[a_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
-    {RiffledRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountUnique @ Catenate @ a]}];
+    {RiffRowBox["\[Rule]"] @ Map[ToBoxes, Len @ a, CountUnique @ Catenate @ a]}];
 
 evalFSF[StochasticFunction[a_], x_]     := RandomChoice @ Lookup[a, x, badKeyMsg2[a, x]];
 evalFSF[StochasticFunction[a_], x_List] := RandomChoiceArray @ Lookup[a, x, badKeyMsg2[a, x]];
@@ -86,7 +86,7 @@ constructFSF[StochasticFunction[assoc_, values_]] := Locals @ CatchMessages[Stoc
 
 CoreBox[StochasticFunction[a_, t_] ? SealedQ] :=
   NiceObjectBoxes["StochasticFunction",
-    {RiffledRBox["\[Rule]"][NatStr @ Len @ a, NatStr @ Len @ t]}];
+    {RiffBox["\[Rule]"][NatStr @ Len @ a, NatStr @ Len @ t]}];
 
 evalFSF[StochasticFunction[a_, o_], x_]     := RandomChoice @ Part[o, Lookup[a, x, badKeyMsg2[a, x]]];
 evalFSF[StochasticFunction[a_, o_], x_List] := RandomChoiceArray @ Part[o, Lookup[a, x, badKeyMsg2[a, x]]];
@@ -138,4 +138,4 @@ badPartMsg[x_] := (Message[StochasticFunction::invalidInput, x]; 1);
 StochasticFunction::invalidInput = "Input to StochasticFunction was invalid: ``.";
 
 CoreBox[StochasticFunction[_, w_ ? HPackedQ, _] ? SealedQ] :=
-  NiceObjectBoxes["StochasticFunction", {RiffledRowBox["\[Times]"] @ Map[ToBoxes, Dimensions @ w]}];
+  NiceObjectBoxes["StochasticFunction", {RiffRowBox["\[Times]"] @ Map[ToBoxes, Dimensions @ w]}];

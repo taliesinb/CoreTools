@@ -93,11 +93,11 @@ formToBlock = CaseOf[
 (**************************************************************************************************)
 
 iToStrFallback = CaseOf[
-  (head_ ? BurrowThroughHeadQ)[arg1_, ___] := formToBlock @ $ @ arg1;
-  expr:(_Sym ? HasToStrFnQ)[___]           := makeSingleBlock @ checkToStr[expr, ToStrInternal @ expr];
-  head_Sym ? HasCoreBoxQ                   := boxToBlock @ MakeBoxes @ head;
-  expr:(_Sym ? HasCoreBoxQ)[___]           := boxToBlock @ MakeBoxes @ expr;
-  expr_                                    := makeSingleBlock @ checkToStr[expr, Null];
+  (head_ ? ThruFormSymQ)[arg1_, ___] := formToBlock @ $ @ arg1;
+  expr:(_Sym ? HasToStrFnQ)[___]     := makeSingleBlock @ checkToStr[expr, ToStrInternal @ expr];
+  head_Sym ? HasCoreBoxQ             := boxToBlock @ MakeBoxes @ head;
+  expr:(_Sym ? HasCoreBoxQ)[___]     := boxToBlock @ MakeBoxes @ expr;
+  expr_                              := makeSingleBlock @ checkToStr[expr, Null];
 ];
 
 SetHoldF @ checkToStr;

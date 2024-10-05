@@ -15,4 +15,3 @@ Specs.wl
 ItemSpecs.wl
 InitColors.wl
 OS.wl
-CoreBoxes.wl

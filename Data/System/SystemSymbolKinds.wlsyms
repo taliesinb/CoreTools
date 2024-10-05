@@ -38,13 +38,17 @@ BoxOption
 	TabViewBoxOptions TagBoxNote TagBoxOptions TemplateBoxOptions TetrahedronBoxOptions Text3DBoxOptions
 	TogglerBoxOptions TooltipBoxOptions TubeBezierCurveBoxOptions TubeBoxOptions TubeBSplineCurveBoxOptions
 	UnderoverscriptBoxOptions UnderscriptBoxOptions ValueBoxOptions
+HoldHead
+	Hold HoldComplete
+SequenceFunction
+	Sequence Splice Nothing
 ControlFlowFunction
-	Break Catch Check CheckAbort CompoundExpression Continue Evaluate Function Goto Label
-	ReleaseHold Return RuleCondition Sequence Throw Unevaluated WithCleanup
+	Break Catch Check CheckAbort AbortProtect CompoundExpression Continue Evaluate Function Goto Label
+	ReleaseHold Return RuleCondition Throw Unevaluated WithCleanup
 DataHead
-	Association DirectedEdge File List Rule RuleDelayed UndirectedEdge URL
+	Association DirectedEdge File List Rule RuleDelayed UndirectedEdge URL Interval Quantity
 DebuggingFunction
-	Abort Echo EchoFunction EchoLabel EchoTiming Fail In InString Out Print Stack StackBegin
+	Abort Echo EchoFunction EchoLabel EchoTiming Fail In InString Out Print CellPrint Stack StackBegin
 	StackComplete StackInhibit Trace TraceDialog TracePrint TraceScan URLFetch URLRead
 FormHead
 	AccountingForm AngleBracket Animate Animator Annotation Application Backslash BaseForm Because
@@ -169,7 +173,7 @@ Function
 	CoefficientArrays CoefficientDomain CoefficientList CoefficientRules Collect CollinearPoints ColonForm
 	ColorBalance ColorCombine ColorConvert ColorData ColorDetect ColorDistance Colorize ColorNegate
 	ColorOutput ColorQuantize ColorReplace ColorSelectorSettings ColorSeparate ColorsNear ColorToneMapping
-	ColumnForm CombinedEntityClass CometData CommitAction CommonDefaultFormatTypes Commonest CommonestFilter
+	ColumnForm CombinedEntityClass CometData CommitAction CommonDefaultFormatTypes CommonestFilter
 	CommonName CommonUnits CommunityGraphPlot CompanyData Compile CompiledCodeFunction CompiledComponent
 	CompiledExpressionDeclaration CompiledFunction CompiledLayer CompilerCallback CompilerEnvironmentAppend
 	CompilerEnvironmentAppendTo Complement ComplementedEntityClass CompleteGraph CompleteIntegral CompleteKaryTree
@@ -534,7 +538,7 @@ Function
 	ProcessStateDomain ProcessStatus ProcessTimeDomain Product ProductDistribution ProductLog Projection PromptForm
 	Properties Property PropertyList PropertyValue ProteinData Pruning PseudoInverse
 	PsychrometricPropertyData PublicKey PulsarData PutAppend QBinomial QFactorial QGamma QnDispersion QPochhammer
-	QPolyGamma QRDecomposition QuadraticOptimization Quantile QuantilePlot Quantity QuantityDistribution
+	QPolyGamma QRDecomposition QuadraticOptimization Quantile QuantilePlot QuantityDistribution
 	QuantityMagnitude QuantityUnit QuantityVariable QuantityVariableCanonicalUnit QuantityVariableDimensions
 	QuantityVariableIdentifier QuantityVariablePhysicalQuantity QuartileDeviation Quartiles QuartileSkewness Query
 	QueueProperties Quiet QuietEcho Quit Quotient QuotientRemainder RadialAxisPlot RadialGradientFilling
@@ -725,13 +729,10 @@ GraphicsPrimitive
 	Icosahedron InfiniteLine InfinitePlane Inset JoinedCurve Line Octahedron Parallelepiped Point Polygon
 	Polyhedron Prism Pyramid Raster Raster3D Rectangle Rotate Scale Simplex Sphere StadiumShape Tetrahedron
 	Text Translate Triangle Tube
-Head
-	C DirectedInfinity FrontEndToken Interval Into Missing Notebook Placed Span TwoWayRule Typed
-	TypeSpecifier UpTo
 IOFunction
-	BinaryDeserialize BinaryRead BinaryReadList BinarySerialize BinaryWrite Cells Close
+	BinaryDeserialize BinaryRead BinaryReadList BinarySerialize BinaryWrite Cells Close Find
 	CopyToClipboard CreateFile CreateNotebook CurrentValue EvaluationBox EvaluationCell EvaluationNotebook Export
-	ExportByteArray ExportString FrontEndExecute Get Import ImportByteArray ImportString MakeBoxes MakeExpression
+	ExportByteArray ExportString FrontEndExecute Get Import ImportByteArray ImportString
 	NextCell NotebookClose NotebookDelete NotebookFind NotebookGet NotebookImport NotebookOpen NotebookPut
 	NotebookRead NotebookSave NotebookSelection NotebookWrite Open OpenAppend OpenRead OpenWrite ParentBox
 	ParentCell PreviousCell Put Read ReadByteArray ReadLine ReadList ReadString ResetDirectory SelectedCells
@@ -741,12 +742,13 @@ MessageFunction
 	ConsoleMessage General Message MessageDialog MessageList MessageName MessageOptions
 	MessagePacket Messages MessagesNotebook
 MetaFunction
-	SetAttributes Protect Unprotect Attributes ClearAttributes
+	SetAttributes Protect Unprotect Attributes ClearAttributes DownValues UpValues FormatValues DefaultValues OwnValues SubValues DownValues
 MutatingFunction
 	AddTo AppendTo ApplyTo AssociateTo Decrement DivideBy Increment KeyDropFrom
 	PreDecrement PreIncrement PrependTo Clear ClearAll Set SetDelayed SetOptions SubtractFrom TagSet
 	TagSetDelayed TagUnset TimesBy Unset UnsetShared UpSet UpSetDelayed
 Object
+	FrontEndToken Notebook
 	ActiveClassificationObject ActivePredictionObject AggregationLayer AnimatedImage
 	AsynchronousTaskObject Audio BasicRecurrentLayer BatchNormalizationLayer BayesianMaximizationObject
 	BayesianMinimizationObject BooleanFunction BoundaryMeshRegion BoxData BoxObject ByteArray CatenateLayer CellObject
@@ -917,12 +919,12 @@ Predicate
 	BoundedRegionQ BusinessDayQ ByteArrayFormatQ ByteArrayQ ColorQ CompatibleUnitQ CompleteGraphQ CompositeQ
 	ConnectedGraphQ ConstantRegionQ ConvexPolygonQ ConvexPolyhedronQ ConvexRegionQ CoprimeQ CSGRegionQ
 	DataStructureQ DateObjectQ DateOverlapsQ DateWithinQ DaylightQ DayMatchQ DeviceOpenQ DiagonalizableMatrixQ
-	DiagonalMatrixQ DictionaryWordQ DigitQ DirectedGraphQ DirectoryQ DisjointQ DispatchQ DistributionParameterQ
+	DiagonalMatrixQ DictionaryWordQ DigitQ DirectedGraphQ DirectoryQ DispatchQ DistributionParameterQ
 	DuplicateFreeQ EdgeCoverQ EdgeQ EdgeTaggedGraphQ EdgeTransitiveGraphQ EdgeWeightedGraphQ EllipticNomeQ
 	EmptyGraphQ EulerianGraphQ EvenQ ExactNumberQ FailureQ FileExistsQ FileFormatQ
 	FiniteFieldElementPrimitiveQ FreeQ GraphQ GroupElementQ HamiltonianGraphQ HermitianMatrixQ HypergeometricPFQ
 	ImageContainsQ ImageInstanceQ ImageQ IndefiniteMatrixQ IndependentEdgeSetQ IndependentVertexSetQ
-	InexactNumberQ IntegerQ IntersectingQ IntervalMemberQ InverseEllipticNomeQ IrreduciblePolynomialQ
+	InexactNumberQ IntegerQ IntervalMemberQ InverseEllipticNomeQ IrreduciblePolynomialQ
 	IsomorphicGraphQ IsomorphicSubgraphQ KEdgeConnectedGraphQ KeyExistsQ KeyFreeQ KeyMemberQ KnownUnitQ
 	KVertexConnectedGraphQ LeapYearQ LegendreQ LetterQ LinkConnectedQ LinkReadyQ ListQ LoopFreeGraphQ LowerCaseQ
 	LowerTriangularMatrixQ MachineNumberQ ManagedLibraryExpressionQ MandelbrotSetMemberQ MarcumQ MatchLocalNameQ MatchQ
@@ -947,15 +949,15 @@ ScopingFunction
 SlotSymbol
 	Slot SlotSequence TemplateSlot TemplateSlotSequence
 SpecialFunction
-	AbortProtect Attributes CellPrint DefaultValues DownValues DynamicModule Failure Find
-	FormatValues Hold HoldComplete IntegerString Nothing OwnValues Splice SubValues Throw ToBoxes ToExpression
-	UpValues
+	DynamicModule Failure IntegerString ToBoxes MakeBoxes ToExpression MakeExpression
+TagVariable
+	$TimedOut $Aborted
 SpecialVariable
-	$Aborted $Context $ContextPath $Failed $MessageGroups $MessageList $MessagePrePrint $Messages
-	$NewMessage $Post $Pre $PrePrint $PreRead $TimedOut
-StrPatternHead
+	$Context $ContextPath $Failed $MessageGroups $MessageList $MessagePrePrint $Messages
+	$NewMessage $Post $Pre $PrePrint $PreRead
+StringPatternHead
 	RegularExpression StringExpression
-StrPatternSymbol
+StringPatternSymbol
 	DigitCharacter EndOfLine EndOfString HexadecimalCharacter LetterCharacter NoWhitespace
 	NumberString PunctuationCharacter StartOfLine StartOfString Whitespace WhitespaceCharacter Word
 	WordBoundary WordCharacter
@@ -964,11 +966,11 @@ Symbol
 	Center Character Constant Degree Delimiter E EndOfBuffer EndOfFile Expression False Flat Forward
 	ForwardBackward Front Full HoldAll HoldAllComplete HoldFirst HoldRest Horizontal Indeterminate Infinity
 	Inherited Large Larger Left Listable Locked MachinePrecision Manual Medium Next NHoldAll NHoldFirst
-	NHoldRest None Null Number NumericFunction OneIdentity Orderless Overflow Pi Previous Primes Protected
+	NHoldRest None Null Number NumericFunction OneIdentity Orderless Overflow Pi Previous Protected
 	ReadProtected Record Right SequenceHold Small Smaller SpanFromAbove SpanFromBoth SpanFromLeft Stub
 	Temporary Tiny Top True Underflow Vertical
 SymbolicHead
-	NonCommutativeMultiply
+	NonCommutativeMultiply Into UpTo Placed Span TwoWayRule Typed TypeSpecifier Missing DirectedInfinity C
 TypeHead
 	Complex Integer Rational Real String Symbol
 TypeSymbol

@@ -2,14 +2,15 @@ PackageExports[
   "ScopingFunction",  InheritedBlock, IBlock,
   "TypeHead",         Int, Rat, Sym, Str,
   "DataHead",         Dict, UDict, ODict, RuleD, DEdge, UEdge, DirInf, USet, OSet, MSet,
-  "ControlFlow",      Fn, Then, Seq, Eval, NoEval, RuleEval, MaybeEval, FailEval, PrivHold, PrivSeq, PrivHoldSeq,
+  "SeqFn",            Seq,
+  "HoldHead",         HoldC, HoldComp, HoldM, SetM, SetDM, RuleDM, PrivHold, PrivSeq, PrivHoldSeq,
+  "ControlFlow",      Fn, Then, Eval, NoEval, RuleEval, MaybeEval, FailEval,
   "SymbolicHead",     NCTimes,
   "Predicate",        PackedQ,
   "SpecialVariable",  $Fail,
   "Symbol",           Auto, Inherit, HInf, Tru, Fal
   "StrPatHead",       Regex, StrExpr,
   "MessageFunction",  MsgName,
-  "SpecialFunction",  HoldC, HoldComp, HoldM, SetM, SetDM, RuleDM,
   "MutatingFunction", SetD, TagSetD, UpSetD, AssocTo, SubFrom,
   "SlotSymbol",       FmA, FmB, FmC, FmD, FmE, FmF, FmG, FmH, FmI, FmJ, FmK, FmL, FmM, FmN, FmO, FmP, FmQ, FmR, FmS, FmT, FmU, FmV, FmW, FmX, FmY, FmZ
 ];

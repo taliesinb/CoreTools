@@ -14,13 +14,13 @@ PackageExports[
   "GraphicsDirective",
     APointSize, AThickness, ADashing,
 
-  "IOFunction",
+  "SpecialFunction",
     MakeBox, ToBox,
 
   "BoxFunction",
     SubBox, SuperBox, OverBox, UnderBox, SubsuperBox,
     AdjBox, InterpBox, G2DBox, G3DBox, SBox, TBox,
-    DotsBox, RawBox,
+    RawBox,
 
   "FormHead",
     MsgArgForm, OutExprForm,
@@ -30,7 +30,8 @@ PackageExports[
   "BoxOption",
     GridItemSize, GridItemStyle, GridMargins, GridDivs,
     RowSizes, RowGaps, RowJust, ColSizes, ColGaps, ColJust, ColLines, ColsEqual,
-    ItemsEqual, ShowStrChars,
+    ItemsEqual, ShowStrChars, BLinePos,
+    ColorFn, VertexColorFn, Bend, Padded,
 
   "Option",
     BaselinePos,
@@ -39,14 +40,14 @@ PackageExports[
 
   "Option",
     ItemFn, LabelFn, ClickFn, TooltipFn, SizeFn,
-    ColorFn, VertexColorFn, Bend,
 
   "Symbol",
     Bef, Aft,
     Hor, Ver, Cen,
     Lef, Rig,
     Bot,
-    TopL, TopR, BotL, BotR
+    TopL, TopR, BotL, BotR,
+    BLine
 ];
 
 (*************************************************************************************************)
@@ -63,7 +64,8 @@ DefineAliasRules[
   TopL       -> TopLeft,
   TopR       -> TopRight,
   BotL       -> BottomLeft,
-  BotR       -> BottomRight
+  BotR       -> BottomRight,
+  BLine      -> Baseline
 ];
 
 (*************************************************************************************************)
@@ -122,7 +124,6 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  ShowStrChars   -> ShowStringCharacters,
   RowSizes       -> RowHeights, (* THIS IS A NO-OP *)
   RowGaps        -> RowSpacings,
   RowJust        -> RowAlignments,
@@ -134,7 +135,6 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  BaselinePos    -> BaselinePosition,
   ItemPos        -> ItemPosition,
   ItemGaps       -> ItemSpacings,
   ItemDivs       -> ItemDividers,
@@ -156,8 +156,11 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  BLinePos       -> BaselinePosition,
+  ShowStrChars   -> ShowStringCharacters,
   ColorFn        -> ColorFunction,
   VertexColorFn  -> VertexColorFunction,
-  Bend           -> RoundingRadius
+  Bend           -> RoundingRadius,
+  Padded         -> ContentPadding
 ];
 

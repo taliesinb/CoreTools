@@ -11,7 +11,7 @@ SystemExports[
     NameMost,
     NameMostLast
 
-  "IOFunction",
+  "SpecialFunction",
     EnsureContext,
 
   "Predicate",

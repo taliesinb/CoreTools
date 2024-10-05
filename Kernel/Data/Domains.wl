@@ -203,7 +203,7 @@ arrayDomainBoxes = CaseOf[
   _ := $Failed
 ];
 
-dimsBox[dims_List] := CodeFontBox @ TightBox @ RiffledRowBox[$dimTimesBox][NatStr /@ dims]
+dimsBox[dims_List] := CodeFontBox @ TightBox @ RiffRowBox[$dimTimesBox][NatStr /@ dims]
 
 $dimTimesBox = FontColorBox[.5] @ "\[Times]";
 

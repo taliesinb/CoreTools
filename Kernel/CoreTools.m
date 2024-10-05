@@ -60,12 +60,12 @@ EndPackage[];
 
 (*************************************************************************************************)
 
-If[!PackageLoadCompletedQ["CoreTools`"],
+If[!Prelude`PackageLoadCompletedQ["CoreTools`"],
   Session`$CoreToolsLoaded = False;
   General::coreToolsLoadFailed = "CoreTools didn't load successfully.";
   Message[General::coreToolsLoadFailed];
   $ContextPath = DeleteCases[$ContextPath, "CoreTools`"]; (* allows us to retry later *)
 ,
   Session`$CoreToolsLoaded = True;
-  If[TrueQ @ System`Private`$UseCoreToolsPrePrintFns, Symbol["CoreTools`SetPrePrintFns"][]];
+  If[TrueQ @ Session`$UseCoreToolsPrePrintFns, Symbol["CoreTools`SetPrePrintFns"][]];
 ];

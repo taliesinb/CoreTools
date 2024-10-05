@@ -37,7 +37,7 @@ DataLeaf[d_] := DataNode[d][];
 CoreBox[t_TreeSeed ? ValidTreeQ]   := treeNodeBoxes[t];
 CoreBox[t_TreeNode ? ValidTreeQ]   := treeNodeBoxes @ t;
 
-DeclareCoreSubBoxes[DataNode];
+SetCoreSubBox[DataNode];
 
 MakeCBox[t:(DataNode[_][___]) ? ValidTreeQ] := treeNodeBoxes @ t;
 

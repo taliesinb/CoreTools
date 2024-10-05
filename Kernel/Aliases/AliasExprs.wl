@@ -7,7 +7,7 @@ PackageExports[
     SetNoEntryFlag,  SetValidFlag,
     HSetNoEntryFlag, HSetValidFlag,
 
-  "IOFunction",
+  "SpecialFunction",
     GetRefCount, GetContentCode,
 
   "Predicate",

@@ -1,14 +1,15 @@
 Aliases/
 Init/
+Boxes/
 Typeset/
 Debug/
 Utils/
+Arrays/
 Tools/
 Algebra/
 Geometry/
 Graphics/
 Graph/
 Python/
-NArray/
 Data/
 MGraph/

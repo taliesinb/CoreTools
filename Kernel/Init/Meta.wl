@@ -11,7 +11,7 @@ PackageExports[
     SetPred1, SetPred2, SetPred3, SetNPred1, SetNPred2, SetNPred3,
     SetHoldF, SetHoldR, SetHoldA, SetHoldC, SetHoldSeq,
     SetFlat, SetListable, SetListable1, SetListableOp,
-    SetStrict, SetExcepting,
+    SetStrict, SetStrictOp, SetExcepting,
 
     DefinePseudoMacro,
 
@@ -186,9 +186,9 @@ DeclarationDefs[
 
 SetStrict::usage = "SetStrict[sym$] declares that sym$[___] should throw an error if it doesn't match.";
 
-DeclaredHere[SetStrict, DeclareSeqScan, DeclareThenScan];
+DeclaredHere[SetStrict, SetStrictOp, DeclareSeqScan, DeclareThenScan];
 
-SetHoldC[SetStrict, DeclareSeqScan, DeclareThenScan]
+SetHoldC[SetStrict, SetStrictOp, DeclareSeqScan, DeclareThenScan]
 
 General::badArguments = "Bad arguments: ``.";
 General::badSeqScanArg = "Bad argument to ``: ``.";
@@ -199,10 +199,14 @@ StrictMsg[head_, sloc_, lhs_] := If[HasDownDefsQ[IssueMessage],
 ];
 
 DeclarationDefs[
-  SetStrict[head_Sym] := With[{sloc = SourceLocation[]}, Apply[
-    SetD,
-    Hold[$LHS_head, StrictMsg[head, sloc, HoldForm @ $LHS]]
-  ]],
+
+  SetStrict[head_Sym] := With[{sloc = SourceLocation[]},
+    SetD @@ Hold[$LHS_head, StrictMsg[head, sloc, HoldForm @ $LHS]]
+  ],
+
+  SetStrictOp[head_Sym] := With[{sloc = SourceLocation[]},
+    SetD @@ Hold[$LHS:(_head[___]), StrictMsg[head, sloc, HoldForm @ $LHS]]
+  ],
 
   DeclareSeqScan[head_Sym] := (
     SetStrict[head];

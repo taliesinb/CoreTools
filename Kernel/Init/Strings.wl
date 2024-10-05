@@ -32,9 +32,7 @@ PackageExports[
     DefineSeqRowStringForms,
   "Function",
     StringSelect, StringDiscard, StringSelectDiscard,
-    FnStrRow, FnParenStrRow, FnStr, FnParenStr,
-  "Variable",
-    $DQuote, $SQuote, $Newline, $DNewline, $Backslash
+    FnStrRow, FnParenStrRow, FnStr, FnParenStr
 ];
 
 (**************************************************************************************************)
@@ -295,26 +293,16 @@ SQuotedString[e_Str] := StrJoin["'", EscapeSQuotes[e], "'"];
 
 (**************************************************************************************************)
 
-$DQuote    = "\"";
-$SQuote    = "'";
-$Newline   = "\n";
-$DNewline  = "\n\n";
-$Backslash = "\\";
+$escapeDQR = {BSDQ -> BSDQ, DQ -> BSDQ};
+$escapeSQR = {BSSQ -> BSSQ, SQ -> BSSQ};
+$escapeR   = z:{NL, DQ, BS} :> "\\" <> z;
+$unescapeR = ("\\" ~~ z:{NL, DQ, BS}) :> z;
 
-$escapedDQuote = "\\\""; $escapedSQuote = "\\'"; $escapedNewline = "\\\n"; $escapedEscape = "\\\\";
-
-$escapeDQuoteRules = {$escapedDQuote -> $escapedDQuote,   $DQuote -> $escapedDQuote};
-$escapeSQuoteRules = {$escapedSQuote -> $escapedSQuote,   $SQuote -> $escapedSQuote};
-$escapeNewlines    = {$escapedNewline -> $escapedNewline, $Newline -> $escapedNewline};
-
-$escapeRules   = z:{$Newline, $DQuote, $Backslash} :> "\\" <> z;
-$unescapeRules = ("\\" ~~ z:{$Newline, $DQuote, $Backslash}) :> z;
-
-EscapeCharacters[e_]   := StringReplace[e, $escapeRules];
-UnescapeCharacters[e_] := StringReplace[e, $unescapeRules];
-EscapeDQuotes[e_]      := StringReplace[e, $escapeDQuoteRules];
-EscapeSQuotes[e_]      := StringReplace[e, $escapeSQuoteRules];
-EscapeNewlines[e_]     := StringReplace[e, $escapeSQuoteRules];
+EscapeCharacters[e_]   := StringReplace[e, $escapeR];
+UnescapeCharacters[e_] := StringReplace[e, $unescapeR];
+EscapeDQuotes[e_]      := StringReplace[e, $escapeDQR];
+EscapeSQuotes[e_]      := StringReplace[e, $escapeSQR];
+EscapeNewlines[e_]     := StringReplace[e, $escapeSQR];
 
 (**************************************************************************************************)
 

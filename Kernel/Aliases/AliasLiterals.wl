@@ -1,13 +1,4 @@
 PackageExports[
-  "StrPatSym",
-    Dots, CDots, VDots,
-    LAssoc, LBrace, LParen, LAngle, LGAngle, LBracket,
-    RAssoc, RBrace, RParen, RAngle, RGAngle, RBracket,
-    Com, ComSpc, Spc,
-    Newline, DNewline, NL, NLNL,
-    LSpan, TSpan,
-    SQuote, DQuote, DQuoteEsc,
-
   "Symbol",
     EmptyDict, EmptyUDict, EmptyODict,
     Inf, PosInf, NegInf,
@@ -16,38 +7,6 @@ PackageExports[
 ];
 
 (*************************************************************************************************)
-
-(* TODO: add suffix of S for String *)
-
-DefineLiteralRules[
-  Dots       -> "\[Ellipsis]",
-  CDots      -> "\[CenterEllipsis]",
-  VDots      -> "\[VerticalEllipsis]",
-  LSpan      -> "\[SpanFromLeft]",
-  TSpan      -> "\[SpanFromAbove]",
-  LBrace     -> "{",
-  RBrace     -> "}",
-  LParen     -> "(",
-  RParen     -> ")",
-  LAngle     -> "\[LeftAngleBracket]",
-  RAngle     -> "\[RightAngleBracket]",
-  LGAngle    -> "\[LeftGuillemet]",
-  RGAngle    -> "\[RightGuillemet]",
-  LBracket   -> "[",
-  RBracket   -> "]",
-  LAssoc     -> "\[LeftAssociation]",
-  RAssoc     -> "\[RightAssociation]",
-  Newline    -> "\n",
-  DNewline   -> "\n\n",
-  SQuote     -> "'",
-  DQuote     -> "\"",
-  DQuoteEsc  -> "\\\"",
-  Com        -> ",",
-  ComSpc     -> ", ",
-  Spc        -> " ",
-  NL         -> "\n",
-  NLNL       -> "\n\n"
-];
 
 DefineLiteralRules[
   EmptyDict  -> Evaluate @ Dict[],

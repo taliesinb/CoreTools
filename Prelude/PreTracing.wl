@@ -15,6 +15,7 @@ SystemExports[
     TraceUnpackings,
     EnableDebugPrinting,
     DisableEchoPrinting,
+    DisableMutationPrinting,
     FailureString,
     UnpackingTable,
     MicroTiming,
@@ -34,14 +35,13 @@ SystemExports[
     DPrint,
     EchoPrint,
     MutationPrint,
-    WithRawPrintIndent,
+
+  "ScopingFunction",
+    PrintIntended,
 
   "SpecialVariable",
-    $Captured,
+    $LastCapture,
     $LastTraceback,
-
-    $ShouldPrint,
-    $PrintIndent,
     $MaxPrintRate,
     $DebugPrinting,
     $EchoPrinting,
@@ -52,10 +52,13 @@ SystemExports[
     $Disabled
 ]
 
-PackageExports[
+SessionExports[
   "SpecialVariable",
+    $PrintIndent,
+    $ShouldPrint,
     $CellPrintLabel,
-    $CurrentlyTracingAutoloads
+    $CurrentlyTracingAutoloads,
+    $CurrentlyTracingSymbols
 ];
 
 Begin["`Tracing`Private`"]
@@ -66,18 +69,18 @@ Protect[$Disabled];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[BlockPrint, EnableDebugPrinting, DisableEchoPrinting, DisableMutationPrinting, WithRawPrintIndent];
+DeclareHoldAllComplete[BlockPrint, EnableDebugPrinting, DisableEchoPrinting, DisableMutationPrinting, PrintIntended];
 
 BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
 
-$DebugPrinting    = False;
-$EchoPrinting     = True;
-$MutationPrinting = True;
+If[!BooleanQ[$DebugPrinting],    $DebugPrinting = False];
+If[!BooleanQ[$EchoPrinting],     $EchoPrinting = True];
+If[!BooleanQ[$MutationPrinting], $MutationPrinting = True];
 
 EnableDebugPrinting[body_]     := Block[{$DebugPrinting    = True},  body];
 DisableEchoPrinting[body_]     := Block[{$EchoPrinting     = False}, body];
 DisableMutationPrinting[body_] := Block[{$MutationPrinting = False}, body];
-WithRawPrintIndent[body_]      := Block[{$PrintIndent = $PrintIndent + 1}, body];
+PrintIntended[body_]           := Block[{$PrintIndent = $PrintIndent + 1}, body];
 
 (*************************************************************************************************)
 
@@ -109,14 +112,15 @@ MutationPrint[args___] := If[$MutationPrinting, CustomizedPrint[$mutationPrintOp
 
 (*************************************************************************************************)
 
-$PrintIndent = 0;
+If[!StringQ[$CellPrintLabel], $CellPrintLabel = None];
+If[!IntegerQ[$PrintIndent],  $PrintIndent = 0];
 If[!IntegerQ[$MaxPrintRate], $MaxPrintRate = 50];
 
 (*************************************************************************************************)
 
-$rawPrintCount = 0;
+$rawPrintCount     = 0;
 $rawPrintResetTime = 0;
-$rawPrintThisTime = 0;
+$rawPrintThisTime  = 0;
 
 $ShouldPrint := (
   If[
@@ -266,8 +270,8 @@ fmtFrameLine[line_] := First[
 SetAttributes[Capture, HoldAll];
 
 Capture[e_] := Block[
-  {res = $Captured = HoldComplete[e]},
-  $Captured = $Captured /. sym_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[sym];
+  {res = $LastCapture = HoldComplete[e]},
+  $LastCapture = $LastCapture /. sym_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[sym];
   ReleaseHold[res]
 ];
 
@@ -298,7 +302,7 @@ printSymbolChange[hc_] := MutationPrint[hc];
 DeclareHoldAllComplete[HandleSymbolChanges, handleValueChange];
 DeclareStrict[HandleSymbolChanges];
 
-$CurrentlyTracingSymbols = False;
+If[!BooleanQ[$CurrentlyTracingSymbols], $CurrentlyTracingSymbols = False];
 
 HandleSymbolChanges[sym_Symbol, body_, fn_] :=
   HandleSymbolChanges[{sym}, body, fn];
@@ -506,6 +510,8 @@ mxGet[fn_, file_] := Block[{$hookAutoload = False},
   $loadCallbackFn[file, Begin];
   With[{res = fn @ file}, $loadCallbackFn[file, End]; res]
 ];
+
+If[!BooleanQ[$CurrentlyTracingAutoloads], $CurrentlyTracingAutoloads = False];
 
 TraceAutoloads[expr_, callback_:None] := Block[
   {$CurrentlyTracingAutoloads = True, $hookAutoload = True, $loadCallbackFn = callback},

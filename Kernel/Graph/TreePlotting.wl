@@ -397,7 +397,7 @@ vertexEdgeIndexGraph[g_] := IndexEdgeTaggedGraph @ IndexGraph @ g;
 
 constructEdgePaths[edgePaths_, bendRadius_, fanoutStyle_] := Locals[
   $r = bendRadius;
-  SetAuto[$r, 0.333 * MinimumDistance @ Join[Col1 @ edgePaths, ColN @ edgePaths]];
+  SetAuto[$r, 0.333 * MinDist @ Join[Col1 @ edgePaths, ColN @ edgePaths]];
   Switch[fanoutStyle,
     "Top" | Top,       Map[bendTop, edgePaths],
     "Circuit",         Map[bendCenter, edgePaths],

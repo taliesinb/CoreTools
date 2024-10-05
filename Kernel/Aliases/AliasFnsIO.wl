@@ -1,6 +1,7 @@
 PackageExports[
   "IOFunction",
     ReadRawJSONFile, ReadRawJSONStream, WriteRawJSONFile, WriteRawJSONStream, CellInformation,
+  "SpecialFn",
     ToInputStr, HToInputStr, FromInputStr,
   "Function",
     ReadRawJSONString, WriteRawJSONString,

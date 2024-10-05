@@ -10,7 +10,7 @@ PrivateExports[
 
 (*************************************************************************************************)
 
-SystemSymbolKinds[] := ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wl.txt";
+SystemSymbolKinds[] := ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wlsyms";
 
 CoreToolsSymbolKinds[] := Merge[PackageSymbolKinds /@ {"CoreTools`", "Prelude`"}, Catenate];
 
@@ -36,9 +36,9 @@ SublimeUpdateSyntax[] := Locals[
 
   (* load syntax groups from syntax files, and list of internal context -> symbols *)
   systemKinds = SystemSymbolKinds[];
-  librarySymbolFiles = userSymbolFile @ FileList["*.wl.txt"];
+  librarySymbolFiles = userSymbolFile @ FileList["*.wlsyms"];
   libraryKinds = Merge[ImportStringTable /@ librarySymbolFiles, Catenate];
-  ExportStringTable[staticFile @ "LibraryKinds.wl.txt", libraryKinds];
+  ExportStringTable[staticFile @ "LibraryKinds.wlsyms", libraryKinds];
 
   coreKinds = CoreToolsSymbolKinds[];
   coreSymbols = Union @ Flatten @ Values @ coreKinds;
@@ -47,7 +47,7 @@ SublimeUpdateSyntax[] := Locals[
 
   (* generate strings *)
   res = Check[
-    internalSymbols = ImportStringTable @ systemSymbolFile["InternalSymbols.wl.txt"];
+    internalSymbols = ImportStringTable @ systemSymbolFile @ "InternalSymbols.wlsyms";
     preludeSymbols = Dict["Prelude`" -> Map[NameLast, Names @ "Prelude`*"]];
     JoinTo[internalSymbols, preludeSymbols];
     {builtinRegexs, builtinDefs, builtinContext} = makeGroupsRegexpsDefs[systemKinds,  "System"];
@@ -266,7 +266,7 @@ groupToKindColorProxy = CaseOf[
 cachePackageSymbolKinds["CoreTools`"] := Null;
 
 cachePackageSymbolKinds[context_] := Locals[
-  filename = StringDelete[context, "`"] <> ".wl.txt";
+  filename = StringDelete[context, "`"] <> ".wlsyms";
   symbolKinds = PackageSymbolKinds[context];
-  ExportStringTable[userSymbolFile[filename], symbolKinds, "Split" -> 120]
+  ExportStringTable[userSymbolFile @ filename, symbolKinds, "Split" -> 120]
 ];

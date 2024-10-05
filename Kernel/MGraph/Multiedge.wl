@@ -120,7 +120,7 @@ edgeTreeBoxes[m_Multiedge, scale_] :=
 
 twoDimArrowBox[None] := "\[LeftTeeArrow]";
 twoDimArrowBox[name_] := OverscriptBox["\[LeftTeeArrow]",
-  HMarginBox[edgeNameBoxes[name, $MultiedgeIconScale], {.5, .5}]
+  HPadBox[edgeNameBoxes[name, $MultiedgeIconScale], {.5, .5}]
 ];
 
 twoDimMultiedgeIconBoxes = CaseOf[

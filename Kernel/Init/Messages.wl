@@ -17,6 +17,8 @@ PackageExports[
     ThrowMessage, ThrowUnknownOptionMessage, ThrowOptionMessage,
 
     SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
+    SameLenQOrMsg,
+
     AssertThat,
 
   "DebuggingFunction", Panic,
@@ -98,7 +100,7 @@ $SrcLocStack = {};
 
 (**************************************************************************************************)
 
-Panic::usage = "Panic[] calls Abort[], and could save more information in future.";
+"Panic[] calls Abort[], and could save more information in future."
 
 Panic[] := With[
   {stack = ExceptionHandlerStack[]},
@@ -108,7 +110,6 @@ Panic[] := With[
 
 (**************************************************************************************************)
 
-IssueMessage::usage =
 "IssueMessage[head$, 'name$', args$$] issues the message with name 'name$' against symbol head$.
 * if the message doesn't exist a fallback message will be issued."
 
@@ -171,7 +172,6 @@ TryElseHandler[else_][_] := else;
 
 (**************************************************************************************************)
 
-Try::usage =
 "Try[body$] catches exceptions and displays them, returning $Failed."
 
 SetHoldC @ Try;
@@ -185,7 +185,6 @@ TryHandler[head_, MessageException[sloc_, symbol_, name_Str, args___]]   := Issu
 
 (**************************************************************************************************)
 
-CatchMessages::usage =
 "CatchMessages[head$, body$] catches errors thrown by ThrowMessage.
 CatchMessages[body$] uses the current head."
 
@@ -203,7 +202,6 @@ cm:CatchAsMessageHandler[_, __] := ErrorPrint["Failure to handle: ", HoldForm[cm
 
 SetHoldC @ CatchAsFailure;
 
-CatchAsFailure::usage =
 "CatchAsFailure['name$', body] catches exceptions thrown by ThrowMessage etc, returning a Failure object.
 CatchAsFailure['name$', body, fn] applies fn to the failure."
 
@@ -226,7 +224,6 @@ createFailure[sloc_, failureName_, symbol_, msgName_, msgArgs___] :=
 
 (**************************************************************************************************)
 
-ThrowMessage::usage =
 "ThrowMessage['name', body] throws a message to CatchMessages where it is issued.
 ThrowMessage['quiet', ...] is equivalent to RaiseException[]."
 
@@ -255,7 +252,16 @@ LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, Thro
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict[ThrowOnUnknownOptions, MessageOnUnknownOptions];
+SetStrict @ SameLenQOrMsg;
+
+SameLenQOrMsg[a_, b_, fn_] := Or[Len[a] === Len[b], Message[MessageName[fn, "lengthMismatch"], Len @ a, Len @ b]; False];
+
+General::lengthMismatch = "Incompatible argument lengths `` and ``.";
+
+(**************************************************************************************************)
+
+SetExcepting @ SetStrict @ ThrowOnUnknownOptions;
+SetStrict @ MessageOnUnknownOptions;
 
 ThrowOnUnknownOptions[head_Symbol] := Null;
 
@@ -278,30 +284,30 @@ MessageOnUnknownOptions[args___] := Block[
 
 Clear[IssueUnknownOptionMessage, ThrowUnknownOptionMessage];
 
-SetExcepting @ SetCurry1[IssueUnknownOptionMessage, ThrowUnknownOptionMessage]
+SetExcepting @ SetCurry1 @ ThrowUnknownOptionMessage;
+SetCurry1 @ IssueUnknownOptionMessage;
 
-IssueUnknownOptionMessage[head_, key_]   := ErrorMessage["unknownOption", key, head, UnlimitedRow[OptionKeys @ head, ","]];
-ThrowUnknownOptionMessage[head_, key_]   := ThrowMessage["unknownOption", key, head, UnlimitedRow[OptionKeys @ head, ","]];
+IssueUnknownOptionMessage[head_, key_]   := ErrorMessage["unknownOption", key, head, RawRow[OptionKeys @ head, ","]];
+ThrowUnknownOptionMessage[head_, key_]   := ThrowMessage["unknownOption", key, head, RawRow[OptionKeys @ head, ","]];
 IssueUnknownOptionMessage[General, key_] := ErrorMessage["unknownOptionAnon", key];
 ThrowUnknownOptionMessage[General, key_] := ThrowMessage["unknownOptionAnon", key];
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict[IssueOptionMessage, ThrowOptionMessage]
+SetExcepting @ SetStrict @ ThrowOptionMessage;
+SetStrict @ ThrowOptionMessage;
 
 IssueOptionMessage[opt_, val_] := ErrorMessage["invalidOption", opt, val];
 ThrowOptionMessage[opt_, val_] := ThrowMessage["invalidOption", opt, val];
 
 (**************************************************************************************************)
 
-ThrowErrorValue::usage =
 "ThrowErrorValue[value$] returns value$ from the containing HandleException-based body."
 
 ThrowErrorValue[value_] := ThrowException @ LiteralException[None, value];
 
 (**************************************************************************************************)
 
-ThrowException::usage =
 "ThrowException[] returns a $Failed from the containing HandleException-based body.
 ThrowException[exception$] throws an exception, which should be a MessageException, FailureException, or LiteralException."
 

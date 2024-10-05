@@ -1,13 +1,27 @@
 PackageExports[
   "Function",
     Id, Rev, At, Make, Len, Dims, Vals, Rep, RepRep, RepAll,
-    ConstList, SelectF, PosIndex, DelCases, DelDups, DelDupsBy, Inter, Compl, Dist, DictMap,
+    ConstList, SelectF, PosIndex, DelCases, DelDups, DelDupsBy, Inter, Compl, DictMap,
     SysIntStr, IntDigits, Chars, FromCharCode, ToCharCode, CharRange,
     StrLen, StrJoin, StrSplit, StrCases, StrPos,
     StrTake, StrDrop, StrInsert, StrDelete,
     StrTrim, StrTrimL, StrTrimR, StrTrimLR,
     StrPadL, StrPadR,
-    StrRep, StrRepPart, StrRev
+    StrRep, StrRepPart, StrRev,
+    Dist, SqrDist,
+  "Option",
+    DistFn
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
+  DistFn           -> DistanceFunction
+];
+
+DefineAliasRules[
+  Dist             -> EuclideanDistance,
+  SqrDist          -> SquaredEuclideanDistance
 ];
 
 (*************************************************************************************************)
@@ -34,7 +48,6 @@ DefineAliasRules[
   DelDupsBy        -> DeleteDuplicatesBy,
   Inter            -> Intersection,
   Compl            -> Complement,
-  Dist             -> EuclideanDistance,
   DictMap          -> AssociationMap
 ];
 

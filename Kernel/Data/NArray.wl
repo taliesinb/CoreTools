@@ -89,7 +89,7 @@ NArrayDims[_] := $Failed;
 CoreBox[GradedSum[dict_Dict]] := formalSumBoxes @ MapValues[ToBoxes, dict];
 
 formalSumBoxes[{}]    := NiceObjectBoxes["GradedSum", {}, .2];
-formalSumBoxes[list_] := RiffledRowBox[$formalPlus][list];
+formalSumBoxes[list_] := RiffRowBox[$formalPlus][list];
 
 $formalPlus := $formalPlus = MarginBox[.5] @ StyleBox["+", FontFamily -> "Roboto", FontSize -> (2 + Inherited), FontColor -> Orange];
 

@@ -5,7 +5,7 @@ SystemExports[
 PrivateExports[
   "MetaFunction", DefineGPrim, DefineGPrimSig,
   "Predicate",    GPrimSymQ, GBoxSymQ,
-  "IOFunction",   MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
+  "SpecialFn",    MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
   "GraphicsBoxFunction", EmptyRectangleBox, EmptyPolygonBox,
   "MutatingFunction", BlockGStyle,
   "SpecialVariable",

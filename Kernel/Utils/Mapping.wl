@@ -1,30 +1,26 @@
 SystemExports[
   "Function",
-    MapIndex, MapIndices, MapPart, MapExprPaths,
+    ZipMap, ZipScan, Bimap,
+    ScanIndexed, ScanApply,
     MapEnds, MapFirst, MapLast, MapMost, MapRest, MapFirstRest, MapMostLast, MapFirstLast,
+    UniqueValue, UniqueValueBy
+];
+
+PackageExports[
+  "Function",
+    MapP, ScanP, Map2,
+    MapIndex, MapIndices, MapPart, MapExprPaths, MapLeaves,
     MapCol, MapCol1, MapCol2, MapCol3,
     MapRow, MapRow1, MapRow2, MapRow3,
-    ZipMap, ZipMapP, ZipScan, ZipScanP, Bimap,
-    MaybeMap, MapFlip,
-    MapP, ScanP, ScanApply,
-    RangeArray, Dimension, IndexArray, IndexList,
-    MapLeaves, ApplyLastAxis, MapLastAxis, MapAxis, MapAxisP, ScanAxisP, ApplyAxis,
-    MapSeq,
-    VectorReplace,
-    UniqueValue, UniqueValueBy,
     MapValues, MapValuesP,
+    MaybeMap, MapFlip,
+    ZipMapP, ZipScanP,
+    MapAxisP, ScanAxisP,
     ListDictMap,
   "MutatingFunction",
     PathScanP, PathMapP, PathScan, PathMap,
   "MessageFunction",
     EnsureNiceMessage
-];
-
-PackageExports[
-  "Function",
-    Map2, Dim, ScanIndexed,
-  "Operator",
-    SeqLens, RevLens, IfLens, FlipLens, AxisLens
 ];
 
 (*************************************************************************************************)
@@ -60,12 +56,6 @@ ListDictMap[fl_, fd_, expr_List] := Map[fl, expr];
 ListDictMap[fl_, fd_, expr_Dict] := KeyValueMap[fd, expr];
 ListDictMap[_, _, expr_] := ErrorMsg[ListDictMap::notListOrAssociation, expr];
 ListDictMap::notListOrAssociation = "`` must be a list or an association.";
-
-(*************************************************************************************************)
-
-SetCurry2[VectorReplace]
-
-VectorReplace[vector_, rule_] := Replace[vector, rule, {1}];
 
 (*************************************************************************************************)
 
@@ -279,7 +269,7 @@ ScanIndexed[f_, assoc_Dict] := (AssocScanWhileQ[assoc, rule |-> Then[f[P2 @ rule
 
 ScanIndexed[f_, expr_, level_] := Module[
   {posList = Position[expr, _, level, Heads -> False], i = 1},
-  Scan[elem |-> f[elem, Part[posList, i++]]&, Level[expr, level, HoldComplete]]
+  Scan[elem |-> f[elem, Part[posList, i++]]&, Level[expr, level, HoldC]]
 ];
 
 (**************************************************************************************************)
@@ -318,66 +308,7 @@ PathMap[s_, f_, dict_Dict]  := BlockAppend[s, Null, MapIndexed[{v, i} |-> f[PN[s
 
 (**************************************************************************************************)
 
-RangeArray[n_Integer]               := Range[n];
-RangeArray[ns:{__Integer}]          := Array[List, ns];
+SetCurry1[MapLeaves];
 
-SetCurry2[Dimension, IndexArray, IndexList]
+MapLeaves[f_, arr_] := Map[f, arr, {-1}];
 
-Dimension[All, array_]                   := Dimensions @ array;
-Dimension[n_Integer, array_]             := Part[Dimensions[array], n];
-Dimension[n_Integer ? Positive, array_]  := Last @ Dimensions[array, n];
-Dimension[ns:{__Integer}, array_]        := Part[Dimensions[array, Max @ ns], ns];
-
-IndexArray[spec_, array_]           := RangeArray @ Dimension[spec, array];
-
-IndexList[n_Integer, array_]        := Range @ Dimension[n, array];
-IndexList[spec:{__Integer}, array_] := Tuples @ Dimension[spec, array];
-
-DefineAliasRules[Dim -> Dimension]
-
-(**************************************************************************************************)
-
-SetCurry1[MapLeaves, ApplyLastAxis, MapLastAxis]
-
-MapLeaves[f_, arr_]     := Map[f, arr, {-1}];
-ApplyLastAxis[f_, arr_] := Apply[f, arr, {-2}];
-MapLastAxis[f_, arr_]   := Map[f, arr, {-2}];
-
-(**************************************************************************************************)
-
-SetCurry12[MapAxis, MapAxisP, ScanAxisP, ApplyAxis]
-
-prep[e_, p_] := Prepend[p, e];
-
-MapAxis[f_, n_ ? Negative, arr_] := Map[f, arr, {n}];
-MapAxis[f_, n_, arr_]   := toAxis[Map[f, #, {-2}]&, n, arr];
-MapAxisP[f_, n_, arr_]  := toAxis[MapIndexed[prep /* f, #, {-2}]&, n, arr];
-
-ApplyAxis[f_, n_, arr_] := toAxis[Apply[f, #, {-2}]&, n, arr];
-
-(* TODO: check if depth reduced, message if so.
-also, the old code was broken, so double check this now *)
-toAxis[fn_, n_, arr_] := Locals[
-  d = ArrayDepth[arr];
-  t = MoveToPermutation[n -> d, d];
-  Transpose[fn @ Transpose[arr, t], Ordering @ t]
-];
-
-ScanAxisP[f_, n_, arr_]  := toAxis[ScanIndexed[prep /* f, #, {-2}]&, n, arr];
-
-(**************************************************************************************************)
-
-MapSeq[f_, arg_]    := f[arg];
-MapSeq[f_, args___] := Map[f, Unevaluated @ args];
-
-(**************************************************************************************************)
-
-(* similar to GU's Parts lenses.
-TODO: figure out how we can keep a windowed array
- *)
-
-SeqLens[f_][a___]  := Apply[Sequence, f @ {a}];
-RevLens[f_][a_]    := Reverse @ f @ Reverse @ a;
-IfLens[p_, f_][a_] := If[p[a], f[a], a];
-FlipLens[f_][a_]  := Transpose @ f @ Transpose @ a;
-AxisLens[f_, i_Integer][a_] := MapAxis[f, i, a];

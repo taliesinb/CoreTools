@@ -42,15 +42,23 @@ SystemExports[
   "MutatingFunction",
     UnprotectClearAll, UnprotectClear,
 
-  "IOFunction",
+  "SpecialFunction",
     ToInputString, HoldToInputString, FromInputString,
 
   "DataHead",
     UAssociation,
 
-  "Function",
-    HoldLength, HoldSequenceLength, HoldByteCount,
+  "HoldFunction",
+    EvaluateMap,
+    HoldMap, HoldScan, HoldApply, HoldConstruct, HoldMapSequence,
+    HoldHead, HoldLength, HoldSequenceLength,
+    HoldByteCount, HoldHash,
     HoldSymbolName, HoldSymbolNameAlias, HoldSymbolContext, HoldSymbolPath,
+
+  "SequenceFunction",
+    MapSequence, SequenceLength,
+
+  "Function",
     NaturalNumberString, FullIntegerString,
 
   "MessageFunction",
@@ -63,7 +71,7 @@ SystemExports[
   "Variable",
      $FormalSymbols,
 
-  "ControlFlow",
+  "HoldHead",
     PrivateHoldComplete, PrivateSequence, PrivateHoldCompleteSequence,
 
   "MetaFunction",
@@ -116,7 +124,7 @@ DeclareStrict[DeclareHoldAllComplete];
 
 DeclareUsage::noResolve = "Could not resolve symbol name ``.";
 DeclareUsage[usage2_String] := Module[{name, str, usage},
-  usage = StringTrim @ usage2;
+  usage = StringTrim[usage2, {" ", "\n", "`"}];
   {name, str} = StringSplit[usage, {" ", "["}, 2];
   If[!NameQ[name], Message[DeclareUsage::noResolve, name]; Return @ $Failed];
   hsym = ToExpression[name, InputForm, Hold];
@@ -242,12 +250,70 @@ PackedListQ  = Developer`PackedArrayQ;
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[HoldLength, HoldByteCount, HoldSequenceLength];
+DeclareHoldAllComplete[HoldLength, HoldByteCount, HoldHead, HoldHash];
 
-HoldByteCount[e_]    := ByteCount @ Unevaluated @ e;
-HoldLength[e_]       := Length @ Unevaluated @ e;
+HoldByteCount[e_] := ByteCount @ Unevaluated @ e;
+HoldLength[e_]    := Length @ Unevaluated @ e;
+HoldHead[e_]      := Head @ Unevaluated @ e;
+HoldHead[e_, fn_] := Head[Unevaluated @ e, fn];
+HoldHash[e_]      := Hash @ Unevaluated @ e;
+
+(**************************************************************************************************)
+
+e_SequenceLength         := Length @ Unevaluated @ e;
+
+MapSequence[f_]          := Sequence[];
+MapSequence[f_, arg_]    := f[arg];
+MapSequence[f_, args___] := Map[f, Unevaluated @ args];
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[HoldSequenceLength];
+
 e_HoldSequenceLength := Length @ Unevaluated @ e;
-e_SequenceLength     := Length @ Unevaluated @ e;
+
+(**************************************************************************************************)
+
+EvaluateMap::usage = "EvaluateMap[fn$, expr$] maps fn$ over the parts of expr$, forcing evaluation despite the head being held.";
+
+(* unlike Map, EvaluateMap[f, Hold[1,2,3]] actually does something *)
+EvaluateMap[f_, list_List]         := Map[f, list];
+EvaluateMap[f_, assoc_Association] := Map[f, assoc];
+EvaluateMap[f_, h_[args___]]       := Construct[h, HoldMapSequence[f, args]];
+
+(**************************************************************************************************)
+
+HoldMap::usage = "HoldMap[fn$, expr$] maps fn$ over expr$ without evaluating its parts first.";
+HoldScan::usage = "HoldScan[fn$, expr$] scans fn$ over expr$ without evaluating its parts first.";
+HoldApply::usage = "HoldApply[fn$, expr$] applies fn$ to expr$ without evaluating its parts first.";
+HoldConstruct::usage = "HoldConstruct[fn$, arg$1, arg$2] evaluates fn$[arg$1, arg$2, $$] without evaluating arg$i.";
+HoldMapSequence::usage = "HoldMapSequence[fn$, arg$1, arg$2] returns Sequence[fn[arg$1], fn[arg$2], $$] without evaluating arg$i.";
+
+DeclareHoldAllComplete[HoldMap, HoldScan, HoldApply, HoldConstruct, HoldMapSequence];
+DeclareStrict[HoldMap, HoldScan, HoldApply, HoldConstruct, HoldMapSequence];
+
+HoldMap[fn_, expr_]                     := Map[fn, Unevaluated @ expr];
+HoldMap[fn_Function, expr_]             := Map[toHoldFn @ fn, Unevaluated @ expr];
+
+HoldScan[fn_, expr_]                    := Scan[fn, Unevaluated @ expr];
+HoldScan[fn_Function, expr_]            := Scan[toHoldFn @ fn, Unevaluated @ expr];
+
+HoldApply[_,           {}]              := {};
+HoldApply[fn_,         _[args___]]      := fn[Unevaluated @ expr];
+HoldApply[fn_Function, _[args___]]      := toHoldFn[fn][Unevaluated @ expr];
+
+HoldConstruct[fn_]                      := fn[];
+HoldConstruct[fn_, args___]             := Construct[fn, Unevaluated @ args];
+HoldConstruct[fn_Function, args___]     := Construct[toHoldFn @ fn, Unevaluated @ args];
+
+HoldMapSequence[fn_]                    := Sequence[];
+HoldMapSequence[fn_, arg_]              := fn[Unevaluated @ arg];
+HoldMapSequence[fn_Function, args__]    := Map[toHoldFn @ f, Unevaluated @ args];
+HoldMapSequence[fn_, args__]            := Map[fn, Unevaluated @ args];
+
+toHoldFn[fn_]             := fn;
+toHoldFn[_[body_]]        := Function[Null, body, HoldAllComplete];
+toHoldFn[_[args_, body_]] := Function[args, body, HoldAllComplete];
 
 (*************************************************************************************************)
 

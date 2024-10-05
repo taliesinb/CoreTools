@@ -51,6 +51,12 @@
         "formBg": "color(var(form) alpha(0.1))",
         "boxBg": "color(var(box) alpha(0.1))",
 
+        "type": "hsl(200, 30%, 75%)",
+        "typeBg": "color(var(type) alpha(0.1))",
+
+        "hold": "color(var(plain) blend(var(red-vibrant) 20%))",
+        "holdBg": "color(var(hold) alpha(0.1))",
+
         "string": "hsla(114, 31%, 68%, 0.8)",
         "message": "var(orange)",
 
@@ -60,27 +66,34 @@
         "function": "hsl(200, 55%, 66%)",
 
         "coreFn":   "hsl(210, 30%, 77%)",
-        "sysFn": "hsl(210, 30%, 72%)",
+        "sysFn":    "hsl(210, 30%, 72%)",
         "userFn":   "hsl(210, 30%, 80%)",
+
+        "holdFn":   "color(var(plain) blend(var(red-vibrant) 60%))",
+        "seq":      "color(var(plain) blend(var(orange) 65%))",
+        "seqBg":    "color(var(seq) alpha(0.1))",
 
         "usersymbol": "color(var(plain) blend(var(plainDim) 30%))",
         "varBase": "hsl(210, 60%, 69%)",
         "globalVar": "var(varBase)",
         "variable": "color(var(plain) blend(var(varBase) 10%))",
+        "variable": "color(var(plain) blend(var(varBase) 10%))",
         "userVar": "color(var(plain) blend(var(varBase) 10%))",
         "mutating": "color(var(plain) blend(var(red) 50%))",
 
-        "dummy": "var(usersymbol)",
-        "dummyBg": "color(var(dummy) alpha(0.1))",
+        "transBg": "color(var(userVar) alpha(0.1))",
+
+        "tagSym": "var(usersymbol)",
+        "tagBg": "color(var(tagSym) alpha(0.1))",
 
         "boundVar": "hsl(114, 31%, 50%)",
 
         "pat": "hsl(200, 40%, 69%)",
         "strpat": "color(var(pat) blend(var(string) 50%))",
-        "graphics": "hsl(10, 35%, 70%)",
+        "graphics": "hsl(30, 35%, 70%)",
         "special": "hsl(13, 73%, 66%)",
         "specialVar": "color(var(special) blend(var(plain) 50%))",
-        "ioFunction": "color(var(plain) blend(var(red2) 50%))",
+        "ioFn": "color(var(plain) blend(var(red2) 60%))",
         "controlFlow": "color(var(plain) blend(var(red-vibrant) 50%))",
 
         "cache": "color(var(plain) blend(var(teal) 50%))",
@@ -89,14 +102,15 @@
         "head3": "hsl(250, 70%, 80%)",
         "head": "var(head1)",
         "typeHead": "var(head1)",
+        "typeSym": "color(hsl(250, 40%, 80%) blend(var(plain) 40%))",
         "dataHead": "var(head2)",
-        "symHead": "var(head3)",
+        "symHead": "color(hsl(250, 70%, 80%) blend(var(plain) 40%))",
         "slot": "hsl(50, 60%, 60%)",
         "slot2": "hsl(40, 60%, 60%)",
         "operator": "var(blue7)",
         "predicate": "hsl(200, 55%, 66%)",
 
-        "meta": "hsl(219, 28%, 95%)",
+        "meta": "hsl(219, 28%, 80%)",
 
     },
     "globals":
@@ -132,11 +146,14 @@
         {"name": "SlotVar"       , "scope": "support.function.slot.variable"                          , "foreground": "var(slot2)"           , "font_style": "bold"},
         {"name": "FnSym"         , "scope": "entity.name.function"                                    , "foreground": "var(usersymbol)",},
         {"name": "LocalVarDef"   , "scope": "entity.name.constant variable.local.wolfram"             , "foreground": "var(usersymbol)",},
+        {"name": "Var"           , "scope": "support.function.variable"                               , "foreground": "var(userVar)" },
+        {"name": "TransVar"      , "scope": "support.function.transient.variable"                     , "foreground": "var(userVar)", "background": "var(transBg)"},
         {"name": "GlobVar1"      , "scope": "variable.global.wolfram"                                 , "foreground": "var(globalVar)"       , "font_style": ""},
         {"name": "GlobVar1Hi"    , "scope": "meta.def variable.global.wolfram"                        , "foreground": "var(globalVar)"       , "font_style": "stippled_underline"},
         {"name": "BndPatSym"     , "scope": "variable.local.pattern"                                  , "foreground": "var(boundVar)"},
         {"name": "LocalSym"      , "scope": "variable.local"                                          , "foreground": "var(usersymbol)"},
-        {"name": "DummySym"      , "scope": "symbol.dummy"                                            , "foreground": "var(dummy)"           , "background": "var(dummyBg)"},
+        {"name": "TagSym"        , "scope": "support.function.tag.variable"                           , "foreground": "var(tagSym)"          , "background": "var(tagBg)"},
+        {"name": "DummySym"      , "scope": "symbol.dummy"                                            , "foreground": "var(tagSym)"          , "background": "var(tagBg)"},
         {"name": "UnexpectedSym" , "scope": "symbol.unexpected"                                       , "foreground": "var(usersymbol)"      , "background": "var(unrecognizedBg)"},
         {"name": "UnkFunc"       , "scope": "variable.local.unrecognized"                             , "foreground": "var(usersymbol)"      , "background": "var(unrecognizedBg)"},
         {"name": "UnkVar"        , "scope": "variable.global.unrecognized"                            , "foreground": "var(usersymbol)"      , "background": "var(unrecognizedBg)"},
@@ -147,12 +164,15 @@
         {"name": "Oper"          , "scope": "keyword.operator"                                        , "foreground": "var(operator)"},
         {"name": "CoreFn"        , "scope": "support.function.core"                                   , "foreground": "var(coreFn)",},
         {"name": "SysFn"         , "scope": "support.function.builtin"                                , "foreground": "var(sysFn)",},
+        {"name": "HoldFn"        , "scope": "support.function.hold"                                   , "foreground": "var(holdFn)",},
+        {"name": "SeqFn"         , "scope": "support.function.sequence"                               , "foreground": "var(seq)", "background": "var(seqBg)"},
         {"name": "UserFn"        , "scope": "support.function.user"                                   , "foreground": "var(userFn)",},
         {"name": "???"           , "scope": "support.function.internal"                               , "foreground": "var(internal)",},
         {"name": "MsgFn"         , "scope": "support.function.message"                                , "foreground": "var(message)",},
-        {"name": "IOFn"          , "scope": "support.function.io"                                     , "foreground": "var(ioFunction)",},
+        {"name": "IOFn"          , "scope": "support.function.io"                                     , "foreground": "var(ioFn)"},
         {"name": "BoxFn"         , "scope": "support.function.box.wolfram"                            , "foreground": "var(box)",},
-        {"name": "BoxSymb"       , "scope": "constant.language.symbol.box"                            , "foreground": "var(box)"             , "background": "var(boxBg)"},
+        {"name": "BoxSym"        , "scope": "constant.language.symbol.box"                            , "foreground": "var(box)"             , "background": "var(boxBg)"},
+        {"name": "TypeSym"       , "scope": "constant.language.symbol.type"                           , "foreground": "var(typeSym)"},
         {"name": "DebugFn"       , "scope": "support.function.debugging.wolfram"                      , "foreground": "var(debug)"           , "background": "var(debugBg)"},
         {"name": "GBoxFn"        , "scope": "support.function.graphics.box.wolfram"                   , "foreground": "var(graphics)",},
         {"name": "GDir"          , "scope": "support.function.graphics.directive.wolfram"             , "foreground": "var(graphics)"        , "font_style": "italic"},
@@ -197,7 +217,9 @@
         {"name": "SymHead"       , "scope": "constant.language.head.symbolic"                         , "foreground": "var(symHead)"},
         {"name": "FormHead"      , "scope": "constant.language.head.form"                             , "foreground": "var(form)"},
         {"name": "PatHead"       , "scope": "constant.language.head.pattern.wolfram"                  , "foreground": "var(pat)"},
-        {"name": "StrPatHead"    , "scope": "constant.language.head.strpattern.wolfram"               , "foreground": "var(strpat)"},
+        {"name": "StrPatHead"    , "scope": "constant.language.head.stringpattern.wolfram"            , "foreground": "var(strpat)"},
+        {"name": "HoldHead"      , "scope": "constant.language.head.hold.wolfram"                     , "foreground": "var(hold)",  "background": "var(holdBg)"},
+        {"name": "Deprecated"    , "scope": "support.function.deprecated"                             , "foreground": "var(white2)", "background": "var(orange2)"},
         {"name": "String"              , "scope": "string"                                                          , "foreground": "var(string)"},
         {
             "name": "Comment",
@@ -316,12 +338,6 @@
         {
             "name": "Function call",
             "scope": "variable.function, variable.annotation",
-            "foreground": "var(userVar)"
-        },
-
-        {
-            "name": "Variable",
-            "scope": "support.function.variable",
             "foreground": "var(userVar)"
         },
         {

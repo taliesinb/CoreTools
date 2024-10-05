@@ -13,7 +13,7 @@ SetHoldA[CollectBegin, CollectEnd, Collecting]
 
 SimpleMacroDefs[
   CollectBegin[var_Symbol]       := Set[var, NewCollector[]],
-  CollectBegin[vars__Symbol]     := Set[{vars}, NewCollector @ HoldLen @ {vars}],
+  CollectBegin[vars__Symbol]     := Set[{vars}, NewCollector @ HLen @ {vars}],
   CollectEnd[var_Symbol]         := ThenNull[Set[var, FromCollector @ var]],
   CollectEnd[vars__Symbol]       := ThenNull[Set[{vars}, FromCollector @ {vars}]],
   Collecting[s_Symbol, body_]    := Then2[CollectBegin[s], body, CollectEnd[s]],

@@ -448,7 +448,7 @@ pyStyleBox[hash_][s_] := StyleBox[ToBoxes @ s, FontColor -> HashToColor[Hash @ h
 (* CoreBox[PyFunction[name_String, args_List]] :=
   NiceObjectBoxes[
     pyStyleBox @ "PyFunction",
-    {ItalicBox @ BraceRowBox[ToBoxes /@ args], SkeletonBox @ pyStyleBox @ name},
+    {ItalicBox @ BraceRowBox[ToBoxes /@ args], SkelBox @ pyStyleBox @ name},
     .2
   ];
  *)
@@ -464,7 +464,7 @@ PyFunction[name_String, _][in___] :=
 
 (*************************************************************************************************)
 
-DeclareCoreSubBoxes[PyObject]
+SetCoreSubBox[PyObject]
 
 MakeCBox[PyObject[name_String, hash_Integer][assoc_Dict]] := pyObjectBoxes[name, hash, assoc];
 MakeCBox[PyObject[name_String, hash_Integer][]]                  := pyObjectBoxes[name, hash, Dict[]];

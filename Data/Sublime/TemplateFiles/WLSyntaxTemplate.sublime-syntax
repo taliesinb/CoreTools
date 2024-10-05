@@ -1087,7 +1087,7 @@ variables:
   mutilineApplied: '(?:\[\s*\n)'
 
   defineMacro:   '(?:Define[A-Za-z]+Macro)'
-  declareFn:     '(?:(?:SetHold|SetPred|SetCurry|SetStrict|SetExcepting|Declare)[A-Za-z0-9]*)'
+  declareFn:     '(?:(?:SetBox|SetForm|SetCore|SetHold|SetPred|SetCurry|SetStrict|SetExcepting|Declare)[A-Za-z0-9]*)'
   defineRulesFn: '(?:Define[A-Za-z]+Rules)'
   definitionsFn: '(?:[A-Za-z]+Definitions)'
 

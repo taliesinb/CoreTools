@@ -3,9 +3,7 @@ SystemExports[
     CountUnique, CountUniqueBy, ToUnique,
     Lerp, Avg, Multiply,
     PlusOne, MinusOne, OneMinus,
-    Unthread, SequenceLength, Birange, LengthRange, RangeLength,
-    SequenceNothing, SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
-    SequenceFirstSecond, SequenceSecondFirst,
+    Unthread, Birange, LengthRange, RangeLength,
     FlatList,
     DropWhile, CommonPrefix, CommonPrefixLength, CommonSuffix, CommonSuffixLength,
     IndexOf,
@@ -18,7 +16,9 @@ SystemExports[
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
     ListRiffle, ScalarRiffle,
     TrimRight, TrimLeft,
-    ReplaceIndices, ConstantReplaceIndices
+  "SequenceFunction",
+    SequenceNothing, SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
+    SequenceFirstSecond, SequenceSecondFirst
 ];
 
 PackageExports[
@@ -26,7 +26,7 @@ PackageExports[
     Reverse2,
     Args, ArgsP,
     Clip2,
-  "ControlFlow",
+  "HoldFunction",
     HoldArgs, HoldArgsP,
   "MutatingFunction",
     JoinTo, UnionTo, ReplaceAllIn, ReplaceRepeatedIn,
@@ -181,30 +181,6 @@ EnsurePair[a_, test_] := Ensure[EnsurePair @ a, VectorOf[test], ThrowMsg["badPai
 PlusOne[e_] := e + 1;
 MinusOne[e_] := e - 1;
 OneMinus[e_] := 1 - e;
-
-(*************************************************************************************************)
-
-ConstantReplaceIndices::usage =
-"ConstantReplaceIndices[expr$, indices$, value$]` replaces the parts at various indices with a single value value$.
-* indices can be All, Span[$$], or List[p$1, p$2, $$].";
-
-(* TODO: support Broadcast *)
-ConstantReplaceIndices[expr_, indices_, value_List] := ReplacePart[expr, Map[List, indices] -> value];
-ConstantReplaceIndices[expr_, indices_, value_]     := setParts[expr, indices, value];
-
-(*************************************************************************************************)
-
-ReplaceIndices::usage =
-"ConstantReplaceIndices[expr$, indices$, value$]` replaces the parts at various indices with value$.
-* indices can be All, Span[$$], or List[p$1, p$2, $$].";
-
-SetStrict @ ReplaceIndices;
-
-General::replaceLengthMismatch = "List of indices to replace has length `` but values have length ``."
-ReplaceIndices[expr_, indices_List, values_List] /; SameLenQOrThrow[indices, values, "replaceLengthMismatch"] :=
-  setParts[expr, indices, values];
-
-setParts[expr_, parts_, value_] := Locals[expr2 = expr; Part[expr2, parts] = value; expr2];
 
 (*************************************************************************************************)
 

@@ -87,7 +87,7 @@ WeightedRandomChoice::invalidUsage = "First argument should be set and second ar
 (*************************************************************************************************)
 
 RandomChoiceArray[weights_List ? VectorQ] := FastQuietCheck[RandomChoice[weights], RandomChoiceArray[]];
-RandomChoiceArray[weights_List ? ListVectorQ]  := MapLastAxis[RandomChoiceArray, weights];
+RandomChoiceArray[weights_List ? ListVectorQ]  := MapAxisN[RandomChoiceArray, weights];
 _RandomChoiceArray := ReturnMsg[RandomChoiceArray::invalidUsage];
 RandomChoiceArray::invalidUsage = "Input was not an array of numbers.";
 

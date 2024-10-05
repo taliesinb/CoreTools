@@ -2,7 +2,7 @@ PackageExports[
   "DataHead",      Store,
   "Predicate",     StoreQ, StoreKeyQ,
   "PatternSymbol", StoreP,
-  "IOFunction",    StoreNew, KeyStoreNew, StoreClone,
+  "SpecialFn",    StoreNew, KeyStoreNew, StoreClone,
   "Function",
     StoreGet, StoreGetRaw, StoreDict, StoreKeys, StoreValues, ExpandStores,
     StorePairs, StoreAt, StoreScan, StoreMap,

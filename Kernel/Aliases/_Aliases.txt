@@ -2,6 +2,7 @@ AliasInit.wl
 AliasCore.wl
 AliasExprs.wl
 AliasLiterals.wl
+AliasStrLiterals.wl
 AliasPredicates.wl
 AliasPatterns.wl
 AliasFnsSys.wl

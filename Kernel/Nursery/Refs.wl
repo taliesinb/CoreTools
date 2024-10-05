@@ -54,7 +54,7 @@ PutRefVal::badArguments = "Incorrect PutRef: ``.";
 CoreBox[ref_Ref ? SealedQ] := makeRefBoxes[ref];
 
 makeRefBoxes[ref_] := If[!$CoreFormatting,
-  FnRBox["Ref", hashBoxes @ ref],
+  FnBox["Ref", hashBoxes @ ref],
   NiceTooltipBox[
     ClickBox[circleBox @ ref, printRefCell @ ref],
     DynamicBox[ColumnBox @ {hashBoxes @ ref, valBoxes @ ref}, TrackedSymbols :> {}]

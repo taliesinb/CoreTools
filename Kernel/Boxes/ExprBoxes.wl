@@ -37,7 +37,7 @@ SystemBox[h_HoldAtForm] := coreHoldAtBox @ h;
 
 SetHoldC[coreHoldAtBox];
 
-coreHoldAtBox[HoldAtForm[a_, args___]] := FnRBox[MakeBox @ a, CommaRowBox @ MapMakeBox @ {args}];
+coreHoldAtBox[HoldAtForm[a_, args___]] := FnBox[MakeBox @ a, CommaRowBox @ MapMakeBox @ {args}];
 coreHoldAtBox[HoldAtForm[a_, arg_]]    := RBox[MakeBox @ a, "@", MakeBox @ arg];
 coreHoldAtBox[e_]                      := $Failed;
 
@@ -192,7 +192,6 @@ exprBox = CaseOf[
   h_PrivHoldSeq  := holdBox @ h;
   l_LitStr       := literalBox @ l;
   l_LitStrRow    := literalBox @ l;
-  l_UnlimitedRow := literalBox @ l;
   h_HoldAtForm   := holdAtBox @ h;
   s_Slot         := slotBox @ s;
   e_             := stdInpBox @ e;
@@ -218,7 +217,7 @@ patternBox = CaseOf[
   VBlankSeq[p:SymP]          := StrJoin["__", symBox @ p];
   VBlankNullSeq[p:SymP]      := StrJoin["___", symBox @ p];
   VPatternTest[p_, t:SymP]   := RBox[exprBox @ p,  "?", symBox @ t];
-  VPatternTest[p_, t_]       := RBox[exprBox @ p,  "?", ParenRBox @ exprBox @ t];
+  VPatternTest[p_, t_]       := RBox[exprBox @ p,  "?", ParenBox @ exprBox @ t];
   VCondition[p_, c_]         := RBox[exprBox @ p, "/;", parenify @ exprBox @ c];
   a_Alt                      := altBox @ a;
   expr_                      := genericBox @ expr;
@@ -235,14 +234,14 @@ patColon[s_Str, t_Str] /; StrStartsQ[t, "_"] := StrJoin[s, t];
 patColon[s_, t_]                             := RBox[s, ":", t];
 
 altBox = CaseOf[
-  VAlt[]       := FnRBox["Alt"];
-  VAlt[a_]     := FnRBox["Alt", exprBox @ a];
+  VAlt[]       := FnBox["Alt"];
+  VAlt[a_]     := FnBox["Alt", exprBox @ a];
   VAlt[args__] := RiffBox["|"] @ argBoxes[{args}, altArgBox, CDotsBox[#]&];
   other_       := genericBox @ other;
 ];
 
 altArgBox = CaseOf[
-  a_VAlt := ParenRBox @ patternBox @ a;
+  a_VAlt := ParenBox @ patternBox @ a;
   e_     := parenify @ exprBox @ e;
 ];
 
@@ -271,11 +270,11 @@ holdAtHeadBox1 = CaseOf[
   Fn           := "Fn";
   e_Symbol     := symBox @ e;
   d:DatumP     := datumBox @ d;
-  _Dict        := RBox[LAssoc, Dots, RAssoc];
-  h_[]         := FnRBox[$ @ h];
-  h_[d:DatumP] := FnRBox[$ @ h, exprBox @ d];
-  h_[___]      := FnRBox[$ @ h, CDots];
-  _            := CDots;
+  _Dict        := RBox[LAssoc, CDotsS, RAssoc];
+  h_[]         := FnBox[$ @ h];
+  h_[d:DatumP] := FnBox[$ @ h, exprBox @ d];
+  h_[___]      := FnBox[$ @ h, CDotsS];
+  _            := CDotsS;
 ];
 
 (*************************************************************************************************)
@@ -302,8 +301,6 @@ datumBox = CaseOf[
 literalBox = CaseOf[
   LitStr[s:StrP]                    := LitStrBox @ s;
   LitStrRow[s:{StrP...}, f_Str:","] := LitStrRowBox[s, f];
-  UnlimitedRow[list_List]           := RowBox @ Map[exprBox, NoEval @ list];
-  UnlimitedRow[list_List, r_]       := RowBox @ Riffle[Map[exprBox, NoEval @ list], exprBox @ r];
   e_                                := genericBox @ e;
 ];
 
@@ -357,7 +354,7 @@ packedBox[p_] := With[{n =PackedSize[p]}, Which[
 ]];
 
 packedSummaryBox[p_] :=
-  BraceRBox @ HMarginBox[GrayBox @ packedSummary @ p, {0.2, 0.2}];
+  BraceSeqBox @ HPadBox[GrayBox @ packedSummary @ p, {0.2, 0.2}];
 
 packedSummary[p_] := GrayBox[SubscriptBox[
   Replace[PackedType @ p, $typeToLetter],
@@ -411,7 +408,7 @@ SetHoldC[delimBox];
 
 delimBox = CaseOf[
   $[_,  l_, _[], r_] := RBox[l, r];
-  $[_,  l_, _,   r_] /; $noLenQ := RBox[l, CDots, r];
+  $[_,  l_, _,   r_] /; $noLenQ := RBox[l, CDotsS, r];
   $[e_, l_, a_,  r_] := blockDepth[e, delimBox2[l, commaArgsBox @ a, r]];
 ];
 
@@ -430,7 +427,7 @@ SetHoldC @ genericBox;
 
 genericBox = CaseOf[
   sym_Sym[]               := RBox[symBox @ sym, "[", "]"];
-  _ /; $noLenQ            := CDots;
+  _ /; $noLenQ            := CDotsS;
   e:(sym_Sym[args___])    := blockDepth[e, headBox[sym, {args}]];
   e:head_[args___]        := bigHeadBox[head, {args}];
   e_                      := elidedBox @ e; (* safety *)
@@ -442,13 +439,13 @@ SetHoldC[bigHeadBox];
 
 bigHeadBox[head_, args_] := headBox2[parenify @ exprBox @ head, blockDepth[e, commaArgsBox @ args]];
 
-parenify[b_] := If[parenifyQ @ b, ParenRBox @ b, b];
+parenify[b_] := If[parenifyQ @ b, ParenBox @ b, b];
 
 parenifyQ = CaseOf[
   nowrap$                := False;
   RBox[_, "[", ___, "]"] := False;
   s_Str                  := !StrFreeQ[s, SpaceC];
-  CDots                  := False;
+  CDotsS                 := False;
   rec1$[b_, ___]         := $ @ b;
   _                      := True;
 ,
@@ -461,7 +458,7 @@ parenifyQ = CaseOf[
 SetHoldC[headBox];
 
 headBox = CaseOf[
-  _ /; $noLenQ       := CDots;
+  _ /; $noLenQ       := CDotsS;
   $[head_Sym, expr_] := With[{name = symBox[head]}, headBox[name, expr]];
   $[head_Str, _[]]   := RBox[head, "[", "]"];
   $[head_Str, expr_] := headBox2[head, commaArgsBox @ expr];
@@ -531,7 +528,7 @@ makeTab[n_] := makeTab[n] = StringRepeat["\[NonBreakingSpace]", n];
 
 SetHoldC[argBoxes, commaArgsBox, rawExprBox, shortQ];
 
-commaArgsBox[_] /; $noLenQ := {CDots};
+commaArgsBox[_] /; $noLenQ := {CDotsS};
 commaArgsBox[list_] := Riffle[argBoxes[list, exprBox, CDotsBox[#]&], ","];
 
 argBoxes = CaseOf[
@@ -545,7 +542,7 @@ argBoxes = CaseOf[
   $[e_Dict, b_, d_]           := addDots[HLen @ e, d] @ HTakeArgs[e, Max[$len-1,1], b];
 ];
 
-shortQ[e_] := HoldLen[e] <= $len;
+shortQ[e_] := HLen[e] <= $len;
 
 addDots[n_, dotsFn_][boxes_] := Append[boxes, dotsFn[n - Len[boxes], Last @ boxes]];
 
@@ -578,23 +575,24 @@ stdBox = CaseOf[
 SetHoldC @ stdBox2;
 
 stdBox2 = CaseOf[
-  _ /; $noLenQ                        := CDots;
+  _ /; $noLenQ                        := CDotsS;
   m:(math$)[__]                       := mathBox @ m;
   DirInf[] | DirInf[1]                := "\[Infinity]";
   DirInf[-1]                          := RBox["\[Minus]", "\[Infinity]"];
-  arb:rowCol$[_List, ___]             := rowColBoxes @ arb;
+  arb:Row[_List, ___]                 := rowColBoxes[arb, True];
+  arb:Row[_List, ___]                 := rowColBoxes[arb, False];
   arb:array$[_List, ___]              := arrayFormBoxes @ arb;
   arb:script$[__]                     := scriptBoxes @ arb;
   arb:Image ? ValidFlagQ              := imageBox @ img;
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
+  arb:(_Sym ? OperatorFormHeadQ)[___][___] := operatorFormBox @ arb;
   arb:(_Sym ? CompoundFormHeadQ)[___] := compoundFormBox @ arb;
   arb:(_Sym ? AtomFormHeadQ)[___]     := atomFormBox @ arb;
   arb:(_Sym ? HasCoreBoxQ)[___]       := MaybeEval @ coreBox @ arb;
   arb_                                := stdBox3 @ arb;
 ,
   {array$ -> Alt[Grid, MatrixForm, TableForm],
-   rowCol$ -> Alt[Row, Column],
    script$ -> Alt[Superscript, Subscript, Subsuperscript, Overscript, Underscript],
    math$ -> Join[MathSymP, ExtMathSymP]}
 ];
@@ -642,8 +640,8 @@ mathBox[e_] := postProcMath @ Apply[
 ];
 
 mathBox2 = CaseOf[
-  (h:Plus|Times)[a_]       := mathLeaf @ FnRBox[SymName @ h, exprBox @ a];
-  Power[a_, b_]            := decapMath[Power][$ @ a, blockScript[$ @ b, mathLeaf @ CDots]];
+  (h:Plus|Times)[a_]       := mathLeaf @ FnBox[SymName @ h, exprBox @ a];
+  Power[a_, b_]            := decapMath[Power][$ @ a, blockScript[$ @ b, mathLeaf @ CDotsS]];
   (h:math$)[args__]        := decapMath[h][Map[$, NoEval @ args]];
   n:NumP                   := n;
   e_                       := mathLeaf @ exprBox @ e;
@@ -658,7 +656,7 @@ mathLeaf[e_] := RawBoxes @ $mathWrap$ @ e;
 SetHoldF @ blockScript;
 
 $scriptDepth = 0;
-blockScript[body_] := blockScript[body, CDots];
+blockScript[body_] := blockScript[body, CDotsS];
 blockScript[body_, dots_] /; $scriptDepth > 1 := dots;
 blockScript[body_, _] := Block[
   {$scriptDepth = $scriptDepth + 1, $len = Min[3, $len], $lenStack, $multiline},
@@ -704,7 +702,7 @@ inlineFracs[boxes_] /; (!$multiline || $dep > 2) && VContainsQ[boxes, FractionBo
 SetHoldC @ inpBox;
 
 inpBox = CaseOf[
-  _ /; $noLenQ         := CDots;
+  _ /; $noLenQ         := CDotsS;
   m:(math$)[__]        := inpMathBox @ m;
   DirInf[] | DirInf[1] := "Inf";
   DirInf[-1]           := RBox["\[Minus]", "Inf"];
@@ -725,7 +723,7 @@ inpPostProcMath = CaseOf[
   RowBox[list_List ? spaceRifQ] := RowBox[inpAddTimes /@ list];
   FractionBox[a_, b_]    := inpFrac[$ @ a, $ @ b];
   SuperBox[a_, b_]       := RBox[parenify @ $ @ a, "^", parenify @ $ @ b];
-  SqrtBox[a_]            := FnRBox["Sqrt", $ @ a];
+  SqrtBox[a_]            := FnBox["Sqrt", $ @ a];
   RadicalBox[a_, n_]     := $ @ SuperBox[a, RBox["1", "/", n]];
   RowBox[bs_List]        := RowBox[$ /@ bs];
   $mathWrap$[box_]       := box;
@@ -786,14 +784,16 @@ SetHoldC[rowColBoxes, arrayFormBoxes, gridRowBoxes];
 
 rawInnerBoxes[HoldC[e_]] := exprBox @ e;
 
-rowColBoxes[head_[list_List, opts___]] := With[
-  {boxes = Map[RawBoxes] @ ListDictMakeBoxes1D[list, head === Row, rawInnerBoxes, False, None, 500, $len]},
-  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDots, MakeBoxes @ head[boxes, opts]]
+rowColBoxes[e_, _] := genericBox @ e;
+rowColBoxes[head_[list_List, opts___], isRow_] := With[
+  {boxes = Map[RawBoxes] @ ListDictMakeBoxes1D[list, isRow, rawInnerBoxes, False, None, 500, $len]},
+  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDotsS, MakeBoxes @ head[boxes, opts]]
 ];
 
+arrayFormBoxes[e_] := genericBox @ e;
 arrayFormBoxes[head_[list_List, opts___]] := With[
-  {boxes = argBoxes[list, gridRowBoxes, dotsRow[If[head === Grid, LSpan, ""]]]},
-  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDots, MakeBoxes @ head[boxes, opts]]
+  {boxes = argBoxes[list, gridRowBoxes, dotsRow[If[head === Grid, LSpanS, ""]]]},
+  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDotsS, MakeBoxes @ head[boxes, opts]]
 ];
 
 gridRowBoxes[row_List] := decDepth @ argBoxes[row, rawExprBox, RawBoxes[CDotsBox[#1]]&];
@@ -804,7 +804,7 @@ dotsRow[pad_][n_, last_] := PadRight[
     CDotsBox[n, False],
     Alignment -> Center
   ],
-  Len @ last, RawBoxes @ LSpan
+  Len @ last, RawBoxes @ LSpanS
 ];
 
 (*************************************************************************************************)
@@ -819,11 +819,16 @@ SetHoldC[compoundFormBox, compoundForm1Box, compoundForm2Box, compoundForm3Box, 
 
 compoundFormBox[e:(sym_[___])] := Switch[
   CompoundFormArity @ sym,
-  1,   compoundForm1Box[e],
-  2,   compoundForm2Box[e],
-  3,   compoundForm3Box[e],
-  All, compoundFormNBox[e]
+  1,      compoundForm1Box[e],
+  2,      compoundForm2Box[e],
+  3,      compoundForm3Box[e],
+  All,    compoundFormNBox[e],
+  Row,    rowColBoxes[e, True],
+  Column, rowColBoxes[e, False],
+  Grid,   arrayFormBoxes[e]
 ];
+
+(*************************************************************************************************)
 
 compoundForm1Box[sym_[a_, r___]]         := finalBoxes[{rawExprBox @ a}, sym, r];
 compoundForm2Box[sym_[a_, b_, r___]]     := finalBoxes[{rawExprBox @ a, rawExprBox @ b}, sym, r];
@@ -836,12 +841,18 @@ finalBoxes[{left___}, sym_, right___] := MakeBoxes @ sym[left, right];
 
 (*************************************************************************************************)
 
+SetHoldC[operatorFormBox]
+
+operatorFormBox[e_] := compoundForm1Box[e];
+
+(*************************************************************************************************)
+
 SetHoldC @ elidedBox;
 
 elidedBox[d:Unlimited[_, ___Int]] /; $isStd := directiveBoxes @ d;
-elidedBox[(s_Sym ? CompoundFormHeadQ)[___]] := CDots;
+elidedBox[(s_Sym ? CompoundFormHeadQ)[___]] := CDotsS;
 elidedBox[e_] := HoldElidedBox @ e;
-_elidedBox := CDots;
+_elidedBox := CDotsS;
 
 (*************************************************************************************************)
 

@@ -85,12 +85,12 @@ General::symbolTableArgs = "SymbolTable function called with invalid arguments: 
 DeclaredHere[$SymbolTableKinds];
 
 $kindRules = List[
-  ". Special ControlFlow Declare Define Holding Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
+  ". Special ControlFlow Declare Define Hold Sequence Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
   ". Special Box Form Data Object Pattern StringPattern Type Symbolic Field Sort Slot Type Tag" <-> "Symbol Head",
-  ". Special Cache Slot Tag Transient" <-> "Variable",
+  ". Special Cache Slot Tag Transient" <-> "Variable Var",
   ". Special Box Form Graphics" <-> "Option",
   "Graphics" <-> "Directive Primitive",
-  "Predicate PredicateOperator Operator Deprecated"
+  "Predicate PredicateOperator Operator Deprecated HoldHead"
 ];
 
 enumerateSymbolKinds[] := DeleteCases["SymbolicSymbol"] @ procKindSpecList @ $kindRules;
@@ -117,6 +117,7 @@ $kindAliasRules = List[
   "OptionSymbol"        -> "Option",
   "ControlFlowFunction" -> "ControlFlow",
   "Operator"            -> "Op",
+  "Sequence"            -> "Seq",
   "Function"            -> "Fn",
   "String"              -> "Str",
   "Pattern"             -> "Pat",

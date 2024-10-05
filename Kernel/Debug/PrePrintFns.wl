@@ -3,10 +3,13 @@ SystemExports[
 ];
 
 PackageExports[
-  "FormHead",    OutExprForm, MsgArgForm,
-  "IOFunction",  SetPrePrintFns, UnsetPrePrintFns,
-  "BoxFunction", OutExprBox, MsgArgBox, MsgCodePaneBox, MsgExprFormBox, MsgElidedBox,
-  "Variable",    $OutExprFormOptions, $MsgArgPasting, $MsgArgFormat, $MsgArgExprFormOptions
+  "FormHead",    OutExprForm, MsgForm, MsgArgForm,
+  "SpecialFn",   SetPrePrintFns, UnsetPrePrintFns,
+  "BoxFunction", OutExprBox, MsgBox, MsgArgBox, MsgCodePaneBox, MsgExprFormBox, MsgElidedBox
+];
+
+SessionExports[
+  "Variable",    $UseCoreToolsPrePrintFns, $OutExprFormOptions, $MsgArgPasting, $MsgArgFormat, $MsgArgExprFormOptions
 ];
 
 (*************************************************************************************************)
@@ -30,7 +33,7 @@ MakeBoxes[OutExprForm[e_], _]   := OutExprBox[e];
 MakeBoxes[OutExprForm[e___], _] := OutExprBox[e];
 
 OutExprBox = CaseOf[
-  $[]               := FnRBox["Seq"];
+  $[]               := FnBox["Seq"];
   $[s_Str]          := MakeBoxes @ s;
   $[g_Graphics]     := MakeBoxes @ g;
   $[g_Graph]        := MakeBoxes @ g;
@@ -44,15 +47,29 @@ OutExprBox = CaseOf[
   ];
 ];
 
-$OutExprFormOptions = {
+SetInitial[$OutExprFormOptions, {
   MaxLength -> {24, 8, 4, 4, 4, 2, 2},
   MaxDepth -> 8,
   MaxStrLen -> 128
-};
+}];
 
 (**************************************************************************************************)
 
-SystemBox[MsgArgForm[e_]] := MsgArgBox @ e;
+SetHoldA @ MsgForm;
+
+CoreBox[MsgForm[args___]] := MsgBox[args];
+
+SetHoldA @ MsgBox;
+
+MsgBox = CaseOf[
+  msg_Str            := MakeBoxes @ msg;
+  $[msg_Str, args__] := StrFormBox[msg, HoldMap[MsgArgForm, args]];
+  $[args___]         := StrFormBox @ HoldMap[MsgArgForm, args];
+];
+
+(**************************************************************************************************)
+
+CoreBox[MsgArgForm[e_]] := MsgArgBox @ e;
 
 (**************************************************************************************************)
 
@@ -115,7 +132,7 @@ msgArg2 = CaseOf[
 
   {pHold -> Alt[Seq, PrivSeq, PrivHold],
    pHoldSeq -> Alt[HoldForm, PrivHoldSeq],
-   commaBox -> CommaRBox}
+   commaBox -> CommaSeqBox}
 ];
 
 SetHoldC @ msgArg3;

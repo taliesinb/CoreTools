@@ -1,5 +1,5 @@
 PackageExports[
-  "BoxFunction",     GuessInputStrLen, MakeTruncatedBoxes
+  "BoxFunction", GuessInputStrLen, MakeTruncatedBoxes
 ];
 
 (*************************************************************************************************)

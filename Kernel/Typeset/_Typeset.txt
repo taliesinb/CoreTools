@@ -1,6 +1,5 @@
-BoxDefs.wl
-BoxFns.wl
-CodeBoxes.wl
-ExprBoxes.wl
+Expander.wl
+Labeling.wl
 Views.wl
-Layouts.wl
+LegacyViews.wl
+TextIcon.wl

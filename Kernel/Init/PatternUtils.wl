@@ -1,37 +1,51 @@
 SystemExports[
+  "HoldFunction",
+    DefinitionHead, PatternHead, PatternSymbols, PatternLHS,
   "Function",
     ToBlankPattern, ToBlankSequencePattern, ToBlankNullSequencePattern, ToAlternativesPattern,
-    PatternHead, DefinitionHead, PatternSymbols, PatternLHS,
     StripPatternSymbols, StripPatternConditions,
   "ControlFlow",
     AllowRHSPatterns
 ];
 
+
 PackageExports[
+  "HoldFunction",
+    DefHead, PatHead, PatSyms, PatLHS,
+    MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed,
+    MakeSetD, MakeUpSetD, MakeTagSetD,
   "Function",
     SetDsToRuleDs, ToHoldPRuleDs,
     ToBlankP, ToBlankSeqP, ToBlankNullSeqP, ToAltP,
-    PatHead, DefHead, PatSyms, PatLHS,
-    StripPatSyms, StripPatConds,
-    MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed
+    StripPatSyms, StripPatConds
 ];
 
 (*************************************************************************************************)
+
+DefineAliasRules[
+  PatHead          -> PatternHead,
+  DefHead          -> DefinitionHead,
+  PatSyms          -> PatternSymbols,
+  PatLHS           -> PatternLHS
+];
+
+DefineAliasRules[
+  MakeSetD         -> MakeSetDelayed,
+  MakeTagSetD      -> MakeTagSetDelayed,
+  MakeUpSetD       -> MakeUpSetDelayed
+];
 
 DefineAliasRules[
   ToBlankP         -> ToBlankPattern,
   ToBlankSeqP      -> ToBlankSequencePattern,
   ToBlankNullSeqP  -> ToBlankNullSequencePattern,
   ToAltP           -> ToAlternativesPattern,
-  PatHead          -> PatternHead,
-  DefHead          -> DefinitionHead,
-  PatSyms          -> PatternSymbols,
-  PatLHS           -> PatternLHS,
   StripPatSyms     -> StripPatternSymbols,
   StripPatConds    -> StripPatternConditions
 ];
 
 (*************************************************************************************************)
+
 
 SetDsToRuleDs[h:HoldC[{__SetD}]]  := Apply[RuleD, h, {2}];
 ToHoldPRuleDs[HoldC[r:{__RuleD}]] := MapAt[HoldP, NoEval @ r, {All, 1}];

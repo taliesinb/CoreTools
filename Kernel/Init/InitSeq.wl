@@ -1,24 +1,31 @@
 SystemExports[
-  "Function",
+  "SeqFn",
     SequenceNothing,
-    SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse, SequenceFirstSecond, SequenceSecondFirst,
+    SequenceFirst, SequenceSecond, SequenceThird, SequenceLast,
+    SequenceFirstSecond, SequenceSecondFirst,
+    SequenceMost, SequenceRest, SequenceReverse,
   "Head",
     Unsequence
 ];
 
 PackageExports[
-  "Function",    Seq0, Seq1, Seq2, Seq3, SeqN, SeqMost, SeqRest, SeqReverse, Seq12, Seq21,
-  "Function",    SeqLen, HSeqLen, HoldSeqLen,
-  "Function",    SeqCol1, SeqCol2, SeqCol3,
-  "ControlFlow", ThenNull, ThenPart, ThenFail, ThenFailEval, Then1, Then2, Then3
+  "SeqFn",
+    Seq0, Seq1, Seq2, Seq3, SeqN, Seq12, Seq21,
+    SeqCol1, SeqCol2, SeqCol3,
+    SeqMost, SeqRest, SeqRev,
+    SeqLen,
+  "HoldFn",
+    HMapSeq, HSeqLen,
+  "ControlFlow",
+    ThenNull, ThenPart, ThenFail, ThenFailEval,
+    Then1, Then2, Then3
 ];
 
 (*************************************************************************************************)
 
 DefineAliasRules[
-  SeqLen           -> SequenceLength,
-  HSeqLen          -> HoldSequenceLength,
-  HoldSeqLen       -> HoldSequenceLength
+  HMapSeq          -> HoldMapSequence,
+  HSeqLen          -> HoldSequenceLength
 ];
 
 DefineAliasRules[
@@ -27,11 +34,12 @@ DefineAliasRules[
   Seq2             -> SequenceSecond,
   Seq3             -> SequenceThird,
   SeqN             -> SequenceLast,
+  Seq12            -> SequenceFirstSecond,
+  Seq21            -> SequenceSecondFirst,
   SeqMost          -> SequenceMost,
   SeqRest          -> SequenceRest,
-  SeqReverse       -> SequenceReverse,
-  Seq12            -> SequenceFirstSecond,
-  Seq21            -> SequenceSecondFirst
+  SeqRev           -> SequenceReverse,
+  SeqLen           -> SequenceLength
 ];
 
 (*************************************************************************************************)

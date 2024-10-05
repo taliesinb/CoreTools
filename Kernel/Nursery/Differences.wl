@@ -190,7 +190,7 @@ diffExpr[
     Or[
       withPosCrumb[0, $HeadCrumb,  diffExpr[HoldC @ h1, HoldC @ h2]],
       withCrumb[$ArgsCrumb @ head, diffArgs[HoldC @ args1, HoldC @ args2]],
-      withCrumb[$KeysCrumb @ head, diffKeys[HoldSeqLength @ args1, HoldC @ opts1, HoldC @ opts2]]
+      withCrumb[$KeysCrumb @ head, diffKeys[HSeqLen @ args1, HoldC @ opts1, HoldC @ opts2]]
     ]
   ];
 

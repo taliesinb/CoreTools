@@ -53,35 +53,22 @@ SymbolNameSet
 SymbolNameSetDelayed
 
 
-(*IOFunction*)
+(*SpecialFunction*)
 
 ToInputString
 HoldToInputString
 FromInputString
-GetHoldComplete
-GetHidden
-PreludeLoadPackage
+EnqueEvaluation
+EnquedValue
 CreateCachedBox
 CachedBox
-SublimeOpen
-SublimeSeek
-SublimeRun
 EnsureContext
-SymbolTableFromHeaders
-SymbolTableFromDirectives
-PreludeSymbolTable
-DumpPreludeSymbolTable
-CustomizedPrint
-ErrorPrint
-LogPrint
-RawPrint
-CachePrint
-LabeledPrint
-ValueChangePrint
-DPrint
-EchoPrint
-MutationPrint
-WithRawPrintIndent
+DefinitionRules
+DefinitionCounts
+KernelCodes
+NewSymbolHandler
+SymbolTableInit
+SymbolTableInitString
 
 
 (*DataHead*)
@@ -89,15 +76,33 @@ WithRawPrintIndent
 UAssociation
 
 
-(*Function*)
+(*HoldFunction*)
 
+EvaluateMap
+HoldMap
+HoldScan
+HoldApply
+HoldConstruct
+HoldMapSequence
+HoldHead
 HoldLength
 HoldSequenceLength
 HoldByteCount
+HoldHash
 HoldSymbolName
 HoldSymbolNameAlias
 HoldSymbolContext
 HoldSymbolPath
+
+
+(*SequenceFunction*)
+
+MapSequence
+SequenceLength
+
+
+(*Function*)
+
 NaturalNumberString
 FullIntegerString
 PackageSymbolKinds
@@ -186,12 +191,11 @@ $SymbolTableKinds
 $SymbolExportFunctions
 
 
-(*ControlFlowFunction*)
+(*HoldHead*)
 
 PrivateHoldComplete
 PrivateSequence
 PrivateHoldCompleteSequence
-HandleSymbolChanges
 
 
 (*FormHead*)
@@ -225,17 +229,42 @@ $PreEvaluationHook
 $PostEvaluationHook
 $ShiftReturnHookInstalled
 $SessionIDs
-$Captured
+$LastCapture
 $LastTraceback
-$ShouldPrint
-$PrintIndent
 $MaxPrintRate
 $DebugPrinting
 $EchoPrinting
 $CachePrinting
 $MutationPrinting
+$PrintIndent
+$ShouldPrint
 $CellPrintLabel
 $CurrentlyTracingAutoloads
+$CurrentlyTracingSymbols
+
+
+(*IOFunction*)
+
+GetHoldComplete
+GetHidden
+PreludeLoadPackage
+SublimeOpen
+SublimeSeek
+SublimeRun
+SymbolTableFromHeaders
+SymbolTableFromDirectives
+PreludeSymbolTable
+DumpPreludeSymbolTable
+CustomizedPrint
+ErrorPrint
+LogPrint
+RawPrint
+CachePrint
+LabeledPrint
+ValueChangePrint
+DPrint
+EchoPrint
+MutationPrint
 
 
 (*DebuggingFunction*)
@@ -254,6 +283,7 @@ BenchmarkUnpackingData
 TraceUnpackings
 EnableDebugPrinting
 DisableEchoPrinting
+DisableMutationPrinting
 FailureString
 UnpackingTable
 MicroTiming
@@ -279,21 +309,19 @@ $PackageErrorStack
 SourceLocationBox
 
 
-(*SpecialFunction*)
-
-EnqueEvaluation
-EnquedValue
-DefinitionRules
-DefinitionCounts
-KernelCodes
-NewSymbolHandler
-SymbolTableInit
-SymbolTableInitString
-
-
 (*Head*)
 
 FileLocation
+
+
+(*ControlFlowFunction*)
+
+HandleSymbolChanges
+
+
+(*ScopingFunction*)
+
+PrintIntended
 
 
 (*TagVariable*)
@@ -308,7 +336,8 @@ ExportSpecialFunction
 ExportControlFlowFunction
 ExportDeclareFunction
 ExportDefineFunction
-ExportHoldingFunction
+ExportHoldFunction
+ExportSequenceFunction
 ExportDebuggingFunction
 ExportIOFunction
 ExportGraphicsFunction
@@ -347,11 +376,17 @@ ExportSlotHead
 ExportTagSymbol
 ExportTagHead
 ExportVariable
+ExportVar
 ExportSpecialVariable
+ExportSpecialVar
 ExportCacheVariable
+ExportCacheVar
 ExportSlotVariable
+ExportSlotVar
 ExportTagVariable
+ExportTagVar
 ExportTransientVariable
+ExportTransientVar
 ExportOption
 ExportSpecialOption
 ExportBoxOption
@@ -363,12 +398,14 @@ ExportPredicate
 ExportPredicateOperator
 ExportOperator
 ExportDeprecated
+ExportHoldHead
 PrivateFunction
 PrivateSpecialFunction
 PrivateControlFlowFunction
 PrivateDeclareFunction
 PrivateDefineFunction
-PrivateHoldingFunction
+PrivateHoldFunction
+PrivateSequenceFunction
 PrivateDebuggingFunction
 PrivateIOFunction
 PrivateGraphicsFunction
@@ -407,11 +444,17 @@ PrivateSlotHead
 PrivateTagSymbol
 PrivateTagHead
 PrivateVariable
+PrivateVar
 PrivateSpecialVariable
+PrivateSpecialVar
 PrivateCacheVariable
+PrivateCacheVar
 PrivateSlotVariable
+PrivateSlotVar
 PrivateTagVariable
+PrivateTagVar
 PrivateTransientVariable
+PrivateTransientVar
 PrivateOption
 PrivateSpecialOption
 PrivateBoxOption
@@ -423,5 +466,6 @@ PrivatePredicate
 PrivatePredicateOperator
 PrivateOperator
 PrivateDeprecated
+PrivateHoldHead
 
 

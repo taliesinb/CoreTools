@@ -5,7 +5,7 @@ Scratch/
 __pycache__
 StyleSheets/SystemSheets
 StyleSheets/UserSheets
-Data/Sublime/StaticFiles/LibraryKinds.wl.txt
+Data/Sublime/StaticFiles/LibraryKinds.wlsyms
 Data/Sublime/StaticFiles/WolframLanguage.sublime-completions
 Data/Sublime/StaticFiles/WolframLanguage.sublime-syntax
 Data/User

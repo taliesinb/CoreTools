@@ -15,7 +15,7 @@ SessionExports[
     $ShiftReturnHookInstalled,
     $SessionIDs,
 
-  "IOFunction",
+  "SpecialFunction",
     CreateCachedBox,
     CachedBox,
 

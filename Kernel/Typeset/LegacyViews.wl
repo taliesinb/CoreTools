@@ -339,7 +339,7 @@ subtableGridBoxes[rowLabelTitle_, rowLabels2_, colLabels2_, columns2_, hdot_, vd
   If[vdots, rows //=    Append[PadRight[{$vellCell}, numCols, SpanFromLeft]]];
   If[hdots, rows //= appendCol[PadRight[{$hellCell}, numRows, SpanFromAbove] // If[vdots, Append[$brCell], Identity]]];
 
-  If[!VectorQ[rows, ListQ], Return @ RedMsgFormBox["NiceGrid"]];
+  If[!VectorQ[rows, ListQ], Return @ BoxMsgBox["NiceGrid"]];
   rows = Map[MakeBox, rows, {2}];
 
   plainGridBoxes[rows, ColumnAlignments -> {Right, Left}]
@@ -534,7 +534,7 @@ niceMulticolumnBoxes[items2:ListDictP, opts___Rule] := Block[
     rows = Transpose @ columns;
   ];
 
-  If[!VectorQ[rows, ListQ], Return @ RedMsgFormBox["NiceMulticolumn"]];
+  If[!VectorQ[rows, ListQ], Return @ BoxMsgBox["NiceMulticolumn"]];
   rows = Map[MakeBox, rows, {2}];
 
   plainGridBoxes[rows]

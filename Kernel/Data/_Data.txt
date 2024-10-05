@@ -1,2 +1,4 @@
 Trie.wl
+Domains.wl
+NArray.wl
 # TrieParser.wl

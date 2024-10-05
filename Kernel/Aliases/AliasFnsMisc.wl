@@ -2,15 +2,16 @@ PackageExports[
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
     OptMsg, ThrowOptMsg, UnkOptMsg, ThrowUnkOpt,
+  "HoldFunction",
+    HLen, EMap, HMap, HScan, HApply, HMake, HHead, HHash, HByteCount,
+    AliasSymName, SymName, SymContext, SymPath,
   "Function",
     ToList, ToVals, ToRowVec, ToColVec, KeysVals,
-    HLen, HoldLen, Len2, LenN, DimN, LenRange, RangeLen,
+    Len2, LenN, DimN, LenRange, RangeLen,
     MapVals, MapValsP, MapF, MapL, MapM, MapR,
     VecRep,
     Index1, VecIndex1, VecIndex1Of, VecRep, Parts, Occs, UniOccs, OccsPos, NarrowOpts,
     DelNone, DelNull, DelMissing, DelFailed, DelEmpty, DelVerb,
-    AliasSymName, SymName, SymContext, SymPath,
-    MakeSetD, MakeTagSetD, MakeUpSetD,
   "MutatingFunction",
     UnpackDict, PackDict, SetInherit,
   "SymbolicHead",
@@ -35,9 +36,22 @@ DefineAliasRules[
 
 (*************************************************************************************************)
 
+(* these are aliases for System functions from PreBase.wl *)
 DefineAliasRules[
-  HoldLen          -> HoldLength,
   HLen             -> HoldLength,
+  EMap             -> EvaluateMap,
+  HMap             -> HoldMap,
+  HScan            -> HoldScan,
+  HApply           -> HoldApply,
+  HMake            -> HoldConstruct,
+  HHead            -> HoldHead,
+  HHash            -> HoldHash,
+  HByteCount       -> HoldByteCount
+];
+
+(*************************************************************************************************)
+
+DefineAliasRules[
   Len2             -> Length2,
   LenN             -> LengthN,
   DimN             -> DimensionN,
@@ -88,14 +102,6 @@ DefineAliasRules[
   SymName          -> HoldSymbolName,
   SymContext       -> HoldSymbolContext,
   SymPath          -> HoldSymbolPath
-];
-
-(*************************************************************************************************)
-
-DefineAliasRules[
-  MakeSetD         -> MakeSetDelayed,
-  MakeTagSetD      -> MakeTagSetDelayed,
-  MakeUpSetD       -> MakeUpSetDelayed
 ];
 
 (*************************************************************************************************)

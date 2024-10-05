@@ -6,7 +6,7 @@ SystemExports[
 
 CoreBox[GraphPath[e___List]] := GridBox[
   List @ List @ ItemBox[
-    RiffledRowBox["\[LeftArrow]"] @ Map[pathElemBoxes, {e}],
+    RiffRowBox["\[LeftArrow]"] @ Map[pathElemBoxes, {e}],
     Frame -> {{False, False}, {True, False}},
     FrameStyle -> Dashed
   ]

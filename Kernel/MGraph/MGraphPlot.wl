@@ -68,6 +68,6 @@ widthLimitedRow[edges_, maxWidth_:800] := Locals[
     AppendTo[boxes, itemBox];
   ];
   If[i < num, AppendTo[boxes, ToBoxes @ Overscript["\[Ellipsis]", num - i]]];
-  RiffledRowBox[SpacerBox[2]] @ boxes
+  RiffRowBox[SpacerBox[2]] @ boxes
 ];
 

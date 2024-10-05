@@ -85,7 +85,7 @@ headingViewBoxes = CaseOf[
   EmptyUDict := RBox["UDict", "[", " ", "]"];
   items_List := At[$, RangeDict @ items];
   items_Dict := ColGridBox[KeyValueMap[LabelTopBox, items], 1];
-  e_         := RedMsgFormBox["bad HeadingView data: ``", e];
+  e_         := BoxMsgBox["bad HeadingView data: ``", e];
 ];
 
 (*************************************************************************************************)
@@ -98,8 +98,8 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 BlockUnprotect[{Row, Column, Multicolumn},
-  Row[d_Dict, opts___Rule]         := RowView[d, NarrowOpts @ opts];
-  Column[d_Dict, opts___Rule]      := ColumnView[d, NarrowOpts @ opts];
+  Row[d_Dict, opts___Rule]         := RowView[d,         NarrowOpts @ opts];
+  Column[d_Dict, opts___Rule]      := ColumnView[d,      NarrowOpts @ opts];
   Multicolumn[d_Dict, opts___Rule] := MultiColumnView[d, NarrowOpts @ opts];
 ];
 
@@ -214,7 +214,7 @@ toHeldKeysItems = CaseOf[
 $rowColViewOptions = {
    ItemFn -> None,  ItemDivs -> False,  ItemGaps -> 1,  ItemStyle -> None,
   LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> Bold,
-  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1500
+  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1200
 };
 
 $multiRowColViewOptions = FlatList[
@@ -266,17 +266,6 @@ itemFnBoxes[f_][HoldC[item_]] := ToBoxes @ f @ item;
 
 (*************************************************************************************************)
 
-(* OldMultiColumnView[items_, nrows_, ncols_:Inf, maxWidth_:1000] := Locals[
-  If[DictQ[items], toFn = Dict; fromFn = Normal, toFn = fromFn = Id];
-  colFn = ColumnView[toFn @ #, MaxPlotSize -> Inf, MaxItems -> Inf, ItemGap -> 1]&;
-  RowView[
-    colFn /@ Take[Partition[fromFn @ items, UpTo[nrows]], UpTo[nrows * ncols]],
-    MaxPlotSize -> maxWidth, MaxItems -> ncols, ItemGap -> 3
-  ]
-];
- *)
-(*************************************************************************************************)
-
 SetForm0[RowView, ColView];
 
 Options[RowView] = $rowColViewOptions;
@@ -309,7 +298,7 @@ trivialViewBoxes = CaseOf[
   {}             := RBox[LBrace, " ", RBrace];
   EmptyDict      := RBox[LAssoc, " ", RAssoc];
   EmptyUDict     := RBox["UDict", "[", " ", "]"];
-  _              := RedMsgFormBox["bad data"];
+  _              := BoxMsgBox["bad data"];
 ];
 
 RowViewGridBox = CaseOf[
@@ -317,7 +306,7 @@ RowViewGridBox = CaseOf[
   {e1:Except[_List]}     := e1;
   boxes_List             := GridBox[ToRowVec @ boxes, $rcViewOpts];
   boxes_List ? dictRowsQ := GridBox[Flip @ boxes, $rViewLabelStyle, $rcViewOpts];
-  e_                     := RedMsgFormBox["bad data: ``", Head @ e]
+  e_                     := BoxMsgBox["bad data: ``", Head @ e]
 ];
 
 ColViewGridBox = CaseOf[
@@ -325,7 +314,7 @@ ColViewGridBox = CaseOf[
   {e1:Except[_List]}     := e1;
   boxes_List             := GridBox[ToColVec @ boxes, $rcViewOpts];
   boxes_List ? dictRowsQ := GridBox[boxes, $cViewLabelStyle, $rcViewOpts];
-  e_                     := RedMsgFormBox["bad data: ``", Head @ e]
+  e_                     := BoxMsgBox["bad data: ``", Head @ e]
 ];
 
 dictRowsQ[boxes_] := ListQ @ P1 @ boxes;
@@ -552,17 +541,17 @@ jsonExprBoxes = CaseOf[
 jsonDataBox = CaseOf[
   {}          := "[]";
   EmptyDict   := "{}";
-  list_List   := RBox["[", HoldLenBox @ list, "]"];
-  dict_Dict   := RBox["{", HoldLenBox @ dict, "}"];
+  list_List   := RBox["[", HLenBox @ list, "]"];
+  dict_Dict   := RBox["{", HLenBox @ dict, "}"];
   s_Str       := StyleBox[If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> Dots]], ShowStringCharacters -> True];
   d:DatumP    := StyleBox[MakeBoxes @ d, ShowStringCharacters -> True];
   e_          := HoldElidedBox @ e;
 ];
 
 jsonCompoundBox[top_, bot_, expr_] := Locals[
-  If[HoldLen[expr] > 16 && $subPath =!= {}, Return @ jsonNextView[expr]];
+  If[HLen[expr] > 16 && $subPath =!= {}, Return @ jsonNextView[expr]];
   entries = ListDictMakeBoxes1D[Evaluate @ HoldArgsP @ expr, False, jsonEntryBox, False, None, 800, 16];
-  If[VFreeQ[entries, {EventHandlerBox, GridBox}] && Total[Occurences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
+  If[VFreeQ[entries, {EventsBox, GridBox}] && Total[Occurences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
     RBox[top, RowBox @ Riffle[entries, ","], bot]
   ,
     entries = Map[RBox["\t", #]&, entries];
@@ -605,7 +594,7 @@ SetHoldA[expViewBoxes, expItemBoxes, expColumnBoxes];
 
 expViewBoxes = CaseOf[
   e:EmptyP    := expItemBoxes @ e;
-  {d:DatumP}  := ParenRBox @ expItemBoxes @ d;
+  {d:DatumP}  := ParenBox @ expItemBoxes @ d;
   l_List      := expColumnBoxes[expListFieldBoxes, l];
   d_Dict      := expColumnBoxes[expDictFieldBoxes, d];
   e_          := expItemBoxes @ e;
@@ -658,7 +647,7 @@ DefineViewForm[RowColumnView[items:ListDictP] :> rowColumnViewBoxes @ items];
 
 SetHoldC[rowColumnViewBoxes, rowableQ];
 
-rowableQ[items_] := HoldLen[items] < 32 && AllTrue[NoEval @ items, HoldDatumQ];
+rowableQ[items_] := HLen[items] < 32 && AllTrue[NoEval @ items, HoldDatumQ];
 
 rowColumnViewBoxes[items_ ? rowableQ] := rowViewBoxes @ list;
 rowColumnViewBoxes[items_]            := colViewBoxes @ list;
@@ -898,7 +887,7 @@ DynamicProgressBarBox[{i_, n_}, {w_, h_}, color_:$LightPurple] := mouseMoveBox[
 SetHoldR[mouseMoveBox]
 
 mouseMoveBox[box_, body_] := CursorIconBox[
-  EventHandlerBox[box, {"MouseClicked" :> body, "MouseDragged" :> body}],
+  EventsBox[box, {"MouseClicked" :> body, "MouseDragged" :> body}],
   "FrameLRResize"
 ];
 
