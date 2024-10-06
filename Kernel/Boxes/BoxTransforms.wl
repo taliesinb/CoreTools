@@ -117,7 +117,7 @@ SystemBox[DepthTruncateForm[expr_, n_Int]] := At[DepthTruncateBoxes, MakeBoxes @
 
 SetHoldC @ DepthTruncateBoxes;
 
-DepthTruncateBoxes[boxes_, n_Int] := If[n <= 0, CDots, Block[{$d = n}, truncBox @ boxes]];
+DepthTruncateBoxes[boxes_, n_Int] := If[n <= 0, CDotsS, Block[{$d = n}, truncBox @ boxes]];
 
 SetHoldC[truncBox, incDepth1, incDepth2];
 
@@ -127,6 +127,7 @@ truncBox = CaseOf[
   TBox[args_List, name_]            := TBox[truncTBox[name, args], name];
   RowBox[b:NestRowBoxListP]            := RowBox @ HoldMap[$, b] // incDepth1;
   RowBox[b_List]                    := RowBox @ HoldMap[$, b];
+  e:(h:Box0SymP)[___]               := e;
   (h:Box1SymP)[a_, r___]            := With[{a1 = $ @ a},             h[a1, r]];
   (h:Box1VecSymP)[a_List, r___]     := With[{a1 = HoldMap[$, a]},    h[a1, r]];
   (h:Box1MatSymP)[a:{__List}, r___] := With[{a1 = HoldMap2[$, a]},     h[a1, r]] // incDepth2;
@@ -138,8 +139,8 @@ truncBox = CaseOf[
   {otherSym$ -> Join[Box1RVecSymP, Box2RVecSymP, BoxDValSymP, BoxDSymP]}
 ];
 
-incDepth1[body_] := If[$d <= 1, CDots, Block[{$d = $d - 1}, body]];
-incDepth2[body_] := If[$d <= 2, CDots, Block[{$d = $d - 2}, body]];
+incDepth1[body_] := If[$d <= 1, CDotsS, Block[{$d = $d - 1}, body]];
+incDepth2[body_] := If[$d <= 2, CDotsS, Block[{$d = $d - 2}, body]];
 
 SetHoldC[truncTBox, maybeTrunc];
 

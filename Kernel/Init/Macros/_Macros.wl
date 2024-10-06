@@ -8,7 +8,7 @@ PackageExports[
     Ensure, MacroHead,
   "SpecialFunction",
     ExpandMacros, RefreshMacroRules,
-  "TagHead",
+  "HoldHead",
     MacroHold, MacroSet, MacroSetDelayed, MacroRuleDelayed
   "MessageFunction",
     MacroError,
@@ -23,7 +23,7 @@ PackageExports[
 ];
 
 PrivateExports[
-  "Function",
+  "HoldFunction",
     HoldMMap, HoldMRaise, HoldMLower,
   "SpecialFunction",
     MacroEval, MacroHook,

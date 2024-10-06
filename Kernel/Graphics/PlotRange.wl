@@ -1,26 +1,30 @@
 SystemExports[
-  "GraphicsFunction", EnlargeRange, PrimitiveBoxesRange
+  "GraphicsFunction", EnlargeRange
+];
+
+PackageExports[
+  "GraphicsBoxFunction", GBoxRange
 ];
 
 (**************************************************************************************************)
 
-PrimitiveBoxesRange::usage =
-"PrimitiveBoxesRange[boxes$] returns the range {{x$min, x$max}, {y$min, y$max}} of primitive boxes.
-PrimitiveBoxesRange[boxes$, scale$] assumes that one plot range unit corresponds to scale$ pixels.
+GBoxRange::usage =
+"GBoxRange[boxes$] returns the range {{x$min, x$max}, {y$min, y$max}} of primitive boxes.
+GBoxRange[boxes$, scale$] assumes that one plot range unit corresponds to scale$ pixels.
 * if no scale is provided:
 * %Offset expressions are ignored
 * %TextBox and %InsetBox contents are treated as a single point at their placement position."
 
-PrimitiveBoxesRange[boxes_, gs_:None] := Locals[
+GBoxRange[boxes_, gs_:None] := Locals[
   setupGPrimBoundDefs[];
   $aps = 5/2; $gs = gs; $fs = $ff = $fw = $fsl = $ft = Inherited;
-  gBoxesRange @ ResolveOffsets[boxes, gs]
+  gboxRange @ ResolveOffsets[boxes, gs]
 ];
 
 (* used internally to compute the center for Rotate *)
-gBoxesRange[boxes_] := Locals[
+gboxRange[boxes_] := Locals[
   $p = Bag[]; $t = Id;
-  boxBound @ boxes;
+  scanRange @ boxes;
   $p = BagPart[$p, All];
   ToPackedReals @ If[$p === {}, $emptyBounds, fatten /@ CoordinateBounds[$p]]
 ];
@@ -45,13 +49,13 @@ EnlargeRange = CaseOf[
 
 (**************************************************************************************************)
 
-(* boxBound is set up lazily so that the primitive box registery will have been populated *)
+(* scanRange is set up lazily so that the primitive box registery will have been populated *)
 
 boxPattern[str_] := ToAltP @ GSigToGBoxes[str];
 
 (* TODO: make this work in 3D, handle radii that are specified as Offset *)
 setupGPrimBoundDefs[] := With[{
-  prims       = boxPattern["Pos"],
+  prims       = boxPattern["Primitives"],
   pos         = boxPattern["Pos!Radius"],
   posPos      = boxPattern["Pos,Pos"],
   posRad      = boxPattern["Pos,Radius"],
@@ -62,35 +66,35 @@ setupGPrimBoundDefs[] := With[{
   directive   = _Directive | _APointSize | Rule[FontSize | FontWeight | FontFamily | FontSlant | FontTracking, _],
   curves      = JoinedCurveBox|FilledCurveBox,
   inset       = _TextBox | _Text3DBox | _InsetBox | _Inset3DBox,
-  $ = boxBound},
+  $ = scanRange},
 
-  Clear[boxBound];
+  Clear[scanRange];
 
   $[PointBox[p_]]   /; $gs =!= None        := $ @ Make[DiskBox, p, $aps / $gs];
   $[Point3DBox[p_]] /; $gs =!= None        := $ @ Make[SphereBox, p, $aps / $gs];
   $[TagBox[_, "PlaneInset"|"NoBounds"]]    := Null; (* PlaneInset is meant to appear as a billboard *)
   $[ib:inset]                              := insetBounds @ ib;
   $[prims[p_, ___]]                        := $ @ p;
-  $[pos[v:PosAP]]                          := StuffBag[$p, $t @ v];
-  $[posPos[v:PosAP, w:PosAP, ___]]         := StuffBag[$p, $t /@ {v, w}, 1];
-  $[posRad[v:PosAP, r_:1, ___]]            := StuffBag[$p, $t @ vecBall[v, r]];
-  $[PolygonBox[Rule[m:PosAListP, _], ___]] := StuffBag[$p, $t @ m, 1];
-  $[posList[m:PosAListP, ___]]             := StuffBag[$p, $t @ m, 1];
-  $[posListRad [m:PosAListP,   r_:1, ___]] := StuffBag[$p, $t @ matBall[m, r], 1];
-  $[posLists   [ms:PosAListsP, ___]]       := StuffBag[$p, $t /@ ms, 2];
-  $[posListsRad[ms:PosAListsP, r_:1, ___]] := StuffBag[$p, $t[matBall[#, r]& /@ ms], 2];
+  $[pos[v:Pos2P]]                          := StuffBag[$p, $t @ v];
+  $[posPos[v:Pos2P, w:Pos2P, ___]]         := StuffBag[$p, $t /@ {v, w}, 1];
+  $[posRad[v:Pos2P, r_:1, ___]]            := StuffBag[$p, $t @ vecBall[v, r]];
+  $[PolygonBox[Rule[m:Pos2ListP, _], ___]] := StuffBag[$p, $t @ m, 1];
+  $[posList[m:Pos2ListP, ___]]             := StuffBag[$p, $t @ m, 1];
+  $[posListRad [m:Pos2ListP,   r_:1, ___]] := StuffBag[$p, $t @ matBall[m, r], 1];
+  $[posLists   [ms:Pos2ListsP, ___]]       := StuffBag[$p, $t /@ ms, 2];
+  $[posListsRad[ms:Pos2ListsP, r_:1, ___]] := StuffBag[$p, $t[matBall[#, r]& /@ ms], 2];
   $[list_List]                             := styleBlock @ Scan[$, list];
   $[d:directive]                           := applyDir @ d;
   $[StyleBox[p_, opts___]]                 := styleBlock[Scan[applyDir, {opts}]; $ @ p];
   $[curves[c_List, ___]]                   := multiCurveBound @ c;
   $[GeometricTransformationBox[p_, t_]]    := transBoxBound[p, t];
-  (* $[e_]                                 := Message[PrimitiveBoxesRange::unrecogBox, e]; *)
+  $[e_]                                    := Message[GBoxRange::unrecogBox, e];
   $[_]                                     := Null;
 
   Clear[setupGPrimBoundDefs];
 ];
 
-PrimitiveBoxesRange::unrecogBox = "Unrecognized element ``.";
+GBoxRange::unrecogBox = "Unrecognized element ``.";
 
 (**************************************************************************************************)
 
@@ -112,22 +116,22 @@ applyDir = CaseOf[
 (**************************************************************************************************)
 
 (* TODO: join endpoints, which can effect bounds of BezierCurve *)
-multiCurveBound[curves_] := boxBound @ ToGraphicsBoxes @ curves;
+multiCurveBound[curves_] := scanRange @ ToGraphicsBoxes @ curves;
 
 (**************************************************************************************************)
 
 transBoxBound = CaseOf[
-  Seq[p_, v:PosAP]                := applyTrans[p, ThreadPlusOp[v]];
-  Seq[p_, m:PosAListP]            := applyTrans[p, AffineOp[m]];
-  Seq[p_, {m:PosAListP, v:PosAP}] := applyTrans[p, AffineOp[m, v]];
-  Seq[p_, {m:PosAListP, Center}]  := With[
+  Seq[p_, v:Pos2P]                := applyTrans[p, ThreadPlusOp[v]];
+  Seq[p_, m:Pos2ListP]            := applyTrans[p, AffineOp[m]];
+  Seq[p_, {m:Pos2ListP, v:Pos2P}] := applyTrans[p, AffineOp[m, v]];
+  Seq[p_, {m:Pos2ListP, Center}]  := With[
     {v = N[Mean /@ gBoxesRange[p]]},
     applyTrans[p, ThreadPlusOp[-v] /* AffineOp[m] /* ThreadPlusOp[v]]
   ];
-  Seq[_, t_] := Message[PrimitiveBoxesRange::unrecogTrans, t]
+  Seq[_, t_] := Message[GBoxRange::unrecogTrans, t]
 ];
 
-PrimitiveBoxesRange::unrecogTrans = "Unrecognized geometric transform spec ``.";
+GBoxRange::unrecogTrans = "Unrecognized geometric transform spec ``.";
 
 (**************************************************************************************************)
 
@@ -144,7 +148,7 @@ matBall[m_, r_]          := vecBall[#, r]& /@ m;
 
 (**************************************************************************************************)
 
-applyTrans[p_, new_] := Block[{$t = composeTransform[$t, new]}, boxBound @ p];
+applyTrans[p_, new_] := Block[{$t = composeTransform[$t, new]}, scanRange @ p];
 
 (* TODO: this won't simplify cases that are already involving Composition *)
 composeTransform[Id, new_] := new;
@@ -156,13 +160,13 @@ composeTransform[ThreadPlusOp[old_], ThreadPlusOp[new_]] := ThreadPlusOp[old + n
 
 $baseStyle := {FontSize -> $fs, FontFamily -> $ff, FontWeight -> $fw, FontSlant -> $fsl, FontTracking -> $ft};
 
-PrimitiveBoxesRange::unsuppInset = "Unsupported InsetBox ``."
+GBoxRange::unsuppInset = "Unsupported InsetBox ``."
 
 insetBounds[e_] := If[NumberQ[$gs], properInsetBounds, pointInsetBounds][e];
 
 pointInsetBounds = CaseOf[
-  (TextBox|Text3DBox)[_, v:PosAP, ___]    := StuffBag[$p, $t @ v];
-  (InsetBox|Inset3DBox)[_, v:PosAP, ___]  := StuffBag[$p, $t @ v];
+  (TextBox|Text3DBox)[_, v:Pos2P, ___]    := StuffBag[$p, $t @ v];
+  (InsetBox|Inset3DBox)[_, v:Pos2P, ___]  := StuffBag[$p, $t @ v];
   TextBox[_] | InsetBox[_]                := StuffBag[$p, {0, 0}];
   Text3DBox[_] | Inset3DBox[_]            := StuffBag[$p, {0, 0, 0}];
   o_                                      := Null;
@@ -171,7 +175,7 @@ pointInsetBounds = CaseOf[
 properInsetBounds = CaseOf[
 
   i:InsetBox[_GraphicsBox, ___] :=
-    boxBound @ embedInsetBoxWithScale[i, $gs];
+    scanRange @ embedInsetBoxWithScale[i, $gs];
 
   InsetBox[FormBox[txt_, _] | txt_, pos_, offset:Except[_Rule]:ImageScaled[{0.5,0.5}], size_:Auto, dirx:Except[_Rule]:{1,0}, opts___Rule] := Locals[
     pos = ResolveOffsets[pos, $gs];
@@ -189,7 +193,7 @@ properInsetBounds = CaseOf[
     StuffBag[$p, points, 1]
   ];
 
-  other_ := Message[PrimitiveBoxesRange::unsuppInset, other];
+  other_ := Message[GBoxRange::unsuppInset, other];
 ];
 
 

@@ -4,7 +4,7 @@ PackageExports[
     RaiseForm, LowerForm, MarginForm,
     PadForm, HPadForm, VPadForm, LRPadForm, BTPadForm,
   "BoxFunction",
-    TightBox, SpanSizeBox,
+    TightBox, SpanSizeBox, NoLineBreakBox,
     RaiseBox, LowerBox, MarginBox,
     PadBox, LPadBox, RPadBox, BPadBox, TPadBox, HPadBox, VPadBox, LRPadBox, BTPadBox
 ];
@@ -26,6 +26,10 @@ SetCurry23BoxFn @ SpanSizeBox;
 SystemBox[SpanSizeForm[e_, min_, max_]] := TightBox @ MakeBoxes @ e;
 
 SpanSizeBox[box_, min_, max_] := StyleBox[box, SpanMinSize -> min, SpanMaxSize -> max];
+
+(**************************************************************************************************)
+
+NoLineBreakBox[box_] := StyleBox[box, LineBreakWithin -> False];
 
 (**************************************************************************************************)
 

@@ -1,12 +1,10 @@
 SystemExports[
   "Function",
-    PathJoin, NormalizePath, EnsureDirectory, ArchiveInnerFile, NewTemporaryFilename, ShellEscape, ToJSON,
+    PathJoin, NormalizePath, NewTemporaryFilename, ShellEscape,
   "Head",
-    FileList, RawString,
+    FileList,
   "IOFunction",
-    ImportJSONString,
-    ImportLines, ImportJSON, ImportMX, ImportUTF8, ImportStringTable,
-    ExportLines, ExportJSON, ExportMX, ExportUTF8, ExportStringTable, StringTableString,
+    EnsureDirectory, FileData, CopyLatestFile, MoveFile, FileNameSafe, CopyFileSafe, TemporaryFileCopy, ExtractArchiveFile,
     RunAppleScript, RunCommand, FindBinary,
     CopyImageToClipboard, CopyTextToClipboard,
   "Variable",
@@ -14,12 +12,13 @@ SystemExports[
 ];
 
 PackageExports[
-  "Predicate",  UnsafePathQ
+  "Predicate",   ForbiddenPathQ, ArchiveFileQ
 ];
 
 PrivateExports[
-  "Function",   DataPath,
-  "IOFunction", LoadSystemData, GenerateSystemData
+  "MetaFn",      DefineImportFn,
+  "Function",    DataPath, ImportFnHelper, ImportStreamHelper, ExportStreamHelper,
+  "ControlFlow", QuietCheckCorrupt
 ];
 
 (**************************************************************************************************)
@@ -35,14 +34,22 @@ DataPath[spec___] := PathJoin[$CoreToolsRootPath, "Data", spec];
 
 (**************************************************************************************************)
 
-UnsafePathQ[path_Str] := !StrStartsQ[path, {$HomeDirectory, $TemporaryDirectory}];
-UnsafePathQ[_]        := True;
+SetStrict @ FileNameSafe;
+
+FileNameSafe[path_Str] := StringDelete[FileNameTake @ str, $unsafeCharRE];
+
+$unsafeCharRE = RegularExpression["[^a-zA-Z0-9._]"];
+
+(**************************************************************************************************)
+
+ForbiddenPathQ[path_Str] := !StrStartsQ[path, {$HomeDirectory, $TemporaryDirectory}];
+ForbiddenPathQ[_]        := True;
 
 (**************************************************************************************************)
 
 SetStrict @ EnsureDirectory;
 
-EnsureDirectory[path_Str ? UnsafePathQ] := ThrowMsg["unsafeDir", path];
+EnsureDirectory[path_Str ? ForbiddenPathQ] := ThrowMsg["unsafeDir", path];
 EnsureDirectory[path_Str ? FileExistsQ] := path;
 EnsureDirectory[path_Str] := If[FailureQ @ CreateDirectory[path], ThrowMsg["ensureDirFailed", path], path];
 
@@ -70,266 +77,6 @@ accentsToMarks[str_] := CharacterNormalize[str, "NFC"];
 
 (**************************************************************************************************)
 
-ArchiveInnerFile::missing = "Archive file `` does not exist."
-ArchiveInnerFile::corrupt = "Archive file `` is corrupt."
-ArchiveInnerFile::ambiguous = "Archive file `` expanded to multiple files: ``.";
-ArchiveInnerFile::empty = "Archive file `` was empty."
-
-ArchiveInnerFile[path2_Str] := Module[
-  {path, hashStr, dirName, dirPath, files},
-  path = NormalizePath @ path2;
-  If[!FileExistsQ[path],
-    Message[ArchiveInnerFile::missing, path];
-    Return @ $Failed];
-  If[!StringEndsQ[path, {".zip", ".tar.gz", ".gz"}], Return @ path];
-  hashStr = Base36String @ FileHash @ path;
-  dirName = FileBaseName[path] <> "." <> hashStr;
-  dirPath = NewTemporaryFilename[dirName];
-  files = If[DirectoryQ[dirPath],
-    FileNames[All, dirPath, Infinity],
-    CreateDirectory[dirPath]; {}
-  ];
-  If[files === {},
-    files = ExtractArchive[path, dirPath, CreateIntermediateDirectories -> False];
-    If[!ListQ[files],
-      Message[ArchiveInnerFile::corrupt, path];
-      Return @ $Failed]
-  ];
-  Switch[files,
-    {},  Message[ArchiveInnerFile::empty, path]; $Failed,
-    {_}, First @ files,
-    _,   Message[ArchiveInnerFile::ambiguous, path]; $Failed
-  ]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ImportLines]
-
-ImportLines[file_Str]        := importLines[file];
-ImportLines[file_Str, n_Int] := importLines[file, n];
-
-importLines[file_, args___] := ReadList[
-  NormalizePath @ file, Record, args,
-  RecordSeparators -> "\n", NullRecords -> True
-];
-
-(**************************************************************************************************)
-
-SetStrict[ExportLines]
-
-ExportLines[file_Str, lines_] := If[!StrVecQ[lines], $Failed,
-  ExportUTF8[file, StrJoin @ Riffle[lines, "\n"]]];
-
-(**************************************************************************************************)
-
-SetStrict[ImportJSONString]
-
-ImportJSONString::badJSONString = "String `` does not appear to be valid JSON.";
-
-ImportJSONString[jsonStr_String] := Locals[
-  expr = Quiet @ Check[ReadRawJSONString @ jsonStr, $Failed];
-  If[FailureQ[expr], ReturnFailed["badJSONString", jsonStr]];
-  expr /. Null -> None
-];
-
-(**************************************************************************************************)
-
-General::importFileNotExists = "File to import `` does not exist.";
-General::importFileCorrupt = "File to import `` is corrupt.";
-importErrorMessage[head_, path_] := If[!FileExistsQ[path],
-  Message[MessageName[head, "importFileNotExists"], path]; $Failed,
-  Message[MessageName[head, "importFileCorrupt"], path];   $Failed
-];
-
-(**************************************************************************************************)
-
-SetStrict[ImportJSON]
-
-ImportJSON[path2_String] := Block[{path, expr},
-  path = ArchiveInnerFile @ NormalizePath @ path2;
-  expr = Quiet @ Check[ReadRawJSONFile @ path, $Failed];
-  If[FailureQ[expr],
-    importErrorMessage[ImportJSON, path],
-    expr /. Null -> None
-  ]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ExportJSON];
-
-ExportJSON::badExpr = "Cannot convert `` to JSON for export to ``.";
-ExportJSON[path_String, expr_] := Block[{jsonStr},
-  jsonStr = WriteRawJSONString[expr, "Compact" -> 4];
-  If[!StringQ[jsonStr], ReturnFailed["badExpr", expr, path]];
-  ExportUTF8[NormalizePath @ path, StringReplace[jsonStr, "\\/" -> "/"]]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ImportMX];
-
-ImportMX::nefile = "File `` does not exist.";
-ImportMX::fail = "File `` is corrupt.";
-
-ImportMX[path2_String] := Block[
-  {System`Private`ConvertersPrivateDumpSymbol, path = NormalizePath @ path2},
-  If[Or[
-    FailureQ[Quiet @ Check[Get @ path, $Failed]],
-    !MatchQ[System`Private`ConvertersPrivateDumpSymbol, _HoldC]],
-    importErrorMessage[ImportMX, path],
-    First @ System`Private`ConvertersPrivateDumpSymbol
-  ]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ExportMX];
-
-ExportMX::fail = "Could not write expression to ``.";
-ExportMX[path2_String, expr_] := Block[
-  {System`Private`ConvertersPrivateDumpSymbol = HoldC[expr],
-   path = NormalizePath @ path2},
-  If[FailureQ @ Quiet @ Check[
-    DumpSave[path, System`Private`ConvertersPrivateDumpSymbol], $Failed],
-    Message[ExportMX::fail, path]; $Failed,
-    path2
-  ]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ImportUTF8];
-
-ImportUTF8[path2_String] := Block[{path, bytes},
-  path = NormalizePath @ path2;
-  bytes = Quiet @ Check[ReadByteArray @ path, $Failed];
-  Switch[bytes,
-    EndOfFile,  "",
-    _ByteArray, ByteArrayToString @ bytes,
-    _,          importErrorMessage[ImportUTF8, path]
-  ]
-];
-
-(**************************************************************************************************)
-
-SetStrict[ExportUTF8];
-
-ExportUTF8::openFailure = "Cannot open `` for writing.";
-ExportUTF8::writeFailure = "Cannot write to ``.";
-
-ExportUTF8[path2_String ? PrintableASCIIQ, string_String] := Module[
-  {path = NormalizePath @ path2, stream},
-  stream = OpenWrite[path, BinaryFormat -> True];
-  If[FailureQ[stream],
-    Message[ExportUTF8::openFailure, path];
-    Return @ $Failed];
-  WithLocalSettings[
-    Null,
-    Check[
-      BinaryWrite[path, StringToByteArray[string]],
-      Message[ExportUTF8::writeFailure, path];
-      $Failed
-    ],
-    Close[stream];
-  ]
-];
-
-$tempExportFile := $tempExportFile = NewTemporaryFilename["utf_export"];
-
-(* TODO: gate on macOS *)
-(* works around failure on e.g. ExportUTF8["~/𝖢𝖺𝗍.txt", "..."] on macOS *)
-ExportUTF8[path_String, string_String] := (
-  If[FailureQ @ ExportUTF8[$tempExportFile, string], $Failed,
-  If[FailureQ @ RunCommand["mv", $tempExportFile, NormalizePath @ path], $Failed, path]]
-);
-
-(*************************************************************************************************)
-
-SetStrict[ImportStringTable]
-
-ImportStringTable::invalidSymbolTable = "`` does not contain a valid symbol table.";
-
-ImportStringTable[path_Str] := Module[{text},
-  text = ImportUTF8 @ path;
-  If[!StrQ[text],
-    Message[ImportStringTable::invalidSymbolTable, path];
-    Return @ $Failed];
-  PairsToDict @ Map[
-    StringSplit /* FirstRest,
-    StringLines @ StringReplace[text, "\n\t" -> " "]
-  ]
-];
-
-(*************************************************************************************************)
-
-SetStrict[StringTableString]
-
-Options[StringTableString] = {"Sort" -> True, "Split" -> 100};
-
-StringTableString[dict_Dict, OptionsPattern[]] := Module[
-  {kvs, split, rowFn, lines},
-  kvs = {Map[ToStr, Keys @ dict], Map[ToStr, Vals @ dict, {2}]};
-  If[!StrVecQ[P1 @ kvs] || !VecQ[P2 @ kvs, StrVecQ], Return @ $Failed];
-  If[OptionValue["Sort"], kvs //= sortKeysVals];
-  split = OptionValue["Split"];
-  rowFn = If[IntQ @ split,
-    mulLineRow[split - 4],
-    oneLineRow[Max @ StrLen @ First @ kvs]
-  ];
-  lines = MapThread[rowFn, kvs];
-  str = StrJoin @ Riffle[lines, NL];
-  If[StrQ @ str, str, $Failed]
-];
-
-sortKeysVals[{keys_, vals_}] := Module[
-  {ord = Ordering @ keys},
-  List[
-    Part[keys, ord],
-    Sort /@ Part[vals, ord]
-  ]
-];
-
-oneLineRow[m_][k_, vs_] := List[
-  StrPadR[k, m + 1],
-  Riffle[vs, " "]
-];
-
-mulLineRow[m_][k_, {}] := {k};
-mulLineRow[m_][k_, vs_] := Module[
-  {c, v, line1, lineR, nlt = "\n\t"},
-  v = First @ vs;
-  line1 = {k, nlt, v}; c = StrLen[v];
-  lineR = Table[
-    v = Part[vs, i];
-    n = StrLen @ v;
-    c += n + 1;
-    If[c >= m, c = 1; {nlt, v}, {Spc, v}]
-  ,
-    {i, 2, Len @ vs}
-  ];
-  {line1, lineR}
-];
-
-(*************************************************************************************************)
-
-SetStrict[ExportStringTable]
-
-Options[ExportStringTable] = Options[StringTableString];
-
-ExportStringTable::invalidData = "`` is not an association from strings to lists of strings.";
-
-ExportStringTable[path_Str, dict_Dict, opts:OptionsPattern[]] := Module[
-  {str = StringTableString[dict, opts]},
-  If[!StrQ[str],
-    Message[ExportStringTable::invalidData, dict]; $Failed,
-    ExportUTF8[path, str]
-  ]
-];
-
-(**************************************************************************************************)
-
 SetStrict[NewTemporaryFilename];
 
 $tempDir := $tempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
@@ -338,11 +85,241 @@ $tempDir := $tempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
 NewTemporaryFilename[file_String] := PathJoin[$tempDir, file];
 
 NewTemporaryFilename[file_String] /; StringContainsQ[file, "#"] :=
-  NewTemporaryFilename @ StrRep[file, "#" -> uniqueSessionStr[]]
+  NewTemporaryFilename @ StrRep[file, "#" -> UniqueSessionID[]]
 
 (**************************************************************************************************)
 
-uniqueSessionStr[] := StrJoin[IntegerString[$ProcessID], "_", IntegerString[UniqueSessionID[], 10, 5]];
+SetStrict @ FileData;
+
+FileData[path_Str]             := toFileDataAssoc @ sysFileInfo @ path;
+FileData[path_Str, prop_Str]   := sysFileInfo[path, prop];
+FileData[path_Str, props_List] := toFileDataProps[sysFileInfo[path, props], props];
+
+toFileDataAssoc[l:{___Rule}]   := Dict @ DeleteCases[l, _Missing];
+toFileDataAssoc[_]             := $Failed;
+
+toFileDataProps[data:RuleVecP, keys_] := Lookup[data, keys];
+toFileDataProps[_, _]                 := $Failed;
+
+sysFileInfo[path_, args___] := FastQuietCheck[
+  FileInformation[NormalizePath @ src, prop],
+  $Failed
+];
+
+(**************************************************************************************************)
+
+SetStrict[CopyLatestFile, syncFiles]
+
+CopyLatestFile[src_Str, dst_Str] := syncFiles[NormalizePath @ src, NormalizePath @ dst];
+
+syncFiles[src_Str, dst_Str] := Which[
+  !FileExistsQ[src],
+    Message[CopyLatestFile::missing, File @ src]; $Failed,
+  System`Private`NewerFileDate[src, dst],
+    copyFile[src, dst]; src,
+  True,
+    copyFile[dst, src]; dst
+];
+
+CopyLatestFile::missing = "Source file does not exist: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[MoveFile, CopyFileSafe]
+
+MoveFile[src_Str, dst_Str]     := moveFile[NormalizePath @ src, NormalizePath @ dst];
+CopyFileSafe[src_Str, dst_Str] := copyFile[NormalizePath @ src, NormalizePath @ dst];
+
+(**************************************************************************************************)
+
+SetStrict[moveFile, copyFile, moveOrCopyFile]
+
+moveFile[src_Str, dst_Str] := moveOrCopyFile[src, dst, RenameFile, "mv"];
+copyFile[src_Str, dst_Str] := moveOrCopyFile[src, dst, CopyFile, "cp"];
+
+moveOrCopyFile[src_Str, dst_Str, wlFn_Sym, shellFn_Str] := Which[
+  src === dst,
+    dst,
+  PrintableASCIIQ[src] && PrintableASCIIQ[dst],
+    wlFn[src, dst, OverwriteTarget -> True],
+  !FailureQ[RunCommand[shellFn, src, dst]] && FileExistsQ[dst],
+    dst,
+  True,
+    Message[General::moveCopyFailed, File @ src, File @ dst]; $Failed
+];
+
+General::moveCopyFailed = "Could not move or copy `` to ``.";
+
+(**************************************************************************************************)
+
+SetStrict[TemporaryFileCopy, tempFileCopy];
+
+TemporaryFileCopy[path_Str] := tempFileCopy @ NormalizePath @ path;
+
+tempFileCopy[path_Str] := Module[
+  {copyPath = NewTemporaryFilename["copy_#_" <> safeBits[FileNameTake @ path]]},
+  If[!FailureQ[copyFile[path, copyPath]] && FileExistsQ[copyPath],
+    copyPath,
+    Message[TemporaryFileCopy::tempCopy, File @ path]; $Failed
+  ]
+];
+
+TemporaryFileCopy::tempCopy = "Could not make temporary copy of ``.";
+
+(**************************************************************************************************)
+
+SetStrict[EnsureReadableFile, ensureReadabale]
+
+EnsureReadableFile[pathArg_Str] := ensureReadabale @ NormalizePath @ pathArg;
+
+ensureReadabale[path_Str ? PrintableASCIIQ] := path;
+ensureReadabale[path_Str] := tempFileCopy @ path;
+
+(**************************************************************************************************)
+
+$archiveExts = {".zip", ".gz", ".gzip", ".tar", ".tar.gz", ".bzip2", ".zstd", ".7z", ".rar", ".iso"};
+
+ArchiveFileQ[path_String] := StringEndsQ[path, $archiveExts, IgnoreCase -> True];
+ArchiveFileQ[_]           := False;
+
+(**************************************************************************************************)
+
+SetStrict[ExtractArchiveFile];
+
+ExtractArchiveFile[pathArg_Str] := Locals[
+  path = EnsureReadableFile @ pathArg;
+  If[ValidFileQ[path],
+    extractArchive[ExtractArchiveFile, path]
+  ,
+    Message[ExtractArchiveFile::missingArchive, File @ pathArg];
+    $Failed
+  ]
+];
+
+General::missingArchive = "Archive file `` does not exist."
+
+(**************************************************************************************************)
+
+extractArchive[head_, path_] := Module[
+  {hashStr, dirName, dirPath, files},
+  hashStr = Base36String @ FileHash @ path;
+  dirName = FileBaseName[path] <> "." <> hashStr;
+  dirPath = NewTemporaryFilename @ dirName;
+  If[DirectoryQ[dirPath],
+    files = FileNames[All, dirPath, Infinity];
+    If[Len[files] === 1, Return @ First @ files];
+    DeleteDirectory[dirPath, DeleteContents -> True];
+  ];
+  CreateDirectory @ dirPath;
+  files = ExtractArchive[path, dirPath, CreateIntermediateDirectories -> False];
+  If[!ListQ[files],
+    Message[head::corruptArchive, File @ path];
+    Return @ $Failed
+  ];
+  Switch[Length @ files,
+    1, First @ files,
+    0, Message[head::emptyArchive, File @ path]; $Failed,
+    _, Message[head::multipleArchiveFiles, File @ path, File /@ files]; $Failed
+  ]
+];
+
+General::corruptArchive = "Archive file `` is corrupt."
+General::emptyArchive = "Archive file `` was empty."
+General::multipleArchiveFiles = "Archive file `` expanded to multiple files: ``.";
+
+(**************************************************************************************************)
+
+SetHoldC @ QuietCheckCorrupt;
+
+QuietCheckCorrupt[body_] := QuietCheck[body, $Corrupt];
+
+(**************************************************************************************************)
+
+SetStrict @ DefineImportFn;
+
+DefineImportFn[extFn_Sym, intFn_Sym] := Then[
+  _ifn           := $Invalid;
+  extFn[args___] := ImportFnHelper[extFn, intFn, args];
+];
+
+ImportFnHelper[extFn_, intFn_, pathArg_, args___] := Module[
+  {path, type, result},
+  If[!StringQ[pathArg], Message[extFn::importArg1, File @ pathArg]; Return @ $Failed];
+  path = EnsureReadableFile @ pathArg;
+  type = FileType @ path;
+  If[type === None,      Message[extFn::importFileMissing, File @ pathArg]; Return @ $Failed];
+  If[type === Directory, Message[extFn::importFileDir,     File @ pathArg]; Return @ $Failed];
+  If[ArchiveFileQ[path],
+    path = getArchiveFile[extFn, path];
+    If[FailureQ[path], Return @ $Failed];
+  ];
+  result = intFn[path, args];
+  Switch[result,
+    $Invalid,  Message[extFn::importBadArgs, HoldForm @ extFn[pathArg, args]]; $Failed,
+    $Corrupt,  Message[extFn::importFileCorrupt, File @ pathArg]; $Failed,
+    _,         result
+  ]
+];
+
+General::importArg1        = "Import file should be a path: ``.";
+General::importFileMissing = "Import file does not exist: ``.";
+General::importDir         = "Import file is a directory: ``.";
+General::importBadArgs     = "Bad arguments to import: ``.";
+General::importFileCorrupt = "Import file is corrupt: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[ExportStreamHelper];
+
+ExportStreamHelper[head_Symbol, filePath_Str, streamFn_] := Module[
+  {streamPath = $outputStreamPath, result = None, streamPos = None},
+  If[FileExistsQ[streamPath], DeleteFile[streamPath]];
+  stream = OpenWrite[streamPath, BinaryFormat -> True];
+  If[Head[stream] =!= OutputStream,
+    Message[head::streamWriteOpen, File @ streamPath];
+    Return @ $Failed
+  ];
+  result = WithLocalSettings[
+    Null,
+    Check[streamFn[stream]; streamPos = StreamPosition @ stream, $Corrupt],
+    Close[stream];
+  ];
+  If[MatchQ[result, $Corrupt | $Failed],
+    Message[head::streamWriteError, File @ streamPath];
+    Return @ $Failed
+  ];
+  If[!PosIntQ[streamPos] || !FileExistsQ[streamPath],
+    Message[head::streamWriteEmpty, File @ streamPath];
+    Return @ $Failed
+  ];
+  MoveFile[streamPath, filePath]
+];
+
+General::streamWriteOpen = "Cannot open `` for writing.";
+General::streamWriteError = "Error while writing to ``.";
+General::streamWriteEmpty = "No data written to ``.";
+
+$outputStreamPath := $outputStreamPath = NewTemporaryFilename["tmp_output_stream"];
+
+(**************************************************************************************************)
+
+SetStrict[ImportStreamHelper];
+
+ImportStreamHelper[head_Symbol, filePath_Str, streamFn_] := Module[
+  {streamPath = ensureReadable @ filePath, result},
+  stream = OpenRead[streamPath, BinaryFormat -> True];
+  If[Head[stream] =!= InputStream,
+    Message[head::streamReadOpen, File @ streamPath];
+    Return @ $Failed
+  ];
+  WithLocalSettings[
+    Null,
+    Check[streamFn[stream], $Corrupt],
+    Close[stream];
+  ]
+];
+
+General::streamReadOpen = "Cannot open `` for reading.";
 
 (**************************************************************************************************)
 
@@ -368,7 +345,7 @@ RunCommand[binary:(_String | File[_String]), rawArgs___] := Module[
   If[exitCode != 0, Return @ $Failed];
 
   If[!FileExistsQ[outFile],
-    Message[RunCommand::noOutput, cmd, cmdFile];
+    Message[RunCommand::noOutput, cmd, File @ cmdFile];
     $Failed
   ,
     ImportUTF8[outFile]
@@ -432,54 +409,6 @@ CopyTextToClipboard[text_Str] := Module[{path, cmd},
   If[FailureQ @ ExportUTF8[path, text], Return @ $Failed];
   cmd = StrJoin["set the clipboard to ( do shell script \"cat ", path, "\" )"];
   If[RunAppleScript[cmd] === Null, text, $Failed]
-];
-
-(**************************************************************************************************)
-
-ToJSON[e_] := ToJSON[e, True];
-ToJSON[e_, compact_] := WriteRawJSONString[e, "Compact" -> compact];
-
-$rawPlaceholder = "\[FormalZ]\[FormalZ]";
-$rawPlaceholder2 = "\"" <> $rawPlaceholder <> "\"";
-
-ToJSON[e_, compact_] /; VContainsQ[e, RawString] := Block[
-  {$rawStringDict = Bag[], $i = 1},
-  StringReplace[
-    WriteRawJSONString[e, "Compact" -> True, "ConversionFunction" -> handleJSONRawString],
-    $rawPlaceholder2 :> BagPart[$rawStringDict, $i++]
-  ]
-];
-
-handleJSONRawString[RawString[raw_Str]] := (StuffBag[$rawStringDict, raw]; $rawPlaceholder);
-
-(**************************************************************************************************)
-
-SetStrict @ LoadSystemData;
-
-LoadSystemData[name_Str] /; StrEndsQ[name, ".mx"] := Block[
-  {path = DataPath["System", name]},
-  If[FileExistsQ[path],
-    ImportMX @ path,
-    GenerateSystemData @ StrDrop[name, -1]
-  ]
-];
-
-SetStrict @ GenerateSystemData;
-
-GenerateSystemData::genFileNotExists = "Generator file `` does not exist.";
-GenerateSystemData::genFileBadOutput = "Generator file `` produced a bad result: ``.";
-
-GenerateSystemData[name_Str] /; StrEndsQ[name, ".m"] := Module[{path, result, iresult},
-  path = DataPath["System", name];
-  If[!FileExistsQ[path],
-    Message[GenerateSystemData::genFileNotExists, path];
-    Return @ $Failed];
-  result = BlockContext["DummyContext`", iresult = Check[Get @ path, $Failed]];
-  If[FailureQ[result] || result === Null,
-    Message[GenerateSystemData::genFileBadOutput, path, iresult];
-    Return @ $Failed];
-  ExportMX[path <> "x", result];
-  result
 ];
 
 

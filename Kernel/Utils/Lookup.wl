@@ -36,9 +36,8 @@ OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
 
 SetStrict[OptionValueRules, OptionValueList]
 
-OptionValueRules::usage =
-"OptionValueRules[sym$, options$$] yields a list of rules by mering options for sym$ with explicit \
-options.
+"OptionValueRules[sym$, options$$] yields a list of rules by merging options for sym$ with explicit options.
+OptionValueRules[sym$ -> keys$, options$$] takes just those keys from Options[sym$].
 * keys in options$$ override the defaults for sym$.
 * see OptionValueList."
 
@@ -46,6 +45,8 @@ options.
 OptionValueRules[head_Symbol, rules___] :=
   JoinOptions[rules, Options @ head];
 
+OptionValueRules[head_Symbol -> keys_List, rules___] :=
+  JoinOptions[rules, Options[head, keys]];
 
 OptionValueList::usage =
 "OptionValueList[sym$, options$$] yields the values for options of sym$ in their natural order.
@@ -73,8 +74,8 @@ TakeOptions::usage =
 TakeOptions[{opts$$}, ref$] does the same for explicit options.
 * use NarrowOption[$$] to do this within a function application."
 
-TakeOptions[sym_Sym,   ref_Sym]  := TakeOptions[Options @ sym, ref];
-TakeOptions[opts_List, ref_Sym]  := Seq @@ FilterRules[Flatten @ {opts}, Options @ ref];
+TakeOptions[sym_Sym,   ref_]    := TakeOptions[Options @ sym, ref];
+TakeOptions[opts_List, ref_Sym] := Seq @@ FilterRules[Flatten @ {opts}, Options @ ref];
 
 TakeOptions::usage =
 "NarrowOptions[opts$$] yields a Sequence of options that are appropriate for an external function \

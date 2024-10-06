@@ -78,17 +78,17 @@ toSideClass = CaseOf[
 (**************************************************************************************************)
 
 $SideToCoords = Dict[
-  Left        -> {-1,  0},
-  Right       -> { 1,  0},
-  Top         -> { 0,  1},
-  Above       -> { 0,  1},
-  Bottom      -> { 0, -1},
-  Below       -> { 0, -1},
-  BottomLeft  -> {-1, -1},
-  BottomRight -> { 1, -1},
-  TopLeft     -> {-1,  1},
-  TopRight    -> { 1,  1},
-  Center      -> { 0,  0}
+  Lef    -> {-1,  0},
+  Rig    -> { 1,  0},
+  Top    -> { 0,  1},
+  Above  -> { 0,  1},
+  Bot    -> { 0, -1},
+  Below  -> { 0, -1},
+  BotL   -> {-1, -1},
+  BotR   -> { 1, -1},
+  TopL   -> {-1,  1},
+  TopR   -> { 1,  1},
+  Cen    -> { 0,  0}
 ];
 
 $CoordsToSide = InvertAssociation @ KeyDrop[$SideToCoords, {Below, Above}];

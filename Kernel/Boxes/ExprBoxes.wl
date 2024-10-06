@@ -345,16 +345,16 @@ setBox = CaseOf[
 
 SetHoldC[packedBox]
 
-packedBox[p_] := With[{n =PackedSize[p]}, Which[
+packedBox[p_] := With[{n = PackedSize[p]}, Which[
   $noLenQ,        packedSummaryBox[p],
   n == 1,         RBox["{", datumBox @ First @ p, "}"],
-  n <= 3,         listBox @ p,
+  n <= 4,         listBox @ p,
   n <= $len < 8,  BraceRowBox[datumBox /@ p],
   True,           packedSummaryBox[p]
 ]];
 
 packedSummaryBox[p_] :=
-  BraceSeqBox @ HPadBox[GrayBox @ packedSummary @ p, {0.2, 0.2}];
+  BraceBox @ HPadBox[GrayBox @ packedSummary @ p, 0.2];
 
 packedSummary[p_] := GrayBox[SubscriptBox[
   Replace[PackedType @ p, $typeToLetter],

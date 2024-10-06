@@ -1,5 +1,7 @@
-SystemPrims.wl
-EmptyPrims.wl
+_Primitives.wl
+_SystemPrims.wl
+BasicPrims.wl
 FramedPrim.wl
-HalfPrims.wl
 NamedIcon.wl
+AngledCurve.wl
+RoundedCurve.wl

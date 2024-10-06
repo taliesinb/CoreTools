@@ -62,20 +62,23 @@ ArcBetween[c$, {p$1, p$2}, towards$] ensures the arc takes the way around the ci
 
 SetStrict @ ArcBetween;
 
-ArcBetween[center_, {p1_ ? Pos2ListQ, p2_ ? Pos2ListQ}, towards_:Auto] := Locals[
-  If[p1 == center || p2 == center || p1 == p2, Return @ Line @ DelDups @ {p1, p2}];
-  r = Mean[Dist[center, #]& /@ {p1, p2}];
-  SetAuto[towards, Avg[p1, p2]];
-  d1 = p1 - center; d2 = p2 - center; d3 = towards - center;
+almostEqualQ[p1_, p2_] := Equal[p1, p2] || Dist[p1, p2] < 0.0001;
+
+ArcBetween[c:Pos2P, {p1:Pos2P, p2:Pos2P}, towards_:Auto] := Locals[
+  If[almostEqualQ[p1, c] || almostEqualQ[p2, c] || almostEqualQ[p1, p2],
+    Return @ Line @ DelDups @ {p1, p2}];
+  r = Avg[Dist[c, p1], Dist[c, p2]];
+  tow = IfAuto[towards, Avg[p1, p2]];
+  d1 = p1 - c; d2 = p2 - c; d3 = tow - c;
   theta1 = ArcTan @@ d1; theta2 = ArcTan @@ d2; theta3 = ArcTan @@ d3;
   If[theta2 < theta1, theta2 += Tau];
   If[theta3 < theta1, theta3 += Tau];
   If[theta3 > theta2, theta2 -= Tau];
-  Circle[center, r, {theta1, theta2}]
+  Circle[c, r, {theta1, theta2}]
 ];
 
 (* TODO: supprot towards by lerping *outside* the line and simulating a point at infinity *)
-ArcBetween[center_, {p1_ ? Pos3ListQ, p2_ ? Pos3ListQ}, towards_:Auto] := Locals[
+ArcBetween[center_, {p1:Pos3P, p2:Pos3P}, towards_:Auto] := Locals[
   r = Mean[Dist[center, #]& /@ {p1, p2}];
   Line[center + Normalize[# - center] * r& /@ Lerp[p1, p2, Into[24]]]
 ]

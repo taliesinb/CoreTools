@@ -192,7 +192,7 @@ nameToKey2[str_Str] := Which[
 
 nameToOpt0[str_Str] := nameToOpt0[str] = nameToOpt1 @ nameToKey1 @ str;
 nameToOpt1[str_Str] := If[NameQ[str], Symbol @ str, nameToOpt2 @ StrRep[str, "Fn" -> "Function"]];
-nameToOpt2[str_Str] := If[NameQ[str], Symbol @ str, MacroError["noCorrespondingSymbol", str]];
+nameToOpt2[str_Str] := If[NameQ[str], Symbol @ str, Lookup[$NameAliases, str, MacroError["noCorrespondingSymbol", str]]];
 
 General::noCorrespondingSymbol = "No symbol found corresponding to ``.";
 

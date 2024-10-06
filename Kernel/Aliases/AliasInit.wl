@@ -29,11 +29,13 @@ iDefineRules[fn_, held_] := With[
 ];
 
 $isCanon = True;
-defineAlias[aliasSym_Symbol -> targetSym_Symbol] := (
+defineAlias[aliasSym_Symbol -> targetSym_Symbol] := With[
+  {name = HoldSymbolName[aliasSym]},
   $SymbolAliases[aliasSym] = targetSym;
-  If[$isCanon, HoldSymbolNameAlias[targetSym] = HoldSymbolName[aliasSym]];
+  $NameAliases[name] = targetSym;
+  If[$isCanon, HoldSymbolNameAlias[targetSym] = name];
   Set[aliasSym, targetSym];
-);
+];
 
 definePattern[patternSym_Symbol -> Evaluate[rhs_]] :=
   With[{rhs2 = rhs}, definePattern[patternSym -> rhs]];

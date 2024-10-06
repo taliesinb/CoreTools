@@ -1,21 +1,27 @@
 SystemExports[
-  "GraphicsBoxFunction", ToGraphicsBoxes, ToGraphics3DBoxes
+  "GraphicsBoxFunction",
+    ToGraphicsBoxes, ToGraphics3DBoxes
 ];
 
 PrivateExports[
-  "MetaFunction", DefineGPrim, DefineGPrimSig,
-  "Predicate",    GPrimSymQ, GBoxSymQ,
-  "SpecialFn",    MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
+  "MetaFunction",        DefineGPrim, DefineGPrimSig,
+  "Predicate",           GPrimSymQ, GBoxSymQ,
+  "SpecialFn",           MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
   "GraphicsBoxFunction", EmptyRectangleBox, EmptyPolygonBox,
-  "MutatingFunction", BlockGStyle,
-  "SpecialVariable",
-    $GStyle, $GDim,
+  "BoxOption",           DebugBounds,
+  "MutatingFunction",    BlockGStyle,
+  "TransientVariable",   $GStyle, $GDim, $DebugBounds,
+  "TagSymbol",
+    PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius,
+    PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
+];
+
+SessionExports[
+  "RegistryVariable",
     $GPrimFns,
     $GPrimSyms, $GBoxSyms,
     $GPrimToGBoxes, $GPrimToGSigs, $GSigToGPrims, $GSig1ToGPrims,
-    $GBoxToGPrim,   $GBoxToGSigs,  $GSigToGBoxes, $GSig1ToGBoxes,
-  "TagSymbol",
-    PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius, PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
+    $GBoxToGPrim,   $GBoxToGSigs,  $GSigToGBoxes, $GSig1ToGBoxes
 ];
 
 (**************************************************************************************************)
@@ -28,21 +34,10 @@ $gboxSimpRules = {InterpretationBox[b_, _] :> b, Typeset`Hold[h_] :> h};
 
 (**************************************************************************************************)
 
-EmptyRectangleBox[{x1_, y1_}, {x2_, y2_}] := Make[JoinedCurveBox,
-  List @ Line @ ToPacked @ {{x1, y1}, {x2, y1}, {x2, y2}, {x1, y2}},
-  CurveClosed -> True
-];
-
-EmptyPolygonBox[p_] := Make[JoinedCurveBox,
-  List @ Line @ ToPacked @ p,
-  CurveClosed -> True
-];
-
-(**************************************************************************************************)
-
-Initially[
+If[!IntegerQ[$GDim],
   $GDim = 2;
   $GStyle = UDict[];
+  $DebugBounds = False;
   $GPrimFns =  UDict[];
   $GPrimSyms = $GBoxSyms = {};
   $GPrimToGBoxes = $GPrimToGSigs = $GSigToGPrims = $GSig1ToGPrims = UDict[];
@@ -82,19 +77,19 @@ General::failprim = "Failed to boxify ``: ``.";
 General::internalPrimEror = "Internal error while boxifying `` involving call ``.";
 
 MakeCoreGBoxes[prim_] := With[
-  {head = Head @ NoEval @ prim},
+  {head = HoldHead @ prim},
   {fn = Lookup[$GPrimFns, head, $Failed&]},
-  {res = CatchMessages[head, fn @ prim]},
+  {res = CatchMessages[head, fn @@ prim]},
   Which[
-    Head[res] === fn,               gprimErrorMsg[head, prim, "unrecogprim"],
-    res === $Failed,                gprimErrorMsg[head, prim, "failprim"],
-    True,                           res
+    Head[res] === fn, gprimErrorMsg[head, prim, "unrecogprim"],
+    res === $Failed,  gprimErrorMsg[head, prim, "failprim"],
+    True,             If[$DebugBounds, addDebugBounds @ res, res]
   ]
 ];
 
 SetStrict @ gprimErrorMsg;
 
-gprimErrorMsg[head_, prim_, msg_] := (Message[MessageName[h, msg], prim, args]; {})
+gprimErrorMsg[head_, prim_, msg_] := (Message[MessageName[head, msg], head, prim]; {})
 
 (**************************************************************************************************)
 
@@ -263,3 +258,13 @@ GSigToGBoxes[spec_] := Block[
   GSigToGPrims @ spec
 ];
 
+(**************************************************************************************************)
+
+addDebugBounds[boxes_] := List[
+  {EdgeForm @ {AbsoluteThickness[2], RGBColor[1, 0, 0, .5]}, FaceForm @ None,
+   Construct[RectangleBox, {x1, y1}, {x2, y2}]},
+  boxes,
+  {RGBColor[0, 0, 1, .5], AbsoluteThickness[2], AbsolutePointSize[5],
+    Construct[LineBox, {{b1, 0}, {b2, 0}}],
+    Construct[PointBox, {{b1, 0}, {b2, 0}}]}
+];

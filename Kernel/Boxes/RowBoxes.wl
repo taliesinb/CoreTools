@@ -105,13 +105,13 @@ DeclareThenScan[DefineSeqRowFormBox]
 DefineSeqRowFormBox[Then[uniForm_, seqForm_, rowForm_, uniBox_, seqBox_, rowBox_, l_, c_, r_]] := Then[
   SystemBoxDefs[
     uniForm[e_]              := uniBox @ MakeBox @ e;
-    a_seqForm                := DelimSeqBox[l, c, r] @ MapMakeBox @ a;
+    a_seqForm                := DelimRowBox[l, c, r] @ MapMakeBox @ a;
     rowForm[e_List]          := DelimRowBox[l, c, r] @ MapMakeBox @ e;
     rowForm[e_List, m_]      := DelimRowBox[l, MakeBox @ m, r] @ MapMakeBox @ e;
     rowForm[e_List, m_, s__] := DelimRowBox[l, MakeBox @ Style[m, s], r] @ MapMakeBox @ e;
   ],
   uniBox[b_]              := RowBox[{l, b, r}];
-  a_seqBox                := DelimSeqBox[l, c, r] @@ a,
+  seqBox[a___]            := DelimSeqBox[l, c, r] @ a,
   rowBox[e_List]          := DelimRowBox[l, c, r] @ e,
   rowBox[e_List, m_]      := DelimRowBox[l, m, r] @ e,
   rowBox[e_List, m_, s__] := DelimRowBox[l, StyleBox[m, s], r] @ e
@@ -119,11 +119,11 @@ DefineSeqRowFormBox[Then[uniForm_, seqForm_, rowForm_, uniBox_, seqBox_, rowBox_
 
 DefineSeqRowFormBox[Then[seqForm_, rowForm_, seqBox_, rowBox_, r_]] := Then[
   SystemBoxDefs[
-    a_seqForm            := RiffSeqBox[r] @ MapMakeBox @ a;
+    a_seqForm            := RiffRowBox[r] @ MapMakeBox @ a;
     rowForm[e_List]      := RiffRowBox[r] @ MapMakeBox @ e;
     rowForm[e_List, s__] := RiffRowBox[StyleBox[r, s]] @ MapMakeBox @ e;
   ],
-  a_seqBox              := RiffSeqBox[r] @@ a,
+  seqBox[a___]          := RiffSeqBox[r] @ a,
   rowBox[e_List]        := RiffRowBox[r] @ e,
   rowBox[e_List, s_]    := RiffRowBox[StyleBox[r, s]] @ e
 ];

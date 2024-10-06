@@ -16,7 +16,10 @@ PackageExports[
 
 SetStrict @ LineLineInter;
 
-LineLineInter[l1_, l2_] := IfNone[posX1, BooleanRegion[And, Line /@ {l1, l2}], approxLineLineInter];
+LineLineInter[l1_, l2_] := IfNone[
+  posX1 @ BooleanRegion[And, Line /@ {l1, l2}],
+  approxLineLineInter[l1, l2]
+];
 
 approxLineLineInter[l1_, l2_] := Locals[
   p = P1 @ l2;

@@ -212,7 +212,7 @@ makeDynamicPythonCodeCell[path_] := Locals[
   If[!StringQ[str], ReturnFailed[]];
   str //= StringTrim;
   str = StringJoin["\<", ToString[str], "\>"];
-  With[{date = UnixTime @ FileDate @ path},
+  With[{date = FileUnixTime @ path},
   Cell[str,
     "ExternalLanguage",
     CellAutoOverwrite -> True,
@@ -220,7 +220,7 @@ makeDynamicPythonCodeCell[path_] := Locals[
      CellFrameColor -> RGBColor[0.7, 0.5, 0.5],
     CellEventActions -> {{"MenuCommand","Save"} :> saveCurrentCell[EvaluationCell[], path]},
     CellDynamicExpression :> Refresh[
-      If[UnixTime[FileDate @ path] > date,
+      If[FileUnixTime[path] > date,
       NotebookWrite[EvaluationCell[], makeDynamicPythonCodeCell @ path]],
       UpdateInterval -> 1]
   ]]
@@ -310,7 +310,7 @@ preprocessPython[code2_String] := Locals[
 (* TODO: check python syntax *)
 runScriptData[path_, updateInterval_, runCount_] := Locals[
   If[!FileExistsQ[path], ReturnFailed[]];
-  fileTime = UnixTime @ FileDate @ path;
+  fileTime = FileUnixTime @ path;
   startTime = SessionTime[];
   dynamic = updateInterval =!= None;
   $path = path;
@@ -407,7 +407,7 @@ $invalidScriptBoxes := NiceObjectBoxes["PythonScriptResult", errorBoxes @ "inval
 makeDynamicScriptBox[Hold[var_], path_, fileTime_, interval_, argBoxes_] :=
   DynamicModuleBox[{curBoxes = argBoxes, curFileTime = fileTime, runCount = 1},
     DynamicBox[
-      If[UnixTime[FileDate @ path] > curFileTime,
+      If[FileUnixTime[path] > curFileTime,
         var = runScriptData[path, rate, runCount++];
         curFileTime = var["FileTime"];
         curBoxes = runSummaryArgsFn @ var;

@@ -29,6 +29,7 @@ PackageExports[
 
   "Variable",
     $SymbolAliases,
+    $NameAliases,
     $SymbolAliasesDirty,
     $PackageLoadVerbose,
 
@@ -553,7 +554,7 @@ runPackageFileExpr[expr_] := (
 (*************************************************************************************************)
 
 updateModTimes[sourceFiles_List] := Max @ Map[
-  Function[path, Set[$PackageFileModTime[path], UnixTime @ FileDate @ path]],
+  Function[path, Set[$PackageFileModTime[path], FileUnixTime @ path]],
   sourceFiles
 ];
 

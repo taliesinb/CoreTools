@@ -45,6 +45,31 @@ AttachDelayedValue
 SymbolTableRow
 
 
+(*IOFunction*)
+
+FileUnixTime
+GetHoldComplete
+GetHidden
+PreludeLoadPackage
+SublimeOpen
+SublimeSeek
+SublimeRun
+SymbolTableFromHeaders
+SymbolTableFromDirectives
+PreludeSymbolTable
+DumpPreludeSymbolTable
+CustomizedPrint
+ErrorPrint
+LogPrint
+RawPrint
+CachePrint
+LabeledPrint
+ValueChangePrint
+DPrint
+EchoPrint
+MutationPrint
+
+
 (*MutatingFunction*)
 
 UnprotectClearAll
@@ -116,6 +141,7 @@ RestoreEvaluationCellState
 InstallSessionHooks
 UninstallSessionHooks
 UniqueSessionID
+UniqueSessionString
 NamePaths
 NamePathsGrouped
 NameFirst
@@ -132,6 +158,12 @@ SymbolTableSymbolList
 SymbolTableSymbolLines
 SymbolTableSymbolString
 SymbolTableSymbolCount
+
+
+(*ControlFlowFunction*)
+
+QuietCheck
+HandleSymbolChanges
 
 
 (*MessageFunction*)
@@ -155,6 +187,9 @@ HoldIntegerQ
 HoldNaturalQ
 HoldNumberQ
 HoldBooleanQ
+InvalidArgumentsQ
+CorruptQ
+ValidFileQ
 PackageLoadCompletedQ
 SessionEvaluatedSinceQ
 SystemContextQ
@@ -173,10 +208,18 @@ CoreToolsSymbolQ
 SymbolTableValidQ
 
 
+(*TagVariable*)
+
+$Invalid
+$Corrupt
+$Disabled
+
+
 (*Variable*)
 
 $FormalSymbols
 $SymbolAliases
+$NameAliases
 $SymbolAliasesDirty
 $PackageLoadVerbose
 $LastEvaluationTime
@@ -243,30 +286,6 @@ $CurrentlyTracingAutoloads
 $CurrentlyTracingSymbols
 
 
-(*IOFunction*)
-
-GetHoldComplete
-GetHidden
-PreludeLoadPackage
-SublimeOpen
-SublimeSeek
-SublimeRun
-SymbolTableFromHeaders
-SymbolTableFromDirectives
-PreludeSymbolTable
-DumpPreludeSymbolTable
-CustomizedPrint
-ErrorPrint
-LogPrint
-RawPrint
-CachePrint
-LabeledPrint
-ValueChangePrint
-DPrint
-EchoPrint
-MutationPrint
-
-
 (*DebuggingFunction*)
 
 AbortPackageLoading
@@ -314,19 +333,9 @@ SourceLocationBox
 FileLocation
 
 
-(*ControlFlowFunction*)
-
-HandleSymbolChanges
-
-
 (*ScopingFunction*)
 
 PrintIntended
-
-
-(*TagVariable*)
-
-$Disabled
 
 
 (*PackageDeclaration*)
@@ -376,17 +385,12 @@ ExportSlotHead
 ExportTagSymbol
 ExportTagHead
 ExportVariable
-ExportVar
 ExportSpecialVariable
-ExportSpecialVar
 ExportCacheVariable
-ExportCacheVar
+ExportRegistryVariable
 ExportSlotVariable
-ExportSlotVar
 ExportTagVariable
-ExportTagVar
 ExportTransientVariable
-ExportTransientVar
 ExportOption
 ExportSpecialOption
 ExportBoxOption
@@ -444,17 +448,12 @@ PrivateSlotHead
 PrivateTagSymbol
 PrivateTagHead
 PrivateVariable
-PrivateVar
 PrivateSpecialVariable
-PrivateSpecialVar
 PrivateCacheVariable
-PrivateCacheVar
+PrivateRegistryVariable
 PrivateSlotVariable
-PrivateSlotVar
 PrivateTagVariable
-PrivateTagVar
 PrivateTransientVariable
-PrivateTransientVar
 PrivateOption
 PrivateSpecialOption
 PrivateBoxOption

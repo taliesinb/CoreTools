@@ -1,5 +1,5 @@
 Deprecated
-	Commonest CountDistinct CountDistinctBy DeleteDuplicatesBy DisjointQ ErrorBox IntersectingQ SubsetQ
+	Commonest CountDistinct CountDistinctBy DeleteDuplicatesBy DisjointQ ErrorBox IntersectingQ SubsetQ CopyFile RenameFile
 BoxFunction
 	ActionMenuBox AdjustmentBox AnimatorBox Box ButtonBox CheckboxBox ColorSetterBox CounterBox
 	DynamicBox DynamicModuleBox DynamicWrapperBox FormBox FractionBox FrameBox Graphics3DBox GraphicsBox
@@ -193,13 +193,13 @@ Function
 	Convergents ConversionOptions ConvertToPostScript ConvertToPostScriptPacket ConvexHullMesh
 	ConvexHullRegion ConvexOptimization Convolve ConwayGroupCo1 ConwayGroupCo2 ConwayGroupCo3 Cookies
 	CoordinateBoundingBox CoordinateBoundingBoxArray CoordinateBounds CoordinateBoundsArray CoordinateChartData
-	CoordinateTransform CoordinateTransformData CoplanarPoints CopulaDistribution CopyDirectory CopyFile CopyTag
+	CoordinateTransform CoordinateTransformData CoplanarPoints CopulaDistribution CopyTag
 	CoreNilpotentDecomposition CornerFilter Correlation CorrelationDistance CorrelationFunction CorrelationTest Cos Cosh
 	CoshIntegral CosineDistance CosineWindow CosIntegral Cot Coth CoulombF CoulombG CoulombH1 CoulombH2 Count
 	CounterAssignments CounterClockwiseContourIntegral CounterEvaluator CounterIncrements CounterStyle
 	CounterStyleMenuListing CountRoots CountryData Counts CountsBy Covariance CovarianceFunction CoxianDistribution
 	CoxModel CoxModelFit CramerVonMisesTest CreateArchive CreateCompilerEnvironment CreateDataStructure
-	CreateDialog CreateDirectory CreateDocument CreateForeignCallback CreateLicenseEntitlement
+	CreateDialog CreateDocument CreateForeignCallback CreateLicenseEntitlement
 	CreateManagedLibraryExpression CreateManagedObject CreatePacletArchive CreatePalette CreatePermissionsGroup
 	CreateScheduledTask CreateSearchIndex CreateTemporary CreateTypeInstance CreateUUID CreateWindow
 	CriticalityFailureImportance CriticalitySuccessImportance CriticalSection Cross CrossingCount CrossingDetect
@@ -220,7 +220,7 @@ Function
 	DefaultValue DefineExternal DefineInputStreamMethod DefineOutputStreamMethod DefineResourceFunction
 	DegreeCentrality DegreeGraphDistribution DegreeLexicographic DegreeReverseLexicographic DEigensystem
 	DEigenvalues DelaunayMesh Delayed Delete DeleteAdjacentDuplicates DeleteAnomalies DeleteBorderComponents
-	DeleteCases DeleteDirectory DeleteDuplicates DeleteElements DeleteFile DeleteMissing
+	DeleteCases DeleteDuplicates DeleteElements DeleteFile DeleteMissing
 	DeleteObject DeletePermissionsKey DeleteSearchIndex DeleteSmallComponents DeleteStopwords
 	DeleteWithContents DeletionWarning DelimitedArray DelimitedSequence DelimiterMatching Dendrogram Denominator
 	DensityGraphics DensityHistogram DensityPlot DensityPlot3D Depth DepthFirstScan Derivative DerivativeFilter
@@ -278,11 +278,10 @@ Function
 	FactorSquareFreeList FactorTerms FactorTermsList FailureDistribution FareySequence FeatureDistance FeatureExtract
 	FeatureExtraction FeatureExtractorFunction FeatureImpactPlot FeatureNearest FeatureSpacePlot FeatureSpacePlot3D
 	FeatureValueDependencyPlot FeatureValueImpactPlot FEDisableConsolePrintPacket FeedbackLinearize
-	FEEnableConsolePrintPacket FetalGrowthData Fibonacci Fibonorial FileBaseName FileByteCount FileConvert FileDate
-	FileExtension FileFormat FileFormatProperties FileHash FileInformation FileName FileNameDepth
-	FileNameDialogSettings FileNameDrop FileNameJoin FileNames FileNameSetter FileNameSplit FileNameTake
-	FileNameToFormatList FilePrint FileSize FileSystemMap FileSystemScan FileSystemTree FileTemplate FileTemplateApply
-	FileType FillForm FillingTransform FilteredEntityClass FilterRules FindAnomalies FindArgMax FindArgMin
+	FEEnableConsolePrintPacket FetalGrowthData Fibonacci Fibonorial FileBaseName
+	FileExtension FileFormatProperties FileName FileNameDepth
+	FileNameDialogSettings FileNameDrop FileNameJoin FileNameSetter FileNameSplit FileNameTake
+	FileNameToFormatList FillForm FillingTransform FilteredEntityClass FilterRules FindAnomalies FindArgMax FindArgMin
 	FindClique FindClusters FindCookies FindCurvePath FindCycle FindDevices FindDistribution
 	FindDistributionParameters FindDivisions FindEdgeColoring FindEdgeCover FindEdgeCut FindEdgeIndependentPaths
 	FindEquationalProof FindEulerianCycle FindExternalEvaluators FindFaces FindFile FindFit FindFormula
@@ -505,7 +504,7 @@ Function
 	Parallelogram ParallelProduct ParallelSubmit ParallelSum ParallelTable ParallelTry Parameter
 	ParameterMixtureDistribution ParameterVariables ParametricConvexOptimization ParametricFunction ParametricNDSolve
 	ParametricNDSolveValue ParametricPlot ParametricPlot3D ParametricRampLayer ParametricRegion ParentConnect
-	ParentDirectory ParentForm Parenthesize ParentList ParentNotebook ParetoDistribution
+	ParentForm Parenthesize ParentList ParentNotebook ParetoDistribution
 	ParetoPickandsDistribution ParkData Part PartialCorrelationFunction PartialD ParticleAcceleratorData ParticleData
 	Partition PartitionsP ParzenWindow PascalDistribution Paste PasteAutoQuoteCharacters
 	PasteBoxFormInlineCells PathGraph PatternFilling PatternReaction PauliMatrix Pause PausedTime PDF PeakDetect
@@ -561,7 +560,7 @@ Function
 	RegularPolygon ReIm ReImPlot Reinstall RelationalDatabase RelationGraph Release ReliabilityDistribution
 	ReliefImage ReliefPlot Remove RemoveAlphaChannel RemoveAsynchronousTask RemoveBackground Removed
 	RemoveDiacritics RemoveInputStreamMethod RemoveOutputStreamMethod RemoveProperty RemoveScheduledTask
-	RemoveUsers RemoveVideoStream RenameDirectory RenameFile RenderAll RenkoChart RepairMesh RepeatedString
+	RemoveUsers RemoveVideoStream RenderAll RenkoChart RepairMesh RepeatedString
 	RepeatedTiming RepeatingElement Replace ReplaceAll ReplaceAt ReplaceHeldPart ReplaceImageValue ReplaceList
 	ReplacePart ReplacePixelValue ReplaceRepeated ResamplingAlgorithmData Rescale RescalingTransform
 	ResetScheduledTask Residue ResidueSum Resolve ResourceAcquire ResourceData ResourceFunction ResourceRegister
@@ -730,6 +729,7 @@ GraphicsPrimitive
 	Polyhedron Prism Pyramid Raster Raster3D Rectangle Rotate Scale Simplex Sphere StadiumShape Tetrahedron
 	Text Translate Triangle Tube
 IOFunction
+	RenameDirectory ParentDirectory CreateDirectory CopyDirectory DeleteDirectory
 	BinaryDeserialize BinaryRead BinaryReadList BinarySerialize BinaryWrite Cells Close Find
 	CopyToClipboard CreateFile CreateNotebook CurrentValue EvaluationBox EvaluationCell EvaluationNotebook Export
 	ExportByteArray ExportString FrontEndExecute Get Import ImportByteArray ImportString
@@ -737,7 +737,8 @@ IOFunction
 	NotebookRead NotebookSave NotebookSelection NotebookWrite Open OpenAppend OpenRead OpenWrite ParentBox
 	ParentCell PreviousCell Put Read ReadByteArray ReadLine ReadList ReadString ResetDirectory SelectedCells
 	SelectionMove SetDirectory SetStreamPosition Skip StreamPosition Streams SyntaxInformation Write WriteLine
-	WriteString
+	WriteString FileByteCount FileConvert FileDate FileNames FilePrint FileSize FileSystemMap FileSystemScan FileSystemTree FileTemplate FileTemplateApply
+	FileType FileHash FileInformation FileFormat
 MessageFunction
 	ConsoleMessage General Message MessageDialog MessageList MessageName MessageOptions
 	MessagePacket Messages MessagesNotebook

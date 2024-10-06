@@ -13,3 +13,4 @@ TruncatedBoxes.wl
 BoxTransforms.wl
 ElisionBoxes.wl
 ExprBoxes.wl
+DebugBoxes.wl

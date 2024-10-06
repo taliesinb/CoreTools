@@ -2,7 +2,7 @@ PackageExports[];
 
 (**************************************************************************************************)
 
-DefineGPrimSig["Pos,Pos", Cuboid | Rectangle]; (* EmptyRectangle *)
+DefineGPrimSig["Pos,Pos", Cuboid | Rectangle];
 
 DefineGPrimSig["Pos | PosList", Point];
 

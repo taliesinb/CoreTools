@@ -1,6 +1,6 @@
 SystemExports[
   "ControlFlow",
-    IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed,
+    IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed, IfCorrupt, IfInvalid,
   "MutatingFunction",
     SetAll, SetNone, SetAuto, SetFailed, SetMissing, SetInherited, SetScaledFactor
 ];
@@ -21,7 +21,7 @@ SimpleMacroDefs[
 
 (*************************************************************************************************)
 
-SetHoldA[IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed]
+SetHoldA[IfAll, IfNone, IfAuto, IfInherited, IfMissing, IfFailed, IfCorrupt, IfInvalid]
 
 SimpleMacroDefs[
   IfAll      [rhs_] := Replace[All       :> rhs], IfAll      [lhs_, rhs_] := Replace[lhs, All        :> rhs],
@@ -29,5 +29,7 @@ SimpleMacroDefs[
   IfAuto     [rhs_] := Replace[Auto      :> rhs], IfAuto     [lhs_, rhs_] := Replace[lhs, Auto       :> rhs],
   IfInherited[rhs_] := Replace[Inherited :> rhs], IfInherited[lhs_, rhs_] := Replace[lhs, Inherited  :> rhs],
   IfMissing  [rhs_] := Replace[_Missing  :> rhs], IfMissing  [lhs_, rhs_] := Replace[lhs, _Missing   :> rhs],
-  IfFailed   [rhs_] := Replace[$Failed   :> rhs], IfFailed   [lhs_, rhs_] := Replace[lhs, $Failed    :> rhs]
+  IfFailed   [rhs_] := Replace[$Failed   :> rhs], IfFailed   [lhs_, rhs_] := Replace[lhs, $Failed    :> rhs],
+  IfCorrupt  [rhs_] := Replace[$Corrupt  :> rhs], IfCorrupt  [lhs_, rhs_] := Replace[lhs, $Corrupt   :> rhs],
+  IfInvalid  [rhs_] := Replace[$Invalid  :> rhs], IfInvalid  [lhs_, rhs_] := Replace[lhs, $Invalid   :> rhs]
 ];

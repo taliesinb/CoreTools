@@ -39,6 +39,9 @@ SystemExports[
     Rectangular,
     Circular,
 
+  "IOFunction",
+    FileUnixTime,
+
   "MutatingFunction",
     UnprotectClearAll, UnprotectClear,
 
@@ -61,12 +64,20 @@ SystemExports[
   "Function",
     NaturalNumberString, FullIntegerString,
 
+  "ControlFlow",
+    QuietCheck,
+
   "MessageFunction",
     CheckedRHS,
 
   "Predicate",
     HoldListQ, HoldAssociationQ, HoldPackedArrayQ, PackedListQ,
     HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ,
+    InvalidArgumentsQ, CorruptQ, ValidFileQ,
+
+  "TagVariable",
+    $Invalid,
+    $Corrupt,
 
   "Variable",
      $FormalSymbols,
@@ -96,8 +107,24 @@ Begin["`Base`Private`"]
 (**************************************************************************************************)
 
 General::invalidUsage      = "Invalid arguments: ``."
+General::invalidArguments  = "Invalid arguments: ``."
 General::unimplemented     = "An unimplemented code path was encountered.";
 General::internalError     = "An internal error occurred.";
+
+(**************************************************************************************************)
+
+Protect[$Invalid, $Corrupt]
+
+InvalidQ[$Invalid] := True;
+CorruptQ[$Corrupt] := True;
+
+CorruptQ[_] := False;
+InvalidQ[_] := False;
+
+(**************************************************************************************************)
+
+ValidFileQ[path_String] := FileType[path] === File;
+ValidFileQ[_]           := False;
 
 (**************************************************************************************************)
 
@@ -134,6 +161,13 @@ DeclareUsage[usage2_String] := Module[{name, str, usage},
 setUsage[Hold[sym_], str_String] := MessageName[sym, "usage"] = str;
 
 DeclareStrict @ DeclareUsage;
+
+(**************************************************************************************************)
+
+DeclareHoldAllComplete[QuietCheck]
+
+QuietCheck[body_]        := QuietCheck[body, $Failed];
+QuietCheck[body_, else_] := Quiet @ Check[body, else];
 
 (**************************************************************************************************)
 
@@ -386,6 +420,13 @@ $FormalSymbols = {
   \[FormalCapitalV], \[FormalCapitalW], \[FormalCapitalX],
   \[FormalCapitalY], \[FormalCapitalZ]
 };
+
+(*************************************************************************************************)
+
+SetListable[FileUnixTime];
+
+FileUnixTime[path_String] := If[FileExistsQ[path], UnixTime @ FileDate @ path, 0];
+FileUnixTime[_] := $Failed;
 
 (*************************************************************************************************)
 

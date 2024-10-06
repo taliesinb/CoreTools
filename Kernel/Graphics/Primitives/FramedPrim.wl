@@ -1,9 +1,12 @@
 SystemExports[
   "GraphicsPrimitive", FramedPrimitive,
+  "GraphicsBoxFunction", FramedPrimitiveBox,
   "Option", FrameColor, FrameThickness, FrameOpacity, FrameDashing
 ];
 
 (**************************************************************************************************)
+
+DeclaredHere[FramedPrimitive]
 
 Options[FramedPrimitive] = {
   FrameColor     -> Black,
@@ -15,13 +18,14 @@ Options[FramedPrimitive] = {
   FrameMargins   -> 0
 };
 
-DefineGPrim[FramedPrimitive, "Primitives", framedPrimitiveBoxes]
+DefineGPrim[FramedPrimitive, "Primitives", FramedPrimitiveBox]
 
-framedPrimitiveBoxes[FramedPrimitive[prims_, opts___Rule]] := Locals[
-  UnpackOptionsAs[FramedPrimitive, {opts},
-    frameColor, frameThickness, frameDashing, background, roundingRadius, frameMargins];
+Options[FramedPrimitiveBox] = Options[FramedPrimitive];
+
+FramedPrimitiveBox[prims_, opts___Rule] := Locals[
+  UnpackSymbolsAs[FramedPrimitiveBox, opts, frameColor, frameThickness, frameDashing, background, roundingRadius, frameMargins];
   boxes = ToGraphicsBoxes @ prims;
-  range = PrimitiveBoxesRange @ boxes;
+  range = GBoxRange @ boxes;
   range += {{-1, 1}, {-1, 1}} * ParsePadding[frameMargins];
   {bl, tr} = Transpose @ range;
   thick = AThickness @ frameThickness;

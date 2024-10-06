@@ -146,8 +146,6 @@ SetCurry2 @ VecTrans;
 
 VecTrans[points_List, trans_List] := Threaded[trans] + points;
 
-VecTrans[t_][points_] := VecTrans[t, points];
-
 (**************************************************************************************************)
 
 RotToMatrix[dirx_] :=

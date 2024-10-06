@@ -1,4 +1,3 @@
-Primitives.wl
 Primitives/
 MapCoords.wl
 Transforms.wl

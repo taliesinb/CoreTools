@@ -71,7 +71,7 @@ SublimeUpdateSyntax[] := Locals[
     symbolKinds = Merge[{systemKinds, libraryKinds}, Catenate];
     symbolKinds["InternalSymbol"] = Flatten @ KeyValueMap[StrPre[#1][#2]&, internalSymbols];
     completions = Flatten @ KeyValueMap[makeKindCompletions, symbolKinds];
-    completionsJSON = ToJSON[Dict["scope" -> "source.wolfram", "completions" -> completions], 2];
+    completionsJSON = ExportJSONString[Dict["scope" -> "source.wolfram", "completions" -> completions], 2];
     If[!StringQ[completionsJSON], ReturnFailed["invalidResult"]];
     ExportUTF8[staticFile @ "WolframLanguage.sublime-completions", completionsJSON];
   ,
@@ -80,8 +80,9 @@ SublimeUpdateSyntax[] := Locals[
   If[FailureQ[res], ReturnFailed["messagesOccurred"]];
 
   (* write them to disk *)
+
   Map[
-    file |-> CopyFile[file, PathJoin[targetDir, FileNameTake @ file], OverwriteTarget -> True],
+    file |-> CopyLatestFile[file, PathJoin[targetDir, FileNameTake @ file]],
     staticFile @ FileList["WolframLanguage*"]
   ]
 ];

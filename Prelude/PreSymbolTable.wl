@@ -87,7 +87,7 @@ DeclaredHere[$SymbolTableKinds];
 $kindRules = List[
   ". Special ControlFlow Declare Define Hold Sequence Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
   ". Special Box Form Data Object Pattern StringPattern Type Symbolic Field Sort Slot Type Tag" <-> "Symbol Head",
-  ". Special Cache Slot Tag Transient" <-> "Variable Var",
+  ". Special Cache Registry Slot Tag Transient" <-> "Variable",
   ". Special Box Form Graphics" <-> "Option",
   "Graphics" <-> "Directive Primitive",
   "Predicate PredicateOperator Operator Deprecated HoldHead"
@@ -122,7 +122,8 @@ $kindAliasRules = List[
   "String"              -> "Str",
   "Pattern"             -> "Pat",
   "Symbol"              -> "Sym",
-  "Primitive"           -> "Prim"
+  "Primitive"           -> "Prim",
+  "Variable"            -> "Var"
 ];
 
 makeDealiasRule[long_] := Module[

@@ -23,7 +23,7 @@ SessionExports[
     DefaultPreEvaluationHook, DefaultPostEvaluationHook,
     SaveEvaluationCellState, RestoreEvaluationCellState,
     InstallSessionHooks, UninstallSessionHooks,
-    UniqueSessionID,
+    UniqueSessionID, UniqueSessionString,
 
   "Predicate",
     SessionEvaluatedSinceQ
@@ -77,6 +77,11 @@ iCachedBox[key_, $held$[body_]] := Set[$boxCache[key], Check[body, StyleBox["\"M
 If[!IntegerQ[$SessionIDs], $SessionIDs = 0];
 
 UniqueSessionID[] := ($SessionIDs++);
+
+(**************************************************************************************************)
+
+UniqueSessionString[] :=
+  StringJoin[IntegerString[$ProcessID], "_", IntegerString[UniqueSessionID[], 10, 5]];
 
 (*************************************************************************************************)
 

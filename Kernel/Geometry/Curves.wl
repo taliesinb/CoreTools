@@ -31,9 +31,9 @@ CurvePoints[object$] supports the following existing graphics primitives:
 | %BSplineCurve[$$] | as above |
 "
 
-CurvePoints[e_] := ToPackedReals @ discCurve @ e;
+CurvePoints[e_] := ToPackedReals @ curvePoints @ e;
 
-discCurve = CaseOf[
+curvePoints = CaseOf[
 
   Line[points_] := points;
 
