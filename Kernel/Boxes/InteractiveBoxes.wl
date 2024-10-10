@@ -1,6 +1,6 @@
 SystemExports[
   "FormHead",
-    ClickForm, ClickFormOp, NiceTooltip, ErrorTooltip
+    ClickForm, ClickFormOp, NiceTooltip, ErrorTooltip, BlockRandomForm
 ];
 
 PackageExports[
@@ -9,6 +9,12 @@ PackageExports[
     NiceTooltipBox, ErrorTooltipBox,
     CursorIconBox, StatusAreaBox
 ];
+
+(**************************************************************************************************)
+
+SetForm0 @ BlockRandomForm;
+
+CoreBox[BlockRandomForm[form_, seed_:1]] := BlockRandom[MakeBox @ form, RandomSeeding -> seed];
 
 (**************************************************************************************************)
 

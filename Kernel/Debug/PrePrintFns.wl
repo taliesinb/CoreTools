@@ -14,9 +14,15 @@ SessionExports[
 
 (*************************************************************************************************)
 
+SetPrePrintFns::badFn = "The form `` didn't behave as expected.";
+
 SetPrePrintFns[] := List[
-  If[ToBoxes[MsgArgForm[PrivHoldSeq[]]] === "()", $MessagePrePrint = MsgArgForm; True, False],
-  If[ToBoxes[OutExprForm[{1,2,3}]] === RowBox[{"{", "1", ",", "2", ",", "3", "}"}], $PrePrint = OutputExpressionForm; True, False]
+  If[ToBoxes[MsgArgForm[PrivHoldSeq[]]] === "()",
+    $MessagePrePrint = MsgArgForm; True,
+    Message[SetPrePrintFns::badFn, MsgArgForm]; False],
+  If[ToBoxes[OutExprForm[{1,2}]] === RowBox[{"{", "1", ",", "2", "}"}],
+    $PrePrint = OutExprForm; True,
+    Message[SetPrePrintFns::badFn, OutExprForm]; False]
 ];
 
 UnsetPrePrintFns[] := Then[
@@ -110,6 +116,7 @@ msgArg1 = CaseOf[
   s:StrP ? litStrQ        := LitStrBox @ s;
   File[path:StrP]         := PathBox @ path;
   SrcLoc[s_Str, i_Int]    := SourceLocationBox[s, i];
+  r:FullRow[_List, Blank01] := MakeBox @ r;
   l:{__SrcLoc}            := RowBox @ Riffle[Map[MakeBox] @ DelDups @ l, ","];
   e_ /; $MsgArgPasting    := BlockFalse[$MsgArgPasting, PasterBox[msgArg2 @ e, e]];
   e_                      := msgArg2 @ e,

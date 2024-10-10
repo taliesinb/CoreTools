@@ -250,7 +250,7 @@ ImportFnHelper[extFn_, intFn_, pathArg_, args___] := Module[
   If[type === None,      Message[extFn::importFileMissing, File @ pathArg]; Return @ $Failed];
   If[type === Directory, Message[extFn::importFileDir,     File @ pathArg]; Return @ $Failed];
   If[ArchiveFileQ[path],
-    path = getArchiveFile[extFn, path];
+    path = extractArchive[extFn, path];
     If[FailureQ[path], Return @ $Failed];
   ];
   result = intFn[path, args];

@@ -47,8 +47,8 @@ HoldFirst
 	SubtractFrom TableViewBox TimesBy ToEntity TraceAutoloads TraceUnpackings Unset UpSet WaitUntil
 HoldRest
 	Assuming Button CreateDynamicAlias CustomizedPrint DumpSave DynamicWrapper DynamicWrapperBox
-	Ensure EnsurePacked EnsurePackedReals First FirstArgumentPosition FirstCase FirstLast FirstOccurence
-	FirstOccurencePosition FirstPosition FirstSecond FirstVectorIndex Fourth If IndexOf Last MenuItem NicePaster
+	Ensure EnsurePacked EnsurePackedReals First FirstArgumentPosition FirstCase FirstLast FirstOccurrence
+	FirstOccurrencePosition FirstPosition FirstSecond FirstVectorIndex Fourth If IndexOf Last MenuItem NicePaster
 	OptionKey PartOr PatternTest RuleDelayed Save Second SecondFirst SelectFirst StringCaseFirst
 	StringCaseLast StringPositionLeft StringPositionRight Switch SymbolNameSetDelayed Third UniqueValue
 	UniqueValueBy

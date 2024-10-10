@@ -78,9 +78,9 @@ DefineAliasRules[
   VecIndex1Of      -> FirstVectorIndexOf,
   VecRep           -> VectorReplace,
   Parts            -> ExtractIndices,
-  Occs             -> Occurences,
-  UniOccs          -> UniqueOccurences,
-  OccsPos          -> OccurencePositions,
+  Occs             -> Occurrences,
+  UniOccs          -> UniqueOccurrences,
+  OccsPos          -> OccurrencePositions,
   NarrowOpts       -> NarrowOptions
 ];
 

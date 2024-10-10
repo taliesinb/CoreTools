@@ -14,7 +14,8 @@ PackageExports[
   "SpecialFunction",
     InternalPart,
     InternalPartOp,
-    ClearInternalPartRules
+    ClearInternalPartRules,
+    LookupInternalPartRules
 ];
 
 (**************************************************************************************************)
@@ -30,7 +31,7 @@ InternalPart[a_]              := a;
 InternalPart[s_Symbol, ___]   := s;
 InternalPart[a_, All]         := a;
 InternalPart[Missing["KeyAbsent", k_], ___] := ErrorMessage[General::badPart, k];
-InternalPart[a_, p_, ___]     := IssueMessage[Head[a], "noPart", Head[a], p];
+i_InternalPart                              := badInternalPart[i];
 
 InternalPart[EmptyP, p1_]            := ErrorMessage[General::empty];
 InternalPart[l:ListDictP, p1_]       := iPartOne[l, p1];
@@ -59,7 +60,8 @@ iPartLDN = CaseOf[
   $[l_, Into[n_]]          := Part[l, spaced[n, Len @ l]];
   $[l_, f_Select]          := f @ l;
   $[l_, p_Span]            := PartOr[l, p, None];
-  $[l_, is_List]           := PartOr[l, is];
+  $[d_Dict, ks_List]       := Lookup[d, ks, None];
+  $[l_, is_List]           := PartOr[l, #, None]& /@ is;
   $[l_, Sampled[i_Int]]    := If[i >= Len[l], l, sampled[l, i]];
   $[l_, p_]                := ErrorMessage[General::badPart, p];
 ];
@@ -71,6 +73,9 @@ spaced[1, m_] := Ceiling[m/2];
 spaced[2, m_] := {1, m};
 spaced[n_, m_] /; n >= m := All;
 spaced[n_, m_] := Ceiling[Range[0.0, 1.0, 1.0 / (n-1)] * (m-1) + 1];
+
+SetHoldC @ badInternalPart;
+badInternalPart[InternalPart[a_, p_, ___]] := IssueMessage[Head[a], "noPart", Head[a], p];
 
 General::badPart = "Invalid part spec: ``.";
 General::noPart = "Object `` does not have a part ``.";
@@ -86,6 +91,12 @@ InternalPartOp[p___][a_] := InternalPart[a, p];
 ClearInternalPartRules[h_Sym] := (
   DownValues[InternalPart] = Select[DownValues[InternalPart], VFreeQ[First @ #, h]&];
 );
+
+(**************************************************************************************************)
+
+LookupInternalPartRules[h_Sym] := Select[DownValues[InternalPart], VContainsQ[First @ #, h]&];
+
+(**************************************************************************************************)
 
 (* InternalPart[a_, p__] := Message[applyPartRules[a, InternalPartRules[a], Unsequence @ p];
 

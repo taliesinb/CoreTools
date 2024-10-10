@@ -150,6 +150,10 @@ frameToBlock = CaseOf[
 
 boxToBlock = CaseOf[
 
+  s_Str ? HAtomQ                                      := s;
+
+  TagBox[t_, ___]                                     := $ @ t;
+
   StyleBox[e_, style___]                              := styleInBlock[$, e, {style}];
 
   TemplateBox[space_List, "Spacer1"]                  := spacerBlock[space];
@@ -212,7 +216,7 @@ General::stringBadGrid = "First argument to `` is not a list of lists."
 
 gridBoxToBlock[GridBox[rows_List, opts___Rule]] := Locals[
 
-  UnpackOptionsAs[GridBox, {opts}, gridBoxAlignment, gridBoxSpacings, gridBoxFrame, gridBoxBackground, gridBoxDividers];
+  UnpackSymbolsAs[GridBox, {opts}, gridBoxAlignment, gridBoxSpacings, gridBoxFrame, gridBoxBackground, gridBoxDividers];
   {h, w} = Dims[rows, 2];
 
   If[!ListVectorQ[rows], ThrowMsg["stringBadGrid", GridBox]];

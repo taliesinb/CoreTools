@@ -67,14 +67,14 @@ padBox4[boxes_, l_, r_, b_, t_] := AdjBox[boxes, BoxMargins -> {{l, r}, {b, t}}]
 
 (**************************************************************************************************)
 
-LPadBox[boxes_, p:NumP] := padBox4[boxes, l, 0, 0, 0];
-RPadBox[boxes_, p:NumP] := padBox4[boxes, 0, r, 0, 0];
-BPadBox[boxes_, p:NumP] := padBox4[boxes, 0, 0, b, 0];
-TPadBox[boxes_, p:NumP] := padBox4[boxes, 0, 0, 0, t];
+LPadBox[boxes_, l:NumP] := padBox4[boxes, l, 0, 0, 0];
+RPadBox[boxes_, r:NumP] := padBox4[boxes, 0, r, 0, 0];
+BPadBox[boxes_, b:NumP] := padBox4[boxes, 0, 0, b, 0];
+TPadBox[boxes_, t:NumP] := padBox4[boxes, 0, 0, 0, t];
 HPadBox[boxes_, p:NumP] := padBox4[boxes, p, p, 0, 0];
 VPadBox[boxes_, p:NumP] := padBox4[boxes, 0, 0, p, p];
 
-SetCurry2BoxFn[LPadBox, VPadBox, BPadBox, TPadBox, HPadBox, VPadBox];
+SetCurry2BoxFn[LPadBox, RPadBox, BPadBox, TPadBox, HPadBox, VPadBox];
 
 (**************************************************************************************************)
 

@@ -4,9 +4,13 @@ SystemExports[
 
 PackageExports[
   "FormHead",      SystemForm, CodeForm, DataForm, ExprForm, EchoForm, HoldExprForm, Unlimited, Limited, RichElidedForm, HoldAtForm,
-  "BoxFunction",   MakeExprBoxes, MakeCodeBoxes, MakeEchoBoxes, ToExprBoxes, HoldRichElidedBox,
+  "BoxFunction",   MakeExprBoxes, MakeCodeBoxes, MakeEchoBoxes, ToExprBoxes, HoldRichElidedBox, SwatchBox,
   "Predicate",     LongExprQ, BigExprQ, LongBigExprQ
 ];
+
+PrivateExports[
+  "DebugFn",       ToExprBoxDebug, MakeExprBoxDebug
+]
 
 (*************************************************************************************************)
 
@@ -509,6 +513,7 @@ $needsExtraLineP = Alt[
 ];
 
 requiresExtraNewlinesQ[boxes_] := ContainsQ[boxes, $needsExtraLineP];
+headBoxNLine[head_, boxes_]     := RowBox @ ToList[head, "[", "\n", addTab["\t"] /@ addNewline /@ boxes, "\n", "]"];
 
 addNewline[","] := Splice[{",", "\n"}];
 addNewline[e_] := e;
@@ -579,13 +584,14 @@ stdBox2 = CaseOf[
   m:(math$)[__]                       := mathBox @ m;
   DirInf[] | DirInf[1]                := "\[Infinity]";
   DirInf[-1]                          := RBox["\[Minus]", "\[Infinity]"];
-  arb:Row[_List, ___]                 := rowColBoxes[arb, True];
+  arb:Column[_List, ___]              := rowColBoxes[arb, True];
   arb:Row[_List, ___]                 := rowColBoxes[arb, False];
   arb:array$[_List, ___]              := arrayFormBoxes @ arb;
   arb:script$[__]                     := scriptBoxes @ arb;
   arb:Image ? ValidFlagQ              := imageBox @ img;
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
+  col:ColorP ? HoldColorQ             := SwatchBox @ col;
   arb:(_Sym ? OperatorFormHeadQ)[___][___] := operatorFormBox @ arb;
   arb:(_Sym ? CompoundFormHeadQ)[___] := compoundFormBox @ arb;
   arb:(_Sym ? AtomFormHeadQ)[___]     := atomFormBox @ arb;
@@ -596,6 +602,31 @@ stdBox2 = CaseOf[
    script$ -> Alt[Superscript, Subscript, Subsuperscript, Overscript, Underscript],
    math$ -> Join[MathSymP, ExtMathSymP]}
 ];
+
+(*************************************************************************************************)
+
+SetBoxFn @ SwatchBox;
+
+SwatchBox[color:ColorP] := Locals[
+  border = ColorConvert[Darker @ color, Head @ color];
+  squares = List[
+    {Black, RectangleBox[{0, 0}], RectangleBox[{1, -1}]},
+    {color, RectangleBox[{0, -1}, {2, 1}]}
+  ];
+  TagBox[Make[GraphicsBox, squares, $colorBoxOpts], "ColorSwatch"]
+];
+
+$colorBoxOpts = Seq[
+  ImageSize        -> {Automatic, 10},
+  DefaultBaseStyle -> "ColorSwatchGraphics",
+  BaselinePosition -> Scaled[0.1],
+  ImageMargins     -> {{2,2},{1,1}},
+  AspectRatio      -> 1,
+  Frame            -> True,
+  FrameStyle       -> border,
+  FrameTicks       -> None,
+  PlotRangePadding -> None
+]
 
 (*************************************************************************************************)
 
@@ -787,7 +818,7 @@ rawInnerBoxes[HoldC[e_]] := exprBox @ e;
 rowColBoxes[e_, _] := genericBox @ e;
 rowColBoxes[head_[list_List, opts___], isRow_] := With[
   {boxes = Map[RawBoxes] @ ListDictMakeBoxes1D[list, isRow, rawInnerBoxes, False, None, 500, $len]},
-  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDotsS, MakeBoxes @ head[boxes, opts]]
+  If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDotsS, ToBoxes @ head[boxes, opts]]
 ];
 
 arrayFormBoxes[e_] := genericBox @ e;
@@ -818,7 +849,7 @@ atomFormBox[e_] := MakeBoxes @ e;
 SetHoldC[compoundFormBox, compoundForm1Box, compoundForm2Box, compoundForm3Box, compoundFormNBox];
 
 compoundFormBox[e:(sym_[___])] := Switch[
-  CompoundFormArity @ sym,
+          CompoundFormArity @ sym,
   1,      compoundForm1Box[e],
   2,      compoundForm2Box[e],
   3,      compoundForm3Box[e],

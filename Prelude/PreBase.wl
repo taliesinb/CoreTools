@@ -24,6 +24,7 @@ PackageExports[
     DeclareHoldRest,
     DeclareHoldAll,
     DeclareHoldAllComplete,
+    DeclareListable,
     DeclareUsage
 ];
 
@@ -72,8 +73,8 @@ SystemExports[
 
   "Predicate",
     HoldListQ, HoldAssociationQ, HoldPackedArrayQ, PackedListQ,
-    HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ,
-    InvalidArgumentsQ, CorruptQ, ValidFileQ,
+    HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ, HoldColorQ,
+    InvalidQ, CorruptQ, ValidFileQ,
 
   "TagVariable",
     $Invalid,
@@ -93,13 +94,16 @@ SystemExports[
 ];
 
 SessionExports[
+
   "SpecialVariable",
+
     $PreludeLoaded,
     $PreludeDir,
     $PreludeFiles,
+
     $CoreToolsLoaded,
-    $CoreToolsDir,
-    $CoreToolsRootDir
+    $CoreToolsPath,
+    $CoreToolsRootPath
 ];
 
 Begin["`Base`Private`"]
@@ -144,8 +148,9 @@ DeclareHoldAllComplete[fns__Symbol] := SetAttributes[{fns}, HoldAllComplete];
 DeclareHoldFirst[fns__Symbol]       := SetAttributes[{fns}, HoldFirst];
 DeclareHoldRest[fns__Symbol]        := SetAttributes[{fns}, HoldRest];
 DeclareHoldAll[fns__Symbol]         := SetAttributes[{fns}, HoldAll];
+DeclareListable[fns__Symbol]        := SetAttributes[{fns}, Listable];
 
-DeclareStrict[DeclareHoldAllComplete];
+DeclareStrict[DeclareHoldAllComplete, DeclareHoldFirst, DeclareHoldRest, DeclareHoldAll, DeclareListable];
 
 (**************************************************************************************************)
 
@@ -351,12 +356,13 @@ toHoldFn[_[args_, body_]] := Function[args, body, HoldAllComplete];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ];
+DeclareHoldAllComplete[HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ, HoldColorQ];
 
 HoldStringQ[_String ? Developer`HoldAtomQ] = True;
 HoldIntegerQ[_Integer ? Developer`HoldAtomQ] = True;
 HoldNaturalQ[(_Integer ? Developer`HoldAtomQ) ? NonNegative] = True;
 HoldNumberQ[Alternatives[_Integer, _Real, _Rational] ? Developer`HoldAtomQ] = True;
+HoldColorQ[c:Alternatives[_GrayLevel, _RGBColor, _CMYKColor, _Hue, _XYZColor, _LABColor, _LCHColor, _LUVColor]] := ColorQ[Unevaluated @ c];
 HoldBooleanQ[False | True] = True;
 
 _HoldStringQ  = False;
@@ -364,6 +370,7 @@ _HoldIntegerQ = False;
 _HoldNaturalQ = False;
 _HoldNumberQ  = False;
 _HoldBooleanQ = False;
+_HoldColorQ   = False;
 
 (*************************************************************************************************)
 
@@ -423,7 +430,7 @@ $FormalSymbols = {
 
 (*************************************************************************************************)
 
-SetListable[FileUnixTime];
+DeclareListable[FileUnixTime];
 
 FileUnixTime[path_String] := If[FileExistsQ[path], UnixTime @ FileDate @ path, 0];
 FileUnixTime[_] := $Failed;

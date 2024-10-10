@@ -5,6 +5,7 @@ PackageExports[
     SetDefaultStylesheet,
     GetDefaultStylesheet,
     InstallCoreToolsStyleSheets,
+    OpenCoreToolsStyleSheets,
     UninstallCoreToolsStyleSheets,
     GetNotebookStylesheet,
     SetNotebookStylesheet,
@@ -43,6 +44,10 @@ InstallCoreToolsStyleSheets[] := Locals @ CatchMessages[
     FileNames["*.nb", sourcePath]
   ]
 ];
+
+(*************************************************************************************************)
+
+OpenCoreToolsStyleSheets[] := Scan[NotebookOpen, FileNames["*.nb", $CoreToolsStyleSheetsDirectory]];
 
 (*************************************************************************************************)
 
@@ -165,7 +170,7 @@ $DefaultStyleSheetStyleNames = {
   "Reference", "Author", "Affiliation", "Abstract"
 };
 
-StyleSheetData[name_, stylePatt_] := Dict @ Occurences[
+StyleSheetData[name_, stylePatt_] := Dict @ Occurrences[
   GetStyleSheet[name],
   Cell[StyleData[styleName:stylePatt], rules___] :> Rule[styleName, Dict @ rules]
 ];

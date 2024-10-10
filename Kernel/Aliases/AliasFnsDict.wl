@@ -54,7 +54,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   LevelDict        -> LevelAssociation,
-  OccDict          -> OccurenceAssociation,
+  OccDict          -> OccurrenceAssociation,
   ArgDict          -> ArgumentAssociation,
   LeafDict         -> LeafAssociation,
   PartDict         -> PartAssociation,

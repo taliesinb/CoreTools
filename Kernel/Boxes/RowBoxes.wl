@@ -1,11 +1,11 @@
 SystemExports[
   "FormHead",
-    DelimitedRow, RiffledRow, RawRow,
+    DelimitedRow, RiffledRow, RawRow, FullRow,
     BraceForm, AngleForm, ParenForm, BracketForm, DBracketForm,
     BraceSeq, AngleSeq, ParenSeq, BracketSeq, DBracketSeq,
     BraceRow, AngleRow, ParenRow, BracketRow, DBracketRow,
-    SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq,
-    SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow
+    SpaceSeq, QuadSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq,
+    SpaceRow, QuadRow, CommaRow, ColonRow, SColonRow, ArrowRow
 ];
 
 PackageExports[
@@ -20,8 +20,8 @@ PackageExports[
     BraceBox, AngleBox, ParenBox, BracketBox, DBracketBox,
     BraceSeqBox, AngleSeqBox, ParenSeqBox, BracketSeqBox, DBracketSeqBox,
     BraceRowBox, AngleRowBox, ParenRowBox, BracketRowBox, DBracketRowBox,
-    SpaceSeqBox, CommaSeqBox, ColonSeqBox, SColonSeqBox, ArrowSeqBox,
-    SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox
+    SpaceSeqBox, QuadSeqBox, CommaSeqBox, ColonSeqBox, SColonSeqBox, ArrowSeqBox,
+    SpaceRowBox, QuadRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox
 ];
 
 (**************************************************************************************************)
@@ -34,10 +34,13 @@ DefineAliasRules[
 
 (**************************************************************************************************)
 
+SetForm0[FullRow];
 SetFormR[RawRow];
 
-SystemBox[RawRow[list_List]]        := RiffRowBox[MapMakeBox @ list, ""];
-SystemBox[RawRow[list_List, riff_]] := RiffRowBox[MapMakeBox @ list, MakeBox @ riff];
+SystemBox[FullRow[list_List]]        := MakeBox @ RawRow @ list;
+SystemBox[FullRow[list_List, riff_]] := MakeBox @ RawRow[list, riff];
+SystemBox[RawRow[list_List]]         := RiffRowBox[MapMakeBox @ list, Spc0];
+SystemBox[RawRow[list_List, riff_]]  := RiffRowBox[MapMakeBox @ list, MakeBox @ riff];
 
 (**************************************************************************************************)
 
@@ -79,7 +82,7 @@ riffle4[bs_List, l_, m_, r_, n_] := RowBox @ List[l, SpacerBox @ s, RowBox @ Rif
 
 (**************************************************************************************************)
 
-SetForm1[DelimRow];
+SetFormO[DelimRow];
 
 SystemBoxDefs[
   DelimRow[d_][es_List]               := riffle1[MapMakeBox @ es, MakeBox @ d];
@@ -148,14 +151,15 @@ DefineSeqRowFormBox[
 
 (**************************************************************************************************)
 
-SetFormR[SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow];
-SetFormA[SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq];
+SetFormR[QuadRow, SpaceRow, CommaRow, ColonRow, SColonRow, ArrowRow];
+SetFormA[QuadSeq, SpaceSeq, CommaSeq, ColonSeq, SColonSeq, ArrowSeq];
 
-SetBoxFn[SpaceSeqBox, CommaSeqBox, ColonSeqBox, SColonSeqBox, ArrowSeqBox];
-SetBoxFn[SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox];
+SetBoxFn[QuadRowBox, SpaceSeqBox, CommaSeqBox, ColonSeqBox, SColonSeqBox, ArrowSeqBox];
+SetBoxFn[QuadSeqBox, SpaceRowBox, CommaRowBox, ColonRowBox, SColonRowBox, ArrowRowBox];
 
 DefineSeqRowFormBox[
-  SpaceSeq  ; SpaceRow  ; SpaceSeqBox  ; SpaceRowBox  ; Spc,
+  SpaceSeq  ; SpaceRow  ; SpaceSeqBox  ; SpaceRowBox  ; Spc <> Spc0,
+  QuadSeq   ; QuadRow   ; QuadSeqBox   ; QuadRowBox   ; "    " <> Spc0,
   CommaSeq  ; CommaRow  ; CommaSeqBox  ; CommaRowBox  ; Com,
   ColonSeq  ; ColonRow  ; ColonSeqBox  ; ColonRowBox  ; ColonS,
   SColonSeq ; SColonRow ; SColonSeqBox ; SColonRowBox ; SColonS,

@@ -115,7 +115,7 @@ SystemBox[DepthTruncateForm[expr_, n_Int]] := At[DepthTruncateBoxes, MakeBoxes @
 
 (*************************************************************************************************)
 
-SetHoldC @ DepthTruncateBoxes;
+SetHoldF @ DepthTruncateBoxes;
 
 DepthTruncateBoxes[boxes_, n_Int] := If[n <= 0, CDotsS, Block[{$d = n}, truncBox @ boxes]];
 
@@ -125,7 +125,7 @@ truncBox = CaseOf[
   s_Str                             := s;
   InterpBox[b_, ___]                := $ @ b;
   TBox[args_List, name_]            := TBox[truncTBox[name, args], name];
-  RowBox[b:NestRowBoxListP]            := RowBox @ HoldMap[$, b] // incDepth1;
+  RowBox[b:NestRowBoxListP]         := RowBox @ HoldMap[$, b] // incDepth1;
   RowBox[b_List]                    := RowBox @ HoldMap[$, b];
   e:(h:Box0SymP)[___]               := e;
   (h:Box1SymP)[a_, r___]            := With[{a1 = $ @ a},             h[a1, r]];

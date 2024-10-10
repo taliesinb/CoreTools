@@ -82,7 +82,7 @@ RoundedCurvePointsFast[points2_, radius2_, corner_] := Locals[
     "Arc" | "Bevel" | "Line" | "Bezier",
       ToPackedReals @ populateSegments[corner, FirstLast @ points, triples, radii],
     _,
-      OptMsg[CornerShape, corner];
+      OptMsg[Corner, corner];
       points
   ]
 ];

@@ -51,7 +51,7 @@ fromUnresName[sym_Sym] := SymbolForm @ sym;
 internalNameQ[name_Str] := StringContainsQ[name, "`"];
 
 $noDefKinds = StrSplit[
-  "Option TagSymbol TagHead TagVariable SlotVariable TransientVariable SymbolicHead DataHead TypeSymbol Symbol BoxOption TypeHead PackageFunction PackageDeclaration"
+  "Option TagSymbol TagHead TagVariable SlotVariable TransientVariable SymbolicHead DataHead HoldHead TypeSymbol Symbol BoxOption TypeHead PackageFunction PackageDeclaration"
 ];
 
 FindUnresolvedSymbols[context_Str:None] := Locals[

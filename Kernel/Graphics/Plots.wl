@@ -33,9 +33,9 @@ NiceObjectBoxes[head_, args2_, margin:Except[_Rule]:0, opts___Rule] := Locals[
   args = If[!cLines && ListQ[args], commaSep @ args, args];
   argItems = Which[
     EmptyQ[args],  "",
-    SingleQ[args] || cLines, MarginBox[margin] /@ args,
-    ListQ[args],   MapFirstLast[MarginBox[{margin, 0}], MarginBox[{0, margin}], args],
-    True,          MarginBox[margin] @ args
+    SingleQ[args] || cLines, HPadBox[margin] /@ args,
+    ListQ[args],   MapFirstLast[LPadBox[margin], RPadBox[margin], args],
+    True,          HPadBox[margin] @ args
   ];
   gridBox = GridBox[
     List @ ToList[

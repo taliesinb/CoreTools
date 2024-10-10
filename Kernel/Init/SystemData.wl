@@ -1,5 +1,5 @@
 PrivateExports[
-  "IOFunction",  LoadSystemData, GenerateSystemData, BinaryWriteHelper, BinaryReadHelper
+  "IOFunction",  LoadSystemData, GenerateSystemData
 ];
 
 (**************************************************************************************************)

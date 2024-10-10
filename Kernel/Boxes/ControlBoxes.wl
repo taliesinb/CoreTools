@@ -2,13 +2,17 @@ SystemExports[
   "FormHead", Unformatted, Uninteractive, FormBlock, Themed
 ];
 
+PackageExports[
+  "BoxFn",    FormBlockBox
+];
+
 (**************************************************************************************************)
 
 "Unformatted[expr$] displays expr$ with all core formatting turned off."
 "Uninteractive[expr$] displays expr$ with all core interactivity turned off."
 
-MakeBoxes[  Unformatted[lhs_], form_] /; $CoreFormatting :=  BlockFormatting @ MakeBoxes[lhs, form];
-MakeBoxes[Uninteractive[lhs_], form_] /; $CoreFormatting := BlockInteractive @ MakeBoxes[lhs, form];
+MakeBox[  Unformatted[lhs_], form_] /; $CoreFormatting :=  BlockFormatting @ MakeBox[lhs, form];
+MakeBox[Uninteractive[lhs_], form_] /; $CoreFormatting := BlockInteractive @ MakeBox[lhs, form];
 
 (*************************************************************************************************)
 
@@ -17,18 +21,14 @@ FormBlock[{var$1 = val$1, $$}, expr$] applies multiple settings."
 
 SetHoldF @ FormBlock;
 
-CoreBox[FormBlock[settings_, body_]] := formBlockBoxes[settings, body];
+CoreBox[FormBlock[settings_, body_]] := FormBlockBox[settings, body];
 
-SetHoldA @ formBlockBoxes;
+SetHoldA @ SetBoxFn @ FormBlockBox;
 
-formBlockBoxes = CaseOf[
-  $[set_Set,    expr_] := formBlockBoxes[{set}, expr];
-  $[{set__Set}, expr_] := Block[{sym}, MakeBoxes @ expr];
-  $[bad_,       expr_] := ErrorTooltipBox[MakeBoxes @ expr, FormBlock::badSettingArg, HoldForm @ bad];
-  _                    := $Failed
+FormBlockBox = CaseOf[
+  $[set_Set,    expr_]   := $[{set}, expr];
+  $[sets:{__Set}, expr_] := Block[sets, MakeBox @ expr];
 ];
-
-FormBlock::badSettingArg = "Not a Set or list of Sets: ``"
 
 (**************************************************************************************************)
 
@@ -51,8 +51,8 @@ CoreBox[themed_Themed] := themedBoxes[themed];
 SetHoldC @ themedBoxes;
 
 themedBoxes = CaseOf[
-  Themed[expr_, theme_Str] := MakeBoxes @ expr;
-  Themed[expr_]            := MakeBoxes @ expr;
+  Themed[expr_, theme_Str] := MakeBox @ expr;
+  Themed[expr_]            := MakeBox @ expr;
   _                        := $Failed;
 ];
 

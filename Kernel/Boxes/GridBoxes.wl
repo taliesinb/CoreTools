@@ -41,7 +41,8 @@ GridBoxRule[key_, rows_, cols_, False] := GridBoxRule[key, rows, cols];
 
 (**************************************************************************************************)
 
-SetForm1[RowGrid, ColGrid, TightRowGrid, TightColGrid];
+SetFormR[RowGrid, TightRowGrid];
+SetFormC[ColGrid, TightColGrid];
 SetBoxFn[RowGridBox, ColGridBox]
 
 SystemBoxDefs[
@@ -67,7 +68,8 @@ $tightGridOpts = Seq[RowGaps -> 0, ColGaps -> 0, GridFrameMargins -> {{0, 0}, {0
 
 (**************************************************************************************************)
 
-SetForm1[RawCol, RawGrid]
+SetFormC[RawCol];
+SetFormG[RawGrid]
 
 SystemBoxDefs[
   RawCol[list_List, opts___]      := ColBox[MapMakeBox @ list, opts];

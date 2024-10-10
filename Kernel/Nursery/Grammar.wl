@@ -101,7 +101,7 @@ makeLeaf[head_]             := GrammarSymbol[head];
 
 FindGrammarType[expr_, 2] := Locals[
   annoExpr = GrammarAnnotate @ expr;
-  subExprs = Occurences[annoExpr, GAnno[tag_, body_] :> Rule[GPattern[tag], HoldC[body] /. GAnno[kidTag_, _] :> GPattern[kidTag]]];
+  subExprs = Occurrences[annoExpr, GAnno[tag_, body_] :> Rule[GPattern[tag], HoldC[body] /. GAnno[kidTag_, _] :> GPattern[kidTag]]];
   FromVertexOutLists[
     Merge[subExprs, Occs[_GPattern]],
     PlotTheme -> "CoreGrammar",

@@ -3,6 +3,7 @@ BeginPackage["Prelude`", {"Session`"}];
 SystemExports[
   "DebuggingFunction",
     TraceSymbolChanges,
+    TraceFunctionCalls,
     TraceAutoloads,
     BlockPrint,
     Capture,
@@ -94,11 +95,11 @@ $errorPrintOpts = {
   CellLabel -> "Error", CellLabelStyle -> Orange
 };
 
-$logPrintOpts = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
-$echoDingbat = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
-$echoPrintOpts = {FontSize -> 13, CellDingbat -> $echoDingbat};
-$debugPrintOpts = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
-$cachePrintOpts = {FontSize -> 13, FontColor -> Cyan, CellLabel -> "Cache", CellLabelStyle -> Cyan};
+$logPrintOpts      = {FontSize -> 13, FontColor -> GrayLevel[0.5], CellLabel -> "Log"};
+$echoDingbat       = StyleBox["» ", FontSize -> 15, FontFamily -> "Roboto", FontColor -> Orange];
+$echoPrintOpts     = {FontSize -> 13, CellDingbat -> $echoDingbat};
+$debugPrintOpts    = {FontSize -> 13, FontColor -> Pink, CellLabel -> "Debug", CellLabelStyle -> Pink};
+$cachePrintOpts    = {FontSize -> 13, FontColor -> Cyan, CellLabel -> "Cache", CellLabelStyle -> Cyan};
 $mutationPrintOpts = {FontSize -> 13, FontColor -> Green, CellLabel -> "Mut", CellLabelStyle -> Green};
 
 RawPrint[args___]   := CustomizedPrint[{}, args];
@@ -273,6 +274,27 @@ Capture[e_] := Block[
   {res = $LastCapture = HoldComplete[e]},
   $LastCapture = $LastCapture /. sym_Symbol ? System`Private`HasImmediateValueQ :> RuleCondition[sym];
   ReleaseHold[res]
+];
+
+(*************************************************************************************************)
+
+DeclareHoldAllComplete[TraceFunctionCalls];
+DeclareStrict[TraceFunctionCalls];
+
+TraceFunctionCalls[sym_Symbol, body_] := TraceFunctionCalls[{sym}, body];
+
+TraceFunctionCalls[{syms__Symbol}, body_] := Internal`WithLocalSettings[
+  On[syms],
+  Internal`HandlerBlock[
+    {"Message", handleTraceMsg[HoldComplete @ syms]},
+    Quiet[body, {General::trace}]
+  ],
+  Off[syms]
+];
+
+handleTraceMsg[syms_][Hold[Message[MessageName[sym_, "trace"], HoldForm[in_], HoldForm[out_]], _]] := If[
+  MemberQ[syms, Unevaluated @ sym],
+  LogPrint[PrivateHoldComplete[InputForm @ in], "\t\[LongRightArrow]\t", PrivateHoldComplete[InputForm @ out]]
 ];
 
 (*************************************************************************************************)

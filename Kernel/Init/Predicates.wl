@@ -15,7 +15,7 @@ SystemExports[
     AtomicQ, NonAtomicQ,
     SingleQ, DatumQ,
     HoldDatumQ, HoldSingleQ, HoldEmptyQ, HoldNotEmptyQ,
-    HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
+    NotHeadQ, HasHeadQ, VectorHasHeadsQ, AssociationHasHeadsQ,
     HasKeysQ, HasLengthQ, HasDimensionsQ, HasArrayDepthQ,
     HoldHasLengthQ,
 
@@ -412,6 +412,9 @@ Pos2ListOrListsQ[a_List] := Pos2ListsQ[a] || Pos2ListQ[a];
 
 HasHeadQ[e_, h_]       := MatchQ[e, ToBlankP @ h];
 HasHeadQ[h_]           := MatchQ[ToBlankP @ h];
+
+NotHeadQ[e_, h_]       := MatchQ[e, Except @ ToBlankP @ h];
+NotHeadQ[h_]           := MatchQ[Except @ ToBlankP @ h];
 
 VectorHasHeadsQ[e_, h_] := MatchQ[e, List @ ToBlankNullSeqP @ h];
 VectorHasHeadsQ[h_]     := MatchQ[List @ ToBlankNullSeqP @ h];

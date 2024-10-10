@@ -8,6 +8,7 @@ PackageExports[
     HeadingView,
     LabeledFlipView,
     PickView, MapView, EitherView,
+    MultiCounts, MultiCountsForm,
   "BoxFunction",
     DynamicProgressBarBox,
     NiceClickBox, DeployBox,
@@ -18,13 +19,26 @@ PackageExports[
   "Function",
     LabelBy,
   "BoxFunction",
-    ListDictMakeBoxes1D, ListDictMakeBoxes2D
+    MultiCountsBox, ListDictMakeBoxes1D, ListDictMakeBoxes2D
 ];
 
 PrivateExports[
   "MetaFunction",
     DefineViewForm
 ];
+
+(*************************************************************************************************)
+
+MultiCounts[list_List] := MultiCountsForm @ KeySort @ Counts @ list;
+
+CoreBox[MultiCountsForm[dict_Dict ? HDictQ]] := MultiCountsBox[dict];
+
+MultiCountsBox[EmptyDict] := SuperscriptBox["\[EmptySet]", " "];
+MultiCountsBox[dict_Dict ? HDictQ] :=
+  SpaceRowBox @ KeyValueMap[
+    SuperscriptBox[MakeBox @ #1, MakeBox @ #2]&,
+    dict
+  ];
 
 (*************************************************************************************************)
 
@@ -116,11 +130,18 @@ ListDictMakeBoxes1D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize2_,
   len = Len @ heldItems;
   n = i = 0; total = 0; list = {}; tooBig = False;
   slop = Max[maxSize * 0.1, 5];
+  truncDepth = 4;
   While[!tooBig && ++i <= len,
     itemBox = itemBoxFn @ Part[heldItems, i];
+    Label[$retry$];
     itemSize = ToImageSize @ RawBoxes @ itemBox;
     size = sizeFn @ itemSize;
     If[size > maxSize,
+      If[i == 1 && truncDepth > 1,
+        itemBox = DepthTruncateBoxes[Evaluate @ itemBox, truncDepth];
+        truncDepth--;
+        Goto[$retry$];
+      ];
       size = 20;
       itemBox = HoldElidedBox @@ Part[heldItems, i];
     ];
@@ -132,6 +153,7 @@ ListDictMakeBoxes1D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize2_,
       itemBox = If[keyBefore, {keyBox, itemBox}, {itemBox, keyBox}]];
     AppendTo[list, itemBox];
     n += 1;
+    If[i >= maxCount, Break[]];
   ];
   If[n < len, AppendTo[list, makeDots1D[len - n, isDict, isHor]]];
   list
@@ -141,17 +163,20 @@ makeDots1D[m_, True, True]    := {CDotsBox[m, True], ""};
 makeDots1D[m_, True, False]   := {ItemBox[CDotsBox[m, False], Alignment -> Center], ""};
 makeDots1D[m_, False, isHor_] := CDotsBox[m, isHor];
 
-ListDictMakeBoxes2D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize_, maxItems_] := Locals[
+ListDictMakeBoxes2D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize_, maxCount_] := Locals[
 
   sizeFn = If[isHor, Id, Rev];
   {maxSize1, maxSize2} = sizeFn @ EnsurePair @ maxSize;
-  {maxItems1, maxItems2} = sizeFn @ EnsurePair @ maxItems;
+  Which[
+    IntQ @ maxCount, maxCount1 = maxCount; maxCount2 = Inf,
+    Int2Q @ maxCount, {maxCount1, maxCount2} = maxCount,
+    True, maxCount1 = maxCount2 = Inf
+  ];
   {isDict, heldKeys, heldItems} = toHeldKeysItems @ expr;
   slop = Max[maxSize1 * 0.1, 5];
   len = Len @ heldItems;
   n = i = 0; total1 = total2 = other = 0; list1 = list2 = {};
-
-  While[++i <= len,
+  While[++i <= Min[len, maxCount1],
     itemBox = itemBoxFn @ Part[heldItems, i];
     itemSize = ToImageSize @ RawBoxes @ itemBox;
     {size1, size2} = sizeFn @ itemSize;
@@ -163,7 +188,7 @@ ListDictMakeBoxes2D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize_, 
     If[isDict,
       keyBox = keyBoxFn @ Part[heldKeys, i];
       itemBox = If[keyBefore, {keyBox, itemBox}, {itemBox, keyBox}]];
-    If[(total1 + size1 <= maxSize1) || i == 0,
+    If[((n <= maxCount2) && (total1 + size1 <= maxSize1)) || i == 0,
       AppendTo[list1, itemBox];
       total1 += size1;
       MaxTo[other, size2];
@@ -192,6 +217,7 @@ ListDictMakeBoxes2D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize_, 
   If[n < len,
     dots = makeDots2D[len - n, isDict, isHor];
     If[total1 < size1 - 20,
+      If[lst2 === {}, lst2 = {{}}];
       AppendTo[PN @ list2, dots],
       Part[list2, -1, -1] = dots
     ]
@@ -214,7 +240,8 @@ toHeldKeysItems = CaseOf[
 $rowColViewOptions = {
    ItemFn -> None,  ItemDivs -> False,  ItemGaps -> 1,  ItemStyle -> None,
   LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> Bold,
-  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1200
+  MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1200,
+  LabelPos -> Auto
 };
 
 $multiRowColViewOptions = FlatList[
@@ -244,7 +271,10 @@ multiRowColViewBoxes[_, e:EmptyP, _] := trivialViewBoxes @ e;
 
 multiRowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
   MessageOnUnknownOptions[head, opts];
-  UnpackSymbolsAs[head, opts, itemFn, labelFn, maxWidth, maxHeight, maxSize, maxItems, multiGaps, multiDivs];
+  UnpackSymbolsAs[head, opts,
+    itemFn, labelFn,
+    maxWidth, maxHeight, maxSize, maxItems,
+    multiGaps, multiDivs, labelPos];
   InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
   {maxSize1, maxSize2} = If[PairQ[maxSize], maxSize, {maxSize, 1000}];
   SetAuto[maxWidth, If[isHor, maxSize1, maxSize2]];
@@ -252,7 +282,9 @@ multiRowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
   maxSize = {maxWidth, maxHeight};
   itemFn = itemFnBoxes @ IfNone[itemFn, Id];
   labelFn = itemFnBoxes @ IfNone[labelFn, Id];
-  entries = ListDictMakeBoxes2D[items, isHor, itemFn, !isHor, labelFn, maxSize, maxItems];
+  keyBefore = Switch[labelPos, Auto, !isHor, Before, True, After, False];
+  $keyFlip = If[keyBefore === !isHor, Id, Rev];
+  entries = ListDictMakeBoxes2D[items, isHor, itemFn, keyBefore, labelFn, maxSize, maxItems];
   subGrids = If[isHor, Map[RowViewGridBox], Map[ColViewGridBox]] @ entries;
   If[SingleQ[subGrids], Return @ P1 @ subGrids];
   If[isHor,
@@ -261,8 +293,8 @@ multiRowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
   ]
 ];
 
-itemFnBoxes[Id][HoldC[item_]] := MakeBoxes @ item;
-itemFnBoxes[f_][HoldC[item_]] := ToBoxes @ f @ item;
+itemFnBoxes[Id][HoldC[item_]] := MakeExprBoxes @ item;
+itemFnBoxes[f_][HoldC[item_]] := ToExprBoxes @ f @ item;
 
 (*************************************************************************************************)
 
@@ -280,14 +312,19 @@ rowColViewBoxes[_, e:EmptyP, _, _] := trivialViewBoxes @ e;
 
 rowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
   MessageOnUnknownOptions[head, opts];
-  UnpackSymbolsAs[head, opts, itemFn, labelFn, maxWidth, maxHeight, maxSize, maxItems];
+  UnpackSymbolsAs[head, opts, itemFn, labelFn,
+    maxWidth, maxHeight, maxSize, maxItems,
+    labelPos
+  ];
   InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
   SetAuto[maxWidth, maxSize];
   SetAuto[maxHeight, maxSize];
   maxSize = {maxWidth, maxHeight};
   itemFn  = itemFnBoxes @ IfNone[itemFn, Id];
   labelFn = itemFnBoxes @ IfNone[labelFn, Id];
-  entries = ListDictMakeBoxes1D[items, isHor, itemFn, !isHor, labelFn, maxSize, maxItems];
+  keyBefore = Switch[labelPos, Auto, !isHor, Before, True, After, False];
+  $keyFlip = If[keyBefore === !isHor, Id, Rev];
+  entries = ListDictMakeBoxes1D[items, isHor, itemFn, keyBefore, labelFn, maxSize, maxItems];
   If[isHor,
     RowViewGridBox @ entries,
     ColViewGridBox @ entries
@@ -319,8 +356,9 @@ ColViewGridBox = CaseOf[
 
 dictRowsQ[boxes_] := ListQ @ P1 @ boxes;
 
-$cViewLabelStyle := GridBoxRule[ItemStyle, None, {Directive @ rcOptVal @ LabelStyle, None}]
-$rViewLabelStyle := Seq[ColumnAlignments -> Center, GridBoxRule[ItemStyle, {None, Directive @ rcOptVal @ LabelStyle}, None]];
+$keyFlip = Id;
+$cViewLabelStyle := GridBoxRule[ItemStyle, None, $keyFlip @ {Directive @ rcOptVal @ LabelStyle, None}]
+$rViewLabelStyle := Seq[ColumnAlignments -> Center, GridBoxRule[ItemStyle, $keyFlip @ {None, Directive @ rcOptVal @ LabelStyle}, None]];
 
 $rcViewOpts := Seq[
   ColumnAlignments -> Left, RowMinHeight -> 1.2, BaselinePosition -> {1, 1},
@@ -337,7 +375,7 @@ toDivCol = CaseOf[
 
 DeclaredHere[GroupedView];
 
-SetForm0[GroupedView];
+SetForm1[GroupedView];
 
 DefineViewForm[GroupedView[list_List, fns_] :> groupedView[list, fns]];
 
@@ -410,7 +448,7 @@ visitGroup[d_][dict_] := PathScan[$labelPath, visitGroup[d-1], KeySort @ dict];
 
 DeclaredHere[ListView];
 
-SetForm0[ListView];
+SetForm1[ListView];
 
 DefineViewForm[ListView[list_List] :> listBrowserBoxes[list]];
 
@@ -551,7 +589,7 @@ jsonDataBox = CaseOf[
 jsonCompoundBox[top_, bot_, expr_] := Locals[
   If[HLen[expr] > 16 && $subPath =!= {}, Return @ jsonNextView[expr]];
   entries = ListDictMakeBoxes1D[Evaluate @ HoldArgsP @ expr, False, jsonEntryBox, False, None, 800, 16];
-  If[VFreeQ[entries, {EventsBox, GridBox}] && Total[Occurences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
+  If[VFreeQ[entries, {EventsBox, GridBox}] && Total[Occurrences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
     RBox[top, RowBox @ Riffle[entries, ","], bot]
   ,
     entries = Map[RBox["\t", #]&, entries];

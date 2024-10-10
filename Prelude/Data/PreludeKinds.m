@@ -22,6 +22,7 @@ DeclareHoldFirst
 DeclareHoldRest
 DeclareHoldAll
 DeclareHoldAllComplete
+DeclareListable
 DeclareUsage
 DeclaredHere
 
@@ -187,7 +188,8 @@ HoldIntegerQ
 HoldNaturalQ
 HoldNumberQ
 HoldBooleanQ
-InvalidArgumentsQ
+HoldColorQ
+InvalidQ
 CorruptQ
 ValidFileQ
 PackageLoadCompletedQ
@@ -254,8 +256,8 @@ $PreludeLoaded
 $PreludeDir
 $PreludeFiles
 $CoreToolsLoaded
-$CoreToolsDir
-$CoreToolsRootDir
+$CoreToolsPath
+$CoreToolsRootPath
 $CurrentPackageFile
 $CurrentPackageDirectory
 $PackageLoadCompleteQ
@@ -290,6 +292,7 @@ $CurrentlyTracingSymbols
 
 AbortPackageLoading
 TraceSymbolChanges
+TraceFunctionCalls
 TraceAutoloads
 BlockPrint
 Capture

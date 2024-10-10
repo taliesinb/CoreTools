@@ -14,7 +14,7 @@ PackageExports[
 (**************************************************************************************************)
 
 ColorDuplicates[expr_, patt_, fn_:Style, baseColor_:$DarkGray] := Locals[
-  dups = Occurences[expr, patt];
+  dups = Occurrences[expr, patt];
   dups = Union @@ Duplicates @ dups;
   If[dups === {}, Return @ expr];
   colors = UniqueColor /@ Range @ Len @ dups;
@@ -31,7 +31,7 @@ ColorDuplicates[expr_, patt_, fn_:Style, baseColor_:$DarkGray] := Locals[
 (**************************************************************************************************)
 
 ColorUnique[expr_, patt_, fn_:Style, baseColor_:$DarkGray] := Locals[
-  dups = Occurences[expr, patt];
+  dups = Occurrences[expr, patt];
   dups = Union @@ Duplicates @ dups;
   colors = UniqueColor /@ Range @ Len @ dups;
   lhs = PatternLHS @ patt;

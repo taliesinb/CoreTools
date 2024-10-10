@@ -5,7 +5,7 @@ PackageExports[
   "Fn",        CompoundFormArity,
   "MetaFn",    SystemBoxDefs,
                SetForm0, SetForm1, SetForm2, SetForm3, SetFormA,
-               SetFormR, SetFormG, SetFormO,
+               SetFormR, SetFormC, SetFormG, SetFormO,
                SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn
 ];
 
@@ -135,7 +135,8 @@ CompoundFormArity[s_Sym] := StoreGet[$CompoundFormStore,  NoEval @ s];
 
 (**************************************************************************************************)
 
-DeclaredHere[SetForm0, SetForm1, SetForm2, SetForm3, SetFormA, SetFormR, SetFormG, SetFormO];
+DeclaredHere[SetForm0, SetForm1, SetForm2, SetForm3, SetFormA];
+DeclaredHere[SetFormR, SetFormC, SetFormG, SetFormO];
 
 DeclarationDefs[
   SetForm0[sym_Sym] := KeyStoreAdd[$AtomFormStore, NoEval @ sym],
@@ -145,6 +146,7 @@ DeclarationDefs[
   SetForm3[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, 3],
   SetFormA[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, All],
   SetFormR[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, Row],
+  SetFormC[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, Column],
   SetFormG[sym_Sym] := StoreSet[$CompoundFormStore, NoEval @ sym, Grid]
 ];
 

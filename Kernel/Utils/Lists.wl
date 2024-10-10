@@ -8,7 +8,7 @@ SystemExports[
     DropWhile, CommonPrefix, CommonPrefixLength, CommonSuffix, CommonSuffixLength,
     IndexOf,
     VectorIndices, FirstVectorIndex, VectorIndicesOf, FirstVectorIndexOf,
-    ExtractIndices, SortedCounts, SortedCountsBy,
+    ExtractIndices, SortedCounts, SortedCountsBy, SortedGroupsBy,
     DuplicateIndices, DuplicateIndicesBy,
     Duplicates, DuplicatesBy,
     DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteVerbatim,
@@ -134,13 +134,15 @@ PickLeave[list_List, mask_List, elem_] := {Pick[thing, mask, elem], Pick[thing, 
 
 (*************************************************************************************************)
 
-DecUElemDispatch1N[SortedCounts, SortedCountsBy]
+DecUElemDispatch1N[SortedCounts, SortedCountsBy, SortedGroupBy]
 
 SortedCounts[list_] := ReverseSort @ Counts[list];
 SortedCounts[list_, n_Int] := Take[ReverseSort @ Counts[list], All, UpTo[n]];
 
 SortedCountsBy[list_, f_] := ReverseSort @ CountsBy[list, f];
 SortedCountsBy[list_, f_, n_Int] := Take[ReverseSort @ CountsBy[list, f], All, UpTo[n]];
+
+SortedGroupsBy[list_, f_]        := ReverseSortBy[GroupBy[Args @ list, f], Length];
 
 (**************************************************************************************************)
 

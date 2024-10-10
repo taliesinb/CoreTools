@@ -17,6 +17,7 @@ PackageExports[
     ThrowMessage, ThrowUnknownOptionMessage, ThrowOptionMessage,
 
     SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
+    HeadQOrThrow,
     SameLenQOrMsg,
 
     AssertThat,
@@ -252,6 +253,15 @@ LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, Thro
 
 (**************************************************************************************************)
 
+SetExcepting @ SetStrict @ HeadQOrThrow;
+
+HeadQOrThrow[expr_, head_Sym]                   := HeadQOrThrow[expr, head, "internalHeadError", head, Head @ expr];
+HeadQOrThrow[expr_, head_Sym, msg_Str, args___] := If[Head[expr] === head, True, ThrowMessage[msg, args]];
+
+General::internalHeadError = "Internal error. Internal result expected to have head ``, but had head ``.";
+
+(**************************************************************************************************)
+
 SetStrict @ SameLenQOrMsg;
 
 SameLenQOrMsg[a_, b_, fn_] := Or[Len[a] === Len[b], Message[MessageName[fn, "lengthMismatch"], Len @ a, Len @ b]; False];
@@ -287,8 +297,8 @@ Clear[IssueUnknownOptionMessage, ThrowUnknownOptionMessage];
 SetExcepting @ SetCurry1 @ ThrowUnknownOptionMessage;
 SetCurry1 @ IssueUnknownOptionMessage;
 
-IssueUnknownOptionMessage[head_, key_]   := ErrorMessage["unknownOption", key, head, RawRow[OptionKeys @ head, ","]];
-ThrowUnknownOptionMessage[head_, key_]   := ThrowMessage["unknownOption", key, head, RawRow[OptionKeys @ head, ","]];
+IssueUnknownOptionMessage[head_, key_]   := ErrorMessage["unknownOption", key, head, FullRow[OptionKeys @ head, ","]];
+ThrowUnknownOptionMessage[head_, key_]   := ThrowMessage["unknownOption", key, head, FullRow[OptionKeys @ head, ","]];
 IssueUnknownOptionMessage[General, key_] := ErrorMessage["unknownOptionAnon", key];
 ThrowUnknownOptionMessage[General, key_] := ThrowMessage["unknownOptionAnon", key];
 

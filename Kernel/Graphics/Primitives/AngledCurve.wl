@@ -151,15 +151,15 @@ AngledCurvePointsFast[coords_, joinStyle_, joinPos_, shortcut_, origBend_, setba
 (**************************************************************************************************)
 
 procJoinStyle = CaseOf[
-  {Ver, Ver}        := Then[dir1 = dir2 = Ver, segment = Hor];
-  {Hor, Hor}        := Then[dir1 = dir2 = Hor, segment = Ver];
-  Above             := Then[{dir1, dir2} = If[P2[a] < P2[b], {Ver, Hor}, {Hor, Ver}]];
-  Below             := Then[{dir1, dir2} = If[P2[a] > P2[b], {Ver, Hor}, {Hor, Ver}]];
-  spec:dirP         := $[{spec, spec}];
-  spec:{dirP, dirP} := Then[{dir1, dir2} = spec];
-  spec_             := Then[Message[AngledCurvePoints::badJoinStyle, spec]; $[{Ver, Ver}]];
+  {Ver, Ver}          := Then[dir1 = dir2 = Ver, segment = Hor];
+  {Hor, Hor}          := Then[dir1 = dir2 = Hor, segment = Ver];
+  Above               := Then[{dir1, dir2} = If[P2[a] < P2[b], {Ver, Hor}, {Hor, Ver}]];
+  Below               := Then[{dir1, dir2} = If[P2[a] > P2[b], {Ver, Hor}, {Hor, Ver}]];
+  spec:$dir$          := $[{spec, spec}];
+  spec:{$dir$, $dir$} := Then[{dir1, dir2} = spec];
+  spec_               := Then[Message[AngledCurvePoints::badJoinStyle, spec]; $[{Ver, Ver}]];
 ,
-  {dirP -> Alt[ExtSideP, Horizontal, Vertical, Pos2P, Axis]}
+  {$dir$ -> Alt[ExtSideP, Horizontal, Vertical, Pos2P, Axis]}
 ];
 
 AngledCurvePoints::badJoinStyle = "JoinStyle should be one or a pair of a direction vector, Horizontal, Vertical, or Axis; it was ``.";

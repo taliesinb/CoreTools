@@ -1,10 +1,10 @@
 SystemExports[
   "Option",
     GraphScale, AspectRatio,
-    NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape,
+    NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, NodeThickness,
     RootPosition,
     NodeGroups, GroupStyles,
-    NodeBackground,
+    NodeBackground, NodeOffset,
     SharedLeaves
 ];
 
@@ -27,9 +27,11 @@ Options[NiceTreePlot] = {
   NodeColor         -> Auto,
   NodeSize          -> 5,
   NodeShape         -> "Disk",
+  NodeThickness     -> 1,
   NodeData          -> Auto,
   NodeGroups        -> None,
   GroupStyles       -> None,
+  NodeOffset        -> {0, 0},
   FontSize          -> Inherited,
   FontFamily        -> Inherited,
   FontWeight        -> Inherited,
@@ -53,7 +55,7 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
     nodeData, aspectRatio,
     fontSize, fontWeight, fontFamily,
     sharedLeaves,
-    $nodeBackground
+    nodeThickness, $nodeBackground, $nodeOffset
   ];
 
   vertexCount = VertexCount @ graph;
@@ -69,7 +71,8 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
   imageSize = plotSize * graphScale;
   $scale = 0.5 / graphScale;
 
-  edgeStyle = Directive[AbsoluteThickness @ edgeThickness];
+  edgeStyle = Directive @ AThickness @ edgeThickness;
+  nodeStyle = EdgeForm @ AThickness @ nodeThickness;
 
   SetAuto[nodeData, transposeDict @ GraphVertexAnnotations @ graph];
 
@@ -89,7 +92,7 @@ NiceTreePlot[graph_Graph, opts:OptionsPattern[]] := Locals @ CatchMessages[
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
   primitives = List[
     Style[Line @ edgeCoords, edgeStyle],
-    Style[vertexPrims, Seq @@ fontStyle]
+    Style[vertexPrims, nodeStyle, Seq @@ fontStyle]
   ];
 
   basePos = Switch[baselinePosition,
@@ -138,29 +141,31 @@ makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
 
 makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
   bg = toBackCol[color, $nodeBackground, White];
-  margins = If[bg == White, 0, {{2,1},{1,1}}];
+  margins = If[bg === White, {{0,0},{0,0}}, {{2,1},{1,1}}];
+  rounding = If[bg === White, 0, 2];
   Text[
     Framed[
-      str, opts, $frameOpts,
+      str, opts,
+      FrameMargins -> margins, RoundingRadius -> rounding,
+      $frameOpts,
       If[color =!= $defaultColor, BaseStyle -> {FontColor -> color}, Seq @@ {}],
       Background -> bg,
       FrameStyle -> {AThickness[0], Darker[color,.1]}
     ],
-    Offset[{0,2}, pos]
+    Offset[$nodeOffset, pos]
   ]
 ];
 
 $frameOpts = Seq[
-  Alignment -> Scaled[0.5], ContentPadding -> False,
-  FrameMargins -> {{2,1},{1,1}}, RoundingRadius -> 2
+  Alignment -> Scaled[0.5], ContentPadding -> False
 ];
 
 (**************************************************************************************************)
 
 makeShape[Text[str_], pos_, size_, color_] := List[
-  mkText[str, Offset[{-0.75,2}, pos], White],
-  mkText[str, Offset[{0.75, 2}, pos], White],
-  mkText[str, Offset[{0,2}, pos], If[col === $defaultColor, Inherited, color]]
+  mkText[str, Offset[$nodeOffset + {-0.75, 0}, pos], White],
+  mkText[str, Offset[$nodeOffset + { 0.75, 0}, pos], White],
+  mkText[str, Offset[$nodeOffset + { 0,    0}, pos], If[col === $defaultColor, Inherited, color]]
 ];
 
 mkText[str_, pos_, col_, opts___] := Text[
@@ -172,13 +177,10 @@ mkText[str_, pos_, col_, opts___] := Text[
 
 addTextColor[col_] := If[col === $defaultColor, Id, Append[BaseStyle -> {FontColor -> col}]];
 
-addBackCol[col_, None][tbox_]        := tbox;
-addBackCol[col_, bg_][tbox_]         := Append[tbox, Background -> bg];
-addBackCol[col_, Opacity[r_]][tbox_] := Append[tbox, Background -> Opacity[r, col]];
-
 toBackCol[col_, Opacity[r_], _] := Opacity[r, col];
 toBackCol[col_, bg_, def_]      := bg;
-toBackCol[col_, None, def_]     := def;
+toBackCol[col_, Auto, def_]     := def;
+toBackCol[col_, None, def_]     := None;
 
 (**************************************************************************************************)
 
@@ -187,9 +189,16 @@ makeShape[fn_, pos_, size_, color_] :=
 
 $knownShapes = Dict[
   "Point"        -> Fn @ Style[Point @ #1, APointSize @ #2, #3],
-  "Disk"         -> Fn @ edged[#3] @ Disk[#1, #2 * $scale],
-  "OpenDisk"     -> Fn @ List[whiteDisk[#1, #2, #3], Style[Circle[#1, #2 * $scale], #3]],
-  "Ring"         -> Fn @ List[whiteDisk[#1, #2], edged[#3] @ Annulus[#1, {.8, 1.} * #2 * $scale]],
+  "Disk"         -> Fn @ List[
+    facedDisk[#1, #2, #3],
+    edgedCirc[#1, #2, darker @ #3]
+  ],
+  "OpenDisk"     -> Fn @ List[whiteDisk[#1, #2], Style[Circle[#1, #2 * $scale], #3]],
+  "Ring"         -> Fn @ List[
+    whiteDisk[#1, #2],
+    facedRing[#1, #2, #3],
+    edgedCirc[#1, #2, darker @ #3]
+  ],
   "Square"       -> Fn @ edged[#3] @ Rectangle[#1 - #2 * $scale, #1 + #2 * $scale],
   "OpenSquare"   -> Fn @ faceEdged[White, #3] @ Rectangle[#1 - #2 * $scale, #1 + #2 * $scale],
   "DownTriangle" -> Fn @ edged[#3] @ Polygon[Threaded[#1] + ($dtri * #2 * $scale)],
@@ -198,16 +207,23 @@ $knownShapes = Dict[
     RoundingRadius -> (#2*$scale*0.5)]
 ];
 
-whiteDisk[p_, sz_] := unedged[White] @ Disk[p, sz * $scale];
+facedRing[p_, sz_, c_] := makeFE[Annulus[p, {.5, 1} * sz * $scale], c, None];
+facedDisk[p_, sz_, c_] := makeFE[Disk[p, sz * $scale], c, None];
+edgedCirc[p_, sz_, c_] := makeFE[Disk[p, sz * $scale], None, c];
+whiteDisk[p_, sz_]     := makeFE[Disk[p, sz * $scale], White, None];
 
 $dtri = (Threaded[{0, .8}] + {{-1,0},{0,-1.5}, {1,0}}) * 1.5;
 
 (**************************************************************************************************)
 
+darker[c_] := Darker[c, .125];
+
 edged[FaceEdge[f_, e_]][pr_] := faceEdged[f, e, pr];
-edged[c_][pr_]               := Style[pr, FaceForm @ c, EdgeForm @ Darker[c, .1]];
-unedged[c_][pr_]             := Style[pr, FaceForm @ c, EdgeForm @ None];
-faceEdged[f_, e_][pr_]       := Style[pr, FaceForm @ f, EdgeForm[Directive[e, AThickness[1.2]]]];
+edged[c_][pr_]               := makeFE[pr, c, darker @ c];
+faced[c_][pr_]               := makeFE[pr, c, None];
+faceEdged[f_, e_][pr_]       := makeFE[pr, f, e];
+
+makeFE[pr_, f_, e_] := Style[pr, FaceForm @ f, EdgeForm @ e];
 
 (**************************************************************************************************)
 

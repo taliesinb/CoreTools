@@ -12,7 +12,14 @@ PackageExports[
     DisableFloatingSymbolPopup,
     PrintInputCell, PrintOutputCell,
     PrintNextCellBoxData, PrintPreviousCellBoxData,
-    DeleteNextGeneratedCells
+    DeleteNextGeneratedCells,
+    ExpandNotebookTemplateBox
+];
+
+(*************************************************************************************************)
+
+ExpandNotebookTemplateBox = CaseOf[
+  tb:TemplateBox[_List, _Str] := BoxForm`TemplateBoxToDisplayBoxes[tb];
 ];
 
 (*************************************************************************************************)

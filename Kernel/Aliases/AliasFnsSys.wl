@@ -10,13 +10,14 @@ PackageExports[
     StrRep, StrRepPart, StrRev,
     Dist, SqrDist,
   "Option",
-    DistFn
+    DistFn, IgCase
 ];
 
 (*************************************************************************************************)
 
 DefineAliasRules[
-  DistFn           -> DistanceFunction
+  DistFn           -> DistanceFunction,
+  IgCase           -> IgnoreCase
 ];
 
 DefineAliasRules[
