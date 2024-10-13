@@ -59,8 +59,8 @@ DeepReplace[expr_, repl_]                  := deepReplace[expr, repl, False];
 DeepReplace[expr_, repl_, Heads -> heads_] := deepReplace[expr, repl, heads];
 deepReplace[expr_, repl_, heads_]          := Replace[expr, repl, {0,Infinity}, Heads -> heads];
 
-DeepCases[expr_, repl_,            level:All] := Cases[expr, Infinity, level];
-DeepFirstCase[expr_, repl_, else_, level:All] := FirstCase[expr, patt, else, level];
+DeepCases[expr_, repl_,            level_:All] := Cases[expr, Infinity, level];
+DeepFirstCase[expr_, repl_, else_, level_:All] := FirstCase[expr, patt, else, level];
 
 (**************************************************************************************************)
 

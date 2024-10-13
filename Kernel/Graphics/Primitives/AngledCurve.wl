@@ -183,7 +183,7 @@ procSetbackDir[delta_, r:NumP, dir_]                   := procCircDir[delta, r, 
 procSetbackDir[delta_, setback_, dir_]                 := (ErrorOptVal[Setback, setback]; {{1,0}, 0});
 
 procRectDir[delta_, r_, s:ExtSideP] := With[{v = $SideToCoords @ s}, List[Normalize @ v, v * r]];
-procRectDir[delta_, r_, v:Num2P]    := With[{v2 = Normalize @ v},    List[v2, LineRectangleInter[{v2 * Norm[delta], {0,0}}, {-r, +r}]]];
+procRectDir[delta_, r_, v:Num2P]    := With[{v2 = Normalize @ v},    List[v2, LineRectInter[{v2 * Norm[delta], {0,0}}, {-r, +r}]]];
 
 procCircDir[delta_, r_, s:ExtSideP] := With[{v = $SideToCoords @ s}, List[Normalize @ v, v * r]];
 procCircDir[delta_, r_, v:Num2P]    := With[{v2 = Normalize @ v},    List[v2, v2 * r]];

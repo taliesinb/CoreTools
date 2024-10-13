@@ -6,7 +6,7 @@ SystemExports[
     RootPosition,
     NodeGroups, GroupStyles,
     NodeBackground, NodeOffset,
-    SharedLeaves
+    SharedLeaves, EdgeFn
 ];
 
 PackageExports[
@@ -39,12 +39,15 @@ Options[NiceTreePlot] = {
   FontSize          -> 10,
   FontFamily        -> Inherited,
   FontWeight        -> Inherited,
+  FontSlant         -> Inherited,
   NodeBackground    -> None,
   EdgeColor         -> Auto,
   EdgeThickness     -> 1,
   RootPosition      -> Top,
   BaselinePosition  -> Root,
-  SharedLeaves      -> {}
+  SharedLeaves      -> {},
+  EdgeFn            -> Line,
+  Setback           -> 0
 };
 
 SetPred1 @ extColorQ;
@@ -65,9 +68,10 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
     graphScale, edgeColor, edgeThickness,
     rootPosition, baselinePosition,
     nodeData, aspectRatio,
-    fontSize, fontWeight, fontFamily,
+    fontSize, fontWeight, fontFamily, fontSlant,
     sharedLeaves, splitPosition, rounding, pMargin,
-    nodeThickness, $nodeBackground, $nodeOffset
+    nodeThickness, $nodeBackground, $nodeOffset,
+    edgeFn, setback
   ];
 
   AssertOptsValid[
@@ -107,13 +111,13 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   SetAuto[edgeColor, GrayLevel[0.5]];
   AppendTo[edgeStyle, edgeColor];
   fontStyle = DelCases[
-    List[FontSize -> fontSize, FontWeight -> fontWeight, FontFamily -> fontFamily],
+    List[FontSize -> fontSize, FontWeight -> fontWeight, FontFamily -> fontFamily, FontSlant -> fontSlant],
     _ -> Inherited
   ];
 
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
   primitives = List[
-    Style[Line @ edgeCoords, edgeStyle],
+    Style[edgeFn @ edgeCoords, edgeStyle],
     Style[vertexPrims, nodeStyle, Seq @@ fontStyle]
   ];
 
@@ -159,6 +163,7 @@ makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
   bg = toBackCol[color, $nodeBackground, White];
   margins = If[bg === White, {{0,0},{0,0}}, {{2,1},{1,1}}];
   rounding = If[bg === White, 0, 2];
+  fstyle = If[bg === White, None, Directive @ {AThickness[1], Darker[color,.1]}];
   Text[
     Framed[
       str, opts,
@@ -166,15 +171,20 @@ makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
       $frameOpts,
       If[color =!= $defaultColor, BaseStyle -> {FontColor -> color}, Seq @@ {}],
       Background -> bg,
-      FrameStyle -> {AThickness[0], Darker[color,.1]}
+      FrameStyle -> fstyle
     ],
     Offset[$nodeOffset, pos]
   ]
 ];
 
 $frameOpts = Seq[
-  Alignment -> Scaled[0.5], ContentPadding -> False
+  Alignment -> Scaled[0.5],
+  ContentPadding -> False
 ];
+
+(**************************************************************************************************)
+
+makeShape[None, _, _, _] := {};
 
 (**************************************************************************************************)
 
@@ -256,6 +266,7 @@ makeShape[fn_, pos_, size_, color_] := fn[pos, size, color];
 SetPred1[validShapeFnQ, maybeGraphicsQ];
 
 validShapeFnQ = ExtendCaseOf[
+  None               := True;
   Text[_]            := True;
   Framed[_, ___Rule] := True;
   name_Str           := KeyExistsQ[$shapeFns, name];
@@ -408,6 +419,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     sys = sy + Range[numShared] * .2;
     JoinTo[$xs, sx];
     JoinTo[$ys, sys];
+    $maxsy = Max[sys] + .1;
   ];
 
   vertexCoords = EnsurePackedReals[Flip @ {$xs, maxD - $ys}, ReturnFailed["vertexCoordsError"]];
@@ -422,7 +434,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
 
   $shrTargets = UDictThread[Part[vertexCoords, Keys @ $share], Part[vertexCoords, Vals @ $share]];
   edgePaths = ExtractIndices[vertexCoords, edgePairs];
-  edgePaths = constructEdgePaths[edgePaths, rounding, splitPosition];
+  edgePaths = SetbackLine[setback] @ constructEdgePaths[edgePaths, rounding, splitPosition];
 
   vertexCoords //= coordFn;
   edgePaths //= coordFn;

@@ -4,7 +4,7 @@ PackageExports[
     InfLineLineInter,
     LineCircleInter,
     InfLineCircleInter,
-    LineRectangleInter,
+    LineRectInter,
     LineNearest,
     InfLineNearest
 ];
@@ -67,18 +67,18 @@ posX1 = CaseOf[
 
 (**************************************************************************************************)
 
-"LineRectangleInter[line$1, rectangle$] gives the point where a line and a rectangle cross.
+"LineRectInter[line$1, rectangle$] gives the point where a line and a rectangle cross.
 * The rectangle should be specified as {{x$min, y$min}, {x$max, y$max}}."
 
-SetStrict @ LineRectangleInter;
+SetStrict @ LineRectInter;
 
-LineRectangleInter[line_List, rect:Pos2PairP] := Locals[
+LineRectInter[line_List, rect:Pos2PairP] := Locals[
   points = Map[
     BooleanRegion[And, {Line @ ToPackedReals @ line, Line @ N @ #1}]&,
     RectCorners @ rect
   ];
   points = Occs[points, Pos2P];
-  p1 = P1 @ l1;
+  p1 = P1 @ line;
   If[points === {}, p1, MinimumBy[points, Dist[#, p1]&]]
 ];
 

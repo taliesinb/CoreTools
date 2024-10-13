@@ -593,10 +593,11 @@ stdBox2 = CaseOf[
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
   col:ColorP ? HoldColorQ             := SwatchBox @ col;
-  arb:(_Sym ? OperatorFormHeadQ)[___][___] := operatorFormBox @ arb;
-  arb:(_Sym ? CompoundFormHeadQ)[___] := compoundFormBox @ arb;
-  arb:(_Sym ? AtomFormHeadQ)[___]     := atomFormBox @ arb;
-  arb:(_Sym ? HasCoreBoxQ)[___]       := MaybeEval @ coreBox @ arb;
+  arb:(_Sym ? OperatorFormHeadQ[___][___]) := operatorFormBox @ arb;
+  arb:(_Sym ? CompoundFormHeadQ[___])      := compoundFormBox @ arb;
+  arb:(_Sym ? AtomFormHeadQ[___])          := atomFormBox @ arb;
+  arb:(_Sym ? HasCoreBoxQ[___])            := MaybeEval @ coreBox @ arb;
+  arb:(_Sym ? HasCoreSubBoxQ[___][___])    := MaybeEval @ coreBox @ arb;
   arb_                                := stdBox3 @ arb;
 ,
   {array$ -> Alt[Grid, MatrixForm, TableForm],
