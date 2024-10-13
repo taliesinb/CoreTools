@@ -32,7 +32,7 @@ DefineAliasRules[
 (**************************************************************************************************)
 
 DefineBroadcast[fn_, ifn_] := Then[
-  fn[a_List, b_List]           := If[SameLenQOrMsg[a, b, fn], MapThread[ifn, {a, b}], $Failed];
+  fn[a_List, b_List]           := If[CheckSameLenQ[a, b, fn -> "notSameLen"], MapThread[ifn, {a, b}], $Failed];
   fn[a_List, b:AtomP]          := Thread @ ifn[a, b];
   fn[a:AtomP, b_List]          := Thread @ ifn[a, b];
   fn[a:AtomP, a_List, b:AtomP] := Thread @ ifn[a, b];

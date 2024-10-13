@@ -233,7 +233,7 @@ support[OSet[a_]]   := Keys @ a;
 support[MSet[a_]]   := Keys @ a;
 support[dict_Dict]  := Keys @ dict;
 support[list_List]  := DelDups @ list;
-support[e_]         := ThrowNotSetMsg @ e;
+support[e_]         := AssertSet @ e;
 
 (*************************************************************************************************)
 

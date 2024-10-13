@@ -19,7 +19,7 @@ DeclaredHere[RoundedCurve]
 RoundedCurve[path$] represents a curve in which line segments are connected by circular bends.
 
 * RoundedCurve supports the following options:
-| %Bend | the radius of bends between segments |
+| %Rounding | the radius of bends between segments |
 | %Corner | what curve to connect the segments with |
 
 * %RoundingRadius can be a list of radii, one for each bend.
@@ -35,7 +35,7 @@ RoundedCurve[path$] represents a curve in which line segments are connected by c
 "
 
 Options[RoundedCurve] = {
-  Bend -> 0.1,
+  Rounding -> 0.1,
   Corner -> "Arc"
 };
 
@@ -53,8 +53,8 @@ TODO: fix arcs that interact with eachother badly and cause 'jumps'. *)
 Options[RoundedCurvePoints] = Options[RoundedCurve];
 
 RoundedCurvePoints[curve_, opts___Rule] := Locals @ CatchMessages[
-  UnpackSymbolsAs[RoundedCurvePoints, {opts}, bend, corner];
-  RoundedCurvePointsFast[curve, bend, corner]
+  UnpackSymbolsAs[RoundedCurvePoints, {opts}, rounding, corner];
+  RoundedCurvePointsFast[curve, rounding, corner]
 ];
 
 (**************************************************************************************************)
@@ -82,7 +82,7 @@ RoundedCurvePointsFast[points2_, radius2_, corner_] := Locals[
     "Arc" | "Bevel" | "Line" | "Bezier",
       ToPackedReals @ populateSegments[corner, FirstLast @ points, triples, radii],
     _,
-      OptMsg[Corner, corner];
+      ThrowOptVal[Corner, corner, {"Spline", "Arc", "Bevel", "Line", "Bezier"}];
       points
   ]
 ];

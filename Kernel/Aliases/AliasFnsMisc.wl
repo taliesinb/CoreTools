@@ -1,7 +1,6 @@
 PackageExports[
   "MessageFunction",
     ThrowMsg, ErrorMsg, ReturnMsg,
-    OptMsg, ThrowOptMsg, UnkOptMsg, ThrowUnkOpt,
   "HoldFunction",
     HLen, EMap, HMap, HScan, HApply, HMake, HHead, HHash, HByteCount,
     AliasSymName, SymName, SymContext, SymPath,
@@ -109,11 +108,7 @@ DefineAliasRules[
 DefineAliasRules[
   ThrowMsg     -> ThrowMessage,
   ErrorMsg     -> ErrorMessage,
-  ReturnMsg    -> ReturnMessage,
-  OptMsg       -> IssueOptionMessage,
-  ThrowOptMsg  -> ThrowOptionMessage,
-  UnkOptMsg    -> IssueUnknownOptionMessage,
-  ThrowUnkOpt  -> ThrowUnknownOptionMessage
+  ReturnMsg    -> ReturnMessage
 ];
 
 (*************************************************************************************************)

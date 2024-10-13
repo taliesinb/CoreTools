@@ -63,7 +63,7 @@ SetStrict @ JoinOptions;
 JoinOptions::usage =
 "JoinOptions[opts$$] joins together multiple lists of option lists or single rules."
 
-JoinOptions[args___] := DeleteDuplicatesBy[ToList[args], First];
+JoinOptions[args___] := DelDupsBy[ToList @ args, First];
 
 (*************************************************************************************************)
 

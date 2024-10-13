@@ -1,6 +1,6 @@
 SystemExports[
   "GraphicsDirective", HashColor, OKColor, OKHue, ComplexHue, NiceHue,
-  "Function",          HashToColor, UniqueColor, ColorDuplicates, ColorUnique
+  "Function",          HashToColor, UniqueColor, DuplicateColoring, ColorDuplicates, ColorUnique
 ];
 
 PackageExports[
@@ -9,6 +9,17 @@ PackageExports[
     ColorToOKArray,  OKArrayToColor,
     OKArrayToRGBArray, RGBArrayToOKArray,
     LCHArrayToRGBArray
+];
+
+(**************************************************************************************************)
+
+DuplicateColoring[expr_, patt_, baseColor_:$DarkGray] := Locals[
+  occs = Occurrences[expr, patt];
+  dups = Union @@ Duplicates @ occs;
+  colors = UniqueColor /@ Range @ Len @ dups;
+  dupRules = RuleThread[dups, colors];
+  baseRules = ConstantRules[Compl[occs, dups], baseColor];
+  UDict[dupRules, baseRules]
 ];
 
 (**************************************************************************************************)

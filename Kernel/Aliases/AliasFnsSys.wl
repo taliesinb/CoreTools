@@ -1,7 +1,7 @@
 PackageExports[
   "Function",
     Id, Rev, At, Make, Len, Dims, Vals, Rep, RepRep, RepAll,
-    ConstList, SelectF, PosIndex, DelCases, DelDups, DelDupsBy, Inter, Compl, DictMap,
+    ConstList, SelectF, PosIndex, DelCases, DelDups, Inter, Compl, DictMap,
     SysIntStr, IntDigits, Chars, FromCharCode, ToCharCode, CharRange,
     StrLen, StrJoin, StrSplit, StrCases, StrPos,
     StrTake, StrDrop, StrInsert, StrDelete,
@@ -46,7 +46,6 @@ DefineAliasRules[
   PosIndex         -> PositionIndex,
   DelCases         -> DeleteCases,
   DelDups          -> DeleteDuplicates,
-  DelDupsBy        -> DeleteDuplicatesBy,
   Inter            -> Intersection,
   Compl            -> Complement,
   DictMap          -> AssociationMap

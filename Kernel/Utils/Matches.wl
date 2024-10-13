@@ -35,17 +35,17 @@ PackageExports[
 
 SetCurry2[DeepStrMatchQ, DeepStrHasQ, DeepStrFreeQ, DeepStrTestQ]
 
-DeepStrMatchQ[expr_, patt_]                := deepStrTest[expr, StrMatchQ[patt]];
-DeepStrMatchQ[expr_, patt_, IgCase -> ic_] := deepStrTest[expr, StrMatchQ[patt, IgCase -> ic]];
+DeepStrMatchQ[expr_, patt_]                := deepStrTestQ[expr, StrMatchQ[patt]];
+DeepStrMatchQ[expr_, patt_, IgCase -> ic_] := deepStrTestQ[expr, StrMatchQ[#, patt, IgCase -> ic]&];
 
-DeepStrHasQ[expr_, patt_]                  := deepStrTest[expr, StrHasQ[patt]];
-DeepStrHasQ[expr_, patt_, IgCase -> ic_]   := deepStrTest[expr, StrHasQ[patt, IgCase -> ic]];
+DeepStrHasQ[expr_, patt_]                  := deepStrTestQ[expr, StrHasQ[patt]];
+DeepStrHasQ[expr_, patt_, IgCase -> ic_]   := deepStrTestQ[expr, StrHasQ[#, patt, IgCase -> ic]&];
 
-DeepStrFreeQ[expr_, patt_]                 := !deepStrTest[expr, StrHasQ[patt]];
-DeepStrFreeQ[expr_, patt_, IgCase -> ic_]  := !deepStrTest[expr, StrHasQ[patt, IgCase -> ic]];
+DeepStrFreeQ[expr_, patt_]                 := !deepStrTestQ[expr, StrHasQ[patt]];
+DeepStrFreeQ[expr_, patt_, IgCase -> ic_]  := !deepStrTestQ[expr, StrHasQ[#, patt, IgCase -> ic]&];
 
-DeepStrTestQ[expr_, test_]                 := deepStrTest[expr, test];
-deepStrTest[expr_, test_]                  := VContainsQ[expr, Str] && ContainsQ[expr, _Str ? test];
+DeepStrTestQ[expr_, test_]                 := deepStrTestQ[expr, test];
+deepStrTestQ[expr_, test_]                 := ContainsQ[expr, _Str ? test];
 
 (**************************************************************************************************)
 

@@ -216,7 +216,10 @@ General::stringBadGrid = "First argument to `` is not a list of lists."
 
 gridBoxToBlock[GridBox[rows_List, opts___Rule]] := Locals[
 
-  UnpackSymbolsAs[GridBox, {opts}, gridBoxAlignment, gridBoxSpacings, gridBoxFrame, gridBoxBackground, gridBoxDividers];
+  UnpackSymbolsAs[
+    GridBox, List @ opts,
+    gridBoxAlignment, gridBoxSpacings, gridBoxFrame, gridBoxBackground, gridBoxDividers
+  ];
   {h, w} = Dims[rows, 2];
 
   If[!ListVectorQ[rows], ThrowMsg["stringBadGrid", GridBox]];

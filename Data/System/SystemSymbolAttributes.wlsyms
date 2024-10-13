@@ -27,7 +27,7 @@ HoldAll
 	StackInhibit SubAll SubAuto SubFailed SubInherited SubMissing SubNone SubValues Sum Table TagSet
 	TagSetDelayed TagUnset TetrahedronBox Text3DBox TextBox ThenOp TimeConstrained Timing Trace TraceDialog
 	TracePrint TraceScan TubeBezierCurveBox TubeBox TubeBSplineCurveBox Unprotect UpSetDelayed UpValues
-	ValueQ WhenEvent Which While With WithCleanup PrintIntended $ConditionHold $Failed
+	ValueQ WhenEvent Which While With WithCleanup PrintIndented $ConditionHold $Failed
 HoldAllComplete
 	Assert Association AttachDelayedValue DebugPrint DebugTag DefineAliasRules DefinePatternRules
 	DisplayWith DynamicImage EchoArrow EchoFLH EchoH EchoH0 EchoH1 EchoingSetDelayed EchoPrint EchoTest

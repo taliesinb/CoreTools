@@ -21,7 +21,7 @@ TextIconBox[boxes_, bounds_, baseImageSize_, background_, bshift_, pad:{{l_, r_}
     Construct[
       GraphicsBox,
       boxes,
-      PlotRange -> bounds, PlotRangePadding -> 0, AspectRatio -> Full, PlotRangeClipping -> False,
+      PRange -> bounds, PMargin -> 0, AspectRatio -> Full, PClip -> False,
       ImageSize -> Ceiling[baseImageSize * Round @ CurrentValue[FontSize] + {l + r, b + t} , .5],
       ImagePadding -> pad, BLinePos -> Axis, Background -> background
     ],

@@ -44,7 +44,7 @@ ConstantReplaceIndices[expr_, indices_, value_]     := setParts[expr, indices, v
 SetStrict @ ReplaceIndices;
 
 General::replaceLengthMismatch = "List of indices to replace has length `` but values have length ``."
-ReplaceIndices[expr_, indices_List, values_List] /; SameLenQOrThrow[indices, values, "replaceLengthMismatch"] :=
+ReplaceIndices[expr_, indices_List, values_List] /; AssertSameLenQ[indices, values, "replaceLengthMismatch"] :=
   setParts[expr, indices, values];
 
 setParts[expr_, parts_, value_] := Locals[expr2 = expr; Part[expr2, parts] = value; expr2];

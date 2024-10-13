@@ -58,6 +58,7 @@ commaSep[list_] := Riffle[list, StyleBox[",\[ThinSpace]", Gray]];
 (*************************************************************************************************)
 
 MakeBoxes[ObjectField[k_, v_], StandardForm] := ObjectFieldBox[MakeBox @ k, MakeBox @ v];
+MakeBoxes[ObjectField[k_, v_], StandardForm] := ObjectFieldBox[MakeBox @ k, MakeBox @ v];
 
 ObjectFieldBox[k_, v_] := RBox[
   StyleBox[k, $DarkGray, Italic],
@@ -84,22 +85,22 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
   UnpackOptions[frame, mesh, frameStyle, meshStyle];
 
   If[!PosIntQ[blockSize], ReturnFailed["meshImageBlockSize", blockSize]];
-  If[!BoolQ[frame], ThrowOptMsg[Frame, frame]];
-  If[!BoolQ[mesh],  ThrowOptMsg[Mesh, mesh]];
+  AssertOptVal[Frame, frame, BoolQ];
+  AssertOptVal[Mesh, mesh, BoolQ];
 
   Switch[frameStyle,
     None,                frame = False,
     GrayLevel[UnitNumP], frameStyle = P1 @ frameStyle,
-    _,                   ThrowOptMsg[FrameStyle, frameStyle]];
+    _,                   ThrowOptVal[FrameStyle, frameStyle]];
 
   meshFading = None;
   Switch[meshStyle,
     None,                mesh = False,
     Opacity[UnitNumP],   meshFading = OneMinus @ P1 @ meshStyle,
     GrayLevel[UnitNumP], meshStyle = P1 @ meshStyle,
-    _,                   ThrowOptMsg[Mesh, meshStyle]];
+    _,                   ThrowOptVal[Mesh, meshStyle]];
 
-  array = EnsurePackedReals[array2, ThrowRealArrayMsg[array2, {2, 3}]];
+  array = EnsurePackedReals[array2, ThrowRealArray[array2, {2, 3}]];
   dims = Dims @ array;
   If[!MatchQ[dims, {_, _, 3} | {_, _}], ReturnFailed["meshImageDataDims", dims]];
 
@@ -141,7 +142,7 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
 getFrameMeshColor = CaseOf[
   GrayLevel[n_]   := N @ n;
   Opacity[_]      := 0;
-  spec_           := ThrowOptMsg[Frame, spec];
+  spec_           := ThrowOptVal[Frame, spec];
 ]
 
 paintFrame[{cl___}, {cr___}] := (

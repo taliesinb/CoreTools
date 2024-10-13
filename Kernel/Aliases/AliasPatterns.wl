@@ -14,7 +14,7 @@ PackageExports[
     SingleP, PairP, TripleP,
     List1P, List2P, List3P, List4P, List23P,
     DictP, UDictP, ODictP, ListDictP, EmptyP, NonEmptyP, EmptyDataP, AtomP, BoolP, SymP, StrP, SymStrP,
-    DatumP, ColorP, SideP, ExtSideP, PosDollarP, DollarP, AnonFnP,
+    DatumP, ColorP, SideP, CompassP, ExtSideP, PosDollarP, DollarP, AnonFnP,
     AtomFormP, CompoundFormP,
     FormalSymP, UserSymP, InertSymP, SystemSymP,
 
@@ -35,7 +35,7 @@ PackageExports[
     Pos3P, Pos3ListP, Pos3ListsP, Pos3PairP,
     PosAP, PosAListP, PosAListsP, PosAPairP,
 
-    BoolOrVecP, SymOrVecP, IntOrVecP, NatOrVecP, RealOrVecP, RuleOrVecP, RuleLOrVecP, ORuleOrVecP,
+    BoolOrVecP, SymOrVecP, StrOrVecP, IntOrVecP, NatOrVecP, RealOrVecP, RuleOrVecP, RuleLOrVecP, ORuleOrVecP,
     ListVecP, DictVecP, BoolVecP, SymVecP, StrVecP, PairVecP, IntVecP, NatVecP, PosIntVecP, RealVecP, NumVecP, ExtNumVecP,
     NEListVecP, NEDictVecP, NEBoolVecP, NESymVecP, NEStrVecP, NEPairVecP, NEIntVecP, NENatVecP, NEPosIntVecP, NERealVecP, NENumVecP,
     NEListP, NEDictP, NEListDictP,
@@ -146,11 +146,12 @@ DefinePatternRules[
 DefinePatternRules[
   DatumP           -> Alt[False, True, None, Null, _Str, _Int, _Real, _Rat, _Complex] ? HAtomQ,
   ColorP           -> Alt[_RGBColor, _GrayLevel, _CMYKColor, _Hue, _XYZColor, _LABColor, _LCHColor, _LUVColor, Opacity[_, _]],
-  SideP            -> Left | Right | Bottom | Top,
-  ExtSideP         -> Left | Right | Bottom | Top | BottomLeft | BottomRight | TopLeft | TopRight,
+  SideP            -> Alt[Lef, Rig, Bot, Top],
+  CompassP         -> Alt[TopL, TopC, TopR, CenL, CenC, CenR, BotL, BotC, BotR],
+  ExtSideP         -> Alt[Lef, Rig, Bot, Top, BotL, BotC, BotR, TopL, TopC, TopR, CenC, CenC],
   PosDollarP       -> Alt[$0, $1, $2, $3, $4, $5, $6, $7, $8, $9],
   DollarP          -> Alt[$1, $2, $3, $4, $5, $6, $7, $8, $9],
-  AnonFnP          -> HoldP[Fn[Null, ___] | Fn[_]]
+  AnonFnP          -> Alt[HoldP @ Fn[Null, ___], Fn[_]]
 ];
 
 DefinePatternRules[
@@ -288,6 +289,7 @@ DefinePatternRules[
 DefinePatternRules[
   BoolOrVecP       -> Alt[BoolP,  _List ? BoolVecQ],
   SymOrVecP        -> Alt[SymP,   _List ? SymVecQ],
+  StrOrVecP        -> Alt[_Str,   _List] ? StrOrVecQ,
   IntOrVecP        -> Alt[IntP,   _List ? IntVecQ],
   NatOrVecP        -> Alt[NatP,   _List ? NatVecQ],
   RealOrVecP       -> Alt[RealP,  _List ? RealVecQ],

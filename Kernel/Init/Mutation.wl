@@ -6,7 +6,7 @@ SystemExports[
     BlockContext,
     BlockUnprotect,
     MinTo, MaxTo, MinMaxTo,
-    PushTo, PopFrom
+    PushTo, PopFrom, DeleteFrom
 ];
 
 PackageExports[
@@ -23,6 +23,12 @@ PushTo[a_, e_] := Then[AppendTo[a, e], Null];
 
 PopFrom[a_ ? EmptyQ, else:None] := else;
 PopFrom[a_, _:None]             := Then1[Last @ a, a //= Most];
+
+(*************************************************************************************************)
+
+SetStrict @ SetHoldF @ DeleteFrom;
+
+DeleteFrom[lhs_, value_] := ApplyTo[lhs, DeleteCases[lhs, Verbatim @ value]];
 
 (*************************************************************************************************)
 

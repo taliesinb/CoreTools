@@ -18,8 +18,8 @@ Begin["Init`Private`"];
 
 (*************************************************************************************************)
 
-$SymbolAliases = Data`UnorderedAssociation[];
-$NameAliases = Data`UnorderedAssociation[];
+Prelude`$SymbolAliases = Data`UnorderedAssociation[];
+Prelude`$NameAliases = Data`UnorderedAssociation[];
 
 Get @ FileNameJoin[{Session`$CoreToolsRootPath, "Prelude", "init.m"}];
 If[!TrueQ[Session`$PreludeLoaded],

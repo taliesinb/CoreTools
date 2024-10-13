@@ -1,11 +1,11 @@
 SystemExports[
-  "Option",   MaxRows, MaxColumns, ItemLabels, ItemFunction, TooltipFunction, MaxWidth, MaxHeight,
-  "FormHead", NiceMulticolumn, NiceGrid, NiceGridAll, CodePane, CodeTooltip, CodeTooltipBoxes, PlainGrid
+  "FormOption",  MaxRows, MaxColumns, ItemLabels, ItemFunction, TooltipFunction, MaxWidth, MaxHeight,
+  "FormHead",    NiceMulticolumn, NiceGrid, NiceGridAll, CodePane, CodeTooltip, CodeTooltipBoxes, PlainGrid
 ];
 
 PackageExports[
   "BoxFunction", CodePaneBox,
-  "Variable", $CodePaneBaseStyle
+  "Variable",    $CodePaneBaseStyle
 ];
 
 (*************************************************************************************************)

@@ -270,11 +270,13 @@ SetHoldC @ multiRowColViewBoxes;
 multiRowColViewBoxes[_, e:EmptyP, _] := trivialViewBoxes @ e;
 
 multiRowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
-  MessageOnUnknownOptions[head, opts];
-  UnpackSymbolsAs[head, opts,
+  CheckOptKeys[head, opts];
+  UnpackSymbolsAs[
+    head, opts,
     itemFn, labelFn,
     maxWidth, maxHeight, maxSize, maxItems,
-    multiGaps, multiDivs, labelPos];
+    multiGaps, multiDivs, labelPos
+  ];
   InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
   {maxSize1, maxSize2} = If[PairQ[maxSize], maxSize, {maxSize, 1000}];
   SetAuto[maxWidth, If[isHor, maxSize1, maxSize2]];
@@ -311,10 +313,11 @@ SetHoldC[rowColViewBoxes];
 rowColViewBoxes[_, e:EmptyP, _, _] := trivialViewBoxes @ e;
 
 rowColViewBoxes[isHor_, head_, items_, opts_] := Locals[
-  MessageOnUnknownOptions[head, opts];
-  UnpackSymbolsAs[head, opts, itemFn, labelFn,
-    maxWidth, maxHeight, maxSize, maxItems,
-    labelPos
+  CheckOptKeys[head, opts];
+  UnpackSymbolsAs[
+    head, opts,
+    itemFn, labelFn, labelPos,
+    maxWidth, maxHeight, maxSize, maxItems
   ];
   InheritVar[rcOptVal]; BindTo[rcOptVal, opts]; $isHor = isHor;
   SetAuto[maxWidth, maxSize];
@@ -913,7 +916,7 @@ SetHoldF[DynamicProgressBarBox];
 DynamicProgressBarBox[{i_, n_}, {w_, h_}, color_:$LightPurple] := mouseMoveBox[
   DeployBox @ GraphicsBox[
     {color, RectangleBox[{0, 0}, {Dynamic @ i, 1}]},
-    ImageSize -> {w, h}, PlotRange -> {{0, n}, {0, 1}}, PlotRangePadding -> 0,
+    ImageSize -> {w, h}, PRange -> {{0, n}, {0, 1}}, PMargin -> 0,
     ImagePadding -> 0, AspectRatio -> Full
   ],
   Replace[

@@ -3,7 +3,7 @@ SystemExports[
 ];
 
 PackageExports[
-  "GraphicsBoxFunction", GBoxRange
+  "GraphicsBoxFunction", GBoxRange, GRow
 ];
 
 (**************************************************************************************************)
@@ -37,7 +37,7 @@ $emptyBounds = {{-$eps, $eps}, {-$eps, $eps}};
 
 (**************************************************************************************************)
 
-(* This would be better called EnlargeRange, becuase it expects a PlotRange spec.
+(* This would be better called EnlargeRange, becuase it expects a PRange spec.
 the scaled variant matches what CoordinateBounds[..., Scaled[...]] would do
 *)
 EnlargeRange = CaseOf[

@@ -27,9 +27,9 @@ Dup4[e_] := {e, e, e, e};
 
 (**************************************************************************************************)
 
-InternalPart[a_]              := a;
-InternalPart[s_Symbol, ___]   := s;
-InternalPart[a_, All]         := a;
+InternalPart[a_]               := a;
+InternalPart[s_Symbol, ___]    := s;
+InternalPart[l:ListDictP, All] := l;
 InternalPart[Missing["KeyAbsent", k_], ___] := ErrorMessage[General::badPart, k];
 i_InternalPart                              := badInternalPart[i];
 
@@ -47,7 +47,8 @@ iPartRec[l_, p_,        fn_] := fn /@ iPartLDN[l, p];
 
 iPartLD1 = CaseOf[
   $[l_, i_Int]             := PartOr[l, i, None];
-  $[d_Dict, k_Str | k_Key] := Lookup[d, k, None];
+  $[d_Dict, k_Str]         := Lookup[d, k, wildKey[d, k]] /; StrHasQ[k, "*"];
+  $[d_Dict, k:(_Str|_Key)] := Lookup[d, k, None];
   $[l_, f_SelectFirst]     := f @ l;
   $[l_, Sampled]           := Part[l, RandomInteger[{1, Len @ l}]];
   $[l_, Scaled[f_]]        := Part[l, Ceiling[Len[l] * f]];
@@ -65,6 +66,8 @@ iPartLDN = CaseOf[
   $[l_, Sampled[i_Int]]    := If[i >= Len[l], l, sampled[l, i]];
   $[l_, p_]                := ErrorMessage[General::badPart, p];
 ];
+
+wildKey[d_, k_] := Vals @ KeySelect[d, StrMatchQ @ k];
 
 sampled[l_List, n_] := RandomSample[l, n];
 sampled[d_Dict, n_] := Part[d, RandomSample[Range @ Len @ d, n]];

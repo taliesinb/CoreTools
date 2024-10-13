@@ -9,6 +9,7 @@ SystemExports[
     EchoH, EchoHC, PEchoH,
     EchoArrow, PEchoArrow,
     EchoF, EchoFL, EchoFH, EchoFLH, AttachEchos,
+    EchoProgress, EchoProgressFn,
   "SpecialVariable", $EchoIndent, $EchoLHS,
   "FormHead",        NicePaster,
   "DataHead",        StoredPaste
@@ -23,6 +24,39 @@ PackageExports[
 PrivateExports[
   "Function",      StoredPasteGet, StoredPasteAdd,
   "CacheVariable", $StoredPasteStore
+];
+
+SessionExports[
+  "TransientVariable", $ProgressCounter, $ProgressCounterMax
+];
+
+(*************************************************************************************************)
+
+SetHoldC[EchoProgress, EchoProgressFn];
+
+EchoProgressFn[fn_] := Module[{dynamicBox, cell},
+  $ProgressCounter = 0;
+  dynamicBox = DynamicBox[IntStr[$ProgressCounter], TrackedSymbols :> {$ProgressCounter}];
+  cell = CellPrint @ Cell[BoxData @ dynamicBox, "Print"];
+  Fn[Null, $ProgressCounter++; fn[##]]
+];
+
+$ProgressCounter = $ProgressCounterMax = 0;
+
+EchoProgress[(head:Map|Scan|MapP|ScanP|ZipMap|ZipScan|MapApply|KeyValueMap|KeyValueScan)[fn_, arg1_, argN___]] := Module[
+  {$arg1 = arg1, dynamicBox, cell, result},
+  $ProgressCounter = 0;
+  $ProgressCounterMax = Len[$arg1];
+  result = $Failed;
+  dynamicBox = DynamicBox[RowBox @ {IntStr[$ProgressCounter], "/", IntStr[$ProgressCounterMax]}, TrackedSymbols :> {$ProgressCounter}];
+  cell = CellPrint @ Cell[BoxData @ dynamicBox, "Print"];
+  result = Check[
+    head[Fn[Null, $ProgressCounter++; fn[##]], $arg1, argN],
+    $Failed
+  ];
+  If[result =!= $Failed, NotebookDelete @ cell];
+  $ProgressCounterMax = $ProgressCounterCounter = 0;
+  result
 ];
 
 (*************************************************************************************************)

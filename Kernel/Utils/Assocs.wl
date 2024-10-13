@@ -25,6 +25,8 @@ SystemExports[
 
 PackageExports[
   "Function",
+    ZipDictLists, ZipListDicts,
+    CheckedDictMapThread,
     UnindexDicts, IndexDicts,
     Bind, UBind,
   "DataHead",
@@ -35,7 +37,7 @@ PackageExports[
     CachedTo,
     BindTo, BindFrom,
     InternTo, InternUniqueTo,
-    KeyApplyTo, KeyIncrement, KeyDecrement,
+    KeyApplyTo, KeyIncrement, KeyDecrement, KeyDeleteFrom,
     KeyAddTo,   KeySubFrom,   KeyTimesBy,   KeyDivideBy,
     KeyUnionTo, KeyJoinTo,    KeyAppendTo,  KeyPrependTo, KeyBindTo, KeyUBindTo,
   "MetaFunction",
@@ -56,7 +58,40 @@ IndexDicts[dicts_List, key_] := Data`ValueToKey[dicts, key];
 
 (**************************************************************************************************)
 
-EnsureODict::usage =
+SetStrict[ZipDictLists, ZipListDicts]
+
+ZipDictLists[EmptyDict] := EmptyList;
+ZipDictLists[dict_Dict] := Locals[
+  cols = Values @ dict;
+  If[Length2[cols] === None, ReturnFailed["notRectangularDict", dict]];
+  Map[DictThread[Keys @ dict], Transpose @ cols]
+];
+
+ZipDictLists::notRectangularDict = "Dictionary values are not equal-length lists: ``.";
+
+ZipListDicts[EmptyList] := EmptyDict;
+ZipListDicts[list_List] := Locals[
+  If[Not @ AllSameOrderedKeysQ @ list, ReturnFailed["badListDicts", list]];
+  keys = Keys @ First @ list;
+  columns = Values @ list;
+  DictThread[keys, Flip @ columns]
+];
+
+ZipListDicts::badListDicts = "List contains incomparable dicts or non-dicts: ``.";
+
+(**************************************************************************************************)
+
+SetStrict @ CheckedDictMapThread;
+
+CheckedDictMapThread[fn_Fn, dict_Dict, errorFn_] := Locals[
+  keys = DictRange @ Keys @ dict;
+  lookup = Fn[key, Lookup[keys, key, errorFn[key]; Return[$Failed, Block]]];
+  fn2 = fn /. Slot[key_Str] :> RuleEval[Slot @ lookup[key]];
+  MapThread[fn2, Vals @ dict]
+];
+
+(**************************************************************************************************)
+
 "EnsureODict[UAssociation[$$]] returns Association[$$].
 EnsureODict has no effect on other expressions."
 
@@ -66,7 +101,6 @@ EnsureODict[e_]      := e
 
 (**************************************************************************************************)
 
-ListAssociationParts::usage =
 "ListAssociationParts[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {Key[k$1], Key[k$2], $$}.
 ListAssociationParts[{e$1, e$2, $$, e$n}] returns {1, 2, $$, n$}."
 
@@ -79,7 +113,6 @@ ListAssociationParts[list_List] := RangeLen @ list;
 
 SetStrict @ PadAssociation;
 
-PadAssociation::usage =
 "PadAssociation[assoc$, keys$, default$] pads assoc$ to have keys$ if not present, with value default$."
 
 PadAssociation[dict_Dict, keys_, val_] :=
@@ -87,7 +120,6 @@ PadAssociation[dict_Dict, keys_, val_] :=
 
 (**************************************************************************************************)
 
-ReverseRules::usage =
 "ReverseRules[{k$1 -> v$1, k$2 -> v$2, $$}] returns {v$1 -> k$1, v$2 -> k$2, $$}.
 ReverseRules[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|v$1 -> k$1, v$2 -> k$2, $$|>."
 
@@ -98,11 +130,9 @@ ReverseRules[rules_ ? RuleLVecQ] := Map[Reverse, rules];
 
 (**************************************************************************************************)
 
-InvertAssociation::usage =
 "InvertAssociation[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|v$1 -> k$1, v$2 -> k$2, $$|>.
 InvertAssociation throws an error if a unique inverse does not result."
 
-InvertUAssociation::usage =
 "InvertUAssociation[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[v$1 -> k$1, v$2 -> k$2, $$].
 InvertUAssociation throws an error if a unique inverse does not result."
 
@@ -125,7 +155,6 @@ InvertUAssociation[dict:DictP] := Module[
 (* TODO: rename to ApplyRules? *)
 DecFullDispatch2 @ SetCurry1 @ MapRules;
 
-MapRules::usage =
 "MapRules[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns {f$[k$1, v$1], f$[k$2, v$2], $$}.
 MapRules does the same for a list of rules, where it applies f$ to the pair of LHS and RHS of each rule."
 
@@ -137,7 +166,6 @@ MapRules[_, _]                := InternalError;
 
 DecFullDispatch2 @ SetCurry1 @ KeyValueScan;
 
-KeyValueScan::usage =
 "KeyValueScan[f, <|k$1 -> v$1, $$|>] evaluates $f[k$i, v$i] for every i$.
 KeyValueScan also works on lists of rules."
 
@@ -146,7 +174,6 @@ KeyValueScan[fn_, list:RuleLVecP] := Scan[Apply @ fn, dict];
 
 (**************************************************************************************************)
 
-KeyMapValueMap::usage =
 "KeyMapValueMap[f$k, f$v, <|k$1 -> v$1, $$|>] returns <|f$k[k$1] -> f$v[v$1], $$|>.
 KeyMapValueMap also works on lists of rules, where it applies f$k to the LHS and f$v to the RHS of each rule."
 
@@ -158,7 +185,6 @@ KeyMapValueMap[_, _, _]               := InternalError;
 
 (**************************************************************************************************)
 
-ValueMap::usage =
 "ValueMap[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|k$1 -> f[v$1], k$2 -> f$[v$2]|>.
 ValueMap also works on lists of rules, where it applies f$ to the RHS of each rule."
 
@@ -170,7 +196,6 @@ ValueMap[_, _, _]         := InternalError;
 
 (**************************************************************************************************)
 
-KeysValues::usage =
 "KeysValues[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {{k$1, k$2, $$}, {v$1, v$2, $$}}.
 KeysValues also works on a list of rules."
 
@@ -185,7 +210,6 @@ ValuesKeys[_]              := InternalError;
 (**************************************************************************************************)
 
 (* TODO: rename MaybeValues. It's actually just a narrower Args *)
-ToValues::usage =
 "ToValues[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {v$1, v$2, $$}.
 ToValues[{v$1, v$2, $$}] returns {v$1, v$2, $$}."
 
@@ -196,7 +220,6 @@ ToValues[dict_Dict] := Values @ dict;
 
 (**************************************************************************************************)
 
-ToRuleList::usage =
 "ToRuleList[<|k$1 -> v$1, $$|>] returns {k$1 -> v$1, $$}.
 ToRuleList[{k$1 -> v$1, $$}] returns {k$1 -> v$1, $$}."
 
@@ -214,19 +237,15 @@ ToRuleList[specs__]       := Join @ Map[ToRuleList, NoEval @ specs];
 `RuleThread[{key_i}_i, {val_i}_i]` gives the rule list `{key_i -> val_i}_i`.
 ?*)
 
-AssociationThreadOp::usage =
 "AssociationThreadOp[{k$1, k$2, $$}, {v$1, v$2, $$}] returns <|k$1 -> v$2, k$2 -> v$2, $$|>.
 AssociationThreadOp[keys$] is the operator form of AssociationThreadOp."
 
-UAssociationThread::usage =
 "UAssociationThread[{k$1, k$2, $$}, {v$1, v$2, $$}] returns UAssociation[k$1 -> v$2, k$2 -> v$2, $$].
 UAssociationThread[keys$] is the operator form of UAssociationThread."
 
-RuleThread::usage =
 "RuleThread[{k$1, k$2, $$}, {v$1, v$2, $$}] returns {k$1 -> v$2, k$2 -> v$2, $$}.
 RuleThread[keys$] is the operator form of RuleThread."
 
-RuleUnthread::usage =
 "RuleUnthread[{k$1 -> v$2, k$2 -> v$2, $$}] returns {k$1, k$2, $$} -> {v$1, v$2, $$}."
 
 SetCurry1[AssociationThreadOp, UAssociationThread, RuleThread];
@@ -294,8 +313,8 @@ TrueRules = CaseOf[
 `AssociationMapThread[fn, <|key_i -> val_i|>_i]` gives the association `<|.., val_i -> i, ..|>`.
 ?*)
 
-AssociationMapApply::usage = "AssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|f$[k$1, v$1], f$[k$2, v$2], $$|>."
-UAssociationMapApply::usage = "UAssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[f$[k$1, v$1], f$[k$2, v$2], $$]."
+"AssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns <|f$[k$1, v$1], f$[k$2, v$2], $$|>."
+"UAssociationMapApply[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[f$[k$1, v$1], f$[k$2, v$2], $$]."
 
 SetCurry1[AssociationMapApply, UAssociationMapApply]
 
@@ -304,17 +323,16 @@ UAssociationMapApply[fn_, dict_Dict] := UDict @ MapApply[fn, Normal @ dict];
 
 (*************************************************************************************************)
 
-AssociationMapThread::usage = "AssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
-UAssociationMapThread::usage = "UAssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
+"AssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
+"UAssociationMapThread[f$, <|k$1 -> {a$1, a$2, $$}, k$2 -> {b$1, b$2, $$}, $$|>] returns {f$[a$1, b$1, $$], f$[a$2, b$2, $$], $$}."
 
 SetCurry1[AssociationMapThread, UAssociationMapThread]
 
-AssociationMapThread[fn_, dict_Dict]          := With[{keys = Keys @ dict}, Map[val |-> fn[ DictThread[keys, val]], Transpose @ Values @ dict]];
+AssociationMapThread[fn_, dict_Dict]  := With[{keys = Keys @ dict}, Map[val |-> fn[ DictThread[keys, val]], Transpose @ Values @ dict]];
 UAssociationMapThread[fn_, dict_Dict] := With[{keys = Keys @ dict}, Map[val |-> fn[UDictThread[keys, val]], Transpose @ Values @ dict]];
 
 (*************************************************************************************************)
 
-UAssociationMap::usage =
 "UAssociationMap[f$, {k$1, k$2, $$}] returns UAssociation[k$1 -> f$[k$1], k$2 -> f$[k$2], $$].
 UAssociationMap[f$, <|k$1 -> v$1, k$2 -> v$2, $$|>] returns UAssociation[f$[k$1 -> v$1], f$[k$2 -> v$2]]."
 
@@ -326,12 +344,12 @@ UAssociationMap[_, expr_] := RuleCondition[Message[AssociationMap::invrp, expr];
 
 (*************************************************************************************************)
 
-AssociationToRules::usage = "AssociationToRules[<|k$1 -> v$1, k$2 -> v$2, $$|>]  returns {k$1 -> v$1, k$2 -> v$2, $$}."
-RulesToAssociation::usage = "AssociationToRules[{k$1 -> v$1, k$2 -> v$2, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
-AssociationToPairs::usage = "AssociationToPairs[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {{k$1, v$1}, {k$2, v$2}, $$}."
-PairsToAssociation::usage = "AssociationToRules[{{k$1, v$1}, {k$2, v$2}, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
-RulesToUAssociation::usage = "RulesToUAssociation[{k$1 -> v$1, k$2 -> v$2, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
-PairsToUAssociation::usage = "PairsToUAssociation[{{k$1, v$1}, {k$2, v$2}, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
+"AssociationToRules[<|k$1 -> v$1, k$2 -> v$2, $$|>]  returns {k$1 -> v$1, k$2 -> v$2, $$}."
+"AssociationToRules[{k$1 -> v$1, k$2 -> v$2, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
+"AssociationToPairs[<|k$1 -> v$1, k$2 -> v$2, $$|>] returns {{k$1, v$1}, {k$2, v$2}, $$}."
+"AssociationToRules[{{k$1, v$1}, {k$2, v$2}, $$}] returns <|k$1 -> v$1, k$2 -> v$2, $$|>."
+"RulesToUAssociation[{k$1 -> v$1, k$2 -> v$2, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
+"PairsToUAssociation[{{k$1, v$1}, {k$2, v$2}, $$}] returns UAssociation[k$1 -> v$1, k$2 -> v$2, $$]."
 
 SetStrict[AssociationToRules, AssociationToPairs, PairsToAssociation, RulesToAssociation, PairsToUAssociation, RulesToUAssociation]
 
@@ -351,7 +369,6 @@ RulesToAssociation::badArguments = RulesToUAssociation::badArguments = "First ar
 
 SetStrict @ GroupPairs;
 
-GroupPairs::usage =
 "GroupPairs[{{key$i, val$i}}_i]` yields `<|key_i -> {val_{i1}, val_{i2}, ..}|>_i` where the val_{ij} are grouped by matching `key_i`.
 GroupPairs[pairs$, f$] aggregates the resulting lists of values using f$.
 GroupPairs[pairs$]` effectively gives `GroupBy[expr$, First -> Last]`.
@@ -364,7 +381,6 @@ GroupPairs[list_ ? PairVectorQ, f_] := GroupBy[list, First -> Last, f];
 
 SetStrict @ GroupAgainst;
 
-GroupAgainst::usage =
 "GroupAgainst[expr$, against$] returns an association whose keys are unique values of against$, and \
 whose values are the corresponding lists of parts of expr$.
 GroupAgainst[expr$, against$, f$] aggregates the resulting lists of values using f$.
@@ -377,14 +393,14 @@ GroupAgainst[expr_, against_, fn_:Id] /; SameLenQ[expr, against] :=
 
 SetCurry1 @ MergeAssocations;
 
-MergeAssocations::usage = "MergeAssocations[f$, {assoc$1, assoc$2}] returns {$f[k$, {v$1, v$2, $$}], $$}."
+"MergeAssocations[f$, {assoc$1, assoc$2}] returns {$f[k$, {v$1, v$2, $$}], $$}."
 
 MergeAssocations[fn_, assocs_] := KeyValueMap[fn, Merge[assocs, Id]];
 
 (*************************************************************************************************)
 
-AssociationSum::usage = "AssociationSum[assocs$] returns <|k$ -> Total[{v$1, v$2, $$}], $$|>."
-UAssociationSum::usage = "UAssociationSum[assocs$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$]."
+"AssociationSum[assocs$] returns <|k$ -> Total[{v$1, v$2, $$}], $$|>."
+"UAssociationSum[assocs$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$]."
 
 AssociationSum = CaseOf[
   {}       := EmptyDict;
@@ -404,12 +420,10 @@ UAssociationSum = CaseOf[
 
 (*************************************************************************************************)
 
-AssociationPlus::usage =
 "AssociationPlus[assoc$1, assoc$2, $$] returns <|k$ -> Total[{v$1, v$2, $$}], $$|>.
 Any of the assoc$i can be rules or lists of rules."
 
-UAssociationPlus::usage = "
-UAssociationPlus[assoc$1, assoc$2, $$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$].
+"UAssociationPlus[assoc$1, assoc$2, $$] returns UAssociation[k$ -> Total[{v$1, v$2, $$}], $$].
 Any of the assoc$i can be rules or lists of rules."
 
 AssociationPlus[]               := EmptyDict;
@@ -420,13 +434,12 @@ UAssociationPlus[as___] := UDict @ Merge[{as}, Total];
 
 (*************************************************************************************************)
 
-UnorderedCounts::usage = "UnorderedCounts[list$] returns UAssociation[e$1 -> n$1, $$]."
+"UnorderedCounts[list$] returns UAssociation[e$1 -> n$1, $$]."
 
 UnorderedCounts[e_] := UDict @ Counts @ e;
 
 (*************************************************************************************************)
 
-LevelIndex::usage =
 "LevelIndex[expr$, n$] returns an association mapping expressions occuring at level n$ in expr$ and the position i$ for in which it occurred (in Part[expr$, i$]).
 LevelIndex[expr$, 1] is equivalent to PositionIndex."
 
@@ -465,7 +478,6 @@ KeyDecrement[lhs_, key_] := Set[lhs[key], Lookup[lhs, key, 0] - 1];
 
 (**************************************************************************************************)
 
-InternTo::usage =
 "InternTo[sym$, key$] returns the ID for key$, or creates and adds a new ID and returns that.
 IDs are consecutive integers starting at 1.
 InternTo[sym$] is the operator form of InternTo."
@@ -482,7 +494,6 @@ addLenKey[lhs_, key_] := lhs[key] = Len[lhs] + 1;
 
 SetHoldF @ SetCurry13 @ InternUniqueTo;
 
-InternUniqueTo::usage =
 "InternUniqueTo[sym$, key$, fn$] creates and adds a new ID for key$ and returns it.
 If key$ has already been interned, fn$[key$, id$] is evaluated.
 InternUniqueTo[sym$, fn$] is the operator form of InternUniqueTo."
@@ -492,7 +503,6 @@ InternUniqueTo[lhs_, key_, _]                                := addLenKey[lhs, k
 
 (**************************************************************************************************)
 
-BindTo::usage =
 "BindTo[sym$, entries$] updates an association sym$ with new entries.
 entries$ can be a single rule, a list of rules, or an association.
 BindTo is effectively the same as AssociateTo.
@@ -509,14 +519,13 @@ BindTo[lhs_, rules_List]  := AssociateTo[lhs, rules];
 
 SetStrict @ BindFrom;
 
-BindFrom::usage =
 "BindFrom[key$ :> sym$, dict$] sets sym$ to dict[$key$] if it exists.
-BindFrom[$$, fn$] calls fn$[key$] on an unknown key. Use UnkOptMsg[head] as a function to get a good error message.
+BindFrom[$$, fn$] calls fn$[key$] on an unknown key. Use ErrorOptKeyFn[head] as a function to get a good error message.
 BindFrom[<|key$ :> sym$, key$ :> sym|>, dict$] processes keys from dict, binding each to sym$i when key$i matches."
 
 BindFrom[key_ :> sym_, vals_Dict]     := If[HasKeyQ[vals, key], sym[key] = vals[key];];
 
-BindFrom[keysSyms_, vals_]            := iBindFrom[keysSyms, vals, UnkOptMsg[General]];
+BindFrom[keysSyms_, vals_]            := iBindFrom[keysSyms, vals, ErrorOptKeyFn[General]];
 BindFrom[keysSyms_, vals_, fn_]       := iBindFrom[keysSyms, vals, fn];
 
 SetStrict @ iBindFrom;
@@ -573,11 +582,9 @@ General::unsupportedMutation = "Unsupported mutation pattern: ``.";
 
 (**************************************************************************************************)
 
-Bind::usage =
 "Bind[assoc$, entries$] appends new entries to an association.
 Bind is like a non-mutating form of BindTo."
 
-UBind::usage =
 "UBind[assoc$, entries$] appends new entries to an unordered association.
 UBind is like a non-mutating form of BindTo."
 
@@ -591,8 +598,8 @@ UBind[dict_Dict, data:DictLP] := UDict[dict, data];
 
 (**************************************************************************************************)
 
-        DeclaredHere[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo]
-SetCurry1 @ SetHoldF[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyPrependTo]
+        DeclaredHere[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyDeleteFrom, KeyPrependTo]
+SetCurry1 @ SetHoldF[KeyAddTo, KeySubFrom, KeyTimesBy, KeyDivideBy, KeyUnionTo, KeyJoinTo, KeyAppendTo, KeyDeleteFrom, KeyPrependTo]
 
 DefineKeywiseOperator1[sym_, def_, fn_] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[Lookup[lhs, Key @ key, def], arg]]];
 DefineKeywiseOperator2[sym_, def_, fn_] := SetDelayed[sym[lhs_, key_, arg_], Set[lhs[key], fn[arg, Lookup[lhs, Key @ key, def]]]];
@@ -605,6 +612,7 @@ DefineKeywiseOperator1[KeyUnionTo,   {}, Union]
 DefineKeywiseOperator1[KeyJoinTo,    {}, Join]
 DefineKeywiseOperator1[KeyAppendTo,  {}, Append]
 DefineKeywiseOperator1[KeyPrependTo, {}, Prepend]
+DefineKeywiseOperator1[KeyDeleteFrom, {}, DeleteVerbatim]
 
 (**************************************************************************************************)
 

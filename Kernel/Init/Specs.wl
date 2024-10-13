@@ -9,13 +9,17 @@ PackageExports[
     ParsePart,
     ParseListSpec,
     ParseCyclicSpec,
+    ParseSide,
     LookupSide,
     ParseAlignment,
     ParseItemOptions,
     BoundsToSize,
+    SideToRadians,
   "Variable",
     $SideToCoords,
-    $CoordsToSide,
+    $CompassToCoords,
+    $ExtSideToCoords,
+    $SideToSidePair,
     $SideToRadians,
     $SideToUnitCoords,
     $SymbolicPointSizes
@@ -50,6 +54,29 @@ ParsePadding = CaseOf[
 
 (**************************************************************************************************)
 
+(* TODO: allow Lef, Top, etc to specify *part* of an existing side pair *)
+
+ParseSide[side_Sym] :=
+  Lookup[$SideToSidePair, side, ThrowMsg["invalidSide", side]];
+
+$SideToSidePair = Dict[
+  Lef   -> {Lef, Cen},
+  Rig   -> {Rig, Cen},
+  Top   -> {Cen, Top},
+  Bot   -> {Cen, Bot},
+  Cen   -> {Cen, Cen},
+  TopL  -> {Lef, Top},
+  BotL  -> {Lef, Bot},
+  TopR  -> {Rig, Top},
+  BotR  -> {Rig, Bot},
+  Above -> {Top, Cen},
+  Below -> {Bot, Cen}
+];
+
+General::invalidSide = "`` is not one of Top, Left, etc.";
+
+(**************************************************************************************************)
+
 LookupSide[rules_, sides_List] :=
   Map[LookupSide[rules, #]&, sides];
 
@@ -77,23 +104,57 @@ toSideClass = CaseOf[
 
 (**************************************************************************************************)
 
-$SideToCoords = Dict[
-  Lef    -> {-1,  0},
-  Rig    -> { 1,  0},
-  Top    -> { 0,  1},
-  Above  -> { 0,  1},
-  Bot    -> { 0, -1},
-  Below  -> { 0, -1},
-  BotL   -> {-1, -1},
-  BotR   -> { 1, -1},
+$CompassToCoords = Dict[
   TopL   -> {-1,  1},
+  TopC   -> { 0,  1},
   TopR   -> { 1,  1},
+  CenR   -> { 1,  0},
+  BotR   -> { 1, -1},
+  BotC   -> { 0, -1},
+  BotL   -> {-1, -1},
+  CenL   -> {-1,  0}
+];
+
+(**************************************************************************************************)
+
+$SideToCoords = Dict[
+  Top    -> { 0,  1},
+  Rig    -> { 1,  0},
+  Bot    -> { 0, -1},
+  Lef    -> {-1,  0},
   Cen    -> { 0,  0}
 ];
 
-$CoordsToSide = InvertAssociation @ KeyDrop[$SideToCoords, {Below, Above}];
+(**************************************************************************************************)
 
-$SideToUnitCoords = Map[(# + 1)/2.&, $SideToCoords]
+$ExtSideToCoords = Dict[
+  $CompassToCoords,
+  $SideToCoords,
+  Above  -> { 0,  1},
+  Below  -> { 0, -1}
+];
+
+(**************************************************************************************************)
+
+$SideToUnitCoords = Map[(# + 1)/2.&, $ExtSideToCoords]
+
+(**************************************************************************************************)
+
+$SymbolicPointSizes = Dict[
+  Tiny        -> 2,
+  Small       -> 3,
+  (* MediumSmall -> 4, *)
+  Medium      -> 5,
+  (* MediumLarge -> 6, *)
+  Large       -> 7
+  (* Huge        -> 10 *)
+];
+
+(**************************************************************************************************)
+
+SetStrict[SideToRadians];
+
+SideToRadians[side:(_Symbol | _List)] := Lookup[$SideToRadians, side, ThrowMsg["badSide", side]];
 
 $SideToRadians = Dict[
   Left        ->  4/4 * Pi,
@@ -104,16 +165,6 @@ $SideToRadians = Dict[
   BottomRight -> -1/4 * Pi,
   Bottom      -> -2/4 * Pi,
   BottomLeft  -> -3/4 * Pi
-];
-
-$SymbolicPointSizes = Dict[
-  Tiny        -> 2,
-  Small       -> 3,
-  (* MediumSmall -> 4, *)
-  Medium      -> 5,
-  (* MediumLarge -> 6, *)
-  Large       -> 7
-  (* Huge        -> 10 *)
 ];
 
 (**************************************************************************************************)

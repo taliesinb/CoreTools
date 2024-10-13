@@ -394,7 +394,8 @@ mapSplitContexts[fn_, clear_, create_, table_List] := Module[
   ]
 ];
 
-needsClearQ[SymbolTableRow["Variable" | "SpecialVariable" | "CacheVariable", ___]] := False;
+needsClearQ[SymbolTableRow["Variable" | "SpecialVariable" | "TransientVariable" | "CacheVariable" | "RegistryVariable", ___]] := False;
+needsClearQ[SymbolTableRow[_, _, "Session`", ___]] := False;
 needsClearQ[_] := True;
 
 (*************************************************************************************************)

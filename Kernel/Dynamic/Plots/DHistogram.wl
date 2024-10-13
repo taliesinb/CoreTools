@@ -65,7 +65,7 @@ DHistogramBox[data_, n_Integer, opts:OptionsPattern[]] := ModuleScope[
     "PlotBoxes"      -> plotBoxes,
     "SelectionBoxes" -> selectionBoxes,
     "LabelBoxes"     -> tickBoxes,
-    "PlotRange"      -> plotRange,
+    "PRange"      -> plotRange,
     "FramePadding"   -> {{3, 0}, {3, 3}},
     "Handler"        -> handler,
     "OtherData"      -> otherData

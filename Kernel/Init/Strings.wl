@@ -14,6 +14,7 @@ SystemExports[
     StringTrimLeft, StringTrimRight, StringTrimLeftRight,
     StringPrepend, StringAppend,
     StringLines,
+    QuotedStringList,
     DelimitedString, DelimitedStringRow,
     BraceString,     BraceStringRow,
     AngleString,     AngleStringRow,
@@ -338,6 +339,12 @@ DelimitedString[l_Str, m_Str, r_Str][args___ ? stringyQ]      := delimStr[l, m, 
 DelimitedStringRow[l_Str, m_Str, r_Str][args_List ? stringyQ] := delimStr[l, m, r, args];
 
 delimStr[l_, m_, r_, args_] := toStr1 @ {l, Riffle[args, m], r};
+
+(**************************************************************************************************)
+
+SetStrict @ QuotedStringList;
+
+QuotedStringList[list_ ? StrVecQ] := StrJoin[Riffle[DQuotedString /@ list, ", "]];
 
 (**************************************************************************************************)
 

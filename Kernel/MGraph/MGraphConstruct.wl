@@ -66,7 +66,7 @@ MakeMultigraph[head_Symbol, vertices2_, multiedges_, opts___Rule] := Locals @ Ca
     IEdgeTypes     -> $meTypes
   ];
 
-  SameSetQOrThrow[Keys @ data, $MGraphDataKeys, "badMultigraphKeys"];
+  AssertSameSetQ[Keys @ data, $MGraphDataKeys, "badMultigraphKeys"];
   MakeSealed[Multigraph, InternalData @ data]
 ];
 

@@ -1,13 +1,13 @@
 SystemExports[
-  "Option",
-    ViewSize,
-    MaxItems,
-    MaxSize, MaxWidth, MaxHeight,
+  "FormOption",
+    ViewSize, MaxItems, MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
     ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction,
   "Symbol",
-    TopLeft, TopRight, BottomLeft, BottomRight
+    TopLeft, TopCenter, TopRight,
+    CenterLeft, CenterCenter, CenterRight,
+    BottomLeft, BottomCenter, BottomRight
 ];
 
 PackageExports[
@@ -30,15 +30,20 @@ PackageExports[
   "BoxOption",
     GridItemSize, GridItemStyle, GridMargins, GridDivs,
     RowSizes, RowGaps, RowJust, ColSizes, ColGaps, ColJust, ColLines, ColsEqual,
-    ItemsEqual, ShowStrChars, BLinePos,
-    ColorFn, VertexColorFn, Bend, Padded,
+    ItemsEqual,
 
-  "Option",
-    BaselinePos,
+  "FormOption",
+    BLinePos, ShowStrChars,
+    Just, Gaps, Bgrnd, Rounding, AutoPad,
+    TSize, TFamily, TSlant, TSubsitutions, TWeight, TVariations, TOptions,
+
+  "GraphicsOption",
+    ColorFn, VertexColorFn,
+    ISize, IMargin, FMargin, PMargin, PRange, PClip,
+
+  "FormOption",
      ItemPos,  ItemGaps,  ItemDivs,  ItemJust,
     LabelPos, LabelGaps, LabelDivs, LabelJust,
-
-  "Option",
     ItemFn, LabelFn, ClickFn, TooltipFn, SizeFn,
 
   "Symbol",
@@ -46,7 +51,9 @@ PackageExports[
     Hor, Ver, Cen,
     Lef, Rig,
     Bot,
-    TopL, TopR, BotL, BotR,
+    TopL, TopC, TopR,
+    CenL, CenC, CenR,
+    BotL, BotC, BotR,
     BLine
 ];
 
@@ -62,8 +69,13 @@ DefineAliasRules[
   Rig        -> Right,
   Bot        -> Bottom,
   TopL       -> TopLeft,
+  TopC       -> TopCenter,
   TopR       -> TopRight,
+  CenL       -> CenterLeft,
+  CenC       -> CenterCenter,
+  CenR       -> CenterRight,
   BotL       -> BottomLeft,
+  BotC       -> BottomCenter,
   BotR       -> BottomRight,
   BLine      -> Baseline
 ];
@@ -156,11 +168,33 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
+  Bgrnd          -> Background,
+  Just           -> Alignment,
+  Gaps           -> Spacings,
   BLinePos       -> BaselinePosition,
   ShowStrChars   -> ShowStringCharacters,
-  ColorFn        -> ColorFunction,
-  VertexColorFn  -> VertexColorFunction,
-  Bend           -> RoundingRadius,
-  Padded         -> ContentPadding
+  Rounding       -> RoundingRadius,
+  AutoPad        -> ContentPadding
 ];
+
+DefineAliasRules[
+  TSize          -> FontSize,
+  TFamily        -> FontFamily,
+  TWeight        -> FontWeight,
+  TSlant         -> FontSlant,
+  TSubsitutions  -> FontSubstitutions,
+  TVariations    -> FontVariations,
+  TOptions       -> PrivateFontOptions
+];
+
+DefineAliasRules[
+  ColorFn        -> ColorFunction,
+  ISize          -> ImageSize,
+  IMargin        -> ImagePadding,
+  FMargin        -> FrameMargins,
+  PMargin        -> PlotRangePadding,
+  PRange         -> PlotRange,
+  PClip          -> PlotRangeClipping
+];
+
 

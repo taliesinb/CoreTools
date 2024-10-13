@@ -31,7 +31,7 @@ DPieChartBox[data_, n_Integer, opts:OptionsPattern[]] := ModuleScope[
   makeDGraphicsBox[
     "PlotBoxes"      -> plotBoxes,
     "SelectionBoxes" -> selectionBoxes,
-    "PlotRange"      -> {{-1, 1}, {-1, 1}},
+    "PRange"      -> {{-1, 1}, {-1, 1}},
     "Frame"          -> False,
     "Handler"        -> handler,
     "OtherData"      -> otherData

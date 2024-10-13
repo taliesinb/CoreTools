@@ -23,7 +23,10 @@ DefineGPrim[FramedPrimitive, "Primitives", FramedPrimitiveBox]
 Options[FramedPrimitiveBox] = Options[FramedPrimitive];
 
 FramedPrimitiveBox[prims_, opts___Rule] := Locals[
-  UnpackSymbolsAs[FramedPrimitiveBox, opts, frameColor, frameThickness, frameDashing, background, roundingRadius, frameMargins];
+  UnpackSymbolsAs[
+    FramedPrimitiveBox, List @ opts,
+    frameColor, frameThickness, frameDashing, background, roundingRadius, frameMargins
+  ];
   boxes = ToGraphicsBoxes @ prims;
   range = GBoxRange @ boxes;
   range += {{-1, 1}, {-1, 1}} * ParsePadding[frameMargins];

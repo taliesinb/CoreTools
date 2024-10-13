@@ -102,7 +102,7 @@ Options[makeDGraphicsBox] = {
   "LabelBoxes"     -> None,
   "TickBoxes"      -> None,
   "SelectionBoxes" -> $Failed,
-  "PlotRange"      -> $Failed,
+  "PRange"      -> $Failed,
   "FramePadding"   -> $Failed,
   "Frame"          -> True,
   "Handler"        -> None,
@@ -144,12 +144,12 @@ makeDGraphicsBox[OptionsPattern[]] := Scope[
 
   graphicsBoxes = Cons[GraphicsBox,
     primitiveBoxes,
-    PlotRange -> plotRange,
+    PRange -> plotRange,
     ImageSize -> paddedSize,
     ImagePadding -> padding,
     AspectRatio -> Full,
     PlotLabel -> If[plotLabel === None, None, ToBoxes @ plotLabel],
-    PlotRangeClipping -> False,
+    PClip -> False,
     BaseStyle -> {FontFamily -> "Source Code Pro", FontSize -> 10}
   ];
 

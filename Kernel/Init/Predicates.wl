@@ -58,7 +58,7 @@ SystemExports[
 
   "Predicate",
 
-    ListableFunctionQ,
+    ListableFunctionQ, AssociationFunctionQ, PureFunctionQ,
     ContainsQ, ContainsWithinQ, FreeWithinQ, ContainsAssociationQ,
     HoldFreeQ, HoldContainsQ, HoldArgsFreeQ, HoldArgsContainQ,
     KeysTrue, ValuesTrue, KeysValuesTrue, RuleKeysTrue, RuleValuesTrue, RulesTrue,
@@ -447,9 +447,9 @@ HoldHasLengthQ[n_] := With[{n2 = n}, HoldCompFn[FmE, HoldHasLengthQ[FmE, n]]];
 
 SetPred1[RuleQ, RuleLikeQ, RuleDelayedQ, AssociationLikeQ]
 
-RuleQ[_Rule]                    = True;
-RuleLikeQ[_Rule | _RuleDelayed] = True;
-RuleDelayedQ[_RuleDelayed]      = True;
+RuleQ[_Rule]                       = True;
+RuleLikeQ[_Rule | _RuleDelayed]    = True;
+RuleDelayedQ[_RuleDelayed]         = True;
 AssociationLikeQ[_Dict ? DictQ]    = True;
 AssociationLikeQ[_List ? RuleVecQ] = True;
 
@@ -578,7 +578,7 @@ setPackedIsFalse[RuleLikeVectorQ];
 
 RuleVectorQ[{___Rule}]         := True;
 RuleDelayedVectorQ[{___RuleD}] := True;
-RuleLikeVectorQ[RuleLVecP]     := VectorQ[e, RuleLikeQ];
+RuleLikeVectorQ[l:RuleLVecP]   := VectorQ[l, RuleLikeQ];
 
 hasBoolsQ[e_] := CouldContainQ[list, True] || CouldContainQ[list, False];
 
@@ -946,11 +946,16 @@ NoneAreFalseQ[e:ListDictP] := NoneTrue[e, EqualTo[False]];
 
 (**************************************************************************************************)
 
-SetPred1[ListableFunctionQ]
+SetPred1[ListableFunctionQ, AssociationFunctionQ, PureFunctionQ]
 
 ListableFunctionQ[sym_Symbol] := ListableFunctionQ[sym] = MemberQ[Attributes @ sym, Listable];
-ListableFunctionQ[HoldPattern[Function[___, Listable | {___, Listable, ___}]]] := True;
+ListableFunctionQ[HoldP[Fn[___, Listable | {___, Listable, ___}]]] := True;
 ListableFunctionQ[c_RightComposition | c_Composition] := AllTrue[c, ListableFunctionQ];
+
+AssociationFunctionQ[HoldP[Fn[_Sym | _List, ___]]] := False;
+AssociationFunctionQ[fn_Fn] := ContainsQ[fn, Slot[_Str]];
+
+PureFunctionQ[_Fn] := True;
 
 (**************************************************************************************************)
 

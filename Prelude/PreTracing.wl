@@ -34,11 +34,12 @@ SystemExports[
     LabeledPrint,
     ValueChangePrint,
     DPrint,
+    DebugGroup,
     EchoPrint,
     MutationPrint,
 
   "ScopingFunction",
-    PrintIntended,
+    PrintIndented,
 
   "SpecialVariable",
     $LastCapture,
@@ -70,7 +71,7 @@ Protect[$Disabled];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[BlockPrint, EnableDebugPrinting, DisableEchoPrinting, DisableMutationPrinting, PrintIntended];
+DeclareHoldAllComplete[BlockPrint, EnableDebugPrinting, DisableEchoPrinting, DisableMutationPrinting, PrintIndented];
 
 BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
 
@@ -81,11 +82,11 @@ If[!BooleanQ[$MutationPrinting], $MutationPrinting = True];
 EnableDebugPrinting[body_]     := Block[{$DebugPrinting    = True},  body];
 DisableEchoPrinting[body_]     := Block[{$EchoPrinting     = False}, body];
 DisableMutationPrinting[body_] := Block[{$MutationPrinting = False}, body];
-PrintIntended[body_]           := Block[{$PrintIndent = $PrintIndent + 1}, body];
+PrintIndented[body_]           := Block[{$PrintIndent = $PrintIndent + 1}, body];
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[RawPrint, LogPrint, ErrorPrint, EchoPrint, MutationPrint, DPrint];
+DeclareHoldAllComplete[RawPrint, LogPrint, ErrorPrint, EchoPrint, MutationPrint, DPrint, DebugGroup];
 
 (*************************************************************************************************)
 
@@ -110,6 +111,10 @@ CachePrint[args___]    := If[$CachePrinting,    CustomizedPrint[$cachePrintOpts,
 EchoPrint[args___]     := If[$EchoPrinting,     CustomizedPrint[$echoPrintOpts, args],     $Disabled, $Disabled];
 DPrint[args___]        := If[$DebugPrinting,    CustomizedPrint[$debugPrintOpts, args],    $Disabled, $Disabled];
 MutationPrint[args___] := If[$MutationPrinting, CustomizedPrint[$mutationPrintOpts, args], $Disabled, $Disabled];
+
+DebugGroup[{title__}, body_] := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body];
+DebugGroup[title__, body_]   := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body];
+DebugGroup[body_]            := If[$DebugPrinting, PrintIndented @ body, body];
 
 (*************************************************************************************************)
 
@@ -306,18 +311,36 @@ TraceSymbolChanges[sym_, body_] :=
   HandleSymbolChanges[sym, body, printSymbolChange];
 
 printSymbolChange[HoldComplete[sym_Symbol, old_, new_, OwnValues]] :=
-  MutationPrint[PrivateHoldComplete[sym], " = ", PrivateHoldComplete[new]];
+  MutationPrint[PrivateHoldComplete[sym], " = ", changeSummary[new], "(", changeSummary[sym], ")"];
 
 printSymbolChange[HoldComplete[sym_Symbol, lhs_, rhs_, _, UpValues]] :=
-  MutationPrint[PrivateHoldComplete[lhs],  " ^:= ", PrivateHoldComplete[rhs]];
+  MutationPrint[PrivateHoldComplete[lhs],  " ^:= ", changeSummary[rhs]];
 
-printSymbolChange[HoldComplete[sym_Symbol, lhs_, rhs_, _, _]] :=
-  MutationPrint[PrivateHoldComplete[lhs], " := ", PrivateHoldComplete[rhs]];
+printSymbolChange[HoldComplete[sym_Symbol, lhs_, rhs_, _]] :=
+  MutationPrint[PrivateHoldComplete[lhs], " := ", changeSummary[rhs], "(", lhsTargetSummary[sym], ")"];
 
 printSymbolChange[HoldComplete[sym_Symbol, Attributes]] :=
   MutationPrint[PrivateHoldComplete[Attributes @ sym], " = ", Attributes[sym]];
 
 printSymbolChange[hc_] := MutationPrint[hc];
+
+DeclareHoldAllComplete[changeSummary, lhsTargetSummary]
+
+lhsTargetSummary[sym_Symbol] := Replace[
+  OwnValues[sym],
+  List[
+    List[RuleDelayed[HoldPattern[sym], value_]] :> changeSummary[value],
+    List[] :> StringForm["`` downvalues", Length @ DownValues[sym]]
+  ]
+];
+
+changeSummary[expr_ ? HoldAssociationQ]          := Sequence["\[LeftAssociation]\[LeftGuillemet]", HoldLength @ expr, "\[RightGuillemet]\[RightAssociation]"];
+changeSummary[expr_ ? HoldListQ]                 := Sequence["{\[LeftGuillemet]", HoldLength @ expr, "\[RightGuillemet]}"];
+changeSummary[expr:sym_Symbol[___]]             := Sequence[HoldSymbolName[sym], "[\[LeftGuillemet]", HoldLength @ expr, "\[RightGuillemet]]"];
+changeSummary[sym_Symbol ? Developer`HoldAtomQ] := HoldSymbolName[sym];
+changeSummary[i_Integer ? Developer`HoldAtomQ]  := i;
+changeSummary[s_String ? Developer`HoldAtomQ]   := s;
+changeSummary[_]                                := "\[Ellipsis]";
 
 (*************************************************************************************************)
 

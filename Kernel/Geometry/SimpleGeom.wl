@@ -36,17 +36,3 @@ ClockwisePoints[n_, side_:Top]     := AngleVector /@ ($SideToRadians[side] - Ran
 
 AnticlockwisePoints[n_, side_:Top] := AngleVector /@ ($SideToRadians[side] + Range[0, Tau-1/n, Tau/n]);
 
-(**************************************************************************************************)
-
-SideToRadians[side:(_Symbol | _List)] := Lookup[$SideToRadians, side];
-
-$SideToRadians = <|
-  Left        ->  4/4 * Pi,
-  TopLeft     ->  3/4 * Pi,
-  Top         ->  2/4 * Pi,
-  TopRight    ->  1/4 * Pi,
-  Right       ->  0,
-  BottomRight -> -1/4 * Pi,
-  Bottom      -> -2/4 * Pi,
-  BottomLeft  -> -3/4 * Pi
-|>;

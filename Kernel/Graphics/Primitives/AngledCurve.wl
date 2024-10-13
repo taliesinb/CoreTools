@@ -41,7 +41,7 @@ DeclaredHere[AngledCurve]
 * %ShortcutLength -> r% specifies that a full corner / segment will not be emitted, and instead a distance r%
 will be travelled from the endpoints before a shortcut is taken.
 
-* %Bend -> r% gives the radius of bends connecting the edges.
+* %Rounding -> r% gives the radius of bends connecting the edges.
 
 * the option %Setback is applied with respect to the entering and leaving angles."
 
@@ -57,7 +57,7 @@ Options[AngledCurve] = {
   JoinStyle       -> Axis,
   JoinPos         -> 0.5,
   Shortcut        -> 0.0,
-  Bend            -> 0.5,
+  Rounding        -> 0.5,
   Setback         -> 0.0
 };
 
@@ -71,10 +71,13 @@ AngledCurveBox[coords:Pos2PairP, opts___Rule] :=
 Options[AngledCurvePoints] = Options[AngledCurve];
 
 AngledCurvePoints[coords_List, opts___Rule] := Locals @ CatchMessages[
-  UnpackSymbolsAs[AngledCurvePoints, {opts}, joinStyle, joinPos, shortcut, bend, setback];
+  UnpackSymbolsAs[
+    AngledCurvePoints, List @ opts,
+    joinStyle, joinPos, shortcut, rounding, setback
+  ];
   SetNone[setback, 0];
   {setback1, setback2} = EnsurePair @ setback;
-  AngledCurvePointsFast[coords, joinStyle, joinPos, shortcut, bend, setback1, setback2]
+  AngledCurvePointsFast[coords, joinStyle, joinPos, shortcut, rounding, setback1, setback2]
 ];
 
 
@@ -177,7 +180,7 @@ resolveHV = CaseOf[
 
 procSetbackDir[delta_, Rectangular[r:Pos2PairP], dir_] := procRectDir[delta, r, dir];
 procSetbackDir[delta_, r:NumP, dir_]                   := procCircDir[delta, r, dir];
-procSetbackDir[delta_, setback_, dir_]                 := (OptMsg[Setback, setback]; {{1,0}, 0});
+procSetbackDir[delta_, setback_, dir_]                 := (ErrorOptVal[Setback, setback]; {{1,0}, 0});
 
 procRectDir[delta_, r_, s:ExtSideP] := With[{v = $SideToCoords @ s}, List[Normalize @ v, v * r]];
 procRectDir[delta_, r_, v:Num2P]    := With[{v2 = Normalize @ v},    List[v2, LineRectangleInter[{v2 * Norm[delta], {0,0}}, {-r, +r}]]];

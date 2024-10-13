@@ -12,10 +12,11 @@ PackageExports[
     SetHoldF, SetHoldR, SetHoldA, SetHoldC, SetHoldSeq,
     SetFlat, SetListable, SetListable1, SetListableOp,
     SetStrict, SetStrictOp, SetExcepting,
+    SetBoolVar, SetSwitchVar,
 
     DefinePseudoMacro,
 
-  "Function",         CatenateSymbolLists, JoinSymbolLists,
+  "Function",         DelDupsBy, CatenateSymbolLists, JoinSymbolLists,
   "ScopingFunction",  SubWith,
   "ControlFlow",      Initially,
   "IOFunction",       ToImplementationSymbol,
@@ -24,9 +25,20 @@ PackageExports[
 
 PrivateExports[
   "MessageFunction",  StrictMsg,
-  "SpecialVariable",  $ExceptingSyms, $ExceptingSymP
+  "SpecialVariable",  $ExceptingSyms, $ExceptingSymP,
+  "SpecialFunction",  BoolLValFn, SwitchLValFn
+];
+
+SessionExports[
+  "RegistryVariable", $SwitchValues,
   "CacheVariable",    $InitializationHashes
 ];
+
+(*************************************************************************************************)
+
+DelDupsBy[list_List, fn_] := Map[First, GatherBy[list, fn]];
+DelDupsBy[expr_, fn_]     := DeleteDuplicatesBy[expr, fn];
+DelDupsBy[fn_][expr_]     := DelDupsBy[expr, fn];
 
 (*************************************************************************************************)
 
@@ -121,7 +133,7 @@ DeclaredHere[SetListableOp, SetListable1];
 
 DeclarationDefs[
   SetListableOp[sym_Sym] := Set[ListableFunctionQ[_sym], True],
-  SetListable1[sym_Sym]  := SetD[sym[FmA_List, FmB_], Map[Function[a1, sym[a1, FmB]], FmA]]
+  SetListable1[sym_Sym]  := SetD[FmL:sym[_List, _], Thread[NoEval @ FmL, List, 1]]
 ];
 
 (*************************************************************************************************)
@@ -224,6 +236,55 @@ DeclarationDefs[
 ];
 
 SetStrict[DefineAliasRules]
+
+(**************************************************************************************************)
+
+SetHoldF @ DeclareSeqScan @ SetBoolVar;
+
+SetBoolVar[sym_Sym] := Then[
+  sym::usage = StrJoin[SymName @ sym, " can be set to True or False."],
+  SetLValFn[sym, BoolLValFn];
+]
+
+SetHoldC @ BoolLValFn;
+
+BoolLValFn[Set[_, BoolP]]     := LValOk;
+BoolLValFn[Set[sym_, value_]] := msgVarValue[sym, "boolean", value, {False, True}];
+BoolLValFn[e_]                := msgVarChange[e, "boolean"];
+
+(**************************************************************************************************)
+
+SetStrict @ SetHoldF @ SetListable1 @ SetSwitchVar;
+
+If[!HasIValueQ[$SwitchValues], $SwitchValues = UDict[]];
+
+SetSwitchVar[sym_Sym, vals_List] := Then[
+  $SwitchValues[Hold[sym]] = vals,
+  sym::usage = StrJoin[SymName @ sym, " can be set to one of ", StrJoin @ Riffle[ToInputStr /@ vals, ", "], "."],
+  SetLValFn[sym, SwitchLValFn];
+];
+
+SetHoldC @ SwitchLValFn;
+
+SwitchLValFn[Set[sym_Sym, value_]] := LValOk /; ElementQ[value, $SwitchValues @ Hold @ sym];
+SwitchLValFn[Set[sym_Sym, value_]] := msgVarValue[sym, "switch", value, $SwitchValues @ Hold @ sym];
+SwitchLValFn[e_]                   := msgVarChange[e, "switch"];
+
+(**************************************************************************************************)
+
+msgSwitchVal[Hold[s_], e_] := Message[s::invalidFlagValue, HoldForm[s], e];
+
+SetHoldF @ msgVarValue;
+msgVarValue[sym_, kind_, value_, allowed_] :=
+  (Message[Set::invalidVariableValue, kind, HoldForm[sym], HoldForm[value], FullRow[allowed, ", "]]; $Failed);
+
+SetHoldF @ msgVarChange;
+msgVarChange[expr_, kind_] := msgVarChange[expr, kind, LValHead @ expr];
+msgVarChange[expr_, kind_, Hold[sym_]] :=
+  (Message[sym::invalidVariableChange, kind, HoldForm @ expr]; $Failed);
+
+General::invalidVariableValue = "Setting for `` variable `` not valid: ``. Allowed values are ``.";
+General::invalidVariableChange = "Invalid change for `` variable: ``.";
 
 (*************************************************************************************************)
 

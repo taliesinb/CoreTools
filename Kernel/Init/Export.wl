@@ -67,29 +67,16 @@ ExportUTF8[pathArg_String, string_String] :=
 
 (*************************************************************************************************)
 
-SetStrict[ExportStringTable]
-
-Options[ExportStringTable] = Options[StringTableString];
-
-ExportStringTable::invalidData = "`` is not an association from strings to lists of strings.";
-
-ExportStringTable[path_Str, dict_Dict, opts:OptionsPattern[]] := Module[
-  {str = StringTableString[dict, opts]},
-  If[!StrQ[str],
-    Message[ExportStringTable::invalidData, dict]; $Failed,
-    ExportUTF8[path, str]
-  ]
-];
-
-(*************************************************************************************************)
-
 SetStrict[StringTableString]
 
-Options[StringTableString] = {"Sort" -> True, "Split" -> 100};
+Options[StringTableString] = {"Sort" -> True, "Split" -> 100, "Unique" -> True};
 
 StringTableString[dict_Dict, OptionsPattern[]] := Module[
-  {kvs, split, rowFn, lines},
-  kvs = {Map[ToStr, Keys @ dict], Map[ToStr, Vals @ dict, {2}]};
+  {ks, vs, kvs, split, rowFn, lines},
+  ks = Map[ToStr, Keys @ dict];
+  vs = Map[ToStr, Vals @ dict, {2}];
+  If[OptionValue["Unique"], vs //= Map[DeleteDuplicates]];
+  kvs = {ks, vs};
   If[!StrVecQ[P1 @ kvs] || !VecQ[P2 @ kvs, StrVecQ], Return @ $Failed];
   If[OptionValue["Sort"], kvs //= sortKeysVals];
   split = OptionValue["Split"];
@@ -103,7 +90,7 @@ StringTableString[dict_Dict, OptionsPattern[]] := Module[
 ];
 
 sortKeysVals[{keys_, vals_}] := Module[
-  {ord = Ordering @ keys},
+  {ord = OrderingBy[keys, {-StrLen[#], #}&]},
   List[
     Part[keys, ord],
     Sort /@ Part[vals, ord]
@@ -129,6 +116,22 @@ mulLineRow[m_][k_, vs_] := Module[
     {i, 2, Len @ vs}
   ];
   {line1, lineR}
+];
+
+(*************************************************************************************************)
+
+SetStrict[ExportStringTable]
+
+Options[ExportStringTable] = Options[StringTableString];
+
+ExportStringTable::invalidData = "`` is not an association from strings to lists of strings.";
+
+ExportStringTable[path_Str, dict_Dict, opts:OptionsPattern[]] := Module[
+  {str = StringTableString[dict, opts]},
+  If[!StrQ[str],
+    Message[ExportStringTable::invalidData, dict]; $Failed,
+    ExportUTF8[path, str]
+  ]
 ];
 
 (**************************************************************************************************)

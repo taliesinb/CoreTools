@@ -103,7 +103,10 @@ CoreBox[NamedIcon[n:namedIconP, opts___Rule]] := NamedIconCBox[n, opts];
 SetBoxFn @ NamedIconCBox;
 
 NamedIconCBox[name:namedIconP, opts___Rule] := Locals @ CatchMessages[NamedIcon,
-  UnpackSymbolsAs[NamedIconCBox, List @ opts, imageSize, iconScaling, iconColor, iconThickness, alignmentPoint];
+  UnpackSymbolsAs[
+    NamedIconCBox, List @ opts,
+    imageSize, iconScaling, iconColor, iconThickness, alignmentPoint
+  ];
   inset = NamedIconBoxFast[
     {0, 0}, {1, 0}, name,
     None, imageSize, iconScaling,
@@ -192,9 +195,9 @@ makeIconInset[pos_, dir_, prims_] := Locals[
     Construct[GraphicsBox,
       boxes,
       ImageSize -> $imageSize * {1.3, 1.3},
-      PlotRangeClipping -> False,
-      PlotRange -> {{-1, 1}, {-1, 1}} * 1.3,
-      PlotRangePadding -> None,
+      PClip -> False,
+      PRange -> {{-1, 1}, {-1, 1}} * 1.3,
+      PMargin -> None,
       AspectRatio -> (PN[$imageSize] / P1[$imageSize]),
       ImagePadding -> None
     ],

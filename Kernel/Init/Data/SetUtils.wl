@@ -6,7 +6,7 @@ PrivateExports[
   "SymbolicHead",
     ArgList,
   "MessageFunction",
-    ThrowOrderedSetMsg, ThrowNotSetLikeMsg, ThrowNotSetMsg
+    ThrowOrderedSet, AssertSetLike, AssertSet
 ];
 
 (*************************************************************************************************)
@@ -28,7 +28,7 @@ ToUSetData = CaseOf[
   l_List    := TrueRules @ l;
   d_Dict    := TrueRules @ Keys @ d;
   a_ArgList := Map[$, List @@ a];
-  e_        := If[$coerceSetElem, Rule[e, True], ThrowNotSetLikeMsg[e, USet]];
+  e_        := If[$coerceSetElem, Rule[e, True], AssertSetLike[e, USet]];
 ];
 
 (*************************************************************************************************)
@@ -41,12 +41,12 @@ MergeOSetData[e_]     := ODict @ e;
 
 ToOSetData = CaseOf[
   OSet[a_]  := a;
-  u_USet    := ThrowOrderedSetMsg[u];
-  m_MSet    := ThrowOrderedSetMsg[m];
+  u_USet    := ThrowOrderedSet[u];
+  m_MSet    := ThrowOrderedSet[m];
   l_List    := TrueRules @ l;
   d_Dict    := TrueRules @ Keys @ d;
   a_ArgList := Map[$, List @@ a];
-  e_        := If[$coerceSetElem, Rule[e, True], ThrowNotSetLikeMsg[e, OSet]];
+  e_        := If[$coerceSetElem, Rule[e, True], AssertSetLike[e, OSet]];
 ];
 
 (*************************************************************************************************)
@@ -64,7 +64,7 @@ ToMSetData = CaseOf[
   dict_Dict := lCounts @ Keys @ dict;
   list_List := lCounts @ list;
   a_ArgList := Map[$, List @@ a];
-  e_        := If[$coerceSetElem, Rule[e, 1], ThrowNotSetLikeMsg[e, MSet]];
+  e_        := If[$coerceSetElem, Rule[e, 1], AssertSetLike[e, MSet]];
 ];
 
 (*************************************************************************************************)
@@ -77,11 +77,11 @@ lCounts = CaseOf[
 
 (*************************************************************************************************)
 
-ThrowOrderedSetMsg[uset_] := ThrowMsg["orderedSetFromUnorderedSet", uset];
+ThrowOrderedSet[uset_] := ThrowMsg["orderedSetFromUnorderedSet", uset];
 General::orderedSetFromUnorderedSet = "Cannot create an OrderedSet from an UnorderedSet."
 
-ThrowNotSetLikeMsg[spec_, as_] := ThrowMsg["notSetLike", spec, as];
+AssertSetLike[spec_, as_] := ThrowMsg["notSetLike", spec, as];
 General::notSetLike = "Cannot interpret `` as a ``."
 
-ThrowNotSetMsg[spec_] := ThrowMsg["notSet", spec, as];
+AssertSet[spec_] := ThrowMsg["notSet", spec, as];
 General::notSet = "Cannot interpret `` as a set."

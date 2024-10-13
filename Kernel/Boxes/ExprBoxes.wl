@@ -473,6 +473,7 @@ headBox2[head_, boxes_] := If[singleLineQ @ boxes, headBox1Line, headBoxNLine][h
 
 headBox1Line[head_, {boxes_}]   := RowBox @ ToList[head, "[", boxes, "]"]
 headBox1Line[head_, boxes_List] := RowBox @ ToList[head, "[", RowBox @ boxes, "]"]
+headBox1Line[head_, str_Str]    := RowBox @ ToList[head, "[", str, "]"]
 headBoxNLine[head_, boxes_]     := RowBox @ ToList[head, "[", "\n", addTab["\t"] /@ addNewline /@ boxes, "\n", "]"];
 
 $needsLineP = Alt[
@@ -625,7 +626,7 @@ $colorBoxOpts = Seq[
   Frame            -> True,
   FrameStyle       -> border,
   FrameTicks       -> None,
-  PlotRangePadding -> None
+  PMargin          -> None
 ]
 
 (*************************************************************************************************)

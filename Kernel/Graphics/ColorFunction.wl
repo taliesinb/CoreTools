@@ -429,7 +429,7 @@ colorFunctionBoxes[cf:NumericColorFunction[id_InternalData]] := Locals[
   raster = makeGradientRaster[bounds, fn, 100, False];
   graphics = Graphics[raster,
     ImageSize -> {100, 8},
-    PlotRangePadding -> 0, PlotRange -> {All, {0, 1}},
+    PMargin -> 0, PRange -> {All, {0, 1}},
     ImagePadding -> 0, BaselinePosition -> Scaled[-0.1], AspectRatio -> Full
   ];
   NiceObjectBoxes["NumericColorFunction", ToBoxes /@ {bounds, graphics}]

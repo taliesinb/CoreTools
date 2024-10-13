@@ -195,6 +195,8 @@ groupToSyntaxScope = CaseOf[
   "Function"           := "support.function." <> $groupFnTag <> ".wolfram";
   "Option"             := "constant.language.symbol.option." <> $groupFnTag <> ".wolfram";
   "BoxOption"          := "constant.language.symbol.option.box.wolfram";
+  "FormOption"         := "constant.language.symbol.option.form.wolfram";
+  "GraphicsOption"     := "constant.language.symbol.option.graphics.wolfram";
   group_     := Which[
     StrEndsQ[group, "Symbol"],
       StrJoin["constant.language.symbol.", ToLowerCase @ StrDelete[group, "Symbol"], ".wolfram"],

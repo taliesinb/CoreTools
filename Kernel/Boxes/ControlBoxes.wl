@@ -1,5 +1,5 @@
 SystemExports[
-  "FormHead", Unformatted, Uninteractive, FormBlock, Themed
+  "FormHead", Unformatted, Uninteractive, FormBlock
 ];
 
 PackageExports[
@@ -31,28 +31,3 @@ FormBlockBox = CaseOf[
 ];
 
 (**************************************************************************************************)
-
-(* approach:
-have an option called Theme, which is our version of PlotTheme.
-RegisterTheme[head, name, opts] will set $ThemeData[head, name] = UDict[opts].
-look through theme stack:
-  if we see a single string, look up $ThemeData[head, name], and recurse through IT as a stack if present.
-  if we see a rule head -> spec, look through it.
-  if we see a rule prop -> value, our answer is value.
-  if we see Theme -> 'name', look through $ThemeDa
-any recursion can return DefaultValue, which will cause us to keep looking.
-
-*)
-
-(* ThemeLookup[head_Symbol, prop_Symbol] :=  *)
-
-CoreBox[themed_Themed] := themedBoxes[themed];
-
-SetHoldC @ themedBoxes;
-
-themedBoxes = CaseOf[
-  Themed[expr_, theme_Str] := MakeBox @ expr;
-  Themed[expr_]            := MakeBox @ expr;
-  _                        := $Failed;
-];
-

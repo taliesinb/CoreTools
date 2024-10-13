@@ -1,5 +1,5 @@
 SystemExports[
-  "Option",
+  "GraphicsOption",
     LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction,
     EdgeColor, EdgeThickness, ThemeParent,
     VertexColorFunction, VertexTooltips,
@@ -30,7 +30,6 @@ PackageExports[
   "GraphicsFunction",
     CustomGraphDrawing, CustomGraphMakeBoxes,
     CustomSetGraphStyle,
-
     GraphDiskFn, GraphTooltipFn
 ];
 
@@ -375,7 +374,7 @@ AddVertexAnnotations[graph_Graph, dict_Dict] := Locals @ CatchMessages[
 ];
 
 toVRules = CaseOf[
-  $[key_, list_List] := Then[SameLenQOrThrow[list, $verts, "badAnnoLen", key], Thread[key -> list]];
+  $[key_, list_List] := Then[AssertSameLenQ[list, $verts, "badAnnoLen", key], Thread[key -> list]];
   $[key_, dict_Dict] := Thread[key -> Lookup[dict, $verts]];
   $[key_, expr_]     := ThrowMsg["badAnnoData", key, expr];
 ];
@@ -449,7 +448,7 @@ GraphAnimate[graph_Graph, vertexDataSpec_, edgeDataSpec_, opts:OptionsPattern[]]
     DictThread[EdgeList @ graph, PartOfOp /@ data]
   ];
   SetNone[vTime, eTime]; SetNone[eTime, vTime];
-  SameQOrThrow[vTime, eTime, "animationTimeMismatch"];
+  AssertSameQ[vTime, eTime, "animationTimeMismatch"];
   If[time1 === None, Return @ graph];
   baseGraph = ExtGraph[graph,
     opts,

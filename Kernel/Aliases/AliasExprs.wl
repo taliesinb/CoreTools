@@ -14,7 +14,7 @@ PackageExports[
     SealedQ, UnsealedQ,
     EntryFlagQ,   ValidFlagQ,  NoEntryFlagQ, NoValidFlagQ,
     HEntryFlagQ, HValidFlagQ, HNoEntryFlagQ, HNoValidFlagQ, MDataFlagQ,
-    EvalRiskQ, NoEvalRiskQ, HMaybeFnQ, HNotFnQ, MaybeFnQ, NotFnQ,
+    EvalRiskQ, NoEvalRiskQ, HMaybeFnQ, HNotFnQ, MaybeFnQ, NotFnQ, ListableFnQ, DictFnQ, PureFnQ,
     HasAnyCodesQ, HasNoCodesQ, HasDownCodeQ, HasSubCodeQ, HasUpCodeQ, HasPrintCodeQ,
     HasAnyDefsQ,  HasNoDefsQ,  HasDownDefsQ, HasOwnDefsQ, HasSubDefsQ, HasUpDefsQ,
     HasIValueQ, HasDValueQ
@@ -63,8 +63,14 @@ DefineAliasRules[
   HNotFnQ          -> System`Private`WillNotEvaluateWhenAppliedQ
 ];
 
-MaybeFnQ[f_] := HMaybeFnQ[f];
-NotFnQ[f_]   := HNotFnQ[f];
+DefineAliasRules[
+  ListableFnQ      -> ListableFunctionQ,
+  DictFnQ          -> AssociationFunctionQ,
+  PureFnQ          -> PureFunctionQ
+];
+
+MaybeFnQ[f_]  := HMaybeFnQ[f];
+NotFnQ[f_]    := HNotFnQ[f];
 
 (*************************************************************************************************)
 

@@ -47,7 +47,7 @@ DLinearChartBox[data_, n_Integer, opts:OptionsPattern[]] := MLocals[
     "PlotBoxes"      -> plotBoxes,
     "LabelBoxes"     -> labelBoxes,
     "SelectionBoxes" -> selectionBoxes,
-    "PlotRange"      -> {{0, 1}, {0, 1}},
+    "PRange"      -> {{0, 1}, {0, 1}},
     "FramePadding"   -> {{3, 3}, {6, 6}},
     "Frame"          -> LeftRight,
     "Handler"        -> handler,

@@ -2,7 +2,7 @@ PublicTypesettingBoxFunction[DScatterPlotBox]
 
 Options[DScatterPlotBox] = JoinOptions[
   $baseDPlotOptions,
-  PlotRange -> Automatic,
+  PRange -> Automatic,
   Ticks -> True
 ];
 
@@ -54,7 +54,7 @@ DScatterPlotBox[data_, opts:OptionsPattern[]] := ModuleScope[
     "PlotBoxes"      -> plotBoxes,
     "SelectionBoxes" -> selectionBoxes,
     "TickBoxes"      -> tickBoxes,
-    "PlotRange"      -> plotRange,
+    "PRange"      -> plotRange,
     "FramePadding"   -> {{0, 0}, {0, 0}},
     "Handler"        -> handler,
     "OtherData"      -> otherData

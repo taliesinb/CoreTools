@@ -76,9 +76,9 @@ ErrBox[None] := Make[GraphicsBox, {},
 
 $redFrameOpts = Seq[
   FrameMargins -> {{3, 3}, {-1, -1}},
-  BLinePos -> Baseline,
-  Padded -> True,
-  Alignment -> Center,
+  BLinePos   -> Baseline,
+  AutoPad    -> True,
+  Just       -> Center,
   Background -> Lighter[$LightRed],
   FrameStyle -> $DarkRed
 ];

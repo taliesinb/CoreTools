@@ -28,7 +28,7 @@ SetStrict[VertexContractAgainst]
 
 VertexContractAgainst[graph_Graph, against_List] := Locals @ CatchMessages[
   verts = VertexList @ graph;
-  SameLenQOrThrow[verts, against, "badAgainstList"];
+  AssertSameLenQ[verts, against, "badAgainstList"];
   If[DuplicateFreeQ[against], Return @ graph];
   edges = EdgeList @ graph;
   canonInds = Lookup[First /@ PositionIndex[against], against];
@@ -180,8 +180,8 @@ General::graphDataLen = "Provided data is length `1`, but graph has `2` `3`."
 General::graphDataAssoc = "The `2` `1` in the graph are missing from the data association."
 General::graphDataSpec = "Unknown specification `` for data for ``. It can be a list, association, Broadcast, or ``[...]."
 
-GraphVertexData[graph_Graph, spec_] := genericGraphData[{graph, VertexCount, VertexList, VertexAnnotation, $PrintLiteral @ "vertices"}, spec];
-GraphEdgeData[graph_Graph, spec_]   := genericGraphData[{graph, EdgeCount, EdgeList, EdgeAnnotation, $PrintLiteral @ "edges"}, spec];
+GraphVertexData[graph_Graph, spec_] := genericGraphData[{graph, VertexCount, VertexList, VertexAnnotation, LitStr @ "vertices"}, spec];
+GraphEdgeData[graph_Graph, spec_]   := genericGraphData[{graph, EdgeCount, EdgeList, EdgeAnnotation, LitStr @ "edges"}, spec];
 
 genericGraphData[fns_, spec_] := Locals[
   {$graph, countFn, $itemsFn, $annoH, $name} = fns;
@@ -200,13 +200,13 @@ parseGraphDataSpec = CaseOf[
   $[(h:VertexAnnotation|EdgeAnnotation)[key_] /; h === $annoH] := Locals[
     rules = GraphAnnotationRules @ $graph;
     annos = VectorReplace[$itemsFn @ $graph, Append[rules, _ -> {}]];
-    LookupOrThrow[annos, key, "graphDataAnnoMissing", $name]
+    AssertLookup[annos, key, "graphDataAnnoMissing", $name]
   ];
 
-  $[list_List /; SameQOrThrow[Len @ list, $count, "graphDataLen", $name]] := list;
+  $[list_List /; AssertSameQ[Len @ list, $count, "graphDataLen", $name]] := list;
 
-  $[dict_Dict /; SameQOrThrow[Len @ dict, $count, "graphDataLen", $name]] :=
-    LookupListOrThrow[dict, $itemsFn @ $graph, "graphDataAssoc", $name];
+  $[dict_Dict /; AssertSameQ[Len @ dict, $count, "graphDataLen", $name]] :=
+    AssertLookupList[dict, $itemsFn @ $graph, "graphDataAssoc", $name];
 
   spec_ := ThrowMsg["graphDataSpec", spec, $name, $annoH];
 ];

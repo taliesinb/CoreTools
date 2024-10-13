@@ -1,6 +1,6 @@
 PackageExports[
   "Symbol",
-    EmptyDict, EmptyUDict, EmptyODict,
+    EmptyList, EmptyDict, EmptyUDict, EmptyODict,
     Inf, PosInf, NegInf,
     Tau,  Root2,  Root3,
     NTau, NRoot2, NRoot3, NPi
@@ -9,6 +9,7 @@ PackageExports[
 (*************************************************************************************************)
 
 DefineLiteralRules[
+  EmptyList  -> List[],
   EmptyDict  -> Evaluate @ Dict[],
   EmptyUDict -> Evaluate @ UDict[],
   EmptyODict -> Evaluate @ ODict[]

@@ -67,6 +67,7 @@ CachePrint
 LabeledPrint
 ValueChangePrint
 DPrint
+DebugGroup
 EchoPrint
 MutationPrint
 
@@ -338,7 +339,7 @@ FileLocation
 
 (*ScopingFunction*)
 
-PrintIntended
+PrintIndented
 
 
 (*PackageDeclaration*)

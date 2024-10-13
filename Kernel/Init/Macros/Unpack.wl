@@ -3,6 +3,7 @@ PackageExports[
     UnpackOptions, UnpackOptionsAs,
     UnpackSymbols, UnpackSymbolsAs,
       BindSymbols,   BindSymbolsAs,
+    ThemedLookupOptions,
     UnpackAnnotations,
     UnpackDict, PackDict,
     UnpackTuple,
@@ -22,11 +23,11 @@ UnpackOptions::usage =
 "UnpackOptions[sym$1, sym$2, $$] looks up options associated with capitalized versions of sym$i.";
 
 UnpackOptionsAs::usage =
-"UnpackOptionsAs[head$, options$, sym$1, sym$2, $$] unpacks option from options$ with matching names to sym$i, \
+"UnpackOptionsAs[head$, options$, sym$1, sym$2, $$] unpacks option from options$ with matching names to sym$i,
 using head$ for default value."
 
 UnpackDict::usage =
-"UnpackDict[assoc$, sym$1, sym$2, $$] takes association whose string keys are capitalized versions \
+"UnpackDict[assoc$, sym$1, sym$2, $$] takes association whose string keys are capitalized versions
 of sym$i and sets the corresponding symbols to their values.";
 
 UnpackSymbols::usage =
@@ -34,15 +35,17 @@ UnpackSymbols::usage =
 The keys sought will be uppercased versions of sym$i on $ContextPath."
 
 UnpackSymbolsAs::usage =
-"UnpackSymbolsAs[head$, rules$, sym$1, sym$2, $$] unpacks symbols from a list of rules or Dict.\
-The keys sought will be uppercased versions of sym$i on $ContextPath.\
-Options[head$] is used as a fallback."
+"UnpackSymbolsAs[head$, rules$, sym$1, sym$2, $$] unpacks symbols from a list of rules or Dict.
+* The keys sought will be uppercased versions of sym$i on $ContextPath.
+* Options[head$] is used as a fallback.
+* If head$ has registered themes these will be resolved via ThemedLookupOptions.
+"
 
 BindSymbols::usage =
 "BindSymbols[rules$, sym$1, sym$2, $$] unpacks the given symbols from a list of rules.
-All of these symbols are localized using InheritVar, so that if they are not specified in rules,
-they will retain their previous values.
-The keys sought will be uppercased versions of sym$i on $ContextPath."
+* All of these symbols are localized using InheritVar, so that if they are not specified in rules,
+* they will retain their previous values.
+* The keys sought will be uppercased versions of sym$i on $ContextPath."
 
 BindSymbolsAs::usage =
 "BindSymbolsAs[head$, rules$, sym$1, sym$2, $$] is like BindSymbols but issues messages from head$ \
@@ -85,12 +88,21 @@ unpkSyms[rules_, HoldM[vars_] <-> syms_]        := HoldM @ Set[vars, Lookup[rule
 unpkSyms[rules_, HoldM[vars_] <-> syms_, head_] := HoldM @ Set[vars, LookupOptionsAs[ToList @ rules, syms, head]];
 
 bindSyms[rules_, HoldM[vars_] <-> syms_]        := With[{vsd = toVSD[vars, syms]}, HoldM[BindFrom[InheritVar[vars], vsd, rules]]];
-bindSyms[rules_, HoldM[vars_] <-> syms_, head_] := With[{vsd = toVSD[vars, syms]}, HoldM[BindFrom[InheritVar[vars], vsd, rules, UnkOptMsg @ head]]];
+bindSyms[rules_, HoldM[vars_] <-> syms_, head_] := With[{vsd = toVSD[vars, syms]}, HoldM[BindFrom[InheritVar[vars], vsd, rules, ErrorOptKeyFn @ head]]];
 
 unpkAnno[obj_,   HoldM[vars_] <-> syms_]        := HoldM @ Set[vars, VectorReplace[AnnotationValue[obj, syms], $Failed :> None]]
 
 SetHoldC @ toVSD;
 toVSD[vars_, syms_] := MapThread[RuleD, NoEval @ {syms, vars}];
+
+(**************************************************************************************************)
+
+unpkSyms[rules_, HoldM[vars_] <-> syms_, head_ ? ThemedSymbolQ] :=
+  HoldM @ Then[
+    InheritVar[$CurrentThemes, $ActiveThemes];
+    {$CurrentThemes, vars} = LookupThemedOptions[head, ToList @ rules, syms];
+    $ActiveThemes[sym] = theme;
+  ];
 
 (**************************************************************************************************)
 
@@ -191,8 +203,8 @@ nameToKey2[str_Str] := Which[
 (**************************************************************************************************)
 
 nameToOpt0[str_Str] := nameToOpt0[str] = nameToOpt1 @ nameToKey1 @ str;
-nameToOpt1[str_Str] := If[NameQ[str], Symbol @ str, nameToOpt2 @ StrRep[str, "Fn" -> "Function"]];
-nameToOpt2[str_Str] := If[NameQ[str], Symbol @ str, Lookup[$NameAliases, str, MacroError["noCorrespondingSymbol", str]]];
+nameToOpt1[str_Str] := If[NameQ[str], Symbol @ str, Lookup[$NameAliases, str, nameToOpt2 @ StrRep[str, "Fn" -> "Function"]]];
+nameToOpt2[str_Str] := If[NameQ[str], Symbol @ str, MacroError["noCorrespondingSymbol", str]];
 
 General::noCorrespondingSymbol = "No symbol found corresponding to ``.";
 

@@ -1,6 +1,6 @@
 PackageExports[
   "ControlFlow",
-    Try, TryElse,
+    Try, TryElse, ErrorIsThrow,
 
   "MessageFunction",
     GeneralMessage,
@@ -12,15 +12,22 @@ PackageExports[
     ThrowException,
     ThrowErrorValue,
 
-    ThrowOnUnknownOptions, MessageOnUnknownOptions,
-    IssueMessage, IssueUnknownOptionMessage, IssueOptionMessage,
-    ThrowMessage, ThrowUnknownOptionMessage, ThrowOptionMessage,
+    IssueMessage,
+    ThrowMessage,
 
-    SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow,
-    HeadQOrThrow,
-    SameLenQOrMsg,
+    CheckIntQ, CheckBoolQ, CheckListQ, CheckDictQ, CheckStrQ, CheckNumQ, CheckFnQ,
+    AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ,
 
-    AssertThat,
+    CheckInQ, CheckSameQ, CheckSameLenQ, CheckSameSetQ, CheckSubsetOfQ, CheckLookup, CheckLookupList, CheckHeadQ, CheckOptKeys,
+    AssertInQ, AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ, AssertOptKeys,
+    ErrorOptIn, ErrorOptKey, ErrorOptVal, CheckOptVal, AssertOptVal,
+    ThrowOptIn, ThrowOptKey, ThrowOptVal, AssertOptsValid,
+
+    AssertOpts,
+    ErrorOptKeyFn, ErrorOptValFn,
+    ThrowOptKeyFn, ThrowOptValFn,
+
+    AssertThat, SetThrowing,
 
   "DebuggingFunction", Panic,
   "SpecialFunction",   Unimplemented, InternalError,
@@ -33,6 +40,7 @@ PrivateExports[
   "ControlFlow",     SetSrcLoc, HandleExceptions, DisableHandleExceptions, UnhandledException, ExceptionHandlerStack,
   "SpecialFunction", TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
   "TagSymbol",       ExceptionTag,
+  "MetaFunction",    MakeAsserting,
   "SpecialVariable", $HandlerSet, $SrcLocStack
 ];
 
@@ -50,18 +58,21 @@ General::invalidUsage      = "Invalid arguments: ``."
 General::unimplemented     = "An unimplemented code path was encountered.";
 General::internalError     = "An internal error occurred.";
 
-General::unknownOption     = "`` is not a known option to ``, which are: ``.";
-General::unknownOptionAnon = "`` is not a known option.";
-General::invalidOption     = "The setting `` -> `` is not valid.";
-
 Unimplemented := ThrowMessage["unimplemented"];
 InternalError := ThrowMessage["internalError"];
+
+(**************************************************************************************************)
+
+SetHoldC @ ErrorIsThrow;
+
+ErrorIsThrow[body_] := Block[{ErrorMessage = ThrowMessage}, body];
 
 (**************************************************************************************************)
 
 SetHoldF @ ErrorMessage;
 
 ErrorMessage[msg_Str, args___]                       := IssueMessage[General, msg, args];
+ErrorMessage[sym_Sym -> msg_Str, args___]            := IssueMessage[sym, msg, args];
 ErrorMessage[MessageName[sym_Sym, msg_Str], args___] := IssueMessage[sym, msg, args];
 
 e_ErrorMessage := GeneralMessage["invalidMessage", ErrorMessage, HoldForm @ e];
@@ -242,73 +253,136 @@ ThrowMessage::invalidThrowMessage = "Invalid call to ThrowMessage: ``.";
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict[SameQOrThrow, SameLenQOrThrow, SameSetQOrThrow, SubsetOfQOrThrow, LookupOrThrow, LookupListOrThrow];
+DeclareSeqScan[MakeAsserting];
 
-SameQOrThrow[a_, b_, msg_Str, args___]                := If[a === b, True, ThrowMessage[msg, a, b, args]];
-SameLenQOrThrow[a_, b_, msg_Str, args___]             := If[Len[a] === Len[b], True, ThrowMessage[msg, Len[a], Len[b], args]];
-SameSetQOrThrow[a_, b_, msg_Str, args___]             := If[SameSetQ[a, b], True, ThrowMessage[msg, Compl[a, b], Compl[b, a], args]];
-SubsetOfQOrThrow[a_, b_, msg_Str, args___]            := If[SubsetOfQ[a, b], True, ThrowMessage[msg, Compl[a, b], b, args]];
-LookupOrThrow[dict_, key_, msg_Str, args___]          := Lookup[dict, Key @ key, ThrowMessage[msg, key, args]];
-LookupListOrThrow[dict_, keys_List, msg_Str, args___] := Lookup[dict, keys, ThrowMessage[msg, Compl[keys, Keys @ dict], args]];
+toErrorSym1[name_] := toErrorSym2 @ StringReplace[name, {"Throw" -> "Error", "Assert" -> "Check"}];
+toErrorSym2[name_] := If[NameQ[name], Symbol @ name, ErrorPrint["No symbol ", name], $dummy];
 
-(**************************************************************************************************)
-
-SetExcepting @ SetStrict @ HeadQOrThrow;
-
-HeadQOrThrow[expr_, head_Sym]                   := HeadQOrThrow[expr, head, "internalHeadError", head, Head @ expr];
-HeadQOrThrow[expr_, head_Sym, msg_Str, args___] := If[Head[expr] === head, True, ThrowMessage[msg, args]];
-
-General::internalHeadError = "Internal error. Internal result expected to have head ``, but had head ``.";
+$toAssertRules = {ErrorMessage -> ThrowMessage, ErrorOptKey  -> ThrowOptKey, ErrorOptVal  -> ThrowOptVal};
+MakeAsserting[throwFn_Symbol] := With[
+  {errorFn = toErrorSym1 @ SymName @ throwFn},
+  SetExcepting[throwFn];
+  DownValues[throwFn] = DownValues[errorFn] /. (errorFn -> throwFn) /. $toAssertRules;
+];
 
 (**************************************************************************************************)
 
-SetStrict @ SameLenQOrMsg;
+SetStrict[CheckIntQ, CheckBoolQ, CheckListQ, CheckDictQ, CheckStrQ, CheckNumQ, CheckFnQ];
 
-SameLenQOrMsg[a_, b_, fn_] := Or[Len[a] === Len[b], Message[MessageName[fn, "lengthMismatch"], Len @ a, Len @ b]; False];
+CheckIntQ[a_, msg_:"notInt", args___]     := Or[IntQ[a],     ErrorMessage[msg, a, args]; False];
+CheckNumQ[a_, msg_:"notNum", args___]     := Or[NumQ[a, b],  ErrorMessage[msg, a, args]; False];
+CheckBoolQ[a_, msg_:"notBool", args___]   := Or[BoolQ[a],    ErrorMessage[msg, a, args]; False];
+CheckListQ[a_, msg_:"notList", args___]   := Or[ListQ[a],    ErrorMessage[msg, a, args]; False];
+CheckDictQ[a_, msg_:"notDict", args___]   := Or[DictQ[a],    ErrorMessage[msg, a, args]; False];
+CheckStrQ[a_, msg_:"notStr", args___]     := Or[StrQ[a],     ErrorMessage[msg, a, args]; False];
+CheckFnQ[a_, msg_:"notFn", args___]       := Or[MaybeFnQ[a], ErrorMessage[msg, a, args]; False];
 
-General::lengthMismatch = "Incompatible argument lengths `` and ``.";
+General::notInt = "Value not an integer: ``.";
+General::notNum = "Value not a number: ``.";
+General::notBool = "Value not a boolean: ``.";
+General::notList = "Value not a list: ``.";
+General::notDict = "Value not a dict: ``.";
+General::notStr = "Value not a string: ``.";
+General::notFn = "Value not a function: ``.";
+
+DeclaredHere[AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ];
+MakeAsserting[AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ];
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict @ ThrowOnUnknownOptions;
-SetStrict @ MessageOnUnknownOptions;
+SetStrict[CheckInQ, CheckSameQ, CheckSameLenQ, CheckSameSetQ, CheckSubsetOfQ, CheckLookup, CheckLookupList, CheckHeadQ];
 
-ThrowOnUnknownOptions[head_Symbol] := Null;
+CheckInQ[a_, b_, msg_:"notIn", args___]                  := If[ElementQ[a, b], True, ErrorMessage[msg, a, b, args]; False];
+CheckSameQ[a_, b_, msg_:"notSame", args___]              := If[a === b, True, ErrorMessage[msg, a, b, args]; False];
+CheckSameLenQ[a_, b_, msg_:"notSameLen", args___]        := If[Len[a] === Len[b], True, ErrorMessage[msg, Len[a], Len[b], args]; False];
+CheckSameSetQ[a_, b_, msg_:"notSameSet", args___]        := If[SameSetQ[a, b], True, ErrorMessage[msg, Compl[a, b], Compl[b, a], args]; False];
+CheckSubsetOfQ[a_, b_, msg_:"notSubset", args___]        := If[SubsetOfQ[a, b], True, ErrorMessage[msg, Compl[a, b], b, args]; False];
+CheckHeadQ[e_, h_Sym, msg_:"notHead", args___]           := If[Head[e] === h, True, ErrorMessage[msg, h, Head @ e, args]; False];
+CheckLookup[d_, key_, msg_:"badKey", args___]            := Lookup[d, Key @ key, ErrorMessage[msg, key, args]];
+CheckLookupList[d_, keys_List, msg_:"badKeys", args___]  := Lookup[d, keys, ErrorMessage[msg, Compl[keys, Keys @ d], args]];
 
-ThrowOnUnknownOptions[head_Symbol, key_ -> _] :=
-  If[!OptionKeyQ[head, key], ThrowUnknownOptionMessage[head, key]];
+ DeclaredHere[AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
+MakeAsserting[AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
 
-ThrowOnUnknownOptions[head_Symbol, opts___] := Locals[
-  validKeys = OptionKeys @ head;
+General::notIn = "Value `` not one of ``.";
+General::notSame = "Value `` is not ``.";
+General::notSameLen = "Length `` does not match ``.";
+General::notSameSet = "Sets not same, with diff `` and ``.";
+General::notSubset = "Set `` not a subset of ``.";
+General::notHead = "Value had head ``, not ``.";
+General::badKey = "Key not found: ``.";
+General::badKeys = "Keys not found: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[CheckOptVal, ErrorOptKey, ErrorOptVal];
+
+CheckOptVal[opt_, val_, list_List]          := If[ElementQ[val, list], val, ErrorOptVal[opt, val, list]; First @ list];
+CheckOptVal[opt_, val_, test_, def_:Auto]   := If[TrueQ[test[val]], val,    ErrorOptVal[opt, val, test]; def];
+CheckOptVal[opt_, val_, test_, def_, desc_] := If[TrueQ[test[val]], val,    ErrorOptVal[opt, val, desc]; def];
+
+ErrorOptKey[head_, key_]          := ErrorMessage["optKeyNotIn", key, head, FullRow[OptionKeys @ head, ","]];
+ErrorOptKey[General, key_]        := ErrorMessage["optKey", key];
+
+ErrorOptVal[opt_, val_]           := ErrorMessage["optVal", opt, val];
+ErrorOptVal[opt_, val_, in_List]  := ErrorMessage["optValNotIn", opt, val, FullRow[in, ", "]];
+ErrorOptVal[opt_, val_, IntQ]     := ErrorMessage["optValNotInt", opt, val];
+ErrorOptVal[opt_, val_, BoolQ]    := ErrorMessage["optValNotBool", opt, val];
+ErrorOptVal[opt_, val_, NumQ]     := ErrorMessage["optValNotNum", opt, val];
+ErrorOptVal[opt_, val_, StrQ]     := ErrorMessage["optValNotStr", opt, val];
+ErrorOptVal[opt_, val_, ListQ]    := ErrorMessage["optValNotList", opt, val];
+ErrorOptVal[opt_, val_, DictQ]    := ErrorMessage["optValNotDict", opt, val];
+ErrorOptVal[opt_, val_, _]        := ErrorMessage["optVal", opt, val];
+
+ErrorOptVal[opt_, val_, desc:(_Str|_StrForm|_LitStr)] := ErrorMessage["optValInfo", opt, val, desc];
+
+ DeclaredHere[AssertOptVal, ThrowOptKey, ThrowOptVal];
+MakeAsserting[AssertOptVal, ThrowOptKey, ThrowOptVal];
+
+General::optKey      = "`` is not a known option.";
+General::optKeyNotIn = "`` is not a known option to ``, which are: ``.";
+General::optVal      = "The setting `` -> `` is not valid.";
+General::optValInfo  = "The setting `` -> `` is not valid: ``.";
+
+General::optValNotIn   = "The setting `` -> `` should be one of ``.";
+General::optValNotInt  = "The setting `` -> `` should be an integer.";
+General::optValNotBool = "The setting `` -> `` should be True or False.";
+General::optValNotNum  = "The setting `` -> `` should be a number.";
+General::optValNotStr  = "The setting `` -> `` should be a string.";
+General::optValNotList = "The setting `` -> `` should be a list.";
+General::optValNotDict = "The setting `` -> `` should be a dictionary.";
+
+(**************************************************************************************************)
+
+SetStrict @ CheckOptKeys;
+
+CheckOptKeys[head_Symbol] := Null;
+CheckOptKeys[head_Symbol, key_ -> _]            := If[!OptionKeyQ[head, key], ErrorOptKey[head, key]];
+CheckOptKeys[head_Symbol, opts___]              := CheckOptKeys[head, OptionKeys @ head, opts];
+CheckOptKeys[head_Symbol -> keys_List, opts___] := CheckOptKeys[head, keys, opts];
+CheckOptKeys[head_Symbol, validKeys_List, opts__] := Module[{actualKeys, badKeys},
   actualKeys = Keys @ FlatList @ opts;
   badKeys = Compl[actualKeys, validKeys];
-  If[NonEmptyQ[badKeys], ThrowUnknownOptionMessage[head, First @ badKeys]];
+  If[NonEmptyQ[badKeys], ErrorOptKey[head, First @ badKeys]];
 ];
 
-MessageOnUnknownOptions[args___] := Block[
-  {ThrowUnknownOptionMessage = IssueUnknownOptionMessage},
-  ThrowOnUnknownOptions[args]
-];
+DeclaredHere[AssertOptKeys];
+MakeAsserting[AssertOptKeys];
 
 (**************************************************************************************************)
 
-Clear[IssueUnknownOptionMessage, ThrowUnknownOptionMessage];
-
-SetExcepting @ SetCurry1 @ ThrowUnknownOptionMessage;
-SetCurry1 @ IssueUnknownOptionMessage;
-
-IssueUnknownOptionMessage[head_, key_]   := ErrorMessage["unknownOption", key, head, FullRow[OptionKeys @ head, ","]];
-ThrowUnknownOptionMessage[head_, key_]   := ThrowMessage["unknownOption", key, head, FullRow[OptionKeys @ head, ","]];
-IssueUnknownOptionMessage[General, key_] := ErrorMessage["unknownOptionAnon", key];
-ThrowUnknownOptionMessage[General, key_] := ThrowMessage["unknownOptionAnon", key];
+ErrorOptKeyFn[head_][key_] := ErrorOptKey[key, key];
+ErrorOptValFn[head_][key_] := ErrorOptVal[key, key];
+ThrowOptKeyFn[head_][key_] := ThrowOptKey[key, key];
+ThrowOptValFn[head_][key_] := ThrowOptVal[key, key];
 
 (**************************************************************************************************)
 
-SetExcepting @ SetStrict @ ThrowOptionMessage;
-SetStrict @ ThrowOptionMessage;
+SetStrict[AssertOptsValid, assertOpt];
 
-IssueOptionMessage[opt_, val_] := ErrorMessage["invalidOption", opt, val];
-ThrowOptionMessage[opt_, val_] := ThrowMessage["invalidOption", opt, val];
+AssertOptsValid[rules___Rule] := Scan[assertOpt, {rules}];
+
+assertOpt[key_ -> val_ -> test_] := AssertOptVal[key, val, test];
 
 (**************************************************************************************************)
 

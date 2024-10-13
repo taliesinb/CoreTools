@@ -2,8 +2,9 @@ PackageExports[
   "ControlFlow", WithTimestampsPreserved,
   "Predicate",   HasLValFnQ,
   "MetaFn",      SetLValFn,
-  "ControlFlow", LValEval,  LValEvalFail,
-  "Function",    LValParts, LValHead
+  "ControlFlow", LValEval,
+  "TagSymbol",   LValOk, LValFail,
+  "HoldFn",      LValParts, LValHead
 ];
 
 (*************************************************************************************************)
@@ -14,7 +15,8 @@ DefineAliasRules[
   HasLValFnQ     -> Language`HasMutationHandlerQ,
   SetLValFn      -> Language`SetMutationHandler,
   LValEval       -> Language`HandleMutation,
-  LValEvalFail   -> Language`MutationFallthrough,
+  LValOk         -> Language`MutationFallthrough,
+  LValFail       -> Fail,
   LValParts      -> Language`DestructureLValue,
   LValHead       -> Language`GetLValueSymbol
 ];

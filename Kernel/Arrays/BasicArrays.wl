@@ -15,7 +15,7 @@ PackageExports[
     EnsurePacked, EnsurePackedReals, EnsurePackedInts,
     FormalSymbolArray,
   "MessageFunction",
-    ThrowRealArrayMsg
+    ThrowRealArray
 ];
 
 (**************************************************************************************************)
@@ -84,11 +84,11 @@ EnsurePackedReals[arr_, else_] := Ensure[ToPacked[N @ arr, Real], PackedQ, else]
 
 (**************************************************************************************************)
 
-SetStrict[ThrowRealArrayMsg]
+SetStrict[ThrowRealArray]
 
-ThrowRealArrayMsg[array_, d_Int] := ThrowRealArrayMsg[array, {d, d}];
+ThrowRealArray[array_, d_Int] := ThrowRealArray[array, {d, d}];
 
-ThrowRealArrayMsg[array_, {minD_Int, maxD_Int}] := Module[
+ThrowRealArray[array_, {minD_Int, maxD_Int}] := Module[
   {depth, depthStr, badPos, badValue},
   depth = ArrayDepth[array];
   depthStr = If[minD == maxD, minD, StringForm["`` to ``", minD, maxD]];
