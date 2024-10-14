@@ -1,5 +1,4 @@
 PackageExports[
-  "Function",            OrderedTreeLayout,
   "GraphicsDirective",   FaceEdge,
   "GraphicsFunction",    ExprTreePlot, TreeNodeColor,
   "Function",            AllTreesDepth, AllTrees, ToTree, UnfoldTree, UnfoldTreeData, RemoveTreeData,

@@ -157,9 +157,9 @@ BlockTheme[spec_, body_] := IBlock[
 
 (**************************************************************************************************)
 
-SetTheme[spec:SymOrVecP, themes__Str] := (setActive2[spec, {themes}]);
-SetTheme[spec:ThemeSpecP]             := (setActive1[spec];)
-SetTheme[spec:ThemeSpecP..]           := (setActive1[List @ spec];)
+SetTheme[spec:SymOrVecP, themes:Alt[__Str, None]] := (setActive2[spec, {}]);
+SetTheme[spec:ThemeSpecP]   := (setActive1[spec];)
+SetTheme[spec:ThemeSpecP..] := (setActive1[List @ spec];)
 
 s_SetTheme := msgBadBinding[SetTheme, HoldForm @ s];
 
@@ -172,7 +172,7 @@ setActive2[sym_Sym | {sym_Sym}, themes_] := If[ThemedSymbolQ[sym],
   msgThemeBadSym[SetTheme, sym]
 ];
 
-testName[sym_, names_][name_Str] := If[VContainsQ[names, name], name, msgBadTheme[sym, name]; Nothing];
+testName[sym_, names_][name_] := If[VContainsQ[names, name], name, msgBadTheme[sym, name]; Nothing];
 
 SetListable[setActive1];
 

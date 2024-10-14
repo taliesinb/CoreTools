@@ -593,6 +593,7 @@ stdBox2 = CaseOf[
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
   col:ColorP ? HoldColorQ             := SwatchBox @ col;
+  m_DynamicModule                     := MakeBoxes @ m;
   arb:(_Sym ? OperatorFormHeadQ[___][___]) := operatorFormBox @ arb;
   arb:(_Sym ? CompoundFormHeadQ[___])      := compoundFormBox @ arb;
   arb:(_Sym ? AtomFormHeadQ[___])          := atomFormBox @ arb;

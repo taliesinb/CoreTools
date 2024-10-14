@@ -18,6 +18,7 @@ LineTowards[line:{a_, b_}, point_, dist_] := Module[
   {a - delta, b - delta}
 ]
 
+PointTowards[p_, q_, ZeroP]  := p;
 PointTowards[p_, q_, d:NumP] := If[Dist[p, q] >= d, q, a + Normalize[b - a] * d];
 
 (**************************************************************************************************)

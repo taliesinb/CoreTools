@@ -1,4 +1,5 @@
 Echoing.wl
 FindSymbols.wl
 FindMessages.wl
+DebugDynamics.wl
 PrePrintFns.wl

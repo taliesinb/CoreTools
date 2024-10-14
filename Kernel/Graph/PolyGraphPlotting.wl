@@ -6,25 +6,70 @@ SystemExports[
     RootPosition,
     NodeGroups, GroupStyles,
     NodeBackground, NodeOffset,
-    SharedLeaves, EdgeFn
+    SharedLeaves, EdgeFn,
+    FanDistance, ReverseEdges
 ];
 
 PackageExports[
-  "SymbolicHead",     FaceEdge,
-  "GraphicsFunction", ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor
+  "GraphicsFunction", PolyGraphPlot,
+  "Function", EdgeArityGroups
 ];
 
 (**************************************************************************************************)
 
-InsetNode[content_, fn_:Id, opts___][pos_, size_, color_] :=
-  Inset[Style[fn[content], color, opts, Background -> GrayLevel[1,1]], pos, Center, Alignment -> Center];
+pathLines[fn_, src_, tgt_, paths_List, edges_] :=
+  fn @ $fwdFn @ SetbackLine[{$s1, $s2}] @ makeVBend[src, tgt];
+
+fanOLines[fn_, src_, {tgt_}, paths_List, edges_] := pathLines[fn, src, tgt, paths, edges];
+fanILines[fn_, {src_}, tgt_, paths_List, edges_] := pathLines[fn, tgt, src, paths, edges];
+
+fanOLines[fn_, src_, tgts_, paths_List, edges_] :=
+  makeFan[src, tgts, $fwdFn, $lineFn[fn], $arrowFn[fn], fn, $s1, $s2, True];
+
+fanILines[fn_, srcs_, tgt_, paths_List, edges_] :=
+  makeFan[tgt, srcs, $revFn, $lineFn[fn], $arrowFn[fn], fn, $s2, $s1, False];
+
+makeFan[a_, bs_, g_, fn1_, fn2_, fn3_, s1_, s2_, bendy_] := Locals[
+  a1 = a; bys = Col2 @ bs; n = Len @ bs;
+  dy = Sign[Mean[bys] - P2[a1]];
+  dd = List[0, dy];
+  fd = $fanDistance;
+  bs1 = ThreadPlus[dd * -s2, SortBy[bs, P1]];
+  If[bendy,
+    If[fd <= 0 || !bendy, stub = None,
+      a1 += dd * s1;
+      a0 = a1;
+      a1 += dd * Max[fd - s1, 0];
+      stub = fn1 @ g @ List[a0, a1]
+    ];
+    {ax, ay} = a1;
+    {b1, bn} = FirstLast @ bs1;
+    p1 = makeBend[a1, b1];
+    pn = makeBend[a1, bn];
+    pm = makeMid[ay] /@ Part[bs1, 2;;-2];
+    prims = fn2 /@ g /@ List[p1, Splice @ pm, pn];
+    If[stub === None, prims, Append[prims, stub]]
+  ,
+    splay = Range[n]-(n/2. + .5);
+    a1 += dd * s1;
+    ZipMap[fn3[g @ makeVBend[a1 + {#2, 0}, #1]]&, bs1, $rounding/3 * splay]
+  ]
+];
+
+makeMid[ay_][b:{bx_, by_}] := {{bx, ay}, b};
+makeBend[a_, b_] := RoundedCurvePointsFast[cornerPoints[a, b], $rounding, "Arc"];
+
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] /; Dist[ax, bx] < .05 := {a, b};
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := BezierPoints[{a, {ax, Avg[ay, by]}, {bx, Avg[ay, by]}, b}];
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := AngledCurvePoints[{a, b}, JoinStyle -> Vertical, Rounding -> $rounding*.75, Shortcut -> $rounding/2];
+
+cornerPoints[a:{ax_, ay_}, b:{bx_, by_}] := {a, {bx, ay}, b};
 
 (**************************************************************************************************)
 
-Options[NiceTreePlot] = {
+Options[PolyGraphPlot] = {
   GraphScale        -> 30,
-  HStretch          -> 1.0,
-  VStretch          -> 1.0,
+  AspectRatio       -> 0.8,
   NodeTooltips      -> None,
   NodeColor         -> Auto,
   NodeSize          -> 5,
@@ -34,10 +79,13 @@ Options[NiceTreePlot] = {
   NodeGroups        -> None,
   GroupStyles       -> None,
   NodeOffset        -> {0, 0},
-  SplitPosition     -> Top,
+  FanDistance       -> 0,
   Rounding          -> 0.25,
   PMargin           -> 0.5,
   FontSize          -> 10,
+  HStretch          -> 1.2,
+  VStretch          -> 1,
+  AspectRatio       -> 1,
   FontFamily        -> Inherited,
   FontWeight        -> Inherited,
   FontSlant         -> Inherited,
@@ -47,35 +95,35 @@ Options[NiceTreePlot] = {
   RootPosition      -> Top,
   BaselinePosition  -> Root,
   SharedLeaves      -> {},
-  EdgeFn            -> Line,
-  FanDistance       -> None,
   ReverseEdges      -> False,
-  Setback           -> 0
+  EdgeFn            -> Line,
+  Setback           -> {0, 0}
 };
+
+blendXs[coords_][{x_, y_}] := {N @ Median @ Col1 @ coords, y};
 
 SetPred1 @ extColorQ;
 extColorQ[FaceEdge[ColorP, ColorP] | ColorP] := True;
 
 $defaultColor = RGBColor[0.4, 0.4, 0.4];
 
-SetStrict[NiceTreePlot];
+SetStrict[PolyGraphPlot];
 
-NiceTreePlot[edges:{___Rule}, opts___Rule] := NiceTreePlot[Graph[edges], opts];
+PolyGraphPlot[edges:{___Rule}, opts___Rule] := PolyGraphPlot[Graph[edges], opts];
 
-NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
+PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
 
-  CheckOptKeys[NiceTreePlot, opts];
+  CheckOptKeys[PolyGraphPlot, opts];
 
   UnpackSymbolsAs[
-    NiceTreePlot, List @ opts,
-    graphScale, hStretch, vStretch,
-    edgeColor, edgeThickness,
+    PolyGraphPlot, List @ opts,
+    graphScale, edgeColor, edgeThickness,
     rootPosition, baselinePosition,
-    nodeData,
+    nodeData, hStretch, vStretch,
     fontSize, fontWeight, fontFamily, fontSlant,
-    sharedLeaves, splitPosition, rounding, pMargin,
+    sharedLeaves, $rounding, pMargin,
     nodeThickness, $nodeBackground, $nodeOffset,
-    edgeFn, setback
+    edgeFn, setback, $fanDistance, reverseEdges
   ];
 
   AssertOptsValid[
@@ -85,30 +133,59 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
     EdgeThickness -> edgeThickness -> NumQ
   ];
 
+  {$s1, $s2} = EnsurePair[setback, NumQ];
+  If[reverseEdges,
+    {$fwdFn, $revFn} = {Rev, Id};
+    $lineFn = Id; $arrowFn = Line&;
+  ,
+    {$fwdFn, $revFn} = {Id, Rev};
+    $lineFn = Line&; $arrowFn = Id;
+  ];
   vertexCount = VertexCount @ graph;
+  vertexList = VertexList @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
 
-  aspectRatio = vStretch / hStretch;
-  {vertexCoords, edgeCoords, plotBounds} = OrderedTreeLayout[graph,
-    RootPosition -> rootPosition, "LayerDepths" -> aspectRatio,
-    SharedLeaves -> sharedLeaves, PMargin -> pMargin,
-    Setback -> setback,
-    SplitPosition -> splitPosition, RoundingRadius -> rounding
-  ];
+  {vertexCoords, pathsDict} = DAGLayout[graph, HStretch -> 1*hStretch, VStretch -> vStretch];
+
+  stretch = ThreadTimesOp[{1.2, 1}];
+  plotBounds = CoordinateBounds[vertexCoords, pMargin];
 
   {{plotL, plotR}, {plotB, plotT}} = plotBounds;
   {plotW, plotH} = plotSize = Dist @@@ plotBounds;
   imageSize = plotSize * graphScale;
   $scale = 0.5 / graphScale;
 
-  edgeStyle = Directive @ AThickness @ edgeThickness;
+  If[ListQ[edgeFn],
+    If[Len[edgeFn] =!= 3, ReturnFailed[]];
+    {pathFn, fanOFn, fanIFn} = edgeFn;
+  ,
+    pathFn = fanOFn = fanIFn = edgeFn;
+  ];
+
+  vertsDict = UDictThread[VertexList @ graph, vertexCoords];
+  {paths, fanOs, fanIs} = EdgeArityGroups[graph];
+  $y1s = UDict[];
+  Do[
+    KeyValueMap[ApplyTo[vertsDict[P1 @ #1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, paths];
+    KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, fanOs];
+    KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col1 @ #2]]]&, fanOs];
+  ,
+    (* KeyValueMap[Set[vertsDict[#1], Mean @ Col1 @ #2]&, fanOs], *)
+    {3}
+  ];
+  pathPrims = KeyValueMap[pathLines[pathFn, vertsDict @ P1[#1], vertsDict @ P2[#1], pathsDict /@ #2, #2]&, paths];
+  fanOPrims = KeyValueMap[fanOLines[fanOFn, vertsDict @ #1, vertsDict /@ Col2[#2], pathsDict /@ #2, #2]&, fanOs];
+  fanIPrims = KeyValueMap[fanILines[fanIFn, vertsDict /@ Col1[#2], vertsDict @ #1, pathsDict /@ #2, #2]&, fanIs];
+  edgePrims = List[pathPrims, fanOPrims, fanIPrims];
+  vertexCoords = Lookup[vertsDict, vertexList];
+
+  edgeStyle = Directive[AThickness @ edgeThickness, $niceArrowhead];
   nodeStyle = EdgeForm @ AThickness @ nodeThickness;
 
   itemData = transposeDict @ GraphVertexAnnotations @ graph;
   If[nodeData =!= Auto, AppendTo[itemData, nodeData]];
 
-  vertexList = VertexList @ graph;
-  vertexSpecs = ParseItemOptions[NiceTreePlot,
+  vertexSpecs = ParseItemOptions[PolyGraphPlot,
     $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> Auto,
     ItemData -> itemData, ItemGroups -> NodeGroups, GroupSettings -> GroupStyles
   ];
@@ -123,7 +200,7 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
 
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
   primitives = List[
-    Style[edgeFn @ edgeCoords, edgeStyle],
+    Style[edgePrims, edgeStyle],
     Style[vertexPrims, nodeStyle, Seq @@ fontStyle]
   ];
 
@@ -142,6 +219,38 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   ]
 ];
 
+$arrowheadCurve = Polygon[
+      ToPacked @ ThreadPlus[{-0.4, 0}, 0.8*{{{-0.3166, -0.3333}, {-0.3166, 0.3333}, {0.25, 0.}}}]
+    ];
+
+(*   FilledCurve[
+    {{{0, 2, 0}, {0, 1, 0}, {0, 1, 0}}},
+    ToPacked @ ThreadPlus[{-0.4, 0}, {{{-0.3166, -0.25}, {-0.1833, 0.}, {-0.3166, 0.25}, {0.25, 0.}}}]
+  ]
+ *)
+$niceArrowhead = Arrowheads[{{Medium, 1.0, List[Graphics @ $arrowheadCurve, .4]}}];
+
+(**************************************************************************************************)
+
+EdgeArityGroups[graph_Graph] := Locals[
+  verts = VertexList @ graph;
+  edges = EdgeList @ graph;
+  toDegDict = Function[UDictThread[verts] @ Clip[#, {0, 2}]];
+  odeg = toDegDict @ VertexOutDegree[graph];
+  ideg = toDegDict @ VertexInDegree[graph];
+  paths = UDict[]; (* {src, tgt} -> edges *);
+  fanOs = UDict[]; (* src -> edges *);
+  fanIs = UDict[]; (* tgt -> edges *);
+  procEdge = Function[Switch[{odeg[P1 @ #1], ideg[P2 @ #]},
+    {2, 1}, KeyAppendTo[fanOs, P1 @ #, #],
+    {_, 2}, KeyAppendTo[fanIs, P2 @ #, #],
+    _,      KeyAppendTo[paths, {P1 @ #, P2 @ #}, #]]];
+  Scan[procEdge, edges];
+  {paths, fanOs, fanIs}
+];
+
+(**************************************************************************************************)
+
 transposeDict[_]         := None;
 transposeDict[annos_Dict] := Locals[
   {verts, dicts} = KeysVals @ Select[annos, DictQ];
@@ -149,6 +258,8 @@ transposeDict[annos_Dict] := Locals[
   vals = Map[key |-> Lookup[dicts, key, None], keys];
   DictThread[keys, vals]
 ];
+
+(**************************************************************************************************)
 
 (* if they are all BCast, just do the make inside and wrap with BCast
 if none are bcasts, just do Make,
@@ -309,5 +420,4 @@ $treePlotVertexSpecs = {
   ItemSpec[NodeSize,     NumberQ],
   ItemSpec[NodeShape,    validShapeFnQ, Inherit, finalShapeFn, ItemMessageFn -> shapeError]
 };
-
 

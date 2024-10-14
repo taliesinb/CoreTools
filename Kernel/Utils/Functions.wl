@@ -60,7 +60,7 @@ PreCompose = CaseOf[
 
 MakeHoldComplete[fn_Fn, a___]          := PostCompose[fn, HoldComplete][a];
 MakeHoldComplete[Apply[fn_Fn], {a___}] := PostCompose[fn, HoldComplete][a];
-MakeHoldComplete[fn_, args___]         := HoldComplete[fn[a]];
+MakeHoldComplete[fn_, a___]         := HoldComplete[fn[a]];
 
 ApplyHoldComplete[fn_Fn, _[a___]] := PostCompose[fn, HoldComplete][a];
 ApplyHoldComplete[fn_,   _[a___]] := HoldComplete[fn[a]];

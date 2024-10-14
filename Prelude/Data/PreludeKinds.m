@@ -165,6 +165,7 @@ SymbolTableSymbolCount
 (*ControlFlowFunction*)
 
 QuietCheck
+TrapMessages
 HandleSymbolChanges
 
 

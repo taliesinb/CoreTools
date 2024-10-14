@@ -66,7 +66,7 @@ SystemExports[
     NaturalNumberString, FullIntegerString,
 
   "ControlFlow",
-    QuietCheck,
+    QuietCheck, TrapMessages,
 
   "MessageFunction",
     CheckedRHS,
@@ -173,6 +173,12 @@ DeclareHoldAllComplete[QuietCheck]
 
 QuietCheck[body_]        := QuietCheck[body, $Failed];
 QuietCheck[body_, else_] := Quiet @ Check[body, else];
+
+(**************************************************************************************************)
+
+DeclareHoldFirst[TrapMessages]
+
+TrapMessages[body_, handlerFn_] := Internal`HandlerBlock[{"Message", handlerFn}, body];
 
 (**************************************************************************************************)
 
