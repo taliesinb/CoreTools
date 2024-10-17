@@ -15,6 +15,11 @@ PackageExports[
     IssueMessage,
     ThrowMessage,
 
+    CheckMessageFree,
+    AssertMessageFree,
+    ErrorInternal,
+    ThrowInternal,
+
     CheckIntQ, CheckBoolQ, CheckListQ, CheckDictQ, CheckStrQ, CheckNumQ, CheckFnQ,
     AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ,
 
@@ -31,15 +36,15 @@ PackageExports[
 
   "DebuggingFunction", Panic,
   "SpecialFunction",   Unimplemented, InternalError,
-  "Predicate",         GeneralMessageQ, SymbolMessageQ
+  "Predicate",         GeneralMessageQ, SymbolMessageQ, MessageNameActiveQ
 ];
 
 PrivateExports[
-  "Function",        AttachSrcLocs,
+  "Function",        AttachSrcLocs, QuietStack, QuietStackID,
   "SymbolicHead",    MessageException, FailureException, LiteralException,
   "ControlFlow",     SetSrcLoc, HandleExceptions, DisableHandleExceptions, UnhandledException, ExceptionHandlerStack,
-  "SpecialFunction", TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler,
-  "TagSymbol",       ExceptionTag,
+  "SpecialFunction", TryElseHandler, TryHandler, CatchAsMessageHandler, CatchAsFailureHandler, MessageFreeTrapFn,
+  "TagSymbol",       ExceptionTag, MessageFreeTag,
   "MetaFunction",    MakeAsserting,
   "SpecialVariable", $HandlerSet, $SrcLocStack
 ];
@@ -57,6 +62,7 @@ ThrowErrorMessage[...] postpones this, throwing and catching at a CatchMessages,
 General::invalidUsage      = "Invalid arguments: ``."
 General::unimplemented     = "An unimplemented code path was encountered.";
 General::internalError     = "An internal error occurred.";
+General::internalErrorInfo = "An internal error occurred: ``.";
 
 Unimplemented := ThrowMessage["unimplemented"];
 InternalError := ThrowMessage["internalError"];
@@ -197,6 +203,20 @@ TryHandler[head_, MessageException[sloc_, symbol_, name_Str, args___]]   := Issu
 
 (**************************************************************************************************)
 
+QuietStackID[] := getId @ Lookup[Internal`QuietStatus[], Stack];
+
+getId[HoldForm[{}]] := 0;
+getId[h_]           := Part[h, 1, -1, 1];
+
+QuietStack[]    := First @ Apply[Hold, Lookup[Internal`QuietStatus[], Stack], {2}];
+QuietStack[id_] := Select[QuietStack[], First /* GreaterThan[id]];
+
+SetHoldF[MessageNameActiveQ]
+
+MessageNameActiveQ[msg:MessageName[_, name_], id_] := FreeQ[QuietStack[id], All | HoldP[msg] | HoldP[General::name]];
+
+(**************************************************************************************************)
+
 "CatchMessages[head$, body$] catches errors thrown by ThrowMessage.
 CatchMessages[body$] uses the current head."
 
@@ -258,12 +278,48 @@ DeclareSeqScan[MakeAsserting];
 toErrorSym1[name_] := toErrorSym2 @ StringReplace[name, {"Throw" -> "Error", "Assert" -> "Check"}];
 toErrorSym2[name_] := If[NameQ[name], Symbol @ name, ErrorPrint["No symbol ", name], $dummy];
 
-$toAssertRules = {ErrorMessage -> ThrowMessage, ErrorOptKey  -> ThrowOptKey, ErrorOptVal  -> ThrowOptVal};
+$toAssertRules = {
+  ErrorMessage   -> ThrowMessage,
+  ErrorInternal  -> ThrowInternal,
+  ErrorOptKey    -> ThrowOptKey,
+  ErrorOptVal    -> ThrowOptVal
+};
+
 MakeAsserting[throwFn_Symbol] := With[
   {errorFn = toErrorSym1 @ SymName @ throwFn},
-  SetExcepting[throwFn];
+  SetExcepting[throwFn]; Attributes[throwFn] = Attributes[errorFn];
   DownValues[throwFn] = DownValues[errorFn] /. (errorFn -> throwFn) /. $toAssertRules;
 ];
+
+(**************************************************************************************************)
+
+SetHoldC @ CheckMessageFree;
+
+CheckMessageFree[body_] := With[
+  {id = QuietStackID[]},
+  Catch[
+    TrapMessages[body, MessageFreeTrapFn[id]],
+    MessageFreeTag[id],
+    Seq1 /* ErrorInternal
+  ]
+];
+
+MessageFreeTrapFn[id_][Hold[msg:Message[msgName_, ___], _]] /; MessageNameActiveQ[msgName, id] :=
+  Throw[Hold[msg], MessageFreeTag[id]];
+
+MessageFreeTrapFn[_][_] := Null;
+
+MakeAsserting[AssertMessageFree];
+
+(**************************************************************************************************)
+
+SetStrict[ErrorInternal];
+
+ErrorInternal[]                                 := ErrorMessage["internalError"];
+ErrorInternal[msg_Str]                          := ErrorMessage["internalErrorInfo", msg];
+ErrorInternal[Hold[msg:Message[msgName_, ___]]] := ErrorMessage["internalErrorInfo", HoldForm @ msgName];
+
+MakeAsserting[ThrowInternal];
 
 (**************************************************************************************************)
 
@@ -360,6 +416,7 @@ CheckOptKeys[head_Symbol] := Null;
 CheckOptKeys[head_Symbol, key_ -> _]            := If[!OptionKeyQ[head, key], ErrorOptKey[head, key]];
 CheckOptKeys[head_Symbol, opts___]              := CheckOptKeys[head, OptionKeys @ head, opts];
 CheckOptKeys[head_Symbol -> keys_List, opts___] := CheckOptKeys[head, keys, opts];
+CheckOptKeys[head_Symbol, validKeys_List, dict_Dict] := CheckOptKeys[head, validKeys, Normal @ dict];
 CheckOptKeys[head_Symbol, validKeys_List, opts__] := Module[{actualKeys, badKeys},
   actualKeys = Keys @ FlatList @ opts;
   badKeys = Compl[actualKeys, validKeys];

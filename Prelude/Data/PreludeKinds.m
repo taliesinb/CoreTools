@@ -67,9 +67,12 @@ CachePrint
 LabeledPrint
 ValueChangePrint
 DPrint
+DebugEcho
+DebugPrintCondition
 DebugGroup
 EchoPrint
 MutationPrint
+DebugPrint
 
 
 (*MutatingFunction*)
@@ -135,6 +138,7 @@ FullIntegerString
 PackageSymbolKinds
 PackageSymbolNames
 PackageSymbolTable
+PackageModTime
 PreludeLoadedPackages
 DefaultPreEvaluationHook
 DefaultPostEvaluationHook
@@ -194,6 +198,7 @@ HoldColorQ
 InvalidQ
 CorruptQ
 ValidFileQ
+KeyAbsentQ
 PackageLoadCompletedQ
 SessionEvaluatedSinceQ
 SystemContextQ
@@ -316,6 +321,7 @@ MicroTimingTable
 
 (*TransientVariable*)
 
+$CurrentPackage
 $CurrentPackageLineSentinel
 $CurrentPackageFileHash
 $CurrentPackageExpr
@@ -341,6 +347,7 @@ FileLocation
 (*ScopingFunction*)
 
 PrintIndented
+WhenDebugging
 
 
 (*PackageDeclaration*)

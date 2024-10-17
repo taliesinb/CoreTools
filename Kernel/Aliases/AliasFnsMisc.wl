@@ -4,6 +4,8 @@ PackageExports[
   "HoldFunction",
     HLen, EMap, HMap, HScan, HApply, HMake, HHead, HHash, HByteCount,
     AliasSymName, SymName, SymContext, SymPath,
+  "IOFunction",
+    DebugE, DebugP, DebugC,
   "Function",
     ToList, ToVals, ToRowVec, ToColVec, KeysVals,
     Len2, LenN, DimN, LenRange, RangeLen,
@@ -12,7 +14,10 @@ PackageExports[
     Index1, VecIndex1, VecIndex1Of, VecRep, Parts, Occs, UniOccs, OccsPos, NarrowOpts,
     DelNone, DelNull, DelMissing, DelFailed, DelEmpty, DelVerb,
   "MutatingFunction",
-    UnpackDict, PackDict, SetInherit,
+    UnpackDict, PackDict,
+    SetInherit,
+  "ControlFlow",
+    IfInherit,
   "SymbolicHead",
     Iff
 ];
@@ -46,6 +51,12 @@ DefineAliasRules[
   HHead            -> HoldHead,
   HHash            -> HoldHash,
   HByteCount       -> HoldByteCount
+];
+
+DefineAliasRules[
+  DebugE           -> DebugEcho,
+  DebugC           -> DebugPrintCondition,
+  DebugP           -> DPrint
 ];
 
 (*************************************************************************************************)
@@ -106,15 +117,16 @@ DefineAliasRules[
 (*************************************************************************************************)
 
 DefineAliasRules[
-  ThrowMsg     -> ThrowMessage,
-  ErrorMsg     -> ErrorMessage,
-  ReturnMsg    -> ReturnMessage
+  ThrowMsg         -> ThrowMessage,
+  ErrorMsg         -> ErrorMessage,
+  ReturnMsg        -> ReturnMessage
 ];
 
 (*************************************************************************************************)
 
 DefineAliasRules[
-  SetInherit       -> SetInherited
+  SetInherit       -> SetInherited,
+  IfInherit        -> IfInherited
 ];
 
 

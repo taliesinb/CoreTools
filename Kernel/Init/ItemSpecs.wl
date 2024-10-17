@@ -42,8 +42,7 @@ SetStrict @ ParseItemOptions;
   * it can be a string key present in ItemData.
   * it can be a set of rules that assign to groups via pattern matching.
 * The GroupSettings option provided by the ultimate user should be a list of rules or a dictionary whose \
-keys are valid options in the spec list,.
-"
+keys are valid options in the spec list,."
 
 Options[ParseItemOptions] = {
   ItemData      -> None,
@@ -53,120 +52,223 @@ Options[ParseItemOptions] = {
 };
 
 ParseItemOptions[head_, itemSpecs_List, items_, userOpts_, metaOpts___Rule] := Locals[
-  UnpackSymbolsAs[ParseItemOptions, metaOpts, $useBroadcast, groupSettings, itemGroups, itemData];
-  $ispecHead = head;
-  $ispecItems = items;
-  theme = Lookup[userOpts, Theme, getDefaultTheme @ head];
-  $ispecItemData = Which[
-    NoneQ[itemData], Dict[],
-    DictQ[itemData], itemData,
-    SymQ[itemData], Lookup[userOpts, itemData, Dict[]],
-    True, ThrowOptVal[ItemData, itemData]
-  ];
-  If[theme =!= None, BindTo[$ispecItemData, "Theme" -> theme]];
-  $ispecBcast = UDict[];
-  $ispecOpts = If[DictQ @ userOpts, userOpts, UDict @ Rev @ userOpts]; (* TODO: RuleDict *)
-  $ispecLen = Len @ items;
-  DPrint["Parsing items"];
-  $iresults = Dict @ Map[parseMultiItemSpec, itemSpecs];
+
+  UnpackSymbolsAs[ParseItemOptions, {metaOpts}, $useBroadcast, groupSettings, itemGroups, itemData];
+
+  $head = head; $items = items; $len = Len @ items;
+  $theme := $theme = Lookup[$opts, Theme, getDefaultTheme @ head];
+  $opts = If[DictQ @ userOpts, userOpts, UDict @ Rev @ userOpts]; (* TODO: RuleDict *)
+
+  $data = toItemData @ itemData;
+  If[notDataKeyQ["Name"],  $data["Name"] = items];
+  If[notDataKeyQ["Index"], $data["Index"] = Range @ $len];
+
+  DPrint["Parsing items for ", head];
+  DPrint["  * MetaOpts = ", MsgArgForm @ {metaOpts}];
+
+  $bcast = UDict[];
+  $output = Dict @ Map[applyItemSpec1, itemSpecs];
+
   applyGroupSpecs[itemGroups, groupSettings, itemSpecs];
+
   If[$DebugPrinting, DebugGroup["Results:",
-    KeyValueScan[DPrint[#1, ": ", MsgArgForm @ #2]&, $iresults]
+    KeyValueScan[DPrint[#1, ": ", MsgArgForm @ #2]&, $output]
   ]];
-  $iresults
+
+  $output
 ];
 
-getDefaultTheme[head_] := Lookup[Options @ head, Theme, None];
+getDefaultTheme[head_] := $ActiveThemes;
 
-SetStrict @ applyGroupSpecs;
+(**************************************************************************************************)
 
-noneOrEmptyP = None | Auto | EmptyP;
-
-applyGroupSpecs[None, _, _] := Null
-applyGroupSpecs[assignOpt_Sym, settingsOpt_Sym, itemSpecs_] := Locals @ DebugGroup["Group specs:",
-  {assignSpec, settingsSpec} = OptionValue[$ispecHead,
-    Normal @ $ispecOpts,
-    {assignOpt, settingsOpt}];
-  If[MatchQ[assignSpec, noneOrEmptyP], DPrint["No group assignment spec"]; Return[]];
-  If[MatchQ[settingsSpec, noneOrEmptyP], DPrint["No group settings"]; Return[]];
-  settingsDict = Dict[settingsSpec];
-  If[!DictQ[settingsDict], ThrowOptVal[settingsOpt, settingsDict]];
-  DPrint["Group settings:\n\t", MsgArgForm @ settingsDict];
-  $specKeys = Col1 @ itemSpecs; $specInd = DictThread[$specKeys, itemSpecs];
-  AssociateTo[$ispecOpts, assignOpt -> assignSpec];
-  assignItemSpec = ItemSpec[assignOpt, groupAssignmentQ, {}, ToList, UseBroadcast -> False];
-  itemGroups = P2 @ parseMultiItemSpec @ assignItemSpec;
-  itemGroupPos = LevelIndex[itemGroups, 2];
-  If[EmptyQ[itemGroupPos], DPrint["Empty group assignments"]; Return[]]; (* no groups, all empty lists *)
-  DPrint["Item groups: ", MsgArgForm @ itemGroups];
-  AssertSubsetOfQ[Keys @ itemGroupPos, Keys @ settingsDict, "unknownGroups"];
-  $touched = UDict[];
-  KeyValueMap[applySingleGroupSpec[settingsDict], itemGroupPos];
-  Scan[key |-> If[TrueQ @ $ispecBcast[key], KeyApplyTo[$iresults, key, ToBroadcast]], Keys @ $touched]
+toItemData = CaseOf[
+  None | Auto := Dict[];
+  s_Sym       := $ @ Lookup[$userOpts, itemData, Dict[]];
+  spec_       := AssertOptVal[ItemData, spec, DictQ]
 ];
 
-applySingleGroupSpec[settingsDict_][groupName_, indices_] := Locals @ DebugGroup[
-  {"Group ", groupName, " at indices ", indices, ":"},
-  $gIndices = indices;
-  groupSettingsSpec = Lookup[settingsDict, groupName, InternalError];
-  groupSettings = Switch[groupSettingsSpec,
-    noneOrEmptyP,     Return[],
-    RuleP | RuleVecP, Dict @ groupSettingsSpec,
-    _Dict,            Null,
-    _,                ThrowMsg["invalidGroupSettings", groupName, groupSettingsSpec]
-  ];
-  Block[{$ispecOpts = groupSettings},
-    itemSpecs = AssertLookupList[$specInd, Keys @ groupSettings, "unknownGroupSettingKeys"];
-      DPrint["Group assiment spec: ", assignItemSpec];
+hasDataKeyQ[k_] := HasKeyQ[$data, k];
+notDataKeyQ[k_] := NotKeyQ[$data, k];
 
-    If[Len[indices] === $ispecLen,
-      DPrint["Replacing all items by group settings"];
-      Scan[parseMultiItemSpec /* replaceOldSettings, itemSpecs]
+evalDictFn[fn_]            := CheckedDictMapThread[fn, $data, throwKey]
+
+evalDataFn[dict_Dict, key_] := AssertLookupList[dict, getData @ key];
+evalDataFn[fn_, keys_List]  := MapThread[fn, getData @ keys];
+evalDataFn[fn_, key_]       := fn @ getData @ key;
+
+getData = CaseOf[
+  ItemData  := ZipDictLists @ $data;
+  keys_List := throwMissing /@ Lookup[$data, keys];
+  key_Key   := throwMissing @ Lookup[$data, key];
+  key_      := throwMissing @ $data @ key;
+];
+
+throwMissing[Missing[_, "Theme"]] := $theme;
+throwMissing[Missing[_, key_]] := throwKey[key];
+throwMissing[e_] := e;
+
+(**************************************************************************************************)
+
+throwKey[key_] := ThrowMsg["missingItemDataKey", $key, key, Keys @ $data];
+
+General::missingItemDataKey = "While processing ``: no key `` present in provided item data. Present keys: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[applyItemSpec1, applyItemSpec2, parseItemSpec];
+
+applyItemSpec1[spec:ItemSpec[key_, ___]] := Block[
+  {$key = key},
+  applyItemSpec2 @ parseItemSpec @ spec
+];
+
+applyItemSpec2[{testFn_, globalI_, localI_, finalFn_, useBroad_}] := Locals @ DebugGroup[Key @ $key,
+
+  useBroadcast = useBroad;
+  SetInherit[useBroadcast, $useBroadcast];
+  AssociateTo[$bcast, $key -> useBroadcast];
+
+  DPrint["Spec = ", MsgArgForm @ spec];
+  spec = applySpecFns @ Lookup[$opts, $key, Inherited];
+
+  SetInherit[spec, globalI];
+
+  scalar = localI;
+  vector = Null;
+
+  Which[
+    spec === {} || spec === EmptyDict,        DPrint["[Empty]"];
+      Null
     ,
-      Block[{
-        $ispecItems = Part[$ispecItems, indices],
-        $ispecItemData = Part[$ispecItemData, All, indices],
-        $ispecLen = Len[indices]},
-      Scan[parseMultiItemSpec /* mergeNewSettings, itemSpecs];
-      ]
-    ]
+    MatchQ[spec, Broadcast[_]],               DPrint["[Broadcast]"];
+      scalar = finFn @ First @ spec
+    ,
+    RuleLVecQ @ spec,                         DPrint["[Rules]"];
+      {scalar, vector} = applyRules[localI, spec]
+    ,
+    ListQ[spec] && Len[spec] == $len,         DPrint["[List]"];
+      vector = spec
+    ,
+    ListQ @ spec,                             DPrint["[PaddedList]"];
+      vector = PadRight[spec, $len, scalar]
+    ,
+    DictQ @ spec,                             DPrint["[Dict]"];
+      scalar = getUserDefault @ spec;
+      vector = Lookup[spec, $items, scalar]
+    ,
+    TrueQ @ testFn @ spec,                    DPrint["[CanonScalar]"];
+      scalar = spec
+    ,
+    StrQ[spec] && (NoneQ[testFn] || !TrueQ[testFn[spec]]), DPrint["[StrKey]"];
+      vector = getData @ spec
+    ,
+    MaybeFnQ @ spec,                          DPrint["[Fn]"];
+      vector = Map[spec, $items]
+    ,
+    True,                                     DPrint["[NonCanonScalar]"];
+      scalar = spec;
   ];
-];
+  If[useBroadcast && NotNullQ[vector] && AllSameQ[vector],
+    DPrint["(uniform)"];
+    scalar = First @ vector;
+    vector = Null
+  ];
+  If[NullQ[vector],
+    DPrint["Scalar: ", scalar];
+    vector = If[useBroadcast, Broadcast, ConstList][finalFn @ scalar, $len]
+  ,
+    DPrint["Vector: ", scalar];
+    vector = If[finalFn === Id, vector, Map[finalFn, vector]]
+  ];
 
-replaceOldSettings[key_ -> new_] := $iresults[key] = new;
-mergeNewSettings[key_ -> new_] := Then[
-  DPrint["merging new settings for ", Key[key], ":\n\t", new];
-  $touched[key] = True;
-  KeyApplyTo[$iresults, key, old |-> replaceParsedSpecs[old, new]]
-];
-
-General::unknownGroups = "Unknown groups: ``. Declared groups are: ``.";
-
-SetPred1[groupAssignmentQ];
-
-groupAssignmentQ[s_Str] := !KeyExistsQ[$ispecItemData, s];
-groupAssignmentQ[DatumP | {DatumP...}] := True;
-
-General::unknownGroupSettingKeys = "Group setting keys `` aren't elements one of ``."
-General::invalidGroupSettings = "Invalid settings for group ``: ``."
-
-replaceParsedSpecs = CaseOf[
-  $[old_Broadcast, new_]     := $[FromBroadcast @ old, new];
-  $[old_List, new_Broadcast] := ConstantReplaceIndices[old, $gIndices, P1 @ new];
-  $[old_List, new_List]      := ReplaceIndices[old, $gIndices, new];
+  $key -> vector
 ];
 
 (**************************************************************************************************)
 
-ItemSpec::usage =
-"ItemSpec[key$, testFn$, default$?, finalFn$?]
+getUserDefault[inherit_, rules_List] :=
+  Replace[$nomatch$ -> inherit] @ Replace[ToList[rules, DefV -> $nomatch$]] @ DefV;
+
+getUserDefault[inherit_, dict_Dict] :=
+  Replace[$nomatch$ -> inherit] @ Lookup[dict, DefV, $nomatch$];
+
+applyRules[inherit_, rules_] := Locals[
+  scalar = Replace[DefV, ToList[rules, DefV -> $nomatch$]];
+  If[scalar === $nomatch$, scalar = inherit];
+  vector = VectorReplace[$items, ToList[rules, _ -> $nomatch$]];
+  If[MatchQ[vector, {$nomatch$..}],
+    ErrorMessage[$head -> "noRulesMatched", $key];
+    vector = Null;
+  ,
+    vector = VectorReplace[vector, $nomatch$ :> scalar];
+  ];
+  {scalar, vector}
+];
+
+General::noRulesMatched = "None of the rules specified for `` matched any items. Using defaults.";
+
+(**************************************************************************************************)
+
+applySpecFns = CaseOf[
+
+  fn_ ? DictFnQ := Then[
+    DPrint["[DictFn]: ", fn];
+    evalDictFn @ fn
+  ];
+
+  Rule[key1_, rule_Rule] := Then[
+    DPrint["[NestedFn]: ", key1, " then ", rule];
+    Block[{$data = EchoIF @ getData[key1]}, applySpecFns[rule]]
+  ];
+
+  Rule[key_, fn_ ? MaybeFnQ] := Then[
+    DPrint["[KeyFn]: ", fn, " @ ", key];
+    evalDataFn[fn, key]
+  ];
+
+  k_Key := Then[
+    DPrint["[Key]: ", k];
+    getData @ k
+  ];
+
+  spec_ := spec;
+];
+
+(**************************************************************************************************)
+
+"ItemSpec[key$, testFn$, default$, finalFn$?]
+
+* default$ is the per-item default used to resolve Inherited if one can't be obtained from Options.
+* because options give the possibility of theming, we only resort to the ItemSpec default in worst-case
+scenarios.
+
+* DefaultValue, however, always refers this default value.
+
+* Automatic gets no special treatment, as it is best handled downstream.
+
+* testFn$ can be None, which says that any values are allowed, but Inherited will still be resolved.
+
 * additional options:
 | UseBroadcast       | False | whether to return Broadcast where possible |
 | MethodResolution   | fn    | apply to strings (often a Dict) |
 | Canonicalization   | {}    | rules to canonicalize particular specs |
-* if Broadcast is Auto, and all broadcast values are the same, the scalar value will be \
-set to this and the vector value removed.
-* if Broadcast is Inherited, it is obtained from ParseItemOptions itself."
+| ItemMessageFn      | fn    | should issue a non-generic message |
+* if Broadcast is True, and all broadcast values are the same, Broadcast[value] will be returned.
+* if Broadcast is Inherited, it is obtained from ParseItemOptions itself.
+
+* multi-item specs (ListP, RuleListP, DictP, Key[_], Rule[_, FnP], DictFnP) are always expanded.
+
+* Global specs are resolved (to fixed point) as follows:
+  * DefaultValue is resolved to the ItemSpec default, always
+  * Inherited is resolved to the global option/theme setting unless testFn accepts Inherited
+  * Canonicalization rule replacements are applied
+  * Strings are converted via MethodResolution (if any)
+
+* Local (per-item) specs are resolved as above, except that Inherited is resolved to:
+  * the per-item default, which may come from options or from the ItemSpec
+  * the ItemSpec default otherwise
+"
 
 Options[ItemSpec] = {
   UseBroadcast     -> Inherited,
@@ -175,93 +277,64 @@ Options[ItemSpec] = {
   ItemMessageFn    -> None
 };
 
-ItemSpec[key_, test_, opts___Rule]       := ItemSpec[key, test, Inherited, Id, opts];
-ItemSpec[key_, test_, def_, opts___Rule] := ItemSpec[key, test, def, Id, opts];
+parseItemSpec[ItemSpec[key_, testFn_, opts___Rule]] :=
+  parseItemSpec[ItemSpec[key, testFn, None, Id, opts]];
 
-SetStrict[parseMultiItemSpec];
+parseItemSpec[ItemSpec[key_, testFn_, default_, opts___Rule]] :=
+  parseItemSpec[ItemSpec[key, testFn, default, None, opts]];
 
-parseMultiItemSpec[ItemSpec[key_, testFn_, defaultValue_, finalFn_, opts___Rule]] := Locals @ DebugGroup[Key @ key,
+parseItemSpec[spec:ItemSpec[key_, testFn_, defaultValue_, postFn_, opts___Rule]] := Locals @ DebugGroup[
+  spec,
 
-  UnpackSymbolsAs[ItemSpec, opts, canonicalization, methodResolution, useBroadcast, itemMessageFn];
-  SetInherit[useBroadcast, $useBroadcast];
-  AssociateTo[$ispecBcast, key -> useBroadcast];
-  $ispecKey = key;
-  spec = Lookup[$ispecOpts, key, Inherited];
-  inheritValue = OptionValue[$ispecHead, key];
+  optionValue = OptionValue[$head, key];
+  inheritOk = TrueQ @ testFn @ Inherited;
+  optionOk = TrueQ @ testFn @ optionValue;
+
+  globalInherit = Which[
+    inheritOk, DPrint["Global Inherit unchanged"];                  Inherited,
+    optionOk,  DPrint["Global inherit from Opts = ", optionValue];  optionValue,
+    True,      DPrint["Global inherit from DefV = ", defaultValue]; defaultValue
+  ];
+  localInherit = Which[
+    optionOk,  DPrint["Items inherit from Opts = ", optionValue];    optionValue,
+    inheritOk, DPrint["Items Inherit unchanged"];                    Inherited,
+    True,      DPrint["Items inherit from DefV = ", defaultValue];  defaultValue
+  ];
+
+  UnpackSymbolsAs[ItemSpec, List @ opts, canonicalization, methodResolution, useBroadcast, itemMessageFn];
+
+(*
+  If[NotNoneQ[methodResolution], DPrint["MethodResultion = ", methodResolution]];
   methodResolution //= MethodResolutionFn;
-  specRules = ToList[canonicalization, Auto -> defaultValue, Inherited -> inheritValue, FnRule[_String, methodResolution]];
-  resolveFn = CanonicalizationFn[specRules, finalCheckFn = finalCheck[testFn, finalFn, itemMessageFn]];
-  vectorResult = None;
-  If[DictFnQ[spec],
-    DPrint["Applying dict function ", spec];
-    spec = CheckedDictMapThread[spec, $ispecItemData, missingDictKey];
-  ];
-  If[MatchQ[spec, Rule[_, _ ? MaybeFnQ]],
-    DPrint["Applying function ", spec];
-    spec = applyDataFn[$ispecItems, spec]];
-  Which[
-    spec === {} || spec === EmptyDict,
-      DPrint["Empty"];
-      scalarResult = resolveFn @ Auto,
-    MatchQ[spec, Broadcast[_]],
-      DPrint["Broadcast"];
-      scalarResult = finalCheckFn @ First @ spec,
-    RuleLVecQ[spec],
-      DPrint["Rules = ", MsgArgForm @ spec];
-      scalarResult = resolveFn @ Replace[DefaultValue, ToList[spec, DefaultValue -> Auto]];
-      vectorResult = resolveFn /@ VectorReplace[$ispecItems, ToList[spec, _ -> scalarResult]],
-    ListQ[spec],
-      DPrint["List = ", MsgArgForm @ spec];
-      scalarResult = resolveFn @ Auto;
-      vectorResult = PadRight[resolveFn /@ spec, $ispecLen, scalarResult],
-    DictQ[spec],
-      DPrint["Dict = ", MsgArgForm @ spec];
-      scalarResult = resolveFn @ Lookup[spec, DefaultValue, Auto];
-      vectorResult = Lookup[spec, $ispecItems, scalarResult],
-    StrQ[spec] && !TrueQ[testFn @ spec],
-      DPrint["String = ", MsgArgForm @ spec];
-      DPrint[resolveFn];
-      vectorResult = Map[resolveFn] @ throwMissing @ Lookup[$ispecItemData, spec],
-    MaybeFnQ[spec] && !TrueQ[testFn @ spec],
-      DPrint["Fn = ", MsgArgForm @ spec];
-      scalarResult = resolveFn @ Auto;
-      vectorResult = Map[spec /* resolveFn, $ispecItems],
-    True,
-      DPrint["Scalar = ", MsgArgForm @ spec];
-      scalarResult = resolveFn @ spec
-  ];
-  If[useBroadcast,
-    If[NotNoneQ[vectorResult] && AllSameQ[vectorResult],
-      scalarResult = P1 @ vectorResult;
-      vectorResult = None
-    ],
-    SetNone[vectorResult, ConstList[scalarResult, $ispecLen]]
-  ];
-  If[vectorResult =!= None,
-    DPrint["Vector: ", MsgArgForm @ vectorResult],
-    DPrint["Scalar: ", MsgArgForm @ scalarResult]
-  ];
-  result = IfNone[vectorResult, Broadcast[scalarResult, $ispecLen]];
-  key -> result
+
+   globalFn = makeCanonFn[testFn, canonicalization, defaultValue, globalInheritValue, methodResolution];
+  itemFn = makeCanonFn[testFn, canonicalization, defaultValue, localInheritValue, methodResolution];
+ *)
+  finalFn = toFinalizerFn[testFn, IfNone[postFn, Id], itemMessageFn];
+  If[finalFn =!= Id, DPrint["FinalFn = ", finalFn]];
+
+  List[testFn, globalInherit, localInherit, finalFn, useBroadcast]
 ];
 
-applyDataFn[items_, "Name" -> fn_] /; !KeyExistsQ[$ispecItemData, "Name"] := Map[fn, items];
-applyDataFn[items_, keys_List -> fn_] := MapThread[fn, throwMissing /@ Lookup[$ispecItemData, keys]];
-applyDataFn[items_, key_ -> fn_]      := Map[fn, throwMissing @ Lookup[$ispecItemData, key]];
-applyDataFn[items_, ItemData -> fn_]  := Map[fn, ZipDictLists @ $ispecItemData];
+(**************************************************************************************************)
 
-missingDictKey[key_] := ThrowMsg["missingItemDataKey", $ispecKey, key, Keys @ $ispecItemData];
+toFinalizerFn = CaseOf[
+  $[None,    postFn_, msgFn_] := postFn;
+  $[TrueFn,  postFn_, _]      := postFn;
+  $[testFn_, postFn_, None]   := FmA |-> If[TrueQ @ testFn @ FmA, postFn @ FmA, ThrowOptVal[$key, FmA, testFn]];
+  $[testFn_, postFn_, msgFn_] := FmA |-> If[TrueQ @ testFn @ FmA, postFn @ FmA, msgFn[$key, FmA]; ThrowException[]];
+];
 
-throwMissing[Missing[_, key_]] := missingDictKey[key];
-throwMissing[e_] := e;
+(**************************************************************************************************)
 
-General::missingItemDataKey = "While processing ``: no key `` present in provided item data. Present keys: ``.";
-
-(* TODO: Validated[...] head, i can use above in RuleLVecQ to avoid resolving the scalarResult twice *)
-finalCheck[test_, final_, msgFn_][value_] := If[
-  TrueQ @ test[value], final @ value,
-  If[msgFn =!= None, msgFn[$ispecKey, value]];
-  ThrowOptVal[$ispecKey, value, test]
+makeCanonFn[canonSpec_, default_, inherit_, method_] := Locals[
+  canonRules = DelCases[sym_ -> sym_] @ ToList[
+    canonSpec,
+    DefaultValue -> default,
+    Inherited -> inherit,
+    FnRule[_String, method]
+  ];
+  CanonicalizationFn[canonRules, finFn]
 ];
 
 (**************************************************************************************************)
@@ -274,7 +347,7 @@ CanonicalizationFn[rules_, final_:Id][value_] := final @ FixedPoint[Replace[rule
 
 SetCurry1[MethodResolutionFn]
 
-MethodResolutionFn[None] := Id;
+MethodResolutionFn[None]           := Id;
 MethodResolutionFn[spec_, val_]    := val;
 MethodResolutionFn[spec_, str_Str] := resolveStrSpec[str, spec];
 
@@ -286,5 +359,99 @@ resolveStrSpec = CaseOf[
 
 General::notKnownStringSpec1 = "`` is not a known named setting for ``. Valid named settinngs include ``.";
 General::notKnownStringSpec2 = "`` is not a known named setting for ``.";
-throwStrSpec[str_]        := ThrowMsg["notKnownStringSpec2", str, $ispecKey];
-throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $ispecKey, LitStrRow @ Keys @ dict];
+throwStrSpec[str_]        := ThrowMsg["notKnownStringSpec2", str, $key];
+throwStrSpec[str_, dict_] := ThrowMsg["notKnownStringSpec1", str, $key, LitStrRow @ Keys @ dict];
+
+(**************************************************************************************************)
+
+SetStrict @ applyGroupSpecs;
+
+noneOrEmptyP = None | Auto | EmptyP;
+
+applyGroupSpecs[None, _, _] := Null
+applyGroupSpecs[assignOpt_Sym, settingsOpt_Sym, itemSpecs_] := Locals @ DebugGroup["Group specs:",
+  {assignSpec, settingsSpec} = OptionValue[$head, Normal @ $opts, {assignOpt, settingsOpt}];
+
+  If[MatchQ[assignSpec, noneOrEmptyP], DPrint["No group assignment spec"]; Return[]];
+  If[MatchQ[settingsSpec, noneOrEmptyP], DPrint["No group settings"]; Return[]];
+
+  settingsDict = Dict[settingsSpec];
+  If[!DictQ[settingsDict], ThrowOptVal[settingsOpt, settingsDict]];
+  DPrint["Group settings:\n\t", MsgArgForm @ settingsDict];
+
+  $specKeys = Col1 @ itemSpecs;
+  $specInd = DictThread[$specKeys, itemSpecs];
+  AssociateTo[$opts, assignOpt -> assignSpec];
+
+  assignItemSpec = ItemSpec[assignOpt, groupAssignmentQ, {}, ToList, UseBroadcast -> False, ItemMessageFn -> badGroupAssignment];
+  itemGroups = P2 @ applyItemSpec1 @ assignItemSpec;
+  itemGroupPos = LevelIndex[itemGroups, 2];
+  If[EmptyQ[itemGroupPos], DPrint["Empty group assignments"]; Return[]]; (* no groups, all empty lists *)
+  DPrint["Item groups: ", MsgArgForm @ itemGroups];
+
+  AssertSubsetOfQ[Keys @ itemGroupPos, Keys @ settingsDict, "unknownGroups"];
+  $touched = UDict[];
+  KeyValueMap[applySingleGroupSpec[settingsDict], itemGroupPos];
+
+  Scan[
+    key |-> If[TrueQ @ $bcast[key], KeyApplyTo[$output, key, ToBroadcast]],
+    Keys @ $touched
+  ]
+];
+
+applySingleGroupSpec[settingsDict_][groupName_, indices_] := Locals @ DebugGroup[
+  {"Group ", groupName, " at indices ", indices, ":"},
+
+  $gIndices = indices; $gLen = Len @ indices;
+
+  groupSettingsSpec = Lookup[settingsDict, groupName, InternalError];
+  groupSettings = Switch[groupSettingsSpec,
+    noneOrEmptyP,     Return[],
+    RuleP | RuleVecP, Dict @ groupSettingsSpec,
+    _Dict,            Null,
+    _,                ThrowMsg["invalidGroupSettings", groupName, groupSettingsSpec]
+  ];
+
+  Block[{$opts = groupSettings},
+    itemSpecs = AssertLookupList[$specInd, Keys @ groupSettings, "unknownGroupSettingKeys"];
+    DPrint["Group assiment spec: ", assignItemSpec];
+    If[$gLen === $len,
+      DPrint["Replacing all items by group settings"];
+      Scan[applyItemSpec1 /* replaceOldSettings, itemSpecs]
+    ,
+      Block[{
+        $items = Part[$items, indices],
+        $data = Part[$data, All, indices],
+        $len = $gLen},
+        Scan[applyItemSpec1 /* mergeNewSettings, itemSpecs];
+      ]
+    ]
+  ];
+];
+
+replaceOldSettings[key_ -> new_] :=
+  Set[$output[key], new];
+
+mergeNewSettings[key_ -> new_] := Then[
+  DPrint["merging new settings for ", Key[key], ":\n\t", new];
+  $touched[key] = True;
+  KeyApplyTo[$output, key, old |-> replaceParsedSpecs[old, new]]
+];
+
+SetPred1[groupAssignmentQ];
+
+groupAssignmentQ[s_Str] := notDataKeyQ @ s;
+groupAssignmentQ[DatumP | {DatumP...}] := True;
+
+badGroupAssignment[head_, e_] := ErrorMessage[$head -> "badGroupAssignment", $key, e];
+
+General::badGroupAssignment = "Not a valid group assignment for option ``: ``.";
+General::unknownGroups = "Unknown groups: ``. Declared groups are: ``.";
+General::unknownGroupSettingKeys = "Group setting keys `` aren't elements one of ``."
+General::invalidGroupSettings = "Invalid settings for group ``: ``."
+
+replaceParsedSpecs = CaseOf[
+  $[old_Broadcast, new_]     := $[FromBroadcast @ old, new];
+  $[old_List, new_Broadcast] := ConstantReplaceIndices[old, $gIndices, P1 @ new];
+  $[old_List, new_List]      := ReplaceIndices[old, $gIndices, new];
+];

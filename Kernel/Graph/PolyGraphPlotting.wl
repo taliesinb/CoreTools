@@ -2,9 +2,12 @@ SystemExports[
   "GraphicsOption",
     GraphScale, HStretch, VStretch,
     SplitPosition,
-    NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, NodeThickness,
+    NodeData,
+    NodeTooltips, NodeClickFunction, NodeClickData,
+    EdgeTooltips, EdgeClickFunction, EdgeClickData,
+    NodeColor, NodeSize, NodeShape, NodeThickness,
     RootPosition,
-    NodeGroups, GroupStyles,
+    NodeGroups, NodeStyles,
     NodeBackground, NodeOffset,
     SharedLeaves, EdgeFn,
     FanDistance, ReverseEdges
@@ -12,92 +15,52 @@ SystemExports[
 
 PackageExports[
   "GraphicsFunction", PolyGraphPlot,
-  "Function", EdgeArityGroups
+  "GraphicsOption",   SplitPos, NodeClickFn, EdgeClickFn,
+  "Function",         EdgeArityGroups
 ];
-
-(**************************************************************************************************)
-
-pathLines[fn_, src_, tgt_, paths_List, edges_] :=
-  fn @ $fwdFn @ SetbackLine[{$s1, $s2}] @ makeVBend[src, tgt];
-
-fanOLines[fn_, src_, {tgt_}, paths_List, edges_] := pathLines[fn, src, tgt, paths, edges];
-fanILines[fn_, {src_}, tgt_, paths_List, edges_] := pathLines[fn, tgt, src, paths, edges];
-
-fanOLines[fn_, src_, tgts_, paths_List, edges_] :=
-  makeFan[src, tgts, $fwdFn, $lineFn[fn], $arrowFn[fn], fn, $s1, $s2, True];
-
-fanILines[fn_, srcs_, tgt_, paths_List, edges_] :=
-  makeFan[tgt, srcs, $revFn, $lineFn[fn], $arrowFn[fn], fn, $s2, $s1, False];
-
-makeFan[a_, bs_, g_, fn1_, fn2_, fn3_, s1_, s2_, bendy_] := Locals[
-  a1 = a; bys = Col2 @ bs; n = Len @ bs;
-  dy = Sign[Mean[bys] - P2[a1]];
-  dd = List[0, dy];
-  fd = $fanDistance;
-  bs1 = ThreadPlus[dd * -s2, SortBy[bs, P1]];
-  If[bendy,
-    If[fd <= 0 || !bendy, stub = None,
-      a1 += dd * s1;
-      a0 = a1;
-      a1 += dd * Max[fd - s1, 0];
-      stub = fn1 @ g @ List[a0, a1]
-    ];
-    {ax, ay} = a1;
-    {b1, bn} = FirstLast @ bs1;
-    p1 = makeBend[a1, b1];
-    pn = makeBend[a1, bn];
-    pm = makeMid[ay] /@ Part[bs1, 2;;-2];
-    prims = fn2 /@ g /@ List[p1, Splice @ pm, pn];
-    If[stub === None, prims, Append[prims, stub]]
-  ,
-    splay = Range[n]-(n/2. + .5);
-    a1 += dd * s1;
-    ZipMap[fn3[g @ makeVBend[a1 + {#2, 0}, #1]]&, bs1, $rounding/3 * splay]
-  ]
-];
-
-makeMid[ay_][b:{bx_, by_}] := {{bx, ay}, b};
-makeBend[a_, b_] := RoundedCurvePointsFast[cornerPoints[a, b], $rounding, "Arc"];
-
-makeVBend[a:{ax_, ay_}, b:{bx_, by_}] /; Dist[ax, bx] < .05 := {a, b};
-makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := BezierPoints[{a, {ax, Avg[ay, by]}, {bx, Avg[ay, by]}, b}];
-makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := AngledCurvePoints[{a, b}, JoinStyle -> Vertical, Rounding -> $rounding*.75, Shortcut -> $rounding/2];
-
-cornerPoints[a:{ax_, ay_}, b:{bx_, by_}] := {a, {bx, ay}, b};
 
 (**************************************************************************************************)
 
 Options[PolyGraphPlot] = {
   GraphScale        -> 30,
-  AspectRatio       -> 0.8,
+  HStretch          -> 1.2,
+  VStretch          -> 1,
+  AspectRatio       -> 1,
+
   NodeTooltips      -> None,
+  NodeClickFn       -> None,
+  NodeClickData     -> "Name",
   NodeColor         -> Auto,
   NodeSize          -> 5,
   NodeShape         -> "Disk",
   NodeThickness     -> 1,
   NodeData          -> Auto,
   NodeGroups        -> None,
-  GroupStyles       -> None,
   NodeOffset        -> {0, 0},
+  NodeStyles        -> None,
+  NodeBCol          -> None,
+
+  EdgeClickFn       -> None,
+  EdgeClickData     -> "Name",
+  EdgeColor         -> Black,
+  EdgeThickness     -> 1,
+  EdgeFn            -> Line,
+  Setback           -> {0, 0},
+
+  SplitPosition     -> Top,
   FanDistance       -> 0,
   Rounding          -> 0.25,
+
   PMargin           -> 0.5,
+  BaselinePosition  -> Root,
   FontSize          -> 10,
-  HStretch          -> 1.2,
-  VStretch          -> 1,
-  AspectRatio       -> 1,
   FontFamily        -> Inherited,
   FontWeight        -> Inherited,
   FontSlant         -> Inherited,
-  NodeBackground    -> None,
-  EdgeColor         -> Black,
-  EdgeThickness     -> 1,
+
   RootPosition      -> Top,
-  BaselinePosition  -> Root,
   SharedLeaves      -> {},
-  ReverseEdges      -> False,
-  EdgeFn            -> Line,
-  Setback           -> {0, 0}
+  ReverseEdges      -> False
 };
 
 blendXs[coords_][{x_, y_}] := {N @ Median @ Col1 @ coords, y};
@@ -122,7 +85,7 @@ PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
     nodeData, hStretch, vStretch,
     fontSize, fontWeight, fontFamily, fontSlant,
     sharedLeaves, $rounding, pMargin,
-    nodeThickness, $nodeBackground, $nodeOffset,
+    nodeThickness, $nodeBCol, $nodeOffset,
     edgeFn, setback, $fanDistance, reverseEdges
   ];
 
@@ -166,12 +129,12 @@ PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   {paths, fanOs, fanIs} = EdgeArityGroups[graph];
   $y1s = UDict[];
   Do[
-    KeyValueMap[ApplyTo[vertsDict[P1 @ #1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, paths];
     KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, fanOs];
     KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col1 @ #2]]]&, fanOs];
+    KeyValueMap[ApplyTo[vertsDict[P1 @ #1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, paths];
   ,
     (* KeyValueMap[Set[vertsDict[#1], Mean @ Col1 @ #2]&, fanOs], *)
-    {3}
+    {4}
   ];
   pathPrims = KeyValueMap[pathLines[pathFn, vertsDict @ P1[#1], vertsDict @ P2[#1], pathsDict /@ #2, #2]&, paths];
   fanOPrims = KeyValueMap[fanOLines[fanOFn, vertsDict @ #1, vertsDict /@ Col2[#2], pathsDict /@ #2, #2]&, fanOs];
@@ -186,10 +149,13 @@ PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   If[nodeData =!= Auto, AppendTo[itemData, nodeData]];
 
   vertexSpecs = ParseItemOptions[PolyGraphPlot,
-    $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> Auto,
-    ItemData -> itemData, ItemGroups -> NodeGroups, GroupSettings -> GroupStyles
+    $polyGraphPlotVertexSpecs, vertexList, {opts}, UseBroadcast -> True,
+    ItemData -> itemData, ItemGroups -> NodeGroups, GroupSettings -> NodeStyles
   ];
-  vertexSpecs = Lookup[vertexSpecs, {NodeShape, NodeSize, NodeTooltips, NodeColor}];
+  vertexSpecs = Lookup[
+    vertexSpecs,
+    {NodeShape, NodeSize, NodeTooltips, NodeColor, NodeClickFn, NodeClickData}
+  ];
   vertexPrims = makePrimitives[vertexSpecs, vertexCoords];
   SetAuto[edgeColor, GrayLevel[0.5]];
   AppendTo[edgeStyle, edgeColor];
@@ -223,11 +189,6 @@ $arrowheadCurve = Polygon[
       ToPacked @ ThreadPlus[{-0.4, 0}, 0.8*{{{-0.3166, -0.3333}, {-0.3166, 0.3333}, {0.25, 0.}}}]
     ];
 
-(*   FilledCurve[
-    {{{0, 2, 0}, {0, 1, 0}, {0, 1, 0}}},
-    ToPacked @ ThreadPlus[{-0.4, 0}, {{{-0.3166, -0.25}, {-0.1833, 0.}, {-0.3166, 0.25}, {0.25, 0.}}}]
-  ]
- *)
 $niceArrowhead = Arrowheads[{{Medium, 1.0, List[Graphics @ $arrowheadCurve, .4]}}];
 
 (**************************************************************************************************)
@@ -261,23 +222,79 @@ transposeDict[annos_Dict] := Locals[
 
 (**************************************************************************************************)
 
+pathLines[fn_, src_, tgt_, paths_List, edges_] :=
+  fn @ $fwdFn @ SetbackLine[{$s1, $s2}] @ makeVBend[src, tgt];
+
+fanOLines[fn_, src_, {tgt_}, paths_List, edges_] := pathLines[fn, src, tgt, paths, edges];
+fanILines[fn_, {src_}, tgt_, paths_List, edges_] := pathLines[fn, tgt, src, paths, edges];
+
+fanOLines[fn_, src_, tgts_, paths_List, edges_] :=
+  makeFan[src, tgts, $fwdFn, $lineFn[fn], $arrowFn[fn], fn, $s1, $s2, True];
+
+fanILines[fn_, srcs_, tgt_, paths_List, edges_] :=
+  makeFan[tgt, srcs, $revFn, $lineFn[fn], $arrowFn[fn], fn, $s2, $s1, False];
+
+makeFan[a_, bs_, g_, fn1_, fn2_, fn3_, s1_, s2_, bendy_] := Locals[
+  a1 = a; bys = Col2 @ bs; n = Len @ bs;
+  dy = Sign[Mean[bys] - P2[a1]];
+  dd = List[0, dy];
+  fd = $fanDistance;
+  bs1 = ThreadPlus[dd * -s2, SortBy[bs, P1]];
+  If[bendy,
+    If[fd <= 0 || !bendy, stub = None,
+      a1 += dd * s1;
+      a0 = a1;
+      a1 += dd * Max[fd - s1, 0];
+      stub = fn1 @ g @ List[a0, a1]
+    ];
+    {ax, ay} = a1;
+    {b1, bn} = FirstLast @ bs1;
+    p1 = makeBend[a1, b1];
+    pn = makeBend[a1, bn];
+    pm = makeMid[ay] /@ Part[bs1, 2;;-2];
+    prims = fn2 /@ g /@ List[p1, Splice @ pm, pn];
+    If[stub === None, prims, Append[prims, stub]]
+  ,
+    splay = Range[n]-(n/2. + .5);
+    a1 += dd * s1;
+    ZipMap[fn3[g @ makeVBend[a1 + {#2, 0}, #1]]&, bs1, $rounding/2 * splay]
+  ]
+];
+
+makeMid[ay_][b:{bx_, by_}] := {{bx, ay}, b};
+makeBend[a_, b_] := RoundedCurvePointsFast[cornerPoints[a, b], $rounding, "Arc"];
+
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] /; Dist[ax, bx] < .05 := {a, b};
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := BezierPoints[{a, {ax, Avg[ay, by]}, {bx, Avg[ay, by]}, b}];
+makeVBend[a:{ax_, ay_}, b:{bx_, by_}] := AngledCurvePoints[{a, b}, JoinStyle -> Vertical, Rounding -> $rounding, Shortcut -> 1.5*$rounding];
+
+cornerPoints[a:{ax_, ay_}, b:{bx_, by_}] := {a, {bx, ay}, b};
+
+(**************************************************************************************************)
+
 (* if they are all BCast, just do the make inside and wrap with BCast
 if none are bcasts, just do Make,
 if some are bcasts, turn them to lists and do a ZipMap *)
 
 (**************************************************************************************************)
 
-makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
+SetStrict @ makePrimitives;
+
+makePrimitives[{shape_, size_, tooltips_, colors_, clickFns_, clickData_}, coords_] := Locals[
   prims = BMap[makeShape, shape, coords, size, colors];
   GlobalVar[$meanSize]; $meanSize = Mean @ FromB @ size;
   If[!BMatchQ[tooltips, None], prims = BMap[Tooltip, prims, tooltips]];
+  If[!BMatchQ[clickFns, None], prims = BMap[makeClicker, prims, clickFns, clickData]];
   prims
 ];
+
+makeClicker[prim_, None | Auto | Inherit, _] := prim;
+makeClicker[prim_, fn_, data_] := Button[prim, fn @ data];
 
 (**************************************************************************************************)
 
 makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
-  bg = toBackCol[color, $nodeBackground, White];
+  bg = toBackCol[color, $nodeBCol, White];
   margins = If[bg === White, {{0,0},{0,0}}, {{2,1},{1,1}}];
   rounding = If[bg === White, 0, 2];
   fstyle = If[bg === White, None, Directive @ {AThickness[1], Darker[color,.1]}];
@@ -413,11 +430,12 @@ shapeError[_, value_] := ErrorOptVal[NodeShape, value, LitStr @ StrJoin[
   QuotedStringList @ $knownShapes
 ]];
 
-
-$treePlotVertexSpecs = {
-  ItemSpec[NodeTooltips, TrueFn, None],
-  ItemSpec[NodeColor,    extColorQ, $defaultColor],
-  ItemSpec[NodeSize,     NumberQ],
-  ItemSpec[NodeShape,    validShapeFnQ, Inherit, finalShapeFn, ItemMessageFn -> shapeError]
+$polyGraphPlotVertexSpecs = {
+  ItemSpec[NodeTooltips,  TrueFn,  None],
+  ItemSpec[NodeClickFn,   OrOp[MaybeFnQ, NoneQ], None],
+  ItemSpec[NodeClickData, TrueFn, None],
+  ItemSpec[NodeColor,     extColorQ, $defaultColor],
+  ItemSpec[NodeSize,      NumberQ],
+  ItemSpec[NodeShape,     validShapeFnQ, Inherit, finalShapeFn, ItemMessageFn -> shapeError]
 };
 

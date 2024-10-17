@@ -74,7 +74,7 @@ SystemExports[
   "Predicate",
     HoldListQ, HoldAssociationQ, HoldPackedArrayQ, PackedListQ,
     HoldStringQ, HoldIntegerQ, HoldNaturalQ, HoldNumberQ, HoldBooleanQ, HoldColorQ,
-    InvalidQ, CorruptQ, ValidFileQ,
+    InvalidQ, CorruptQ, ValidFileQ, KeyAbsentQ
 
   "TagVariable",
     $Invalid,
@@ -129,6 +129,11 @@ InvalidQ[_] := False;
 
 ValidFileQ[path_String] := FileType[path] === File;
 ValidFileQ[_]           := False;
+
+(**************************************************************************************************)
+
+KeyAbsentQ[a_, k_] := !KeyExistsQ[a, k];
+KeyAbsentQ[k_][a_] := !KeyExistsQ[a, k];
 
 (**************************************************************************************************)
 

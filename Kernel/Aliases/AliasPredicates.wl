@@ -3,7 +3,7 @@ PackageExports[
     SymbolQ, RealQ, NaturalQ, PositiveIntegerQ, NegativeIntegerQ, NonPositiveIntegerQ, NonNegativeIntegerQ,
     MachineRealQ, MachineIntegerQ, PositiveMachineIntegerQ, NegativeMachineIntegerQ, NonPositiveMachineIntegerQ, NonNegativeMachineIntegerQ, MachineComplexQ,
     AssociationVectorQ, ListOrAssociationQ, StringOrVectorQ, StringVectorQ, UnsafeEmptyQ, NotEmptyQ, NonEmptyQ,
-    HoldSymbolQ, HoldAtomQ, HasKeyQ,
+    HoldSymbolQ, HoldAtomQ, HasKeyQ, NotKeyQ,
 
     StrQ, SymQ, IntQ, NatQ, NumQ, BoolQ, DictQ, UDictQ, ODictQ, ListDictQ,
     HStrQ, HSymQ, HIntQ, HNatQ, HNumQ, HBoolQ, HAtomQ, HEmptyQ, HNotEmptyQ, HListQ, HPackedQ, HDictQ, HUDictQ, HODictQ,
@@ -79,7 +79,8 @@ DefineAliasRules[
   NonEmptyQ          -> Developer`NotEmptyQ,
   HoldSymbolQ        -> Developer`HoldSymbolQ,
   HoldAtomQ          -> Developer`HoldAtomQ,
-  HasKeyQ            -> KeyExistsQ
+  HasKeyQ            -> KeyExistsQ,
+  NotKeyQ            -> KeyAbsentQ
 ];
 
 DefineAliasRules[

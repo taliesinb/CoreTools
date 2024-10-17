@@ -55,7 +55,7 @@ VertexContractIndices[graph_Graph, indices:{__List}] := Locals @ CatchMessages[
 
 delVertexOpts[graph_, oldVerts_, newVerts_] := Locals[
   opts = Options @ graph;
-  If[!HasKeyQ[opts, AnnotationRules], Return @ opts];
+  If[KeyAbsentQ[opts, AnnotationRules], Return @ opts];
   delVerts = Complement[verts, canonVerts];
   delVertRule = Rule[Apply[Alt] @ Map[Verbatim] @ delVerts, _];
   DelCases[opts, delVertRule, {3}]
@@ -79,7 +79,7 @@ makeFirstParentEdge = CaseOf[
   expr_ := Locals[
     parent = Most @ expr;
     i = -1;
-    While[!KeyExistsQ[$verts, parent],
+    While[KeyAbsentQ[$verts, parent],
       If[Len[parent] === 0, FunctionReturn @ Nothing];
       parent //= Most;
       i--;

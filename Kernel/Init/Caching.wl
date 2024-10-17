@@ -1,42 +1,21 @@
 PackageExports[
-  "IOFunction",        MXCached, MXCachedAs,
   "DebuggingFunction", ExtendedDefinition,
   "Variable",          $MXCachePath
 ];
 
 PrivateExports[
   "Function",          SymbolDefinitionHash,
-  "IOFunction",        MXCachedInternal,
+  "IOFunction",        MXCachedInternal
+];
+
+SessionExports[
   "CacheVariable",     $SymbolDefinitionHashCache, $MXCacheInfo
 ];
 
 (*************************************************************************************************)
 
-SetInitial[$MXCachePath, PathJoin[$TemporaryDirectory, "WL", "MXCache"]];
+SetInitial[$MXCachePath, DataPath["Cache", "MXCached"]];
 SetInitial[$MXCacheInfo, UDict[]];
-
-(*************************************************************************************************)
-
-DeclaredHere[MXCached, MXCachedAs]
-
-SetInitial[$CachePrinting, False];
-
-MXCached::usage =
-"MXCached[head$, args$, opts$, body$] caches to a hidden MX file."
-
-ComplexMacroDefs[
-  MXCached[args_List, opts_List, body_]             := With[{head = First @ MacroHead[]}, mMXCached[head, args, opts, body]],
-  MXCachedAs[head_Sym, args_List, opts_List, body_] := mMXCached[head, args, opts, body]
-];
-
-SetHoldC @ mMXCached;
-
-mMXCached[head_, args_, opts_, body_] := Then[
-  $MXCacheInfo[head] = {$CurrentPackageFileHash, cacheBasePath @ NameLast @ SymName @ head},
-  HoldM @ MXCachedInternal[head, args, opts, body]
-];
-
-cacheBasePath[name_Str] := cacheBasePath[name] = PathJoin[$MXCachePath, name];
 
 (*************************************************************************************************)
 
@@ -62,7 +41,7 @@ MXCachedInternal[head_, args_, opts_, body_] := Module[
     fullHash = Base36Hash @ {fnHash, argsHash, optsHash};
     EnsureDirectory @ cachePath;
     CachePrint["Hashes: ", {fnHash, argsHash, optsHash}];
-    cacheFile = StrJoin[fullHash, ".mx"];
+    cacheFile = PathJoin[cachePath, StrJoin[fullHash, ".mx"]];
   ,
     CachePrint["Error occurred."];
     Return @ $Failed
@@ -96,8 +75,11 @@ SetHoldF @ SetStrict @ SymbolDefinitionHash;
 SetInitial[$SymbolDefinitionHashCache, UDict[]];
 
 SymbolDefinitionHash[sym_Sym | Hold[sym_Sym], otherHash_:0] := Module[{value},
+  CachePrint["Calculating hash for ", HoldForm @ sym];
   val = $SymbolDefinitionHashCache[Hold[sym]];
-  modTime = Lookup[Prelude`Packages`Private`$PackageModTime, SymbolBaseContext @ sym, 0];
+  package = Replace[SymbolBaseContext @ sym, "System`" -> "CoreTools`"];
+  modTime = PackageModTime @ package;
+  CachePrint["Package mod time for ", package, " is ", modTime];
   Switch[val,
     {_, modTime, otherHash}, CachePrint["Current symbol hash: ", val];  Return @ First @ val,
     {_, _, _},               CachePrint["Stale symbol hash for ", HoldForm @ sym, ": ", val, " =!= ", {_, modTime, otherHash}],

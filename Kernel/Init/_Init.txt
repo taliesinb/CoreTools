@@ -15,6 +15,7 @@ Specs.wl
 ItemSpecs.wl
 InitColors.wl
 OS.wl
+Caching.wl
 Import.wl
 Export.wl
 SystemData.wl

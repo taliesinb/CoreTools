@@ -1,11 +1,11 @@
 SystemExports[
   "GraphicsPrimitive", AngledCurve
-  "Option",            JoinStyle, JoinPosition, Shortcut, Setback
+  "GraphicsOption",    JoinStyle, JoinPosition, Shortcut, Setback
 ];
 
 
 PackageExports[
-  "Option",            JoinPos,
+  "GraphicsOption",    JoinPos,
   "GraphicsPrimitive", AngledCurve,
   "GraphicsBoxFn",     AngledCurveBox,
   "Function",          AngledCurvePoints, AngledCurvePointsFast
@@ -44,12 +44,6 @@ will be travelled from the endpoints before a shortcut is taken.
 * %Rounding -> r% gives the radius of bends connecting the edges.
 
 * the option %Setback is applied with respect to the entering and leaving angles."
-
-(*************************************************************************************************)
-
-DefineAliasRules[
-  JoinPos -> JoinPosition
-];
 
 (*************************************************************************************************)
 

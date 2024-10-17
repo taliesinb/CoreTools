@@ -1,149 +1,244 @@
 SystemExports[
-  "GraphicsOption",    Theme
-  "FormHead",          Themed,
-  "Function",          ThemeRules, ActiveThemes,
+  "GraphicsOption",    Theme, SubThemes,
+  "Function",          ThemeRules, GetThemes,
   "Predicate",         ThemeActiveQ
 ];
 
 PackageExports[
-  "Function",          ThemedOptions, LookupThemedOptions, ActiveThemeRules, ExpandThemeRules,
+  "Function",          AbsoluteThemes, AbsoluteThemeRules, RelativeThemeRules, LookupThemedOptions, DropThemeRules,
   "ScopingFunction",   BlockTheme,
-  "MutatingFunction",  SetTheme,
-  "BoxFunction",       ThemedBox,
+  "MutatingFunction",  SetTheme, BindTheme, ResetTheme,
   "MetaFunction",      SetThemedSymbol, UnsetThemedSymbol, DefineThemes, ClearThemes,
-  "Predicate",         ThemedRulesQ, ThemedOptsQ, ThemedSymbolQ
+  "Predicate",         ThemedRulesQ
 ];
 
 SessionExports[
+  "Predicate",         ThemedSymbolQ,
   "RegistryVariable",  $ThemeRules, $ThemeNames, $ThemeUsers,
   "CacheVariable",     $OptionKeysCache, $OptionRulesCache,
-  "TransientVariable", $ActiveThemes, $CurrentThemes
+  "TransientVariable", $ActiveThemes, $ActiveSubThemes, $LocalThemes, $LocalThemedOptions
 ];
 
 PrivateExports[
-  "PatternSymbol",     ThemeSpecP, SetThemeFast
+  "Function",          LookupThemedOptionsAndInfo
 ];
+
+(**************************************************************************************************)
+
+"Theme is an option.
+* It supports the following settings:
+| None | do not apply any themes |
+| Inherit | apply the default theme specified by Options |
+| 'name$' | apply a given theme |
+| {'name$1', 'name$2', ...} | apply several themes |
+* The first Theme -> in a rule list 'wins'.
+* SubThemes -> is an additive alternative.
+* The position it occurs in a rule list determines precedence.
+"
+
+"$LocalThemes[sym$] is a list of the active themes and subthemes for sym$, updated when calling UnpackSymbolsAs against a themed symbol.";
+"$LocalThemedOptions is a dict mapping symbols to the a list of their themed options, updated when calling UnpackSymbolsAs against a themed symbol.";
 
 (**************************************************************************************************)
 
 General::noThemes = "Symbol `` has no defined themes.";
 General::notThemedSymbol = "Expected a themed symbol ``.";
 General::unknownTheme = "Symbol `` does not have a theme ``. Known themes: ``.";
-General::badThemeRules = "Expected a list of rules: ``.";
+General::notThemeRules = "Expected a list of rules for themes of ``: ``.";
+General::notThemeSpec = "Expected None, a string, or a list of strings: ``.";
 General::badThemeOpt = "The some options were looked up for `` but don't exist: ``."
-General::badThemeBinding = "Not a valid theme binding: ``.";
-General::unknownGlobalTheme = "`` is not a theme for any symbol.";
+General::notThemeBinding = "Not a valid theme binding: ``.";
+General::notGlobalTheme = "`` is not a theme for any symbol.";
 
-msgThemeRules[sym_, spec_]  := (Message[sym::badThemeRules, sym, spec]; {});
-msgThemeBadSym[sym_, fn_]   := Message[sym::noThemes, fn];
-msgThemeNotSym[sym_, fn_]   := Message[sym::notThemedSymbol, fn];
-msgBadTheme[sym_, name_]    := Message[sym::unknownTheme, sym, name, FullRow[$ThemeNames @ sym, ","]];
-msgThemeBadOpt[sym_, fn_, keys_] := Message[sym::badThemeOpt, fn, First[Complement[keys, $OptionKeysCache @ fn], "?"]];
-msgBadBinding[sym_, spec_]  := Message[sym::badThemeBinding, spec];
-msgGlobalTheme[sym_, name_] := Message[sym::unknownGlobalTheme, name];
+msgThemeRules[spec_]        := msgTheme["notThemeRules", $head, spec, {}];
+msgThemeSymbol[sym_]        := msgTheme["noThemes", sym, $Invalid];
+msgThemeNotSym[spec_]       := msgTheme["notThemedSymbol", spec, $Invalid];
+msgThemeSpec[spec_]         := msgTheme["notThemeSpec", spec, {}];
+msgThemeName[sym_, name_]   := msgTheme["unknownTheme", sym, name, FullRow[Lookup[$ThemeNames, sym, {}], ","], {}];
+msgThemeBadOpt[fn_, keys_]  := msgTheme["badThemeOpt", fn, First[Complement[keys, $OptionKeysCache @ fn], "?"], Automatic];
+msgBadBinding[spec_]        := msgTheme["notThemeBinding", spec, $Failed];
+msgGlobalTheme[name_]       := msgTheme["notGlobalTheme", name, {}];
 
-testSym[_ ? ThemedSymbolQ] := True;
-testSym[sym_Sym] := Then[msgThemeBadSym[sym, sym], False];
-testSym[sym_]    := Then[msgThemeNotSym[General, sym], False];
+SetHoldR @ withHead;
+
+$head = General;
+msgTheme[msg_, args___, def_] := With[{h = $head}, Message[MessageName[h, msg], args]; def];
+withHead[head_, body_] := Block[{$head = head}, body];
 
 (**************************************************************************************************)
 
-DefinePatternRules[
-  ThemeSpecP -> Alt[_Str, _Sym -> StrOrVecP]
+checkSym = ExtendCaseOf[
+  $[sym_ ? ThemedSymbolQ] := sym;
+  $[sym_Sym]              := msgThemeSymbol[sym];
+  $[sym_]                 := msgThemeNotSym[sym];
+];
+
+checkSymList[e_List] := Select[e, checkSym];
+
+checkThemes[sym_] := ExtendCaseOf[
+  None                  := None;
+  {}                    := {};
+  name_Str | {name_Str} := If[ElementQ[name, $ThemeNames @ sym], name, msgThemeNameSym[sym, name]];
+  names_List            := Module[
+    {flat = DelDups @ Flatten @ names},
+    If[SubsetOfQ[flat, $ThemeNames @ sym], flat, msgThemeNameSym[sym, flat]]
+  ];
+  other_ := msgThemeNameSym[sym, other]
+];
+
+msgThemeNameSym[sym_ ? ThemedSymbolQ, name_] := msgThemeName[sym, name];
+msgThemeNameSym[sym_Sym, name_]              := (msgThemeSymbol[sym]; {})
+msgThemeNameSym[sym_, name_]                 := (msgThemeNotSym[sym]; {})
+
+(**************************************************************************************************)
+
+SetPred1[ThemedRulesQ, ThemedSymbolQ]
+
+"ThemedSymbolQ[sym$] gives True if sym$ has theme rules associated with it."
+"ThemedRulesQ[rules$] gives True if rules$ contains Theme or SubThemes rules.";
+
+ThemedRulesQ[{}] := False;
+ThemedRulesQ[_List ? (KeyExistsQ[Theme])] := True;
+ThemedRulesQ[_List ? (KeyExistsQ[SubThemes])] := True;
+
+(**************************************************************************************************)
+
+DropThemeRules = CaseOf[
+  {}         := {};
+  rules_List := DelCases[rules, _[Theme | SubThemes, _]];
+];
+
+(**************************************************************************************************)
+
+"AbsoluteThemes[sym$] looks up the the pair {themes, subthemes$} of set themes for sym$.
+* These are either the default themes given by Options, or what has currently been set by SetThemes."
+
+SetStrict[AbsoluteThemes];
+
+AbsoluteThemes[sym_] := withHead[AbsoluteThemes, flatThemes @ activeThemes @ checkSym @ sym];
+AbsoluteThemes[]     := withHead[AbsoluteThemes, Merge[{$ActiveThemes, $ActiveSubThemes}, flatThemes]];
+
+flatThemes = CaseOf[
+  {}        := {};
+  None      := {};
+  Inherit   := {};
+  s:{_Str}  := s;
+  s_Str     := s;
+  list_List := DelDups @ Flatten @ list;
+  e_        := msgThemeSpec[e];
+];
+
+activeThemes[$Invalid] := {};
+activeThemes[sym_]     := List[$ActiveThemes @ sym, $ActiveSubThemes @ sym];
+
+(**************************************************************************************************)
+
+"AbsoluteThemeRules[sym$, rules$] returns List[themedRules$, themes$, subthemes$], where themedRules$ includes the defaults from Options.";
+"RelativeThemeRules[sym$, rules$] returns List[themedRules$, themes$, subthemes$], where themedRules$ just resolves the given rules.";
+
+SetStrict[AbsoluteThemeRules, RelativeThemeRules];
+
+AbsoluteThemeRules[sym_]         := withHead[AbsoluteThemeRules, dedupThemeRules @ absoluteRules[checkSym @ sym, {}]];
+AbsoluteThemeRules[sym_, rules_] := withHead[AbsoluteThemeRules, dedupThemeRules @ absoluteRules[checkSym @ sym, rules]];
+RelativeThemeRules[sym_, rules_] := withHead[RelativeThemeRules, dedupThemeRules @ relativeRules[checkSym @ sym, rules]];
+
+dedupThemeRules[{rules_, themes_, subThemes_}] := JoinOptions[Theme -> themes, SubThemes -> subThemes, rules];
+
+(**************************************************************************************************)
+
+SetStrict[LookupThemedOptionsAndInfo, LookupThemedOptions];
+
+LookupThemedOptionsAndInfo[sym_, opts_List, keys_List] := Locals[
+  $head = LookupThemedOptionsAndInfo;
+  {rules, themes, subThemes} = absoluteRules[sym, opts];
+  allThemes = flatThemes @ List[themes, subThemes];
+  dict = UDict[Reverse @ rules, Theme -> allThemes, SubThemes -> {}];
+  List[allThemes, dict, lookupKeys[sym, dict, keys]]
+];
+
+LookupThemedOptions[sym_, opts_List, keys_List] :=
+  withHead[LookupThemedOptions, lookupKeys[sym, First @ absoluteRules[sym, opts], keys]];
+
+lookupKeys[sym_, opts_, keys_] := Then[
+  CheckOptKeys[sym -> $OptionKeysCache[sym], opts],
+  Lookup[opts, keys, msgThemeBadOpt[sym, keys]]
+];
+
+(**************************************************************************************************)
+
+"relativeRules[sym$, rules$] resolves *just* rules:
+* the first Theme that is encountered is expanded.
+* all SubThemes that are encountered are expanded.
+a tuple of {rules, themes, subthemes} is returned."
+
+"absoluteRules[sym$, rules$] is like relativeRules:
+* it also adds the global options."
+
+relativeRules[sym_, {}] := {{}, Inherit, {}};
+absoluteRules[sym_, {}] := expandingFor[sym, expandDefaults[]];
+
+relativeRules[sym_, rules_] := {rules, Inherit, {}};
+relativeRules[sym_, rules_ ? ThemedRulesQ] := expandingFor[sym, expandRules1 @ rules];
+
+absoluteRules[sym_, rules_] := expandingFor[sym, {expandRules0 @ rules, expandDefaults[]}];
+
+SetHoldR[expandingFor];
+expandingFor[$Invalid, body_] := {{}, {}, {}};
+expandingFor[sym_, body_] := Block[
+  {$head = sym, $winningThemes = Inherit, $allSubThemes = {}, $theme$ = Theme},
+  List[Flatten @ body, $winningThemes, flatThemes @ $allSubThemes]
+];
+
+expandDefaults[] := List[
+  expandThemes @ $ActiveSubThemes @ $head,
+  If[$winningThemes === Inherit,
+    $winningThemes = $ActiveThemes @ $head;
+    expandThemes @ $winningThemes, {}],
+  $OptionRulesCache @ $head
+];
+
+expandRules0 = CaseOf[
+  {}                        := {};
+  rules_List ? ThemedRulesQ := expandRules1 @ rules;
+  rules_List                := rules;
+  other_                    := msgThemeRules[other];
+];
+
+expandRules1 = CaseOf[
+  {}                        := {};
+  rules_List                := expandRules2[Lookup[rules, {$theme$, SubThemes}, Null], rules];
+  other_                    := msgThemeRules[other];
+];
+
+expandRules2[{Null, Null}, userRules_] :=
+  userRules;
+
+expandRules2[{themes_ ? setWinningThemes, subThemes_ ? addSubThemes}, userRules_] :=
+  List[userRules, expandThemes @ subThemes, expandThemes @ themes];
+
+setWinningThemes[Null | Inherit] := True;
+setWinningThemes[theme_]  := ($winningThemes = flatThemes @ theme; $theme$ = Null; True);
+
+addSubThemes[Null]       := True
+addSubThemes[subthemes_] := (AppendTo[$allSubThemes, subthemes]; True);
+
+SetListable[expandThemes];
+
+expandThemes = ExtendCaseOf[
+  Null      := {};
+  None      := {};
+  Inherit   := {};
+  list_List := Map[expandRules0, lookupRules[$head, flatThemes @ list]];
+  theme_    := expandRules0 @ lookupRules[$head, theme];
 ];
 
 (**************************************************************************************************)
 
 lookupRules[sym_, name_] :=
-  Lookup[$ThemeRules @ sym, name, msgBadTheme[sym, name]; List[]];
+  Lookup[$ThemeRules @ sym, name, msgThemeNameSym[sym, name]; List[]];
 
 lookupRulesDict[sym_] :=
   Lookup[$ThemeRules, sym, msgThemeSymbol[sym]; Dict[]];
-
-(**************************************************************************************************)
-
-SetPred1[ThemedRulesQ, ThemedOptsQ, ThemedSymbolQ]
-
-"ThemedSymbolQ[sym$] gives True if sym$ has theme rules associated with it."
-"ThemedRulesQ[rules$] gives True if rules$ contains a Theme rule.";
-"ThemedOptsQ[rule$1, rule$2, $$] gives True if one of the rule$i is a Theme rule.";
-
-ThemedRulesQ[_List ? (KeyExistsQ[Theme])] := True;
-ThemedOptsQ[___, Rule[Theme, _], ___]     := True;
-ThemedSymbolQ[s_Sym] := KeyExistsQ[$ThemeRules, s];
-
-(**************************************************************************************************)
-
-"ActiveThemes[sym$] gives the list of active themes for $sym.
-This always includes 'Default' last, which expands to the original option defaults for sym.
-It also includes the themes as defined by SetTheme."
-
-SetStrict[ActiveThemes, ThemeActiveQ];
-
-ActiveThemes[sym_ ? testSym]           := $ActiveThemes @ sym;
-ActiveThemes[_]                        := List[];
-ActiveThemes[]                         := $CurrentThemes;
-
-ThemeActiveQ[name_]                    := VContainsQ[$CurrentThemes, name];
-ThemeActiveQ[sym_Sym ? testSym, name_] := VContainsQ[$ActiveThemes[sym], name];
-
-(**************************************************************************************************)
-
-"ActiveThemeRules[sym$] looks up the list of options rule lists.
-* ActiveThemes[sym$] is used to obtain the active theme names, which are looked up.
-* ExpandThemeRules[rules$] expands any Theme -> ... rules that are present."
-
-SetStrict @ ActiveThemeRules;
-
-ActiveThemeRules[sym_ ? testSym] := Flatten @ activeThemeRules @ sym;
-ActiveThemeRules[_]              := List[];
-
-activeThemeRules[sym_] := expandThemes[sym, addTheme @ $ActiveThemes @ sym];
-
-defaultRules[sym_] := expandRules[sym, $OptionRulesCache @ sym];
-
-(**************************************************************************************************)
-
-"ExpandThemeRules[sym$, rules$] recursively expands Theme -> ... in rules, in-place.";
-
-SetStrict @ ExpandThemeRules;
-
-ExpandThemeRules[sym_ ? testSym, rules_] := expandRules[sym, rules];
-ExpandThemeRules[_, rules_]              := rules;
-
-expandRules[sym_] := CaseOf[
-  {}                        := {};
-  rules_List                := rules;
-  rules_List ? ThemedRulesQ := expandThemedRules[sym, rules];
-  other_                    := msgThemeRules[sym, other];
-];
-
-expandThemedRules[sym_] := CaseOf[
-  rules_List                := List[expandThemes[sym, addTheme @ Lookup[rules, Theme]], rules];
-  other_                    := msgThemeRules[sym, other];
-];
-
-expandThemes[sym_] := ExtendCaseOf[
-  None                      := {};
-  name_Str                  := expandRules[sym, lookupRules[sym, name]];
-  names_List ? StrVecQ      := expandRules[sym, Flatten @ lookupRules[sym, names]];
-  other_                    := Then[msgBadTheme[sym, other]; {}];
-];
-
-addTheme[None] := None;
-addTheme[theme_] /; ListQ[$active] := (AppendTo[$active, theme]; theme)
-addTheme[theme_] := theme;
-
-(**************************************************************************************************)
-
-SetCoreSubBox[Themed]
-
-CoreBox[Themed[spec___][expr_]] := ThemedBox[MakeBox @ expr, spec];
-
-SetBoxFn @ SetHoldC @ themedBox;
-
-ThemedBox[expr_, spec:ThemeSpecP]   := BlockTheme[spec, MakeBox @ expr];
-ThemedBox[expr_, spec:ThemeSpecP..] := BlockTheme[{spec}, MakeBox @ expr];
 
 (**************************************************************************************************)
 
@@ -151,71 +246,55 @@ SetStrict @ SetHoldR @ BlockTheme;
 
 BlockTheme[spec_, body_] := IBlock[
   {$ActiveThemes},
-  setActive1 @ spec;
+  BindTheme @ spec;
   body
 ];
 
 (**************************************************************************************************)
 
-SetTheme[spec:SymOrVecP, themes:Alt[__Str, None]] := (setActive2[spec, {}]);
-SetTheme[spec:ThemeSpecP]   := (setActive1[spec];)
-SetTheme[spec:ThemeSpecP..] := (setActive1[List @ spec];)
+ResetTheme[sym_Sym] := msgThemeSymbol[ResetTheme, sym];
+ResetTheme[other_]  := msgThemeNotSym[ResetTheme, other];
+
+(**************************************************************************************************)
+
+SetTheme = CaseOf[
+  $[list_List, theme_] := setTheme[checkSymList @ list, theme];
+  $[All, theme_]       := setThemeGlobal[theme];
+  $[sym_ , theme_]     := setTheme[checkSym @ sym, theme];
+  $[theme_]            := setThemeGlobal[theme];
+];
+
+setTheme = CaseOf[
+  $[$Invalid, _]       := Null;
+  $[All, theme_]       := setThemeGlobal[theme];
+  $[list_List, theme_] := Scan[$[#, theme]&, list];
+  $[sym_, None]        := ($ActiveThemes[sym] = {};);
+  $[sym_, Inherit]     := (ResetTheme[sym];);
+  $[sym_, themes_]     := doSet[sym, themes];
+];
+
+doSet[sym_, themes_] := withHead[SetTheme, Set[$ActiveThemes[sym], checkThemes[sym, themes]];];
+
+setThemeGlobal = CaseOf[
+  names_List := With[
+    {syms = Union @@ Map[getThemeUsers, names]}, Scan[
+    setTheme[#, Inter[names, $ThemeNames[#]]]&,
+    syms
+  ]];
+  name_      := setTheme[getThemeUsers @ name, name];
+];
+
+getThemeUsers[name_] := Lookup[$ThemeUsers, name, msgGlobalTheme[name]]
+
+(**************************************************************************************************)
+
+BindTheme = ExtendCaseOf[
+  str_Str       := SetTheme[str];
+  Rule[a_, b_]  := SetTheme[a, b];
+  rules:___Rule := (MapApply[SetTheme, rules]);
+];
 
 s_SetTheme := msgBadBinding[SetTheme, HoldForm @ s];
-
-(**************************************************************************************************)
-
-setActive2[{}, _] := Null;
-setActive2[syms:{__Sym}, themes_] := Scan[sym |-> setActive2[sym, themes], syms];
-setActive2[sym_Sym | {sym_Sym}, themes_] := If[ThemedSymbolQ[sym],
-  $ActiveThemes[sym] = DelDups @ Map[testName[sym, $ThemeNames @ sym], ToList @ themes],
-  msgThemeBadSym[SetTheme, sym]
-];
-
-testName[sym_, names_][name_] := If[VContainsQ[names, name], name, msgBadTheme[sym, name]; Nothing];
-
-SetListable[setActive1];
-
-setActive1[sym_ -> name_]  := setActive2[sym, name];
-setActive1[name_Str]       := setActive2[Lookup[$ThemeUsers, name, msgGlobalTheme[name]; {}], name];
-setActive1[spec_]          := msgBadBinding[SetTheme, spec];
-
-(**************************************************************************************************)
-
-"ThemedOptions[sym$] returns the options for sym$ according to its currently active themes.
-ThemedOptions[sym$, {opt$1 -> val$1, $$}] overrides these options with user options.
-* If opts$ contains Theme -> 'name$' or Theme -> {'name$1', $$}, these will be applied and \
-the currently active themes ignored."
-
-SetStrict @ ThemedOptions;
-
-ThemedOptions = CaseOf[
-  $[sym_]                  := $[sym, {}];
-  $[sym_ ? testSym, opts_] := DelDupsBy[themedOptions[sym, opts], First];
-  $[_, opts_]              := opts;
-];
-
-themedOptions[sym_] := CaseOf[
-  {}                       := Flatten @ List[activeThemeRules @ sym, defaultRules @ sym];
-  opts_ ? ThemedRulesQ     := Flatten @ List[opts, expandThemedRules[sym, opts], defaultRules @ sym];
-  opts_List                := Flatten @ List[opts, activeThemeRules @ sym, defaultRules @ sym];
-  other_                   := msgThemeRules[sym, other];
-];
-
-(**************************************************************************************************)
-
-SetStrict @ LookupThemedOptions;
-
-LookupThemedOptions[sym_, opts_List, keys_List] := Locals[
-  $active = {};
-  themedOpts = themedOptions[sym, opts];
-  List[DelDups @ Flatten @ $active, lookupKeys[sym, themedOpts, keys]]
-];
-
-lookupKeys[sym_, opts_, keys_] := Then[
-  CheckOptKeys[sym -> $OptionKeysCache[sym], opts];
-  Lookup[opts, keys, msgThemeBadOpt[LookupThemedOptions, sym, keys]; $Failed]
-];
 
 (**************************************************************************************************)
 
@@ -230,28 +309,49 @@ ThemeRules /: Set[ThemeRules[lhs___], rhs_] := DefineThemes[lhs, rhs];
 SetStrict[SetThemedSymbol, UnsetThemedSymbol];
 
 SetThemedSymbol[sym_Sym] := Module[
-  {opts = Options @ sym},
-  If[opts === {},
-    Message[SetThemedSymbol::notOptionsSet, sym];
-    Return @ $Failed
-  ];
-  ThemedSymbolQ[sym] = True;
-  $OptionRulesCache[sym] = opts;
-  $OptionKeysCache[sym] = Keys @ opts;
-  $ThemeRules[sym] = Dict[];
-  If[!ListQ[$ActiveThemes[sym]], $ActiveThemes[sym] = {}];
+  {opts = Options @ sym, nonThemeOpts},
+  nonThemeOpts = DropThemeRules @ opts;
+  If[opts === {}, ReturnFailed[SetThemedSymbol::noOptions, sym]];
+  If[!HasKeyQ[opts, Theme] || !HasKeyQ[opts, SubThemes], ReturnFailed[SetThemedSymbol::noThemeOpt, sym]];
+  If[Lookup[opts, SubThemes] =!= {}, ReturnFailed[SetThemedSymbol::defaultSubthemes, sym]];
+  ThemedSymbolQ[sym]     = True;
+  $OptionRulesCache[sym] = nonThemeOpts;
+  $OptionKeysCache[sym]  = Keys @ opts;
+  $ThemeRules[sym]       = Dict[];
+  setupReset[sym, FirstCase[opts, _[Theme, _]]];
+  If[MissingQ[$ActiveSubThemes[sym]], $ActiveSubThemes[sym] = {}];
 ];
 
+setupReset[sym_, _[Theme, theme_]] := Then[
+  If[MissingQ[$ActiveThemes[sym]], $ActiveThemes[sym] = {theme}];
+  SetD[ResetTheme[sym], doReset[sym, theme]]
+];
+
+setupReset[sym_, e_]               := ErrorPrint[SetThemedSymbol, sym -> e];
+
+doReset[sym_, default_] := withHead[ResetTheme, doSet[sym, default]];
+
+UnsetThemedSymbol[_Sym] := $Invalid;
 UnsetThemedSymbol[sym_Sym ? ThemedSymbolQ] := Then[
   unregisterName[sym, $ThemeNames @ sym],
-  Unset[{$ThemeNames[sym], $OptionRulesCache[sym], $OptionKeysCache[sym], $ThemeRules[sym]}]
+  Unset[{
+    $ThemeNames[sym],
+    $ThemeRules[sym],
+    $ActiveThemes[sym],
+    $ActiveSubThemes[sym],
+    $OptionRulesCache[sym],
+    $OptionKeysCache[sym],
+    ResetTheme[sym]
+  }]
 ];
 
 SetListable[unregisterName];
 
 unregisterName[sym_, name_] := DeleteFrom[$ThemeUsers[name], sym];
 
-SetThemedSymbol::notOptionsSet = "There appear to be no options yet for ``. Reorder your definitions.";
+SetThemedSymbol::noOptions = "There appear to be no options (yet) for ``. Reorder your definitions.";
+SetThemedSymbol::noThemeOpt = "There must be a default Theme and SubTheme option for ``.";
+SetThemedSymbol::defaultSubthemes = "Default SubThemes must be {} for ``.";
 
 (**************************************************************************************************)
 
@@ -263,9 +363,10 @@ DefineThemes[sym_Sym, rules__Rule] := DefineThemes[sym, {rules}];
 DefineThemes[sym_Sym, dict_Dict]   := DefineThemes[sym, Normal @ dict];
 DefineThemes[sym_Sym, specs_List] := Locals[
   IfFailed[SetThemedSymbol @ sym, ReturnFailed[]];
-  $keys = $OptionKeysCache @ sym; $sym = sym;
+  $keys = DeleteCases[Theme -> _] @ $OptionKeysCache @ sym; $sym = sym;
   defs = Map[checkDefRule, specs];
   names = Keys @ defs;
+  DPrint["Defining themes ", names, " for ", sym];
   Scan[name |-> KeyUnionTo[$ThemeUsers, name, {sym}], names];
   result = BindTo[$ThemeRules[sym], defs];
   $ThemeNames[sym] = Keys @ $ThemeRules[sym];
@@ -275,7 +376,7 @@ checkDefRule[spec_] := badThemeDef["themeDefSpec", spec];
 checkDefRule[spec:Rule[name_, rules_]] := Which[
   !StrQ[name],       badThemeDef["themeDefName", $sym, name],
   !RuleLVecQ[rules], badThemeDef["themeDefRules", name, $sym, rules],
-  CheckSubsetOfQ[Keys @ rules, $keys, DefineThemes, "themeDefKeys", name, $sym], spec,
+  CheckSubsetOfQ[Keys @ rules, $keys, DefineThemes -> "themeDefKeys", name, $sym], spec,
   True, Nothing
 ];
 
@@ -293,8 +394,10 @@ DefineThemes::themeDefKeys = "Theme `3` for symbol `4` specifies keys `1` that a
 SetStrict @ ClearThemes;
 
 ClearThemes[] := Then[
-  $ActiveThemes = UDict[];
-  $CurrentThemes = None;
+  $ActiveThemes       = UDict[];
+  $ActiveSubThemes    = UDict[];
+  $LocalThemes        = UDict[];
+  $LocalThemedOptions = UDict[];
   $OptionRulesCache = $OptionKeysCache = UDict[];
   $ThemeRules = $ThemeNames = $ThemeUsers = UDict[];
 ];
@@ -302,8 +405,6 @@ ClearThemes[] := Then[
 (**************************************************************************************************)
 
 If[!HasIValueQ[$ThemeRules], ClearThemes[]];
-
-$CurrentThemes::usage = "$CurrentThemes gets set to the list of themes when calling UnpackSymbolsAs against a themed symbol.";
 
 (**************************************************************************************************)
 
@@ -315,7 +416,8 @@ ThemeRules[sym$] = Dict['name$1' -> rules$1, $$] defines the themes for sym$ sim
 ThemeRules[sym$, 'name$] = rules$ defines an additional theme.
 * You can also use DefineThemes and ClearThemes."
 
-ThemeRules[sym_Sym]           := lookupRulesDict @ sym;
-ThemeRules[sym_Sym, name_Str] := If[ThemedSymbolQ[sym], lookupRules[sym, name], msgThemeSym[sym]; {}];
+ThemeRules[All]            := $ThemeRules;
+ThemeRules[sym_]           := lookupRulesDict @ sym;
+ThemeRules[sym_, name_Str] := lookupRules[sym, name];
 
 Protect[ThemeRules];

@@ -584,14 +584,14 @@ jsonDataBox = CaseOf[
   EmptyDict   := "{}";
   list_List   := RBox["[", HLenBox @ list, "]"];
   dict_Dict   := RBox["{", HLenBox @ dict, "}"];
-  s_Str       := StyleBox[If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> Dots]], ShowStringCharacters -> True];
+  s_Str       := StyleBox[If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> CDotsS]], ShowStringCharacters -> True];
   d:DatumP    := StyleBox[MakeBoxes @ d, ShowStringCharacters -> True];
   e_          := HoldElidedBox @ e;
 ];
 
 jsonCompoundBox[top_, bot_, expr_] := Locals[
   If[HLen[expr] > 16 && $subPath =!= {}, Return @ jsonNextView[expr]];
-  entries = ListDictMakeBoxes1D[Evaluate @ HoldArgsP @ expr, False, jsonEntryBox, False, None, 800, 16];
+  entries = ListDictMakeBoxes1D[Evaluate @ HoldArgsP @ expr, False, jsonEntryBox, False, None, 1200, 32];
   If[VFreeQ[entries, {EventsBox, GridBox}] && Total[Occurrences[entries, s_Str ? HAtomQ :> StrLen[s]]] < 24,
     RBox[top, RowBox @ Riffle[entries, ","], bot]
   ,
@@ -642,7 +642,7 @@ expViewBoxes = CaseOf[
 ];
 
 expItemBoxes = CaseOf[
-  s_Str       := If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> Dots]];
+  s_Str       := If[StrLen[s] < 16, MakeBoxes @ s, MakeBoxes[StringDrop[s, 14] <> CDotsS]];
   p:DatumP    := MakeBoxes @ p;
   e_          := HoldElidedBox @ e;
 ];

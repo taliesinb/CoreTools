@@ -8,7 +8,7 @@ PackageExports[
   "SymbolicHead",     NCTimes,
   "Predicate",        PackedQ,
   "SpecialVariable",  $Fail,
-  "Symbol",           Auto, Inherit, HInf, Tru, Fal
+  "Symbol",           Auto, Inherit, DefV, Indet, HInf, Tru, Fal
   "StrPatHead",       Regex, StrExpr,
   "MessageFunction",  MsgName,
   "MutatingFunction", SetD, TagSetD, UpSetD, AssocTo, SubFrom,
@@ -58,7 +58,9 @@ DefineAliasRules[
 
 DefineAliasRules[
   Auto       -> Automatic,
+  DefV       -> DefaultValue,
   Inherit    -> Inherited,
+  Indet      -> Indeterminate,
   HInf       -> Infinity,
   Tru        -> True,
   Fal        -> False

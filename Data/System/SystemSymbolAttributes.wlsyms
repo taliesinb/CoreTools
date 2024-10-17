@@ -23,7 +23,7 @@ HoldAll
 	ParametricRegion Piecewise Play Plot Plot3D Point3DBox PointBox Polygon3DBox PolygonBox PrismBox Product
 	Protect PyramidBox Quiet Raster3DBox RasterBox RectangleBox RegionPlot RegionPlot3D Remove
 	SampledSoundFunction ScheduledTask ScheduledTaskObject SetAll SetAuto SetCached SetDelayed SetDelayedInitial
-	SetFailed SetInherited SetInitial SetMissing SetNone SetScaledFactor SphereBox StackBegin StackComplete
+	SetFailed SetInherited SetInitial SetMissing SetNone SetScaled SphereBox StackBegin StackComplete
 	StackInhibit SubAll SubAuto SubFailed SubInherited SubMissing SubNone SubValues Sum Table TagSet
 	TagSetDelayed TagUnset TetrahedronBox Text3DBox TextBox ThenOp TimeConstrained Timing Trace TraceDialog
 	TracePrint TraceScan TubeBezierCurveBox TubeBox TubeBSplineCurveBox Unprotect UpSetDelayed UpValues

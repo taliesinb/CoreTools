@@ -56,9 +56,21 @@ FromBroadcast[Broadcast[b_, n_]]   := ConstList[b, n];
 
 (**************************************************************************************************)
 
+Broad::broadcastAmbigious = "Can't broadcast element without known size: ``.";
+Broad::broadcastValue = "Cannot obtain single value for ``.";
+Broad::broadcastSize = "Multiple incompatible sizes of lists: ``.";
+Broad::broadcastNoSize = "No size for ``.";
+
+throwBValue[e___]   := ThrowMessage[Broad::broadcastValue, PrivHoldSeq @ e];
+throwBAmbig[e_]     := ThrowMessage[Broad::broadcastAmbigious, e];
+throwBSizes[e___]   := ThrowMessage[Broad::broadcastSizes, PrivHoldSeq @ e];
+throwBNoSize[e___]  := ThrowMessage[Broad::broadcastNoSize, PrivHoldSeq @ e];
+
+(**************************************************************************************************)
+
 BSeq[]              := Seq[];
 BSeq[Broad[b_, n_]] := ConstList[b, n];
-BSeq[Broad[_]]      := InternalError;
+BSeq[Broad[e_]]     := throwBAmbig @ e;
 BSeq[Broad[b1_, n_], Broad[b2_, n_]] := Seq[ConstList[b1, n], ConstList[b2, n]];
 BSeq[Broad[b1_],     Broad[b2_, n_]] := Seq[ConstList[b1, n], ConstList[b2, n]];
 BSeq[Broad[b1_, n_], Broad[b2_]]     := Seq[ConstList[b1, n], ConstList[b2, n]];
@@ -76,11 +88,11 @@ ToBN[n_][e_]            := e;
 
 BVal[b_Broad]       := P1 @ b;
 BVal[b__Broad]      := SeqCol1 @ b;
-BVal[_]             := InternalError;
+BVal[e___]          := throwBValue[e];
 
 BLen[Broad[_]]      := None;
 BLen[Broad[_, n_]]  := n;
-BLen[ms___]         := ToUnique[weakDimsSeq @ ms, InternalError, None];
+BLen[ms___]         := ToUnique[weakDimsSeq @ ms, throwBSizes[ms], None];
 _BLen               := None;
 
 (**************************************************************************************************)
@@ -99,7 +111,7 @@ weakDims = CaseOf[
   Broad[_]     := Nothing;
   Broad[_, n_] := n;
   a_List       := Len @ a;
-  _            := InternalError
+  e_           := throwBNoSize[e];
 ];
 
 strongDimsSeq[a_]   := List @ strongDims @ a;
@@ -108,7 +120,7 @@ strongDims = CaseOf[
   Broad[_]     := None;
   Broad[_, n_] := n;
   a_List       := Len @ a;
-  _            := InternalError
+  e_           := throwBNoSize[e];
 ];
 
 (**************************************************************************************************)

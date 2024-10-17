@@ -5,7 +5,7 @@ SystemExports[
     FileList,
   "IOFunction",
     EnsureDirectory, FileData, CopyLatestFile, MoveFile, FileNameSafe, CopyFileSafe, TemporaryFileCopy, ExtractArchiveFile,
-    RunAppleScript, RunCommand, FindBinary,
+    RunAppleScript, RunCommand, FindBinary, EnsureReadableFile,
     CopyImageToClipboard, CopyTextToClipboard,
   "Variable",
     $BinaryPaths
@@ -19,6 +19,10 @@ PrivateExports[
   "MetaFn",      DefineImportFn,
   "Function",    DataPath, ImportFnHelper, ImportStreamHelper, ExportStreamHelper,
   "ControlFlow", QuietCheckCorrupt
+];
+
+SessionExports[
+  "Variable", $TempDir
 ];
 
 (**************************************************************************************************)
@@ -79,10 +83,10 @@ accentsToMarks[str_] := CharacterNormalize[str, "NFC"];
 
 SetStrict[NewTemporaryFilename];
 
-$tempDir := $tempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
+$TempDir := $TempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
   If[!FileExistsQ[dir], CreateDirectory[dir]]; dir];
 
-NewTemporaryFilename[file_String] := PathJoin[$tempDir, file];
+NewTemporaryFilename[file_String] := PathJoin[$TempDir, file];
 
 NewTemporaryFilename[file_String] /; StringContainsQ[file, "#"] :=
   NewTemporaryFilename @ StrRep[file, "#" -> UniqueSessionID[]]
@@ -200,23 +204,28 @@ General::missingArchive = "Archive file `` does not exist."
 
 (**************************************************************************************************)
 
+archivePath[dirName_] := EnsureDirectory @ DataPath["Cache", "Archive", dirName];
+
 extractArchive[head_, path_] := Module[
   {hashStr, dirName, dirPath, files},
   hashStr = Base36String @ FileHash @ path;
   dirName = FileBaseName[path] <> "." <> hashStr;
-  dirPath = NewTemporaryFilename @ dirName;
+  dirPath = archivePath @ dirName;
   If[DirectoryQ[dirPath],
     files = FileNames[All, dirPath, Infinity];
+    CachePrint["Found open archive with ", Len[files], " at ", File @ dirPath];
     If[Len[files] === 1, Return @ First @ files];
     DeleteDirectory[dirPath, DeleteContents -> True];
   ];
   CreateDirectory @ dirPath;
+  CachePrint["Extracting ", path, " to ", dirPath];
   files = ExtractArchive[path, dirPath, CreateIntermediateDirectories -> False];
   If[!ListQ[files],
     Message[head::corruptArchive, File @ path];
     Return @ $Failed
   ];
-  Switch[Length @ files,
+  CachePrint["Obtained ", Len @ files, " files"];
+  Switch[Len @ files,
     1, First @ files,
     0, Message[head::emptyArchive, File @ path]; $Failed,
     _, Message[head::multipleArchiveFiles, File @ path, File /@ files]; $Failed

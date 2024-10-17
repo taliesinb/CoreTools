@@ -3,7 +3,7 @@ SystemExports[
   "GraphicsPrimitive", NamedIcon,
   "BoxFn",             NamedIconCBox,
   "GraphicsBoxFn",     NamedIconGBox,
-  "Option",            IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
+  "GraphicsOption",    IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
   "Symbol",            Huge, MediumLarge, MediumSmall,
   "SymbolicHead",      Sized, Reversed
 ];

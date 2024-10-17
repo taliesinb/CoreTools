@@ -34,12 +34,14 @@ SystemExports[
     LabeledPrint,
     ValueChangePrint,
     DPrint,
+    DebugEcho, DebugPrintCondition,
     DebugGroup,
     EchoPrint,
     MutationPrint,
 
   "ScopingFunction",
     PrintIndented,
+    WhenDebugging,
 
   "SpecialVariable",
     $LastCapture,
@@ -55,6 +57,8 @@ SystemExports[
 ]
 
 SessionExports[
+  "IOFunction",
+    DebugPrint,
   "SpecialVariable",
     $PrintIndent,
     $ShouldPrint,
@@ -77,6 +81,7 @@ BlockPrint[body_] := Block[{CellPrint = Hold, Print = Hold}, body];
 
 If[!BooleanQ[$DebugPrinting],    $DebugPrinting = False];
 If[!BooleanQ[$EchoPrinting],     $EchoPrinting = True];
+If[!BooleanQ[$CachePrinting],    $CachePrinting = False];
 If[!BooleanQ[$MutationPrinting], $MutationPrinting = True];
 
 EnableDebugPrinting[body_]     := Block[{$DebugPrinting    = True},  body];
@@ -86,7 +91,7 @@ PrintIndented[body_]           := Block[{$PrintIndent = $PrintIndent + 1}, body]
 
 (*************************************************************************************************)
 
-DeclareHoldAllComplete[RawPrint, LogPrint, ErrorPrint, EchoPrint, MutationPrint, DPrint, DebugGroup];
+DeclareHoldAllComplete[RawPrint, LogPrint, ErrorPrint, EchoPrint, MutationPrint, DPrint, DebugPrint, DebugPrintCondition, DebugGroup];
 
 (*************************************************************************************************)
 
@@ -110,11 +115,20 @@ ErrorPrint[args___] := CustomizedPrint[$errorPrintOpts, args];
 CachePrint[args___]    := If[$CachePrinting,    CustomizedPrint[$cachePrintOpts, args],    $Disabled, $Disabled];
 EchoPrint[args___]     := If[$EchoPrinting,     CustomizedPrint[$echoPrintOpts, args],     $Disabled, $Disabled];
 DPrint[args___]        := If[$DebugPrinting,    CustomizedPrint[$debugPrintOpts, args],    $Disabled, $Disabled];
+DebugPrint[args___]    := If[$DebugPrinting,    CustomizedPrint[$debugPrintOpts, args],    $Disabled, $Disabled];
 MutationPrint[args___] := If[$MutationPrinting, CustomizedPrint[$mutationPrintOpts, args], $Disabled, $Disabled];
 
-DebugGroup[{title__}, body_] := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body];
-DebugGroup[title__, body_]   := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body];
-DebugGroup[body_]            := If[$DebugPrinting, PrintIndented @ body, body];
+DebugGroup[{title__}, body_] := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body, body];
+DebugGroup[title__, body_]   := If[$DebugPrinting, DPrint[title]; PrintIndented @ body, body, body];
+DebugGroup[body_]            := If[$DebugPrinting, PrintIndented @ body, body, body];
+
+DebugEcho[expr_] /; DebugPrintCondition[expr] := expr;
+DebugEcho[expr_] := expr;
+
+DebugPrintCondition[args___] /; $DebugPrinting := (DPrint[args]; True);
+_DebugPrintCondition := True;
+
+WhenDebugging[body_]         := If[$DebugPrinting, body, $Disabled, $Disabled];
 
 (*************************************************************************************************)
 
@@ -285,6 +299,17 @@ Capture[e_] := Block[
 
 DeclareHoldAllComplete[TraceFunctionCalls];
 DeclareStrict[TraceFunctionCalls];
+
+TraceFunctionCalls::usage = "TraceFunctionCalls[symbols | globs, body]."
+TraceFunctionCalls::noSymbols = "Too few or too many symbols (``) matching glob ``."
+
+TraceFunctionCalls[glob:Alternatives[_String, {__String}], body_] := With[
+  {names = Names[glob]},
+  If[1 <= Length[names] <= 8,
+    With[{syms = Symbol /@ names}, TraceFunctionCalls[syms, body]],
+    Message[TraceFunctionCalls::noSymbols, Length @ names, glob]; $Failed
+  ]
+];
 
 TraceFunctionCalls[sym_Symbol, body_] := TraceFunctionCalls[{sym}, body];
 

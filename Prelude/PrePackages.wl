@@ -26,6 +26,7 @@ PackageExports[
     PackageSymbolKinds,
     PackageSymbolNames,
     PackageSymbolTable,
+    PackageModTime,
 
   "Variable",
     $SymbolAliases,
@@ -34,6 +35,7 @@ PackageExports[
     $PackageLoadVerbose,
 
   "TransientVariable",
+    $CurrentPackage,
     $CurrentPackageLineSentinel,
     $CurrentPackageFileHash,
     $CurrentPackageExpr,
@@ -205,6 +207,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
    $lazySymbolClearers, $lazyQueueEvaluators, $baseLen, $exprEvalFn,
    $PackageCurrentlyLoading = True,
    $CurrentPackageMessageCount = 0,
+   $CurrentPackage = baseContext,
    $MaxPrintRate = 200,
    externalAliases, sourceFiles, fileContexts, symbolTable},
 
@@ -681,6 +684,11 @@ PackageSymbolKinds[context_String] := Module[
 ];
 
 PreludeLoadedPackages[] := Keys @ $PackageSymbolTable;
+
+(*************************************************************************************************)
+
+PackageModTime[context_String] :=
+  Lookup[$PackageModTime, context, None];
 
 (*************************************************************************************************)
 

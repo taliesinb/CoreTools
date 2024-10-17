@@ -1,9 +1,10 @@
 SystemExports[
-  "FormHead", Unformatted, Uninteractive, FormBlock
+  "FormHead", Unformatted, Uninteractive, FormBlock, Themed
 ];
 
 PackageExports[
-  "BoxFn",    FormBlockBox
+  "BoxFn",     FormBlockBox,
+  "SpecialFn", MakeThemedBox
 ];
 
 (**************************************************************************************************)
@@ -31,3 +32,12 @@ FormBlockBox = CaseOf[
 ];
 
 (**************************************************************************************************)
+
+SetBoxFn @ SetHoldC @ MakeThemedBox;
+
+SetCoreSubBox[Themed]
+
+CoreBox[Themed[spec___][expr_]] := MakeThemedBox[expr, spec];
+
+MakeThemedBox[expr_, spec_]   := BlockTheme[spec, MakeBox @ expr];
+MakeThemedBox[expr_, spec__]  := BlockTheme[{spec}, MakeBox @ expr];

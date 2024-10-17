@@ -1,14 +1,12 @@
 SystemExports[
   "IOFunction",
     ImportStream, ImportJSONString,
-    ImportLines, ImportJSON, ImportMX, ImportUTF8, ImportStringTable
+    ImportLines, ImportJSON, ImportJSONFast, ImportMX, ImportUTF8, ImportStringTable
 ];
 
 (**************************************************************************************************)
 
 DefineImportFn[ImportStream, importStream]
-
-importStream
 
 (**************************************************************************************************)
 
@@ -41,6 +39,16 @@ jsonPostImport[expr_] := ReplaceAll[expr, Null -> None];
 DefineImportFn[ImportJSON, importJSON]
 
 importJSON[path_Str] := QuietCheckCorrupt @ jsonPostImport @ ReadRawJSONFile @ path;
+
+(**************************************************************************************************)
+
+DefineImportFn[ImportJSONFast, importJSONFast]
+
+importJSONFast[path_Str] := MXCachedAs[
+  ImportJSONFast,
+  {path, FileUnixTime @ path}, {},
+  QuietCheckCorrupt @ ReadRawJSONFile[path, "JSONObjectAsList" -> True]
+];
 
 (**************************************************************************************************)
 

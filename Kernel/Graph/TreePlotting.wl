@@ -2,15 +2,19 @@ SystemExports[
   "GraphicsOption",
     GraphScale, HStretch, VStretch,
     SplitPosition,
-    NodeData, NodeTooltips, NodeColor, NodeSize, NodeShape, NodeThickness,
+    NodeData,
+    NodeTooltips, NodeClickFunction, NodeClickData,
+    EdgeTooltips, EdgeClickFunction, EdgeClickData,
+    NodeColor, NodeSize, NodeShape, NodeThickness,
     RootPosition,
-    NodeGroups, GroupStyles,
+    NodeGroups, NodeStyles,
     NodeBackground, NodeOffset,
     SharedLeaves, EdgeFn
 ];
 
 PackageExports[
   "SymbolicHead",     FaceEdge,
+  "GraphicsOption",   SplitPos, NodeClickFn, EdgeClickFn,
   "GraphicsFunction", ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor
 ];
 
@@ -25,32 +29,41 @@ Options[NiceTreePlot] = {
   GraphScale        -> 30,
   HStretch          -> 1.0,
   VStretch          -> 1.0,
+
   NodeTooltips      -> None,
+  NodeClickFn       -> None,
+  NodeClickData     -> "Name",
   NodeColor         -> Auto,
   NodeSize          -> 5,
   NodeShape         -> "Disk",
   NodeThickness     -> 1,
   NodeData          -> Auto,
   NodeGroups        -> None,
-  GroupStyles       -> None,
   NodeOffset        -> {0, 0},
+  NodeStyles        -> None,
+  NodeBCol          -> None,
+
+  EdgeClickFn       -> None,
+  EdgeClickData     -> "Name",
+  EdgeColor         -> Black,
+  EdgeThickness     -> 1,
+  EdgeFn            -> Line,
+  Setback           -> 0,
+
   SplitPosition     -> Top,
+  FanDistance       -> None,
   Rounding          -> 0.25,
+
   PMargin           -> 0.5,
+  BaselinePosition  -> Root,
   FontSize          -> 10,
   FontFamily        -> Inherited,
   FontWeight        -> Inherited,
   FontSlant         -> Inherited,
-  NodeBackground    -> None,
-  EdgeColor         -> Black,
-  EdgeThickness     -> 1,
+
   RootPosition      -> Top,
-  BaselinePosition  -> Root,
   SharedLeaves      -> {},
-  EdgeFn            -> Line,
-  FanDistance       -> None,
-  ReverseEdges      -> False,
-  Setback           -> 0
+  ReverseEdges      -> False
 };
 
 SetPred1 @ extColorQ;
@@ -74,7 +87,7 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
     nodeData,
     fontSize, fontWeight, fontFamily, fontSlant,
     sharedLeaves, splitPosition, rounding, pMargin,
-    nodeThickness, $nodeBackground, $nodeOffset,
+    nodeThickness, $nodeBCol, $nodeOffset,
     edgeFn, setback
   ];
 
@@ -88,7 +101,7 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   vertexCount = VertexCount @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
 
-  aspectRatio = vStretch / hStretch;
+  aspectRatio = 0.66*vStretch / hStretch;
   {vertexCoords, edgeCoords, plotBounds} = OrderedTreeLayout[graph,
     RootPosition -> rootPosition, "LayerDepths" -> aspectRatio,
     SharedLeaves -> sharedLeaves, PMargin -> pMargin,
@@ -101,7 +114,7 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   imageSize = plotSize * graphScale;
   $scale = 0.5 / graphScale;
 
-  edgeStyle = Directive @ AThickness @ edgeThickness;
+  edgeStyle = Directive[AThickness @ edgeThickness, $niceArrowhead];
   nodeStyle = EdgeForm @ AThickness @ nodeThickness;
 
   itemData = transposeDict @ GraphVertexAnnotations @ graph;
@@ -109,11 +122,15 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
 
   vertexList = VertexList @ graph;
   vertexSpecs = ParseItemOptions[NiceTreePlot,
-    $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> Auto,
-    ItemData -> itemData, ItemGroups -> NodeGroups, GroupSettings -> GroupStyles
+    $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> True,
+    ItemData -> itemData, ItemGroups -> NodeGroups, GroupSettings -> NodeStyles
   ];
-  vertexSpecs = Lookup[vertexSpecs, {NodeShape, NodeSize, NodeTooltips, NodeColor}];
+  vertexSpecs = Lookup[
+    vertexSpecs,
+    {NodeShape, NodeSize, NodeTooltips, NodeColor, NodeClickFn, NodeClickData}
+  ];
   vertexPrims = makePrimitives[vertexSpecs, vertexCoords];
+
   SetAuto[edgeColor, GrayLevel[0.5]];
   AppendTo[edgeStyle, edgeColor];
   fontStyle = DelCases[
@@ -142,6 +159,12 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   ]
 ];
 
+$arrowheadCurve = Polygon[
+      ToPacked @ ThreadPlus[{-0.4, 0}, 0.8*{{{-0.3166, -0.3333}, {-0.3166, 0.3333}, {0.25, 0.}}}]
+    ];
+
+$niceArrowhead = Arrowheads[{{Medium, 1.0, List[Graphics @ $arrowheadCurve, .4]}}];
+
 transposeDict[_]         := None;
 transposeDict[annos_Dict] := Locals[
   {verts, dicts} = KeysVals @ Select[annos, DictQ];
@@ -156,17 +179,23 @@ if some are bcasts, turn them to lists and do a ZipMap *)
 
 (**************************************************************************************************)
 
-makePrimitives[{shape_, size_, tooltips_, colors_}, coords_] := Locals[
+SetStrict @ makePrimitives;
+
+makePrimitives[{shape_, size_, tooltips_, colors_, clickFns_, clickData_}, coords_] := Locals[
   prims = BMap[makeShape, shape, coords, size, colors];
   GlobalVar[$meanSize]; $meanSize = Mean @ FromB @ size;
   If[!BMatchQ[tooltips, None], prims = BMap[Tooltip, prims, tooltips]];
+  If[!BMatchQ[clickFns, None], prims = BMap[makeClicker, prims, clickFns, clickData]];
   prims
 ];
+
+makeClicker[prim_, None | Auto | Inherit, _] := prim;
+makeClicker[prim_, fn_, data_] := Button[prim, fn @ data];
 
 (**************************************************************************************************)
 
 makeShape[Framed[str_, opts___Rule], pos_, size_, color_] := Locals[
-  bg = toBackCol[color, $nodeBackground, White];
+  bg = toBackCol[color, $nodeBCol, White];
   margins = If[bg === White, {{0,0},{0,0}}, {{2,1},{1,1}}];
   rounding = If[bg === White, 0, 2];
   fstyle = If[bg === White, None, Directive @ {AThickness[1], Darker[color,.1]}];
@@ -302,12 +331,13 @@ shapeError[_, value_] := ErrorOptVal[NodeShape, value, LitStr @ StrJoin[
   QuotedStringList @ $knownShapes
 ]];
 
-
 $treePlotVertexSpecs = {
-  ItemSpec[NodeTooltips, TrueFn, None],
-  ItemSpec[NodeColor,    extColorQ, $defaultColor],
-  ItemSpec[NodeSize,     NumberQ],
-  ItemSpec[NodeShape,    validShapeFnQ, Inherit, finalShapeFn, ItemMessageFn -> shapeError]
+  ItemSpec[NodeTooltips,  None, None],
+  ItemSpec[NodeClickFn,   OrOp[MaybeFnQ, NoneQ], None],
+  ItemSpec[NodeClickData, None, None],
+  ItemSpec[NodeColor,     extColorQ, $defaultColor],
+  ItemSpec[NodeSize,      NumberQ],
+  ItemSpec[NodeShape,     validShapeFnQ, Inherit, finalShapeFn, ItemMessageFn -> shapeError]
 };
 
 

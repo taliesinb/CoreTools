@@ -54,7 +54,7 @@ procDPlotOptions[head_Symbol, opts_List, opts2___Rule] := Locals[
   scaleFactor *= 300;
 
   SetAuto[imageSize, Scaled[1]];
-  SetScaledFactor[imageSize, scaleFactor];
+  SetScaled[imageSize, scaleFactor];
 
   imageSize = Floor @ Switch[imageSize,
     NumP,          {1, 1 / heightFactor} * imageSize,

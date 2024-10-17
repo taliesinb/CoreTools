@@ -99,9 +99,8 @@ toVSD[vars_, syms_] := MapThread[RuleD, NoEval @ {syms, vars}];
 
 unpkSyms[rules_, HoldM[vars_] <-> syms_, head_ ? ThemedSymbolQ] :=
   HoldM @ Then[
-    InheritVar[$CurrentThemes, $ActiveThemes];
-    {$CurrentThemes, vars} = LookupThemedOptions[head, ToList @ rules, syms];
-    $ActiveThemes[sym] = theme;
+    InheritVar[$LocalThemes, $LocalThemedOptions];
+    {$LocalThemes[head], $LocalThemedOptions[head], vars} = LookupThemedOptionsAndInfo[head, ToList @ rules, syms];
   ];
 
 (**************************************************************************************************)

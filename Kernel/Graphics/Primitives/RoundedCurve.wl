@@ -1,6 +1,6 @@
 SystemExports[
   "GraphicsPrimitive", RoundedCurve,
-  "Option",            Corner
+  "GraphicsOption",    Corner
 ];
 
 PackageExports[

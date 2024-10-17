@@ -3,7 +3,11 @@ SystemExports[
     ViewSize, MaxItems, MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
-    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction,
+    ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction, ClickData,
+  "GraphicsOption",
+    JoinStyle, JoinPosition, Shortcut, Setback,
+    FrameColor, FrameThickness, FrameOpacity, FrameDashing,
+    NodeThickness, EdgeThickness,
   "Symbol",
     TopLeft, TopCenter, TopRight,
     CenterLeft, CenterCenter, CenterRight,
@@ -13,6 +17,7 @@ SystemExports[
 PackageExports[
   "GraphicsDirective",
     APointSize, AThickness, ADashing,
+    Wht, Blk, RGB, GL, Dir,
 
   "SpecialFunction",
     MakeBox, ToBox,
@@ -34,12 +39,16 @@ PackageExports[
 
   "FormOption",
     BLinePos, ShowStrChars,
-    Just, Gaps, Bgrnd, Rounding, AutoPad,
-    TSize, TFamily, TSlant, TSubsitutions, TWeight, TVariations, TOptions,
+    Just, Gaps, BCol, Rounding, AutoPad,
+    TSize, TFamily, TSlant, TSubstitutions, TWeight, TVariations, TOptions,
 
   "GraphicsOption",
     ColorFn, VertexColorFn,
-    ISize, IMargin, FMargin, PMargin, PRange, PClip,
+    ISize, IMargin, FMargin, PMargin, PRange, ARatio, PClip, FStyle, FTicks,
+    NodeBCol, NodeClickFn, NodeClickData, EdgeClickFn, EdgeClickData, FanDist,
+    JoinPos, SplitPos,
+    FColor, FThick, FOpacity, FDashing,
+    NodeThick, EdgeThick,
 
   "FormOption",
      ItemPos,  ItemGaps,  ItemDivs,  ItemJust,
@@ -168,7 +177,7 @@ DefineAliasRules[
 ];
 
 DefineAliasRules[
-  Bgrnd          -> Background,
+  BCol           -> Background,
   Just           -> Alignment,
   Gaps           -> Spacings,
   BLinePos       -> BaselinePosition,
@@ -182,7 +191,7 @@ DefineAliasRules[
   TFamily        -> FontFamily,
   TWeight        -> FontWeight,
   TSlant         -> FontSlant,
-  TSubsitutions  -> FontSubstitutions,
+  TSubstitutions -> FontSubstitutions,
   TVariations    -> FontVariations,
   TOptions       -> PrivateFontOptions
 ];
@@ -194,7 +203,38 @@ DefineAliasRules[
   FMargin        -> FrameMargins,
   PMargin        -> PlotRangePadding,
   PRange         -> PlotRange,
-  PClip          -> PlotRangeClipping
+  PClip          -> PlotRangeClipping,
+  ARatio         -> AspectRatio
 ];
 
+DefineAliasRules[
+  FColor         -> FrameColor,
+  FThick         -> FrameThickness,
+  FOpacity       -> FrameOpacity,
+  FDashing       -> FrameDashing,
+  FStyle         -> FrameStyle,
+  FTicks         -> FrameTicks
+];
+
+DefineLiteralRules[
+  Wht            -> GrayLevel[1],
+  Blk            -> GrayLevel[0]
+];
+
+DefineAliasRules[
+  RGB            -> RGBColor,
+  GL             -> GrayLevel,
+  Dir            -> Directive
+];
+
+DefineAliasRules[
+  NodeBCol       -> NodeBackground,
+  NodeClickFn    -> NodeClickFunction,
+  EdgeClickFn    -> EdgeClickFunction,
+  JoinPos        -> JoinPosition,
+  SplitPos       -> SplitPosition,
+  FanDist        -> FanDistance,
+  NodeThick      -> NodeThickness,
+  EdgeThick      -> EdgeThickness
+];
 

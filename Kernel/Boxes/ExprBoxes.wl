@@ -594,6 +594,7 @@ stdBox2 = CaseOf[
   arb_Graphics                        := graphicsBox @ arb;
   col:ColorP ? HoldColorQ             := SwatchBox @ col;
   m_DynamicModule                     := MakeBoxes @ m;
+  File[path:StrP]                     := PathBox @ path;
   arb:(_Sym ? OperatorFormHeadQ[___][___]) := operatorFormBox @ arb;
   arb:(_Sym ? CompoundFormHeadQ[___])      := compoundFormBox @ arb;
   arb:(_Sym ? AtomFormHeadQ[___])          := atomFormBox @ arb;

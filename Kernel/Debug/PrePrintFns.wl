@@ -32,11 +32,14 @@ UnsetPrePrintFns[] := Then[
 
 (*************************************************************************************************)
 
+DeclaredHere[OutputExpressionForm]
+DeclaredHere[MessageArgumentForm]
+
 ClearAll[OutExprForm];
 ClearAll[MsgArgForm];
 
-MakeBoxes[OutExprForm[e_], _]   := OutExprBox[e];
-MakeBoxes[OutExprForm[e___], _] := OutExprBox[e];
+SystemBox[OutExprForm[e_]]   := OutExprBox[e];
+SystemBox[OutExprForm[e___]] := OutExprBox[e];
 
 OutExprBox = CaseOf[
   $[]               := FnBox["Seq"];
@@ -63,7 +66,7 @@ SetInitial[$OutExprFormOptions, {
 
 SetHoldA @ MsgForm;
 
-CoreBox[MsgForm[args___]] := MsgBox[args];
+SystemBox[MsgForm[args___]] := MsgBox[args];
 
 SetHoldA @ MsgBox;
 
@@ -75,7 +78,7 @@ MsgBox = CaseOf[
 
 (**************************************************************************************************)
 
-CoreBox[MsgArgForm[e_]] := MsgArgBox @ e;
+SystemBox[MsgArgForm[e_]] := MsgArgBox @ e;
 
 (**************************************************************************************************)
 
