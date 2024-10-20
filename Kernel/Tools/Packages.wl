@@ -44,7 +44,7 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
     "SymbolTableFunction" -> SymbolTableFromDirectives,
     "PreLoadFunction"     -> applyAliases,
     "EvaluationFunction"  -> None,
-    "ContextPath"         -> {$publicContext, $privateContext, extraContexts, "CoreTools`", "System`"},
+    "ContextPath"         -> ToList[$publicContext, $privateContext, extraContexts, "CoreTools`", "System`"],
     "Verbose"             -> OptionValue[Verbose],
     "PriorityRules"       -> OptionValue[PriorityRules]
   ]

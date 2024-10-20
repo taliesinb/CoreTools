@@ -5,6 +5,7 @@ PackageExports
 PrivateExports
 SessionExports
 CustomExports
+PackageImports
 DeclareFilePrivates
 DeclareFileLocals
 DeclarePackagePrivates
