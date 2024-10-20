@@ -47,10 +47,10 @@ ToStrInternal[_] := "?";
 
 SetPred1 @ SetHoldC @ HasToStrFnQ;
 
-ToStr /: SetDelayed[ToStr[$LHS_], $RHS_] := With[
-  {head = First @ PatHead @ $LHS},
+ToStr /: SetDelayed[ToStr[LHS_], RHS_] := With[
+  {head = First @ PatHead @ LHS},
   HasToStrFnQ[head] = True;
-  First @ MakeSetDelayed[ToStrInternal[$LHS], $RHS]
+  MakeSetD[ToStrInternal[LHS], RHS]
 ];
 
 Protect[ToStr];

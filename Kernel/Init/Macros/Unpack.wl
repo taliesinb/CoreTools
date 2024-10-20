@@ -3,7 +3,6 @@ PackageExports[
     UnpackOptions, UnpackOptionsAs,
     UnpackSymbols, UnpackSymbolsAs,
       BindSymbols,   BindSymbolsAs,
-    ThemedLookupOptions,
     UnpackAnnotations,
     UnpackDict, PackDict,
     UnpackTuple,

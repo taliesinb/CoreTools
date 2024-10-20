@@ -3,3 +3,4 @@ Labeling.wl
 Views.wl
 LegacyViews.wl
 TextIcon.wl
+Progress.wl

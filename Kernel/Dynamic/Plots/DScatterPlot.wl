@@ -38,7 +38,7 @@ DScatterPlotBox[data_, opts:OptionsPattern[]] := ModuleScope[
   tickBoxes = If[ticks === False, None,
     plotSize = Dist @@@ plotRange;
     scale = imageSize / plotSize;
-    GridLineBoxes[plotRange, MaxGridLines -> 100, MinGridLineSpacing -> 10, GraphicsScale -> scale,
+    GridLineBoxes[plotRange, MaxGridLines -> 100, MinGridLineSpacing -> 10, PlotScale -> scale,
       TickOptions -> {LabelSpacing -> {0, 5}}]
   ];
 

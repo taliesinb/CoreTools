@@ -8,12 +8,14 @@ SetExcepting @ SetHoldF @ ReturnMessage;
 
 ReturnMessage[args___] := Return @ ErrorMessage[args];
 
-ReturnMessage /: SetDelayed[$LHS_, ReturnMessage[args___]] :=
-  SetDelayed @@ Hold[$LHS, ErrorMessage[args]];
+ReturnMessage /: SetDelayed[LHS_, ReturnMessage[args___]] :=
+  MakeSetD[LHS, ErrorMessage[args]];
 
 DefinePartialMacro[ReturnMessage,
   HoldPattern[ReturnMessage[args___]] :> FunctionReturn[ErrorMessage[args]]
 ];
+
+(* TODO: why is ReturnMessage different from ReturnFailed? *)
 
 (*************************************************************************************************)
 

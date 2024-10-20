@@ -8,6 +8,7 @@ PackageExports[
     PrivateExports,
     SessionExports,
     CustomExports,
+    PackageImports,
 
     DeclareFilePrivates,
     DeclareFileLocals,
@@ -141,7 +142,7 @@ DeclareStrict[fns__Symbol] := Scan[DeclareStrict, Unevaluated @ fns];
 
 DeclareStrict[fn_Symbol] := SetDelayed[
   \[FormalCapitalL]_fn,
-  Message[DeclareArity::args, HoldForm @ \[FormalCapitalL]];
+  Message[fn::args, HoldForm @ \[FormalCapitalL]];
   $Failed
 ];
 
@@ -233,7 +234,7 @@ UnprotectClear[e___]    := (Unprotect[e]; Clear[e]);
 
 (**************************************************************************************************)
 
-DeclareHoldAllComplete[SystemExports, PackageExports, PrivateExports, SessionExports, CustomExports];
+DeclareHoldAllComplete[SystemExports, PackageExports, PrivateExports, SessionExports, CustomExports, PackageImports];
 
 (**************************************************************************************************)
 

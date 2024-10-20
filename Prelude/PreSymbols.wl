@@ -9,7 +9,9 @@ SystemExports[
     NameFirst,
     NameLast,
     NameMost,
-    NameMostLast
+    NameMostLast,
+
+    OptionKeys,
 
   "SpecialFunction",
     EnsureContext,
@@ -26,6 +28,10 @@ SystemExports[
     InertSystemSymbolQ,
     CapitalizedSymbolQ,
     DocumentedSymbolQ,
+
+  "HoldFunction",
+    HoldOptions,
+    HoldOptionKeys,
 
   "SpecialFunction",
     DefinitionRules,
@@ -61,7 +67,9 @@ Begin["`Symbols`Private`"]
 
 (*************************************************************************************************)
 
-EnsureContext[context_] := If[!MemberQ[$ContextPath, context], AppendTo[$ContextPath, context];];
+DeclareStrict @ EnsureContext;
+EnsureContext[list_List]      := Scan[EnsureContext, list];
+EnsureContext[context_String] := If[!MemberQ[$ContextPath, context], AppendTo[$ContextPath, context];];
 
 (*************************************************************************************************)
 
@@ -133,6 +141,23 @@ NameFirst[str_String]    := If[StringFreeQ[str, "`"], None,        StringTake[st
 NameLast[str_String]     := If[StringFreeQ[str, "`"], str,         StringDrop[str, Max @ StringPosition[str, "`"]]];
 NameMost[str_String]     := If[StringFreeQ[str, "`"], None,        StringTake[str, Max @ StringPosition[str, "`"]]];
 NameMostLast[str_String] := If[StringFreeQ[str, "`"], {None, str}, StringTakeDrop[str, Max @ StringPosition[str, "`"]]];
+
+(*************************************************************************************************)
+
+DeclareHoldAllComplete[HoldOptions, HoldOptionKeys]
+DeclareArity[1, OptionKeys, HoldOptions, HoldOptionKeys]
+
+OptionKeys::usage = "OptionKeys[sym$] yields the keys of Options[sym$]."
+
+OptionKeys[sym_Symbol]     := Keys @ Options @ sym;
+HoldOptions[sym_Symbol]    := Options @ Unevaluated @ sym;
+HoldOptionKeys[sym_Symbol] := Keys @ Options @ Unevaluated @ sym;
+
+(*************************************************************************************************)
+
+OptionKeyQ::usage = "OptionKeyQ[sym$, key$] gives True if key$ is an option name of sym$."
+
+OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
 
 (*************************************************************************************************)
 

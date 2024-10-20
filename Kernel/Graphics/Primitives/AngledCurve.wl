@@ -1,11 +1,11 @@
 SystemExports[
   "GraphicsPrimitive", AngledCurve
-  "GraphicsOption",    JoinStyle, JoinPosition, Shortcut, Setback
+  "PlotOption",        JoinStyle, JoinPosition, Shortcut, Setback
 ];
 
 
 PackageExports[
-  "GraphicsOption",    JoinPos,
+  "PlotOption",        JoinPos,
   "GraphicsPrimitive", AngledCurve,
   "GraphicsBoxFn",     AngledCurveBox,
   "Function",          AngledCurvePoints, AngledCurvePointsFast

@@ -20,7 +20,6 @@ PackageExports[
 
   "Function",
     DeepCount, DeepReplace, DeepCases, DeepFirstCase,
-    DeepStrContainsQ, DeepStrMatchQ,
     DeepStrMatchQ, DeepStrHasQ, DeepStrFreeQ, DeepStrTestQ,
     FindExprPaths, AllExprPaths, LeafExprPaths,
     ToExprPaths, ExtractExprPaths,

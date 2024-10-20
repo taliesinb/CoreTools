@@ -2,8 +2,8 @@ SystemExports[
   "Function",
     ZipMap, ZipScan, Bimap,
     ScanIndexed, ScanApply,
-    MapEnds, MapFirst, MapLast, MapMost, MapRest, MapFirstRest, MapMostLast, MapFirstLast,
-    UniqueValue, UniqueValueBy
+    MapEnds, MapFirst, MapLast, MapMost, MapRest,
+    MapFirstRest, MapMostLast, MapFirstLast
 ];
 
 PackageExports[
@@ -22,19 +22,6 @@ PackageExports[
   "MessageFunction",
     EnsureNiceMessage
 ];
-
-(*************************************************************************************************)
-
-SetHoldR[UniqueValue, UniqueValueBy];
-SetHoldF[iUniqueValue];
-
-UniqueValue[list_, else_:None]        := iUniqueValue[else, list];
-UniqueValueBy[list_, fn_, else_:None] := iUniqueValue[else, fn /@ list];
-
-iUniqueValue[else_, {}]        := else;
-iUniqueValue[else_, {elem_}]   := elem;
-iUniqueValue[else_, expr_]     := iUniqueValue[else, Args @ expr];
-iUniqueValue[else_, list_List] := Replace[Union @ list, {{u_} :> u, _ :> else}];
 
 (*************************************************************************************************)
 
@@ -107,15 +94,13 @@ validPartQ[e_][spec_]            := (Message[General::invalidSubPart, spec]; Fal
 
 (*************************************************************************************************)
 
-MapPart::usage =
 "MapPart[f, part$, expr$]` does `f @` selectively on parts$.
 * parts$ should be a list of part elements, each of which can be:
   * a scalar part specification: i$, 'str$', or Key[$$]
   * a vector part specification: All, Span[$$], List[p$1, p$2, $$]
 * successive elements select deeper into expr$.
 * an empty list yields `f$[expr$]`.
-* parts that don't exist are skipped.
-";
+* parts that don't exist are skipped."
 
 MapPart = CaseOf[
   $[f_, {}, expr_]                := f[expr];
@@ -136,10 +121,9 @@ slowMapPartDeep[f_, part_, partRest__][expr_] := fastMapPart[slowMapPartDeep[f, 
 
 (*************************************************************************************************)
 
-MapExprPaths::usage =
 "MapExprPaths[f, ExprPath[$$], expr$]` does `f @` selectively on a path within expr.
 MapExprPaths[f, {path$1, path$2, $$}, expr$]` does `f @` on several paths.
-* parts that don't exist are skipped.";
+* parts that don't exist are skipped."
 
 MapExprPaths = CaseOf[
   $[_, _, expr_ ? EmptyQ]           := expr;
@@ -269,19 +253,19 @@ ScanIndexed[f_, assoc_Dict] := (AssocScanWhileQ[assoc, rule |-> Then[f[P2 @ rule
 
 ScanIndexed[f_, expr_, level_] := Module[
   {posList = Position[expr, _, level, Heads -> False], i = 1},
-  Scan[elem |-> f[elem, Part[posList, i++]]&, Level[expr, level, HoldC]]
+  Scan[elem |-> f[elem, Part[posList, i++]], Level[expr, level, HoldC]]
 ];
 
 (**************************************************************************************************)
 
 SetCurry1[ScanP, MapP]
 
-ScanP[f_, expr_]        := Module[{i = 1}, Scan[v |-> f[v, i++], expr]];
-ScanP[f_, dict_Dict]    := (AssocScanWhileQ[dict, kvFn[f]];)
-kvFn[f_][k_ -> v_] := Then[f[v, k], True];
+ScanP[f_, expr_]     := Module[{i = 1}, Scan[v |-> f[v, i++], expr]];
+ScanP[f_, dict_Dict] := (AssocScanWhileQ[dict, kvFn[f]];)
+kvFn[f_][k_ -> v_]   := Then[f[v, k], True];
 
-MapP[f_, expr_]         := MapIndexed[{v, i} |-> f[v, P1 @ i], expr];
-MapP[f_, dict_Dict]     := MapIndexed[{v, i} |-> f[v, P11 @ i], dict];
+MapP[f_, expr_]      := MapIndexed[{v, i} |-> f[v, P1 @ i], expr];
+MapP[f_, dict_Dict]  := MapIndexed[{v, i} |-> f[v, P11 @ i], dict];
 
 (**************************************************************************************************)
 
@@ -291,10 +275,9 @@ ScanApply[f_, expr_] := ThenNull @ MapApply[NullifyFn @ f, expr];
 
 (**************************************************************************************************)
 
-SetHoldF @ SetCurry12[PathScanP, PathMapP, PathScan, PathMap]
-
-PathScanP::usage =
 "PathScanP[stackSymbol, fn, expr] is like ScanP, but appends the current part it is visiting onto stackSymbol."
+
+SetHoldF @ SetCurry12[PathScanP, PathMapP, PathScan, PathMap]
 
 (* TODO: rename this to StackMap *)
 PathScanP[s_, f_, expr_]     := Block[{s = Append[s, Null], i = 0}, Scan[v |-> f[v, PN[s] = ++i], expr]];

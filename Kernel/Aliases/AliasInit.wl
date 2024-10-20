@@ -3,13 +3,13 @@ SystemExports[
 ];
 
 PackageExports[
-  "SlotVariable", $, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS,
+  "SlotVariable", $, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$,
   "MetaFunction", NonCanonAliases
 ];
 
 (*************************************************************************************************)
 
-Protect[$, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$, $LHS, $RHS]
+Protect[$, $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $$]
 
 SetAttributes[{DefineAliasRules, DefinePatternRules, DefineLiteralRules, NonCanonAliases, defineAlias, definePattern}, HoldAllComplete];
 

@@ -13,7 +13,7 @@ PackageExports[
   "HoldFunction",
     DefHead, PatHead, PatSyms, PatLHS,
     MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed,
-    MakeSetD, MakeUpSetD, MakeTagSetD,
+    MakeSetD, MakeRuleD, MakeUpSetD, MakeTagSetD,
   "Function",
     SetDsToRuleDs, ToHoldPRuleDs,
     ToBlankP, ToBlankSeqP, ToBlankNullSeqP, ToAltP,
@@ -31,6 +31,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   MakeSetD         -> MakeSetDelayed,
+  MakeRuleD        -> MakeRuleDelayed,
   MakeTagSetD      -> MakeTagSetDelayed,
   MakeUpSetD       -> MakeUpSetDelayed
 ];
@@ -130,12 +131,13 @@ ToAltP[_]         := $Failed;
 
 (*************************************************************************************************)
 
-SetAttributes[{MakeSet, MakeSetDelayed, MakeUpSetDelayed, MakeTagSetDelayed}, HoldAll];
+SetAttributes[{MakeSet, MakeSetDelayed, MakeRuleDelayed, MakeUpSetDelayed, MakeTagSetDelayed}, HoldAll];
 
-MakeSet[lhs_, rhs_]                     := Hold[Set[lhs, rhs]];
-MakeSetDelayed[lhs_, rhs_]              := Hold[SetDelayed[lhs, rhs]];
-MakeUpSetDelayed[lhs_, rhs_]            := Hold[UpSetDelayed[head, lhs, rhs]];
-MakeTagSetDelayed[head_Sym, lhs_, rhs_] := Hold[TagSetDelayed[head, lhs, rhs]];
+MakeSet[lhs_, rhs_, fn_:Id]               := fn[Set[lhs, rhs]];
+MakeSetD[lhs_, rhs_, fn_:Id]              := fn[SetD[lhs, rhs]];
+MakeRuleD[lhs_, rhs_, fn_:Id]             := fn[RuleD[lhs, rhs]];
+MakeUpSetD[lhs_, rhs_, fn_:Id]            := fn[UpSetD[head, lhs, rhs]];
+MakeTagSetD[head_Sym, lhs_, rhs_, fn_:Id] := fn[TagSetD[head, lhs, rhs]];
 
 (*************************************************************************************************)
 

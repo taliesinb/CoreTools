@@ -10,6 +10,7 @@ AliasFnsInt.wl
 AliasFnsStr.wl
 AliasFnsDict.wl
 AliasFnsIO.wl
+AliasFnsOpts.wl
 AliasFnsMisc.wl
 AliasUtils.wl
 AliasBoxes.wl

@@ -12,7 +12,8 @@ PackageExports[
   "StrPatHead",       Regex, StrExpr,
   "MessageFunction",  MsgName,
   "MutatingFunction", SetD, TagSetD, UpSetD, AssocTo, SubFrom,
-  "SlotSymbol",       FmA, FmB, FmC, FmD, FmE, FmF, FmG, FmH, FmI, FmJ, FmK, FmL, FmM, FmN, FmO, FmP, FmQ, FmR, FmS, FmT, FmU, FmV, FmW, FmX, FmY, FmZ
+  "SlotSymbol",       FmA, FmB, FmC, FmD, FmE, FmF, FmG, FmH, FmI, FmJ, FmK, FmL, FmM, FmN, FmO, FmP, FmQ, FmR, FmS, FmT, FmU, FmV, FmW, FmX, FmY, FmZ,
+  "SlotSymbol",       LHS, RHS
 ];
 
 (*************************************************************************************************)
@@ -109,6 +110,11 @@ NonCanonAliases @ DefineAliasRules[
   RuleDM     -> MacroRuleDelayed,
   HoldComp   -> HoldComplete,
   HoldC      -> HoldComplete
+];
+
+NonCanonAliases @ DefineAliasRules[
+  LHS        -> \[FormalCapitalL],
+  RHS        -> \[FormalCapitalR]
 ];
 
 NonCanonAliases @ DefineAliasRules[

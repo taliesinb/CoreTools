@@ -1,12 +1,12 @@
 PackageExports[
-  "SpecialFn", SystemBox, MapMakeBox, MapSeqMakeBox, MapMakeBox2, MapMakeBox1, ClearFormRegistry,
-  "Predicate", FormHeadQ, AtomFormHeadQ, CompoundFormHeadQ, OperatorFormHeadQ,
-  "BoxFn",     BoxFnErrBox, ErrBox,
-  "Fn",        CompoundFormArity,
-  "MetaFn",    SystemBoxDefs,
-               SetForm0, SetForm1, SetForm2, SetForm3, SetFormA,
-               SetFormR, SetFormC, SetFormG, SetFormO,
-               SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn
+  "SpecFn", SystemBox, MapMakeBox, KVMapMakeBox, MapSeqMakeBox, MapMakeBox2, MapMakeBox1, ClearFormRegistry,
+  "Pred",   FormHeadQ, AtomFormHeadQ, CompoundFormHeadQ, OperatorFormHeadQ,
+  "BoxFn",  BoxFnErrBox, ErrBox,
+  "Fn",     CompoundFormArity,
+  "MetaFn", SystemBoxDefs,
+            SetForm0, SetForm1, SetForm2, SetForm3, SetFormA,
+            SetFormR, SetFormC, SetFormG, SetFormO,
+            SetBoxFn, SetCurryBoxFn, SetCurry1BoxFn, SetCurry2BoxFn, SetCurry23BoxFn
 ];
 
 SessionExports[
@@ -18,12 +18,16 @@ SessionExports[
 
 (**************************************************************************************************)
 
-SetHoldA[MapMakeBox, MapSeqMakeBox]
+SetHoldA[MapMakeBox, KVMapMakeBox, MapSeqMakeBox]
 
 MapMakeBox = CaseOf[
   items_Dict := KeyMapValueMap[MakeBoxes, MakeBoxes, items]; (* KMVM preserves holdness *)
   items_List := HoldMap[MakeBoxes, items];
   _[args___] := HoldMap[MakeBoxes, List @ args];
+];
+
+KVMapMakeBox = CaseOf[
+  items_Dict := KeyValueMap[Fn[{k, v}, {MakeBox[k], MakeBox[v]}, HoldAllComplete], items];
 ];
 
 MapSeqMakeBox[items___] := Map[MakeBoxes, NoEval @ items]
@@ -116,7 +120,7 @@ DeclarationDefs[
 (**************************************************************************************************)
 
 ClearFormRegistry[] := Then[
-  $AtomFormStore = KeyStoreNew[{Image, Graph, Graphics, SrcLoc, Spacer}],
+  $AtomFormStore = KeyStoreNew[{Image, AnimatedImage, Graph, Graphics, SrcLoc, Spacer}],
   $OperatorFormStore = KeyStoreNew[{}];
   $CompoundFormStore = StoreNew[LoadSystemData["SystemForms.mx"]];
 ];

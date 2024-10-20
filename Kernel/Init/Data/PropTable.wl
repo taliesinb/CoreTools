@@ -1,11 +1,11 @@
 PackageExports[
-  "DataHead",      PropTable,
-  "Predicate",     PropTableExistsQ, PropTableHasExprQ, PropTableHasPropQ,
-  "PatternSymbol", StoreP,
-  "Function",      PropTableGetProp, PropTableGetExpr, PropTableGetFull,
-                   PropTableExprDict, PropTableFullDict,
-                   PropTableLength,
-  "MutatingFn",    PropTableSetProp, PropTableDropExpr, PropTableDropProp, PropTableDropFull
+  "DataHead", PropTable,
+  "Pred",     PropTableExistsQ, PropTableHasExprQ, PropTableHasPropQ,
+  "PatSym",   StoreP,
+  "Fn",       PropTableGetProp, PropTableGetExpr, PropTableGetFull,
+              PropTableExprDict, PropTableFullDict,
+              PropTableLength,
+  "MutFn",    PropTableSetProp, PropTableDropExpr, PropTableDropProp, PropTableDropFull
 ];
 
 (*************************************************************************************************)

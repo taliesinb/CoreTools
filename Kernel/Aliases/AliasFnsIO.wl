@@ -1,6 +1,7 @@
 PackageExports[
   "IOFunction",
     ReadRawJSONFile, ReadRawJSONStream, WriteRawJSONFile, WriteRawJSONStream, CellInformation,
+    ImageWritePNG, ImageReadPNG,
   "SpecialFn",
     ToInputStr, HToInputStr, FromInputStr,
   "Function",
@@ -31,6 +32,11 @@ DefineAliasRules[
   DecodeBase64             -> Developer`DecodeBase64,
   EncodeBase64             -> Developer`EncodeBase64,
   DecodeBase64ToByteArray  -> Developer`DecodeBase64ToByteArray
+];
+
+DefineAliasRules[
+  ImageWritePNG            -> Image`ImportExportDump`ImageWritePNG,
+  ImageReadPNG             -> Image`ImportExportDump`ImageReadPNG
 ];
 
 DefineAliasRules[

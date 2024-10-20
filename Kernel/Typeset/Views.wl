@@ -9,11 +9,14 @@ PackageExports[
     LabeledFlipView,
     PickView, MapView, EitherView,
     MultiCounts, MultiCountsForm,
+    ChoiceView, AnimatedView,
   "BoxFunction",
     DynamicProgressBarBox,
     NiceClickBox, DeployBox,
     RowViewGridBox, ColViewGridBox,
     OpenerColumnBox, DeployBox,
+  "DataHead",
+    LabeledChoice,
   "Option",
     MultiGaps, MultiDivs, ViewSampling,
   "Function",
@@ -25,6 +28,11 @@ PackageExports[
 PrivateExports[
   "MetaFunction",
     DefineViewForm
+];
+
+SessionExports[
+  "CacheVariable",
+    $AnimatedFrames
 ];
 
 (*************************************************************************************************)
@@ -131,6 +139,7 @@ ListDictMakeBoxes1D[expr_, isHor_, itemBoxFn_, keyBefore_, keyBoxFn_, maxSize2_,
   n = i = 0; total = 0; list = {}; tooBig = False;
   slop = Max[maxSize * 0.1, 5];
   truncDepth = 4;
+
   While[!tooBig && ++i <= len,
     itemBox = itemBoxFn @ Part[heldItems, i];
     Label[$retry$];
@@ -449,9 +458,48 @@ visitGroup[d_][dict_] := PathScan[$labelPath, visitGroup[d-1], KeySort @ dict];
 
 (*************************************************************************************************)
 
+SetHoldA[ChoiceView];
+
+ChoiceView[expr_] := Module[{held, results},
+  held = Hold[expr] /. List[
+    c_Choice            :> RuleEval @ Map[$choice$, c],
+    LabeledChoice[a___] :> RuleEval @ Apply[Choice, MapApply[$choice$, {a}]]
+  ];
+  results = At[EnumerateChoices, held];
+  results = procChoice /@ results;
+  MultiRowView @ results
+];
+
+procChoice[h_] /; VFreeQ[h, $choice$] :=ReleaseHold @ h;
+procChoice[h_] := Labeled[
+  ReleaseHold[h /. $choice$[___, a_] :> a],
+  CommaRow @ Occs[h, $choice$[l_, ___] :> l]
+];
+
+(*************************************************************************************************)
+
+DeclaredHere[AnimatedView];
+
+Options[AnimatedView] = {FrameRate -> 6};
+
+AnimatedView[{}] := {};
+AnimatedView[list_List, opts___Rule] := Locals[
+  result = ToImageListPNG @ list;
+  If[!PairQ[result], ReturnFailed[]];
+  {frames, file} = result;
+  If[!VectorQ[frames, ImageQ], ReturnFailed[]];
+  dims = ImageDimensions @ First @ frames;
+  If[Max[dims] > 720, dims /= Max[dims]];
+  UnpackSymbolsAs[AnimatedView, {opts}, frameRate];
+  img = AnimatedImage[frames, ImageSize -> dims/2, FrameRate -> frameRate];
+  Labeled[img, RawBoxes @ PathBox @ file]
+];
+
+(*************************************************************************************************)
+
 DeclaredHere[ListView];
 
-SetForm1[ListView];
+SetForm0[ListView];
 
 DefineViewForm[ListView[list_List] :> listBrowserBoxes[list]];
 

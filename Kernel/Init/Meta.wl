@@ -213,25 +213,25 @@ StrictMsg[head_, sloc_, lhs_] := If[HasDownDefsQ[IssueMessage],
 DeclarationDefs[
 
   SetStrict[head_Sym] := With[{sloc = SourceLocation[]},
-    SetD @@ Hold[$LHS_head, StrictMsg[head, sloc, HoldForm @ $LHS]]
+    SetD @@ Hold[LHS_head, StrictMsg[head, sloc, HoldForm @ LHS]]
   ],
 
   SetStrictOp[head_Sym] := With[{sloc = SourceLocation[]},
-    SetD @@ Hold[$LHS:(_head[___]), StrictMsg[head, sloc, HoldForm @ $LHS]]
+    SetD @@ Hold[LHS:(_head[___]), StrictMsg[head, sloc, HoldForm @ LHS]]
   ],
 
   DeclareSeqScan[head_Sym] := (
     SetStrict[head];
-    SetD[e_head, Message[General::badSeqScanArg, head, HoldForm @ e]; $Failed];
-    SetD[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
+    SetD @@ Hold[LHS_head, Message[General::badSeqScanArg, head, HoldForm @ LHS]; $Failed];
+    SetD @@ Hold[head[LHS:BlankSeq2], Scan[head, Hold[LHS]]];
   ),
 
   DeclareThenScan[head_Sym] := (
     SetHoldC[head];
-    SetD[head[$LHS_], Message[MessageName[head, "badArguments"], HoldForm @ $LHS]; $Failed];
-    SetD[head[Null], Null];
-    SetD[head[seq:BlankSeq2], Scan[head, Hold[seq]]];
-    SetD[head[Then[args___]], head[args]];
+    SetD @@ Hold[head[LHS_], Message[MessageName[head, "badArguments"], HoldForm @ LHS]; $Failed];
+    SetD @@ Hold[head[Null], Null];
+    SetD @@ Hold[head[LHS:BlankSeq2], Scan[head, Hold[LHS]]];
+    SetD @@ Hold[head[Then[LHS___]], head[LHS]];
   )
 ];
 
@@ -295,8 +295,8 @@ strImplNeedsSetupQ[_] := True;
 declareDeclarationDefinitions[StrListableDefs];
 
 (* TODO: use this technique more widely *)
-StrListableDefs[sd:SetD[$LHS_, $RHS_]] := With[
-  {head = First @ PatHead @ $LHS},
+StrListableDefs[sd:SetD[LHS_, _]] := With[
+  {head = First @ PatHead @ LHS},
   {impl = ToImplementationSymbol @ head},
   ReleaseHold @ ReplaceAll[Hold[sd] /. {mn_MessageName :> mn, head -> impl}];
   If[strImplNeedsSetupQ[head],
@@ -330,10 +330,10 @@ DefinePseudoMacro[sym_Sym, rule:RuleD[VHoldP[lhs_], rhs_]] := Then[
 SetHoldC @ pseudoMacroUpValue;
 
 pseudoMacroUpValue[sym_Sym, lhs_, rhs_] := Apply[RuleD, HoldC[
-  HoldPattern @ $setd$[$LHS_, lhs],
+  HoldPattern @ $setd$[LHS_, lhs],
   $with$[
-    {$macroHead$ = First @ PatHead @ $LHS, $macroSrcLoc$ = SourceLocation[]},
-    $setd$[$LHS, rhs]
+    {$macroHead$ = First @ PatHead @ LHS, $macroSrcLoc$ = SourceLocation[]},
+    $setd$[LHS, rhs]
   ]
 ]] // subTags;
 

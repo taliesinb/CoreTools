@@ -27,10 +27,15 @@ SessionExports[
 
 (*************************************************************************************************)
 
+SetStrict[GetPackageSymbol];
+
 GetPackageSymbol[symbol_String] := GetPackageSymbol[symbol] = (
   HiddenLoadPackage[NameFirst @ symbol];
   ToExpression[symbol, InputForm]
 );
+
+GetPackageSymbol[context_String, symbols_String] :=
+  GetPackageSymbol[context, symbols] = GetPackageSymbol[context, StringSplit @ symbols];
 
 GetPackageSymbol[context_String, symbols:{__String}] := GetPackageSymbol[context, symbols] = (
   HiddenLoadPackage[NameFirst @ context];
@@ -76,7 +81,7 @@ Initially[
 SetStrict[RegisterPackagePatchFunctions];
 
 RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
-  If[$CurrentlyTracingAutoloads, Return[]];
+  If[$CurrentlyTracingLoading, Return[]];
   $PackageNeedsPatchesQ[context] := True;
   KeyBindTo[$PackagePatchFunctions, context, {rules}];
   PatchPrint["Registered new patch functions for ", context, ": ", Keys @ {rules}];
@@ -89,7 +94,7 @@ RegisterPackagePatchFunctions[context_String, rules__Rule] := Locals[
 (*************************************************************************************************)
 
 $alOuter = True;
-If[!TrueQ[$IsPacletManagerHooked] && !TrueQ[$CurrentlyTracingAutoloads],
+If[!TrueQ[$IsPacletManagerHooked] && !TrueQ[$CurrentlyTracingLoading],
   PatchPrint["Installing PacletManager and Autoload hook."];
   With[{lwlc := PacletManager`Package`loadWolframLanguageCode,
       context = PacletManager`Manager`Private`pacletContext,

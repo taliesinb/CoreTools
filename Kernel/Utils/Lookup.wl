@@ -4,7 +4,7 @@ SystemExports[
     OptionRules, HoldOptionRules,
     LookupOptions, LookupOptionsAs, HoldLookupOptions,
     MissingApply,
-    OptionKeys, OptionValueRules, OptionValueList,
+    OptionValueRules, OptionValueList,
     GraphOptions,
   "Head",
     ChainedRules, OptionKey,
@@ -21,16 +21,6 @@ PackageExports[
     TakeOptions,
     NarrowOptions
 ];
-
-(*************************************************************************************************)
-
-SetStrict[OptionKeys, OptionKeyQ]
-
-OptionKeys::usage = "OptionKeys[sym$] yields the keys of Options[sym$]."
-OptionKeyQ::usage = "OptionKeyQ[sym$, key$] gives True if key$ is an option name of sym$."
-
-OptionKeys[sym_Sym] := Keys @ Options @ sym;
-OptionKeyQ[sym_Sym, key_] := KeyExistsQ[Options @ sym, key];
 
 (*************************************************************************************************)
 

@@ -32,7 +32,6 @@ PackageExports[
     $SymbolAliases,
     $NameAliases,
     $SymbolAliasesDirty,
-    $PackageLoadVerbose,
 
   "TransientVariable",
     $CurrentPackage,
@@ -65,7 +64,11 @@ PackageExports[
 
   "Predicate",
     PackageLoadCompletedQ
+];
 
+SessionExports[
+  "SpecialVariable",
+    $VerboseLoading
 ];
 
 Begin["`Packages`Private`"]
@@ -115,7 +118,7 @@ Protect[Language`FullGet];
 PackageLoadCompletedQ[str_String] := Lookup[$PackageLoadCompleteQ, str, False];
 
 If[!AssociationQ[$PackageLoadCompleteQ],
-$PackageLoadVerbose         = False;
+$VerboseLoading             = False;
 $PackageCurrentlyLoading    = False;
 $SymbolAliasesDirty         = False;
 $SymbolAliases              = Data`UnorderedAssociation[];
@@ -214,7 +217,7 @@ PreludeLoadPackage[baseContext_String, sourceFileSpec_, opts:OptionsPattern[]] :
   Catch[
 
     If[!StringEndsQ[baseContext, "`"], AbortPackageLoading["invalidBaseContext", baseContext]];
-    $ptVerbose = TrueQ @ Replace[OptionValue["Verbose"], Automatic -> $PackageLoadVerbose];
+    $ptVerbose = TrueQ @ Replace[OptionValue["Verbose"], Automatic -> $VerboseLoading];
 
     LoadPrint["PreludeLoadPackage[\"", baseContext, "\"]"];
     $PackageLoadCompleteQ[baseContext] = False;
@@ -539,7 +542,7 @@ runPackageFileExpr[expr_]                        := runPackageFileExpr2 @ HoldCo
 runPackageFileExpr2[hexpr_] := (
   $CurrentPackageExprCount++;
   $CurrentPackageExpr = hexpr;
-  $exprEvalFn @ hexpr
+  $exprEvalFn @ hexpr;
 );
 
 (* runPackageFileExpr[expr_] /; $SymbolAliasesDirty :=

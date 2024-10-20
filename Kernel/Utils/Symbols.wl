@@ -1,28 +1,30 @@
 SystemExports[
   "Function",   FormalSymbol, FromFormalSymbol,
-  "FormHead",   SymbolNameForm, SymbolForm
-  "Function",   SymbolNameUsage, SymbolNameType, SymbolType, SymbolBaseContext
+  "FormHead",   SymbolNameForm, SymbolForm,
+  "Function",   SymbolNameUsage, SymbolNameType, SymbolType, SymbolTypeFast, SymbolBaseContext
 ];
 
 PackageExports[
+  "BoxFn",      SymbolNameBox, SymbolTypeStyle,
   "TypeSymbol", FunctionSymbol, OperatorSymbol, ImmediateSymbol, DelayedSymbol, FormattingSymbol, InertSymbol, PatternSymbol, DataSymbol, UnknownSymbol
-  "Predicate",  HasFormatDefsQ, HasBoxDefsQ,
+  "Predicate",  HasFormatDefsQ, HasBoxDefsQ, HasFormatRulesQ,
   "TypeHead",   KernelSymbol
 ];
 
-PrivateExports[
-  "CacheVariable", $SymbolTypeCache, $HasBoxDefsCache, $BoxFormattingSymbols, $BoxFormattingRules
+SessionExports[
+  "CacheVariable", $SymbolTypeCache, $SymbolTypeFastCache, $HasBoxDefsCache, $BoxFormattingSymbols, $BoxFormattingRules
 ];
 
 (**************************************************************************************************)
 
-Initially[
-  $SymbolTypeCache = UDict[
+SetInitial[$SymbolTypeCache, UDict[
     Thread @ Rule[Hold /@ {Pattern, PatternTest, Condition, Blank, BlankSequence, BlankNullSequence, Repeated, Verbatim}, PatternSymbol],
     Thread @ Rule[Hold /@ {Dict, UDict, USet, OSet, MSet, Bag}, DataSymbol]
-  ];
-  $HasBoxDefsCache = UDict[];
-];
+]];
+
+SetInitial[$HasBoxDefsCache, UDict[]];
+
+SetInitial[$SymbolTypeFastCache, $SymbolTypeCache];
 
 (**************************************************************************************************)
 
@@ -45,13 +47,15 @@ SetHoldC @ SymbolForm;
 
 SetForm0[SymbolForm, SymbolNameForm];
 
-SystemBox[SymbolForm[sym_Sym]]      := symbolNameBoxes[SymPath @ sym, SymbolType @ sym];
-SystemBox[SymbolNameForm[name_Str]] := symbolNameBoxes[name, SymbolNameType @ name];
+SystemBox[SymbolForm[sym_Sym]]      := SymbolNameBox[SymPath @ sym, SymbolType @ sym];
+SystemBox[SymbolNameForm[name_Str]] := SymbolNameBox[name, SymbolNameType @ name];
 
 (**************************************************************************************************)
 
-symbolNameBoxes[path_Str, type_] := Locals[
-  style = Seq @@ FlatList @ symbolTypeToStyle @ type;
+SetBoxFn @ SymbolNameBox;
+
+SymbolNameBox[path_Str, type_] := Locals[
+  style = Seq @@ FlatList @ SymbolTypeStyle @ type;
   {context, name} = NameMostLast @ path;
   If[context === None, context = Quiet @ Check[At[Context, path], "???"]];
   If[NameQ @ path,
@@ -68,7 +72,9 @@ symbolNameBoxes[path_Str, type_] := Locals[
   boxes
 ];
 
-symbolTypeToStyle = CaseOf[
+(**************************************************************************************************)
+
+SymbolTypeStyle = CaseOf[
   KernelSymbol[t_] := {$ @ t, Underlined};
   FunctionSymbol   := FontWeight -> "Bold";
   OperatorSymbol   := {FontColor -> $DarkBlue, FontWeight -> "SemiBold"};
@@ -82,6 +88,8 @@ symbolTypeToStyle = CaseOf[
   $Failed          := Red;
 ];
 
+(**************************************************************************************************)
+
 symbolTooltipBoxes[name_Str, context_Str, path_Str] := Locals[
   usage = SymbolNameUsage @ path;
   attrs = Attributes @ path;
@@ -94,16 +102,21 @@ symbolTooltipBoxes[name_Str, context_Str, path_Str] := Locals[
 
 (**************************************************************************************************)
 
-SetHoldC @ SymbolType;
+SetHoldC[SymbolType, SymbolTypeFast];
 
 SymbolNameType[name_Str] := If[!NameQ[name], $Failed, FromInputString[name, SymbolType]];
 
 SymbolType[s_Sym ? HAtomQ] := CachedTo[$SymbolTypeCache, Hold @ s, symbolType0 @ s];
 SymbolType[e_]             := $Failed;
 
+SymbolTypeFast[s_Sym ? HAtomQ] := Lookup[$SymbolTypeCache, Hold @ s, CachedTo[$SymbolTypeFastCache, Hold @ s, symbolTypeFast @ s]];
+SymbolTypeFast[_]              := $Failed;
+
 (**************************************************************************************************)
 
-SetHoldC[symbolType0, symbolType1, varType, aliasType]
+SetHoldC[symbolTypeFast, symbolType0, symbolType1, varType, aliasType]
+
+symbolTypeFast[s_] := Block[{HasBoxDefsQ = HoldFalseFn}, symbolType0 @ s];
 
 symbolType0 = CaseOf[
   $[s_ ? HasAnyCodesQ]   := KernelSymbol @ symbolType1 @ s;
@@ -129,7 +142,9 @@ aliasType[_]      := ImmediateSymbol
 
 (**************************************************************************************************)
 
-SetHoldC @ SetPred1[HasFormatDefsQ, HasBoxDefsQ]
+SetHoldC @ SetPred1[HasFormatDefsQ, HasFormatRulesQ, HasBoxDefsQ]
+
+HasFormatRulesQ[s_Sym ? HAtomQ] := Or[HasPrintCodeQ[s], And[HasNoCodesQ[s], NonEmptyQ @ FormatValues @ s]];
 
 HasFormatDefsQ[s_Sym ? HAtomQ] := Or[HasPrintCodeQ[s], And[HasNoCodesQ[s], Or[NonEmptyQ @ FormatValues @ s, HasBoxDefsQ @ s]]];
 

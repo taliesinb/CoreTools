@@ -264,11 +264,11 @@ setMacroHelper @ toInnerRule;
 SetHoldA[toDownRule, toUpRules, toInnerRule];
 
 toUpRules[sym_] := {
-  HoldP[$LHS:Set [_, _sym]] :> MacroHook[$LHS],
-  HoldP[$LHS:SetD[_, _sym]] :> MacroHook[$LHS]
+  MakeRuleD[HoldP[LHS:Set [_, _sym]], MacroHook[LHS]],
+  MakeRuleD[HoldP[LHS:SetD[_, _sym]], MacroHook[LHS]]
 };
 
-toInnerRule[_[lhs_, rhs_]]    := RuleD[HoldP @ lhs, RuleEval @ rhs];
+toInnerRule[_[lhs_, rhs_]]    := MakeRuleD[HoldP @ lhs, RuleEval @ rhs];
 toDownRule[head_[lhs_, rhs_]] := head[HoldP[lhs], MacroEval @ Evaluate @ rhs];
 
 (*************************************************************************************************)

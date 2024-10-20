@@ -4,7 +4,7 @@ SystemExports[
 
 PackageExports[
   "BoxFn",     FormBlockBox,
-  "SpecialFn", MakeThemedBox
+  "SpecFn",    MakeThemedBox
 ];
 
 (**************************************************************************************************)

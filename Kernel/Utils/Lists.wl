@@ -3,19 +3,21 @@ SystemExports[
     CountUnique, CountUniqueBy, ToUnique,
     Lerp, Avg, Multiply,
     PlusOne, MinusOne, OneMinus,
-    Unthread, Birange, LengthRange, RangeLength,
+    Unthread, CenteredRange, Birange, LengthRange, RangeLength,
     FlatList,
     DropWhile, CommonPrefix, CommonPrefixLength, CommonSuffix, CommonSuffixLength,
     IndexOf,
     VectorIndices, FirstVectorIndex, VectorIndicesOf, FirstVectorIndexOf,
     ExtractIndices, SortedCounts, SortedCountsBy, SortedGroupsBy,
-    DuplicateIndices, DuplicateIndicesBy,
+    DuplicateIndices, DuplicatePositions, DuplicateIndicesBy,
     Duplicates, DuplicatesBy,
-    DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteVerbatim,
+    DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteSingle, DeleteVerbatim,
     GatherAgainst, CombineAgainst, CombineBy,
     ApplyWindowed, ApplyWindowedCyclic, MapWindowed, MapWindowedCyclic, MapTuples, ApplyTuples,
     ListRiffle, ScalarRiffle,
     TrimRight, TrimLeft,
+    UniqueHeads, UniqueArgs,
+    UniqueValue, UniqueValueBy,
   "SequenceFunction",
     SequenceNothing, SequenceFirst, SequenceSecond, SequenceThird, SequenceLast, SequenceMost, SequenceRest, SequenceReverse,
     SequenceFirstSecond, SequenceSecondFirst
@@ -26,6 +28,7 @@ PackageExports[
     Reverse2,
     Args, ArgsP,
     Clip2,
+    DuplicateIndicesDict, DuplicatePositionsDict,
   "HoldFunction",
     HoldArgs, HoldArgsP,
   "MutatingFunction",
@@ -39,9 +42,41 @@ PackageExports[
 
 (*************************************************************************************************)
 
-SetStrict @ Reverse2;
+DefineAliaseRules[
+  Rev2 -> Reverse2
+];
 
-Reverse2[list_List] := Reverse[list, 2];
+(*************************************************************************************************)
+
+SetStrict[UniqueHeads, UniqueArgs];
+
+UniqueHeads[EmptyP]    := {};
+UniqueHeads[list_List] := sortedHeads @ list;
+UniqueHeads[_[args__]] := sortedHeads @ List @ a;
+
+UniqueArgs[EmptyP]    := {};
+UniqueArgs[list_List] := uniqueArgs @ list;
+UniqueArgs[_[args__]] := uniqueArgs @ List @ a;
+
+SetHoldC[uniqueHeads, uniqueArgs];
+
+sortedHeads[list_] := Keys @ RevSort @ CountsBy[NoEval @ list, HHead];
+sortedArgs[list_]  := Keys @ RevSort @ Counts @ NoEval @ list;
+
+(*************************************************************************************************)
+
+SetStrict[UniqueValue, UniqueValueBy];
+
+SetHoldR[UniqueValue, UniqueValueBy];
+SetHoldF[iUniqueValue];
+
+UniqueValue[list_, else_:None]        := iUniqueValue[else, list];
+UniqueValueBy[list_, fn_, else_:None] := iUniqueValue[else, fn /@ list];
+
+iUniqueValue[else_, {}]        := else;
+iUniqueValue[else_, {elem_}]   := elem;
+iUniqueValue[else_, expr_]     := iUniqueValue[else, Args @ expr];
+iUniqueValue[else_, list_List] := Replace[Union @ list, {{u_} :> u, _ :> else}];
 
 (*************************************************************************************************)
 
@@ -61,6 +96,12 @@ DecUElemDispatch12 @ SetCurry2 @ CountUniqueBy;
 
 CountUniqueBy[list_List, fn_] := Len @ Union @ Map[fn, list];
 CountUniqueBy[expr_, fn_]     := Len @ Union @ MapApply[fn, HoldArgs @ expr];
+
+(*************************************************************************************************)
+
+SetStrict @ Reverse2;
+
+Reverse2[expr_] := Reverse[expr, 2];
 
 (*************************************************************************************************)
 
@@ -134,12 +175,12 @@ PickLeave[list_List, mask_List, elem_] := {Pick[thing, mask, elem], Pick[thing, 
 
 (*************************************************************************************************)
 
-DecUElemDispatch1N[SortedCounts, SortedCountsBy, SortedGroupBy]
+DecUElemDispatch1N[SortedCounts, SortedCountsBy, SortedGroupsBy]
 
 SortedCounts[list_] := ReverseSort @ Counts[list];
 SortedCounts[list_, n_Int] := Take[ReverseSort @ Counts[list], All, UpTo[n]];
 
-SortedCountsBy[list_, f_] := ReverseSort @ CountsBy[list, f];
+SortedCountsBy[list_, f_]        := ReverseSort @ CountsBy[list, f];
 SortedCountsBy[list_, f_, n_Int] := Take[ReverseSort @ CountsBy[list, f], All, UpTo[n]];
 
 SortedGroupsBy[list_, f_]        := ReverseSortBy[GroupBy[Args @ list, f], Length];
@@ -220,14 +261,22 @@ Unthread /: head_Symbol[l___, Unthread[a_, n_Int], r___] := With[
 ];
 
 (*************************************************************************************************)
-Birange::usage = "Birange[a, b]` gives `Range[a,b]` or `Range[b, a, -1]` as appropriate."
+
+"CenteredRange[n]` "
+
+CenteredRange[n_] := Range[0,n-1] - (n-1)/2;
+
+(*************************************************************************************************)
+
+"Birange[a, b]` gives `Range[a,b]` or `Range[b, a, -1]` as appropriate."
 
 Birange[a_, b_]     := Range[a, b, Sign[b - a]];
 Birange[a_, b_, d_] := Range[a, b, Sign[b - a] * d];
 
 (*************************************************************************************************)
 
-LengthRange::usaage = "LengthRange[e]` gives `{ 1, 2, .., Length[e] }`."
+"LengthRange[e]` gives `{ 1, 2, .., Length[e] }`."
+
 LengthRange[expr_] := Range @ Length @ expr;
 RangeLength[expr_] := Range @ Length @ expr;
 
@@ -400,11 +449,16 @@ DecFullDispatch1 @ SetStrict @ ExtractIndices;
 
 (**************************************************************************************************)
 
-DecOElemDispatch1 @ Duplicates;
-DecUElemDispatch1 @ DuplicateIndices;
+DecOElemDispatch1[Duplicates];
+DecUElemDispatch1[DuplicateIndices, DuplicateIndicesDict];
+DecFullDispatch1[DuplicatePositions];
 
-Duplicates[list_List]            := DeleteCases[{_}] @ Gather[list];
-DuplicateIndices[list:ListDictP] := DeleteCases[{_}] @ Values @ PositionIndex @ list;
+Duplicates[list_List]                         := DeleteSingle @ Gather[list];
+DuplicateIndices[list:ListDictP]              := DeleteSingle @ Values @ PositionIndex @ list;
+DuplicateIndicesDict[list:ListDictP]          := DeleteSingle @ PositionIndex @ list;
+DuplicateIndices[list:ListDictP, n_Int]       := DeleteSingle @ Values @ LevelIndex[list, n];
+DuplicatePositions[list:ListDictP, n_Int]     := DeleteSingle @ Values @ LevelFullIndex[list, n];
+DuplicatePositionsDict[list:ListDictP, n_Int] := DeleteSingle @ LevelFullIndex[list, n];
 
 (**************************************************************************************************)
 
@@ -418,12 +472,13 @@ DuplicateIndicesBy[list:ListDictP, fn_] := DuplicateIndices @ Map[fn, list];
 
 (**************************************************************************************************)
 
-DecFullDispatch1[DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteVerbatim];
+DecFullDispatch1[DeleteNone, DeleteNull, DeleteFailed, DeleteEmpty, DeleteSingle, DeleteVerbatim];
 
 DeleteNone[e_]         := DeleteCases[e, None];
 DeleteNull[e_]         := DeleteCases[e, Null];
 DeleteFailed[e_]       := DeleteCases[e, $Failed];
 DeleteEmpty[e_]        := DeleteCases[e, EmptyP];
+DeleteSingle[e_]       := DeleteCases[e, SingleP];
 DeleteVerbatim[e_, v_] := DeleteCases[e, Verbatim @ v];
 
 (**************************************************************************************************)

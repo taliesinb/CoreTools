@@ -1,13 +1,19 @@
 SystemExports[
+
   "FormOption",
     ViewSize, MaxItems, MaxSize, MaxWidth, MaxHeight,
      ItemPosition,  ItemSpacings,  ItemDividers,  ItemAlignments,  ItemSizes,
     LabelPosition, LabelSpacings, LabelDividers, LabelAlignments, LabelSizes,
     ItemFunction, LabelFunction, ClickFunction, TooltipFunction, SizeFunction, ClickData,
-  "GraphicsOption",
+
+  "GraphicsPrimitive",
+    Graphics2D,
+
+  "PlotOption",
     JoinStyle, JoinPosition, Shortcut, Setback,
     FrameColor, FrameThickness, FrameOpacity, FrameDashing,
-    NodeThickness, EdgeThickness,
+    NodeThickness, EdgeThickness, PlotScale,
+
   "Symbol",
     TopLeft, TopCenter, TopRight,
     CenterLeft, CenterCenter, CenterRight,
@@ -15,6 +21,7 @@ SystemExports[
 ];
 
 PackageExports[
+
   "GraphicsDirective",
     APointSize, AThickness, ADashing,
     Wht, Blk, RGB, GL, Dir,
@@ -30,7 +37,7 @@ PackageExports[
   "FormHead",
     MsgArgForm, OutExprForm,
     LitStr, LitStrRow, SrcLoc,
-    StdForm, SysForm,
+    StdForm, SysForm, Col,
 
   "BoxOption",
     GridItemSize, GridItemStyle, GridMargins, GridDivs,
@@ -43,8 +50,12 @@ PackageExports[
     TSize, TFamily, TSlant, TSubstitutions, TWeight, TVariations, TOptions,
 
   "GraphicsOption",
+    ISize, IMargin, FMargin, PMargin,
+    PScale, PRange, ARatio, PClip, PLabel,
+    FStyle, FTicks,
+
+  "PlotOption",
     ColorFn, VertexColorFn,
-    ISize, IMargin, FMargin, PMargin, PRange, ARatio, PClip, FStyle, FTicks,
     NodeBCol, NodeClickFn, NodeClickData, EdgeClickFn, EdgeClickData, FanDist,
     JoinPos, SplitPos,
     FColor, FThick, FOpacity, FDashing,
@@ -132,7 +143,8 @@ DefineAliasRules[
   StdForm        -> StandardForm,
   SysForm        -> SystemForm,
   LitStr         -> $PrintLiteral,
-  LitStrRow      -> LiteralStringRow
+  LitStrRow      -> LiteralStringRow,
+  Col            -> Column
 ];
 
 (*************************************************************************************************)
@@ -181,7 +193,6 @@ DefineAliasRules[
   Just           -> Alignment,
   Gaps           -> Spacings,
   BLinePos       -> BaselinePosition,
-  ShowStrChars   -> ShowStringCharacters,
   Rounding       -> RoundingRadius,
   AutoPad        -> ContentPadding
 ];
@@ -191,9 +202,10 @@ DefineAliasRules[
   TFamily        -> FontFamily,
   TWeight        -> FontWeight,
   TSlant         -> FontSlant,
-  TSubstitutions -> FontSubstitutions,
   TVariations    -> FontVariations,
-  TOptions       -> PrivateFontOptions
+  TOptions       -> PrivateFontOptions,
+  ShowStrChars   -> ShowStringCharacters,
+  TSubstitutions -> FontSubstitutions
 ];
 
 DefineAliasRules[
@@ -201,6 +213,8 @@ DefineAliasRules[
   ISize          -> ImageSize,
   IMargin        -> ImagePadding,
   FMargin        -> FrameMargins,
+  PLabel         -> PlotLabel,
+  PScale         -> PlotScale,
   PMargin        -> PlotRangePadding,
   PRange         -> PlotRange,
   PClip          -> PlotRangeClipping,
@@ -229,6 +243,7 @@ DefineAliasRules[
 
 DefineAliasRules[
   NodeBCol       -> NodeBackground,
+  VertexColorFn  -> VertexColorFunction,
   NodeClickFn    -> NodeClickFunction,
   EdgeClickFn    -> EdgeClickFunction,
   JoinPos        -> JoinPosition,

@@ -3,7 +3,7 @@ SystemExports[
   "GraphicsPrimitive", NamedIcon,
   "BoxFn",             NamedIconCBox,
   "GraphicsBoxFn",     NamedIconGBox,
-  "GraphicsOption",    IconThickness, IconColor, IconScaling, DebugBounds, GraphicsScale,
+  "PlotOption",        IconThickness, IconColor, IconScaling, DebugBounds, PlotScale,
   "Symbol",            Huge, MediumLarge, MediumSmall,
   "SymbolicHead",      Sized, Reversed
 ];
@@ -52,10 +52,10 @@ DeclaredHere[NamedIcon]
 
 "NamedIcon[pos$, dir$, 'name$'] represents a named curve at pos$ with direction dir$.
 NamedIcon['name$'] typesets in %StandardForm as a right-pointing icon.
-* the boxified form uses an InsetBox, unless GraphicsScale is set, in which case it produces primitives directly.
+* the boxified form uses an InsetBox, unless PlotScale is set, in which case it produces primitives directly.
 * the following options are supported:
 | %AlignmentPoint | ranging from 0 to 1, where 0 is the back and 1 is the front (default 0.5) |
-| %GraphicsScale | how to emit primitives directly to achieve a given pixel size (default None) |
+| %PlotScale | how to emit primitives directly to achieve a given pixel size |
 | %ImageSize | size of icon in pixels (default 20) |
 | %IconColor | color of the icon (default None) |
 | %IconThickness | thickness of the icon (default 1) |
@@ -65,7 +65,7 @@ NamedIcon['name$'] typesets in %StandardForm as a right-pointing icon.
 
 Options[NamedIcon] = {
   AlignmentPoint -> None,
-  GraphicsScale  -> None,
+  PlotScale  -> Inherit,
   IconThickness  -> 1,
   IconColor      -> Auto,
   IconScaling    -> 1,

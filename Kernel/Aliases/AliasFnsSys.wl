@@ -9,11 +9,17 @@ PackageExports[
     StrPadL, StrPadR,
     StrRep, StrRepPart, StrRev,
     Dist, SqrDist,
+    RSort, RSortBy,
   "Option",
     DistFn, IgCase
 ];
 
 (*************************************************************************************************)
+
+DefineAliasRules[
+  RSort            -> ReverseSort,
+  RSortBy          -> ReverseSortBy
+];
 
 DefineAliasRules[
   DistFn           -> DistanceFunction,

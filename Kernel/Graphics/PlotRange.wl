@@ -3,7 +3,7 @@ SystemExports[
 ];
 
 PackageExports[
-  "GraphicsBoxFunction", GBoxRange, GRow
+  "GraphicsBoxFunction", GBoxRange
 ];
 
 (**************************************************************************************************)

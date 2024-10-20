@@ -4,7 +4,8 @@ PackageExports[
   "MetaFn",      SetLValFn,
   "ControlFlow", LValEval,
   "TagSymbol",   LValOk, LValFail,
-  "HoldFn",      LValParts, LValHead
+  "HoldFn",      LValParts, LValHead,
+  "Function",    PatComp
 ];
 
 (*************************************************************************************************)

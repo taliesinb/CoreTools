@@ -6,11 +6,11 @@ SystemExports[
 PrivateExports[
   "MetaFunction",        DefineGPrim, DefineGPrimSig,
   "Predicate",           GPrimSymQ, GBoxSymQ,
-  "SpecialFn",           MakeCoreGBoxes, GSigToGPrims, GSigToGBoxes,
-  "GraphicsBoxFunction", EmptyRectangleBox, EmptyPolygonBox,
-  "BoxOption",           DebugBounds,
-  "MutatingFunction",    BlockGStyle,
-  "TransientVariable",   $GStyle, $GDim, $DebugBounds,
+  "SpecFn",              MakeCoreGBoxes, MakeGBox, GSigToGPrims, GSigToGBoxes,
+  "GfxBoxFn",            EmptyRectangleBox, EmptyPolygonBox,
+  "GfxBoxOpt",           DebugBounds,
+  "MutFn",               BlockGStyle,
+  "TransientVariable",   $GStyle, $GDim, $DebugBounds, $PScale,
   "TagSymbol",
     PrimPos, PrimPosPair, PrimPosDelta, PrimPosList, PrimPosLists, PrimRadius,
     PrimOpaque, PrimPrimitives, PrimCurve, PrimColor, PrimPosRules
@@ -35,6 +35,7 @@ $gboxSimpRules = {InterpretationBox[b_, _] :> b, Typeset`Hold[h_] :> h};
 (**************************************************************************************************)
 
 If[!IntegerQ[$GDim],
+  $PScale = 1;
   $GDim = 2;
   $GStyle = UDict[];
   $DebugBounds = False;

@@ -1,7 +1,7 @@
 SystemExports[
   "GraphicsPrimitive",   FramedPrimitive,
   "GraphicsBoxFunction", FramedPrimitiveBox,
-  "GraphicsOption",      FrameColor, FrameThickness, FrameOpacity, FrameDashing
+  "PlotOption",          FrameColor, FrameThickness, FrameOpacity, FrameDashing
 ];
 
 (**************************************************************************************************)

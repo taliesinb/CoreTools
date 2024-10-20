@@ -2,6 +2,7 @@ PackageExports[
   "IOFunction",
     ToImage,     ToImageSize,     ToImageData,
     ToTextImage, ToTextImageSize, ToTextImageData,
+    ToImageUncached, ToImageListPNG,
   "Predicate",
     ErrorImageQ
 ];
@@ -12,11 +13,13 @@ SessionExports[
 
 (**************************************************************************************************)
 
-Initially[
-  $ToImageCache = $ToImageSizeCache = $ToImageDataCache = UDict[];
-];
+(* ImageFormattingWidth *)
+
+SetInitial[$ToImageCache, $ToImageSizeCache, $ToImageDataCache, UDict[]];
 
 toExportNotebook[expr_, background_] := toExportCell[expr, Background -> background];
+
+(* see Scratch/Rasterization.txt *)
 
 (*************************************************************************************************)
 
@@ -64,10 +67,37 @@ ToImage::fail = "Failed to rasterize expression ``.";
 ToImage[expr_, bg_:None] :=
   CachedTo[$ToImageCache, Hash @ {expr, bg}, iToImage[expr, bg]];
 
+ToImageUncached[expr_, bg_:None] :=
+  iToImage[expr, bg];
+
 iToImage[expr_, bg_] := Locals[
   res = CallFrontEnd @ toExportPacket[expr, bg];
   If[ImageQ[res], res, ErrorMsg[ToImage::fail, expr]]
-]
+];
+
+(*************************************************************************************************)
+
+SetStrict @ ToImageListPNG;
+
+$imageFilePath = DataPath["Cache", "ToImageList"];
+
+ToImageListPNG[list_List] := Locals @ CatchMessages[
+  path = PathJoin[$imageFilePath, Base36Hash[list] <> ".png"];
+  If[FileExistsQ[path],
+    images = ImageReadPNG[path];
+    If[!VectorQ[images, ImageQ], ReturnFailed[]];
+    images //= Map[Image[#, ImageSize -> ImageDimensions[#]/2]&];
+    Return @ {images, path}
+  ];
+  images = If[Len[list] > 8,
+    MonitorProgress @ Map[ToImage, list],
+    Map[ToImage, list]
+  ];
+  If[!VectorQ[images, ImageQ], ReturnFailed[]];
+  EnsureDirectory @ $imageFilePath;
+  ImageWritePNG[path, images, "None", "", Automatic, "", "", Automatic, 32768];
+  {images, path}
+];
 
 (*************************************************************************************************)
 

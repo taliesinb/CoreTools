@@ -19,7 +19,7 @@ SystemExports[
     AssociationSum, UAssociationSum,
     AssociationPlus, UAssociationPlus,
     UnorderedCounts,
-    LevelIndex, PadAssociation,
+    LevelIndex, LevelFullIndex, PadAssociation,
     AssociationThreadOp
 ];
 
@@ -58,26 +58,39 @@ IndexDicts[dicts_List, key_] := Data`ValueToKey[dicts, key];
 
 (**************************************************************************************************)
 
-SetStrict[ZipDictLists, ZipListDicts]
+"ZipDictLists[<|k$1 -> {c$1, c$2, $$}, $$|>]] returns {<|k$1 -> c$1, $$|>, <|k$2 -> c$2, $$|>}."
 
-ZipDictLists[EmptyDict] := EmptyList;
-ZipDictLists[dict_Dict] := Locals[
-  cols = Values @ dict;
-  If[Length2[cols] === None, ReturnFailed["notRectangularDict", dict]];
-  Map[DictThread[Keys @ dict], Transpose @ cols]
-];
+SetStrict[ZipDictLists]
 
-ZipDictLists::notRectangularDict = "Dictionary values are not equal-length lists: ``.";
+ZipDictLists[e_Dict, fn_:None] := zipDictLists1[e, fn];
 
-ZipListDicts[EmptyList] := EmptyDict;
-ZipListDicts[list_List] := Locals[
-  If[Not @ AllSameOrderedKeysQ @ list, ReturnFailed["badListDicts", list]];
-  keys = Keys @ First @ list;
-  columns = Values @ list;
-  DictThread[keys, Flip @ columns]
-];
+zipDictLists1[EmptyDict, _]   := EmptyList;
+zipDictLists1[dict_Dict, fn_] := zipDictLists2[dict, Vals @ dict, fn];
+zipDictLists1[expr_, None]    := ErrorMessage[ZipDictLists::notDict, expr];
+zipDictLists1[expr_, fn_]     := fn[expr];
 
-ZipListDicts::badListDicts = "List contains incomparable dicts or non-dicts: ``.";
+zipDictLists2[dict_, cols_ ? RectListVecQ, _] := Map[DictThread[Keys @ dict], Transpose @ cols];
+zipDictLists2[dict_, cols_, None]             := ErrorMessage[ZipDictLists::notRectangularDict, Map[Len, dict]];
+zipDictLists2[dict_, _,     fn_]              := fn[dict];
+
+ZipDictLists::notRectangularDict = "Can't transpose: dictionary values are not equal-length lists, having lengths: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[ZipListDicts]
+
+ZipListDicts[e_List, fn_:None] := zipListDicts[e, fn];
+
+zipListDicts[EmptyList, _]                 := EmptyDict;
+zipListDicts[list_List ? AllSameOKeysQ, _] := DictThread[Keys @ First @ list, Flip @ Values @ columns]
+zipListDicts[list_List, None]              := ReturnFailed["badListDicts", toKeysOrHead /@ list];
+zipListDicts[expr_, None]                  := ReturnFailed["notList", list];
+zipListDicts[expr_, fn_]                   := fn @ list;
+
+toKeysOrHead[d_Dict] := Keys @ d;
+toKeysOrHead[e_]     := ElidedForm @ d;
+
+ZipListDicts::badListDicts = "Can't transpose: list contained incomparable dicts or non-dicts: ``.";
 
 (**************************************************************************************************)
 
@@ -440,7 +453,7 @@ UnorderedCounts[e_] := UDict @ Counts @ e;
 
 (*************************************************************************************************)
 
-"LevelIndex[expr$, n$] returns an association mapping expressions occuring at level n$ in expr$ and the position i$ for in which it occurred (in Part[expr$, i$]).
+"LevelIndex[expr$, n$] returns an association mapping expressions occuring at level n$ in expr$ to the index i$ at which it occurred (in Part[expr$, i$]).
 LevelIndex[expr$, 1] is equivalent to PositionIndex."
 
 DecFullDispatch12 @ LevelIndex;
@@ -457,6 +470,20 @@ LevelIndex[expr_, level:PosIntP] := Module[
     ],
     expr
   ];
+  Merge[BagPart[index, All], Id]
+];
+
+(*************************************************************************************************)
+
+"LevelFullIndex[expr$, n$] returns an association mapping expressions occuring at level n$ in expr$ to the position {i$1, $$} at which it occurred."
+
+DecFullDispatch12 @ LevelFullIndex;
+
+(* this is like PositionIndex, but at arbitrary levels *)
+LevelFullIndex[expr_, 1] := Map[ToColumnVector, PositionIndex @ expr];
+LevelFullIndex[expr_, level:PosIntP] := Module[
+  {index = Bag[], path = {}, $level = level},
+  ScanIndexed[{elem, path} |-> StuffBag[index, elem -> path], expr, List @ level];
   Merge[BagPart[index, All], Id]
 ];
 

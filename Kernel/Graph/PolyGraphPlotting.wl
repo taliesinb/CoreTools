@@ -1,5 +1,5 @@
 SystemExports[
-  "GraphicsOption",
+  "PlotOption",
     GraphScale, HStretch, VStretch,
     SplitPosition,
     NodeData,
@@ -15,7 +15,7 @@ SystemExports[
 
 PackageExports[
   "GraphicsFunction", PolyGraphPlot,
-  "GraphicsOption",   SplitPos, NodeClickFn, EdgeClickFn,
+  "PlotOption",       SplitPos, NodeClickFn, EdgeClickFn,
   "Function",         EdgeArityGroups
 ];
 
@@ -63,7 +63,7 @@ Options[PolyGraphPlot] = {
   ReverseEdges      -> False
 };
 
-blendXs[coords_][{x_, y_}] := {N @ Median @ Col1 @ coords, y};
+blendXs[coords_][{x_, y_}] := With[{x2 = N @ Median @ Col1 @ coords}, List[Lerp[x2, x, .25], y]];
 
 SetPred1 @ extColorQ;
 extColorQ[FaceEdge[ColorP, ColorP] | ColorP] := True;
@@ -125,15 +125,16 @@ PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
     pathFn = fanOFn = fanIFn = edgeFn;
   ];
 
-  vertsDict = UDictThread[VertexList @ graph, vertexCoords];
+  vertsDict = DictThread[vertexList, vertexCoords];
   {paths, fanOs, fanIs} = EdgeArityGroups[graph];
   $y1s = UDict[];
+
   Do[
     KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, fanOs];
-    KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col1 @ #2]]]&, fanOs];
+    (* KeyValueMap[ApplyTo[vertsDict[#1], blendXs[Lookup[vertsDict, Col1 @ #2]]]&, fanOs]; *)
     KeyValueMap[ApplyTo[vertsDict[P1 @ #1], blendXs[Lookup[vertsDict, Col2 @ #2]]]&, paths];
+    vertsDict = DictThread[vertexList, NudgeOverlapping[Values @ vertsDict, {.75, 0}]];
   ,
-    (* KeyValueMap[Set[vertsDict[#1], Mean @ Col1 @ #2]&, fanOs], *)
     {4}
   ];
   pathPrims = KeyValueMap[pathLines[pathFn, vertsDict @ P1[#1], vertsDict @ P2[#1], pathsDict /@ #2, #2]&, paths];

@@ -6,7 +6,8 @@ PackageExports[
     InfLineCircleInter,
     LineRectInter,
     LineNearest,
-    InfLineNearest
+    InfLineNearest,
+    NudgeOverlapping
 ];
 
 (**************************************************************************************************)
@@ -81,5 +82,27 @@ LineRectInter[line_List, rect:Pos2PairP] := Locals[
   p1 = P1 @ line;
   If[points === {}, p1, MinimumBy[points, Dist[#, p1]&]]
 ];
+
+(**************************************************************************************************)
+
+SetStrict @ NudgeOverlapping;
+
+"NudgeOverlapping[points$] moves points that intersect away from eachother.";
+
+NudgeOverlapping[points2_List, dx_] := Locals[
+  points = points2; r = Norm @ dx;
+  Scan[ApplyTo[Part[points, #], nudgeOverlap[dx]]&, DuplicateIndices[Round[points, r]]];
+  Scan[ApplyTo[Part[points, #], nudgeOverlap[dx]]&, DuplicateIndices[Round[points-r/2, r]]];
+  points
+];
+
+nudgeOverlap[dx_][list_] := Locals[
+  order = Ordering @ list;
+  list2 = Part[list, order] + Map[dx * #&, CenteredRange[Len @ list]];
+  Part[list2, Ordering @ order]
+];
+
+
+
 
 

@@ -89,7 +89,7 @@ $TempDir := $TempDir = Module[{dir = FileNameJoin[{$TemporaryDirectory, "WL"}]},
 NewTemporaryFilename[file_String] := PathJoin[$TempDir, file];
 
 NewTemporaryFilename[file_String] /; StringContainsQ[file, "#"] :=
-  NewTemporaryFilename @ StrRep[file, "#" -> UniqueSessionID[]]
+  NewTemporaryFilename @ StrRep[file, "#" -> UniqueSessionString[]]
 
 (**************************************************************************************************)
 

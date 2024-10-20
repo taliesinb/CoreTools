@@ -123,6 +123,8 @@ HoldSymbolName
 HoldSymbolNameAlias
 HoldSymbolContext
 HoldSymbolPath
+HoldOptions
+HoldOptionKeys
 
 
 (*SequenceFunction*)
@@ -154,6 +156,7 @@ NameFirst
 NameLast
 NameMost
 NameMostLast
+OptionKeys
 FindLikelySymbolName
 LikelySymbolNames
 RegisterDynamicAliasFunction
@@ -230,9 +233,9 @@ $FormalSymbols
 $SymbolAliases
 $NameAliases
 $SymbolAliasesDirty
-$PackageLoadVerbose
 $LastEvaluationTime
 $EvaluationsCount
+$CurrentEvaluationSeed
 $CurrentEvaluationStartTime
 $CurrentEvaluationCellState
 $EvaluationsSinceDict
@@ -240,6 +243,10 @@ $SublimeApplicationPath
 $SublimeProjectsPath
 $SublimeRunCount
 $SymbolTableKinds
+$LongKinds
+$ShortKinds
+$ToShortKind
+$ToLongKind
 $SymbolExportFunctions
 
 
@@ -267,6 +274,7 @@ $CoreToolsPath
 $CoreToolsRootPath
 $CurrentPackageFile
 $CurrentPackageDirectory
+$VerboseLoading
 $PackageLoadCompleteQ
 $PackageFileCache
 $PackageFileModTime
@@ -291,7 +299,7 @@ $MutationPrinting
 $PrintIndent
 $ShouldPrint
 $CellPrintLabel
-$CurrentlyTracingAutoloads
+$CurrentlyTracingLoading
 $CurrentlyTracingSymbols
 
 
@@ -300,7 +308,8 @@ $CurrentlyTracingSymbols
 AbortPackageLoading
 TraceSymbolChanges
 TraceFunctionCalls
-TraceAutoloads
+TraceLoading
+BlockLoading
 BlockPrint
 Capture
 RawPrintBoxes
@@ -354,8 +363,15 @@ WhenDebugging
 
 ExportFunction
 ExportSpecialFunction
+ExportMathFunction
+ExportDataFunction
+ExportFormatFunction
 ExportControlFlowFunction
+ExportNumericFunction
+ExportArrayFunction
 ExportDeclareFunction
+ExportPlotFunction
+ExportFrontendFunction
 ExportDefineFunction
 ExportHoldFunction
 ExportSequenceFunction
@@ -375,12 +391,16 @@ ExportSpecialSymbol
 ExportSpecialHead
 ExportBoxSymbol
 ExportBoxHead
+ExportDynamicFormSymbol
+ExportDynamicFormHead
 ExportFormSymbol
 ExportFormHead
 ExportDataSymbol
 ExportDataHead
 ExportObjectSymbol
 ExportObjectHead
+ExportFrontendSymbol
+ExportFrontendHead
 ExportPatternSymbol
 ExportPatternHead
 ExportStringPatternSymbol
@@ -403,13 +423,27 @@ ExportRegistryVariable
 ExportSlotVariable
 ExportTagVariable
 ExportTransientVariable
+ExportBoolVariable
+ExportPathVariable
 ExportOption
 ExportSpecialOption
 ExportBoxOption
+ExportSpecialBoxOption
+ExportIOOption
+ExportMetaBoxOption
+ExportCellOption
+ExportObjectOption
+ExportPlotOption
+ExportDynamicFormOption
 ExportFormOption
+ExportNotebookOption
+ExportStyleOption
 ExportGraphicsOption
+ExportGraphicsBoxOption
 ExportGraphicsDirective
+ExportStyleDirective
 ExportGraphicsPrimitive
+ExportGraphicsHead
 ExportPredicate
 ExportPredicateOperator
 ExportOperator
@@ -417,8 +451,15 @@ ExportDeprecated
 ExportHoldHead
 PrivateFunction
 PrivateSpecialFunction
+PrivateMathFunction
+PrivateDataFunction
+PrivateFormatFunction
 PrivateControlFlowFunction
+PrivateNumericFunction
+PrivateArrayFunction
 PrivateDeclareFunction
+PrivatePlotFunction
+PrivateFrontendFunction
 PrivateDefineFunction
 PrivateHoldFunction
 PrivateSequenceFunction
@@ -438,12 +479,16 @@ PrivateSpecialSymbol
 PrivateSpecialHead
 PrivateBoxSymbol
 PrivateBoxHead
+PrivateDynamicFormSymbol
+PrivateDynamicFormHead
 PrivateFormSymbol
 PrivateFormHead
 PrivateDataSymbol
 PrivateDataHead
 PrivateObjectSymbol
 PrivateObjectHead
+PrivateFrontendSymbol
+PrivateFrontendHead
 PrivatePatternSymbol
 PrivatePatternHead
 PrivateStringPatternSymbol
@@ -466,13 +511,27 @@ PrivateRegistryVariable
 PrivateSlotVariable
 PrivateTagVariable
 PrivateTransientVariable
+PrivateBoolVariable
+PrivatePathVariable
 PrivateOption
 PrivateSpecialOption
 PrivateBoxOption
+PrivateSpecialBoxOption
+PrivateIOOption
+PrivateMetaBoxOption
+PrivateCellOption
+PrivateObjectOption
+PrivatePlotOption
+PrivateDynamicFormOption
 PrivateFormOption
+PrivateNotebookOption
+PrivateStyleOption
 PrivateGraphicsOption
+PrivateGraphicsBoxOption
 PrivateGraphicsDirective
+PrivateStyleDirective
 PrivateGraphicsPrimitive
+PrivateGraphicsHead
 PrivatePredicate
 PrivatePredicateOperator
 PrivateOperator

@@ -1,8 +1,8 @@
     - match: '#2'
-      scope: support.function.internal.wolfram
+      scope: sym.int
       push:
         - match: '(?:#3){{symbolEndBoundary}}'
-          scope: support.function.internal.wolfram
+          scope: sym.int
           pop: true
         - match: '{{symbolSegment}}{{symbolEndBoundary}}'
           scope: invalid.unrecognized.wolfram

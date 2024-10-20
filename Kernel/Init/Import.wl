@@ -91,12 +91,15 @@ DefineImportFn[ImportStringTable, importStringTable];
 importStringTable[path_Str] := Module[
   {string = importUTF8 @ path},
   If[!StrQ[string], Return @ $Corrupt];
-  PairsToDict @ Map[
+  pairs = Map[
     StringSplit /* FirstRest,
     StringLines @ StringReplace[string, "\n\t" -> " "]
-  ]
+  ];
+  dups = Duplicates @ Col1 @ pairs;
+  If[dups =!= {}, Message[ImportStringTable::duplicatesLost, dups]];
+  PairsToDict @ pairs
 ];
 
-
+ImportStringTable::duplicatesLost = "The following keys were duplicated: ``.";
 
 

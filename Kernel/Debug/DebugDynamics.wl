@@ -55,7 +55,7 @@ $formals = {\[FormalA], \[FormalB], \[FormalC], \[FormalD], \[FormalE], \[Formal
 
 toDynSpec[{min_ ? NumericQ, max_ ? NumericQ}, sym_] := {sym, Avg[min, max], Slider[Dynamic @ sym, {min, max}]};
 toDynSpec[max_ ? NumericQ, sym_] := toDynSpec[{0, max}, sym];
-toDynSpec[list_List, sym_] := {sym, F @ list, RadioButtonBar[Dynamic @ sym, list]};
+toDynSpec[list_List, sym_] := {sym, First @ list, RadioButtonBar[Dynamic @ sym, list]};
 
 (* DynamicCurve[3, {Red, Map[Disk[#, .1] &, #]} &] *)
 

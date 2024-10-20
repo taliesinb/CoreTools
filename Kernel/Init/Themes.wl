@@ -1,6 +1,6 @@
 SystemExports[
-  "GraphicsOption",    Theme, SubThemes,
-  "Function",          ThemeRules, GetThemes,
+  "PlotOption",        Theme, SubThemes,
+  "Function",          ThemedSymbols, ThemeNames, ThemeRules, GetThemes,
   "Predicate",         ThemeActiveQ
 ];
 
@@ -297,6 +297,16 @@ BindTheme = ExtendCaseOf[
 s_SetTheme := msgBadBinding[SetTheme, HoldForm @ s];
 
 (**************************************************************************************************)
+
+ThemedSymbols[] := Keys @ $ThemeNames;
+
+(**************************************************************************************************)
+
+ThemeNames = CaseOf[
+  $[] := Sort @ Keys @ $ThemeUsers;
+  All := KeySort @ Dict @ $ThemeNames;
+  s_  := Lookup[$ThemeNames, checkSym @ s, {}]
+];
 
 ThemeRules /: Set[ThemeRules[lhs___], rhs_] := DefineThemes[lhs, rhs];
 

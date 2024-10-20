@@ -14,7 +14,7 @@ PackageExports[
     Canonicalization,
     MethodResolution,
     ItemMessageFn,
-  "Head",
+  "DataHead",
     ItemSpec,
   "Operator",
     MethodResolutionFn,
@@ -129,8 +129,12 @@ applyItemSpec2[{testFn_, globalI_, localI_, finalFn_, useBroad_}] := Locals @ De
   SetInherit[useBroadcast, $useBroadcast];
   AssociateTo[$bcast, $key -> useBroadcast];
 
+  DPrint["TestFn = ", MsgArgForm @ testFn];
+
+  InheritVar[$DebugPrinting];
+  spec = Lookup[$opts, $key, Inherited];
+  spec = applySpecFns @ spec;
   DPrint["Spec = ", MsgArgForm @ spec];
-  spec = applySpecFns @ Lookup[$opts, $key, Inherited];
 
   SetInherit[spec, globalI];
 
@@ -212,6 +216,11 @@ General::noRulesMatched = "None of the rules specified for `` matched any items.
 
 applySpecFns = CaseOf[
 
+  DebugRules[expr_] := Then[
+    $DebugPrinting = True;
+    $ @ expr
+  ];
+
   fn_ ? DictFnQ := Then[
     DPrint["[DictFn]: ", fn];
     evalDictFn @ fn
@@ -219,7 +228,7 @@ applySpecFns = CaseOf[
 
   Rule[key1_, rule_Rule] := Then[
     DPrint["[NestedFn]: ", key1, " then ", rule];
-    Block[{$data = EchoIF @ getData[key1]}, applySpecFns[rule]]
+    Block[{$data = getData[key1]}, applySpecFns[rule]]
   ];
 
   Rule[key_, fn_ ? MaybeFnQ] := Then[
@@ -267,8 +276,7 @@ scenarios.
 
 * Local (per-item) specs are resolved as above, except that Inherited is resolved to:
   * the per-item default, which may come from options or from the ItemSpec
-  * the ItemSpec default otherwise
-"
+  * the ItemSpec default otherwise"
 
 Options[ItemSpec] = {
   UseBroadcast     -> Inherited,
@@ -322,7 +330,7 @@ toFinalizerFn = CaseOf[
   $[None,    postFn_, msgFn_] := postFn;
   $[TrueFn,  postFn_, _]      := postFn;
   $[testFn_, postFn_, None]   := FmA |-> If[TrueQ @ testFn @ FmA, postFn @ FmA, ThrowOptVal[$key, FmA, testFn]];
-  $[testFn_, postFn_, msgFn_] := FmA |-> If[TrueQ @ testFn @ FmA, postFn @ FmA, msgFn[$key, FmA]; ThrowException[]];
+  $[testFn_, postFn_, msgFn_] := FmA |-> If[TrueQ @ testFn @ FmA, postFn @ FmA, msgFn[$key, FmA]; ThrowRawException[]];
 ];
 
 (**************************************************************************************************)

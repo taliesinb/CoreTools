@@ -354,7 +354,7 @@ DefinePatternRules[
 DefinePatternRules[
    RuleVecP        -> {RuleSeqP},
   RuleLVecP        -> {RuleLSeqP},
-  ORuleVecP        -> {ORuleSeqP},
+  ORuleVecP        -> _List ? ORuleVecQ,
    SetLVecP        -> {SetLSeqP},
   DelayVecP        -> {DelaySeqP}
 ];

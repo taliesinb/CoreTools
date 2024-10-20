@@ -36,7 +36,7 @@ OrderedTreeLayout::vertexCoordsError = "Couldn't construct vertex coordinates.";
 OrderedTreeLayout::badRootPosition = "Bad root position ``.";
 OrderedTreeLayout::badRoot = "Specified root vertex `` doesn't occur in the graph.";
 
-OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
+OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeLayout",
 
   UnpackOptions[
     rootPosition, rootVertex, plotRangePadding,
@@ -49,34 +49,43 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   indexGraph = vertexEdgeIndexGraph @ graph;
   edgePairs = {#1, #2}& @@@ EdgeList[indexGraph];
   vertexCount = VertexCount @ indexGraph;
+  DPrint["VertexCount = ", vertexCount];
 
   rootVertex = If[rootVertex === Auto, 1, FastQuietCheck[
     VertexIndex[graph, rootVertex],
     ReturnFailed["badRoot", rootVertex]
   ]];
+  DPrint["RootVertex = ", rootVertex];
 
   SetAuto[layerDepths, {}];
   If[NumericQ[layerDepths], layerDepths //= ToList];
 
-  $x = 1.;
-  $d = $ccount = $cindex = $parent = ConstList[0, vertexCount];
-  $xs = $ys = ConstList[0., vertexCount];
-  $bounds = ConstList[{}, vertexCount];
-  $isLast = $isFirst = ConstList[False, vertexCount];
-  isShared = ConstList[False, vertexCount];
+  vrange = Range @ vertexCount;
   $inDeg = VertexInDegree @ indexGraph;
   $outDeg = VertexOutDegree @ indexGraph;
-  Part[$ccount, rootVertex] = -1;
-
-  vrange = Range @ vertexCount;
-  If[EdgeCount[indexGraph] == 0, $xs = vrange; Goto[done]];
   roots = Pick[vrange, $inDeg, 0];
+  If[roots === {}, roots = {1}];
 
+  $corrupt = False; retries = 0;
+  Label[$retry$];
+
+  $x = 1.;
+  $depth = $ccount = $cindex = $parent = ConstList[0, vertexCount];
+  $xs = $ys = ConstList[0., vertexCount];
+  $bounds = ConstList[{}, vertexCount];
+  $isLast = $isFirst = $discovered = $previsited = $postvisited = ConstList[False, vertexCount];
+  Part[$ccount, rootVertex] = -1;
+  If[EdgeCount[indexGraph] == 0, $xs = vrange; Goto[done]];
   Scan[root |-> DepthFirstScan[indexGraph, root, {
     "DiscoverVertex"  -> discoverVertex,
     "PrevisitVertex"  -> previsitVertex,
     "PostvisitVertex" -> postvisitVertex
   }], roots];
+
+  If[$corrupt && retries < 3, Goto[$retry$]];
+  DebugPrint["Ending scan"];
+
+  isShared = ConstList[False, vertexCount];
 
   childInds = PosIndex @ ReplacePart[$parent, ConstRules[roots, 0]];
   Part[$xs, roots] = Map[Median @ Part[$xs, Lookup[childInds, #1, {#1}]]&, roots];
@@ -91,11 +100,16 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
 
   numShared = Len @ sharedLeaves;
 
-  maxD = Max[$d] + 1 + If[numShared > 0, 1, 0];
+  maxD = Max[$depth] + 1 + If[numShared > 0, 1, 0];
+  If[maxD > 64, ReturnFailed[]];
+  DPrint["MaxD = ", maxD];
+
+  DebugPrint["Layout"];
   If[layerDepths =!= {},
     numDepths = Len @ layerDepths;
     PrependTo[layerDepths, 0];
     If[maxD >= numDepths,
+      DebugPrint["Extending depths"];
       depthDelta = Subtract @@ Part[layerDepths, {-1, -2}];
       newDepths = Last[layerDepths, 1] + Range[maxD - numDepths] * depthDelta;
       JoinTo[layerDepths, newDepths]
@@ -103,9 +117,11 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     $ys = N @ Part[layerDepths, $ys + 1];
   ];
   $xDelta = $firstLastDelta / 128;
+  DebugPrint["Done"];
 
   $share = UDict[];
   If[numShared > 0,
+    DebugPrint["Sharing"];
     shareInds = Range[numShared] + vertexCount;
     $share = UDict @ ZipMap[ConstRules, sharedLeaves, shareInds];
     sharedXs = Parts[$xs, sharedLeaves];
@@ -133,12 +149,14 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
     $isInnerShared = UDictThread[origCoords, isInnerShared];
   ];
 
+  DebugPrint["Constructing edges"];
   $shrTargets = UDictThread[Part[vertexCoords, Keys @ $share], Part[vertexCoords, Vals @ $share]];
   edgePaths = ExtractIndices[vertexCoords, edgePairs];
   edgePaths = SetbackLine[setback] @ constructEdgePaths[edgePaths, roundingRadius, splitPosition];
 
   vertexCoords //= coordFn;
   edgePaths //= coordFn;
+  DebugPrint["Calculating bounds"];
   bounds = CoordinateBounds[vertexCoords, plotRangePadding];
   If[numShared > 0,
     KeyValueScan[Set[Part[vertexCoords, #1], Part[vertexCoords, #2, All]]&, $share];
@@ -146,6 +164,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals[
   ];
 
   vertexCoords = EnsurePackedReals[vertexCoords, ReturnFailed["vertexCoordsError"]];
+  DPrint["Done with layout"];
 
   {vertexCoords, edgePaths, bounds}
 ]
@@ -156,22 +175,27 @@ makeFTF = CaseOf[
   n_ := ToList[False, ConstList[True, n-2], False];
 ];
 
-discoverVertex[t_, s_, d_] := (
+discoverVertex[t_, s_, d_] := If[Part[$discovered, t], Null,
+  Part[$discovered, t] = True;
   Part[$ccount, s]++;
   Part[$cindex, t] = Part[$ccount, s];
   Part[$parent, t] = s;
-  Part[$d, t] = d;
-);
+  Part[$depth, t] = If[d > 512, $corrupt = True; Message[OrderedTreeLayout::corrupt, {t, s, d}]; 0, d];
+];
 
-previsitVertex[v_] := (
-  Part[$ys, v] = Part[$d, v];
+OrderedTreeLayout::corrupt = "Hit bug in kernel: ``";
+
+previsitVertex[v_] := If[Part[$previsited, v], Null,
+  Part[$previsited, v] = True;
+  Part[$ys, v] = Part[$depth, v];
   If[Part[$outDeg, v] > 0,
     If[$globalCentering && Part[$xs, v] == 0., Part[$xs, v] = $x],
     Part[$xs, v] = $x++;
   ];
-);
+];
 
-postvisitVertex[v_] := (
+postvisitVertex[v_] := If[Part[$postvisited, v], Null,
+  Part[$postvisited, v] = True;
   If[Part[$outDeg, v] > 0,
     Part[$xs, v] = If[$globalCentering,
       Avg[Part[$xs, v], ($x-1)],
@@ -179,7 +203,7 @@ postvisitVertex[v_] := (
     ];
   ];
   If[!$globalCentering, Part[$bounds, Part[$parent, v]] //= MinMax[Flatten @ {#, Part[$xs, v]}]&];
-)
+];
 
 (*************************************************************************************************)
 

@@ -2,7 +2,7 @@ PackageExports[
   "HoldFn",
     HoldTake, HoldTakeArgs, HoldMap2,
   "HoldFn",
-    HTake, HTakeArgs,
+    HTake, HTakeArgs, HPart,
     HUnmake, HCUnmake,
     HoldCMap, HoldCRaise, HoldCLower,
   "Function",
@@ -15,6 +15,10 @@ PackageExports[
 DefineAliasRules[
   HTake      -> HoldTake,
   HTakeArgs  -> HoldTakeArgs
+];
+
+DefineAliasRules[
+  HPart      -> HeldPart
 ];
 
 (**************************************************************************************************)

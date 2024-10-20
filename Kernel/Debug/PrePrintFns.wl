@@ -1,11 +1,11 @@
 SystemExports[
-  "FormHead",    OutputExpressionForm, MessageArgumentForm
+  "FormHead",  OutputExpressionForm, MessageArgumentForm
 ];
 
 PackageExports[
-  "FormHead",    OutExprForm, MsgForm, MsgArgForm,
-  "SpecialFn",   SetPrePrintFns, UnsetPrePrintFns,
-  "BoxFunction", OutExprBox, MsgBox, MsgArgBox, MsgCodePaneBox, MsgExprFormBox, MsgElidedBox
+  "FormHead",  OutExprForm, MsgForm, MsgArgForm,
+  "SpecFn",    SetPrePrintFns, UnsetPrePrintFns,
+  "BoxFn",     OutExprBox, MsgBox, MsgArgBox, MsgCodePaneBox, MsgExprFormBox, MsgElidedBox
 ];
 
 SessionExports[
@@ -48,6 +48,7 @@ OutExprBox = CaseOf[
   $[g_Graph]        := MakeBoxes @ g;
   $[g_Image]        := MakeBoxes @ g;
   $[i_InformationData] := MakeBoxes @ i;
+  $[i_InformationDataGrid] := MakeBoxes @ i;
   $[SystemForm[e_]] := MakeBoxes @ e;
   $[f:FullForm[_]]  := MakeBoxes @ f;
   $[e___]           := With[

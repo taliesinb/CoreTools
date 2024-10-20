@@ -1,6 +1,6 @@
 SystemExports[
   "ControlFlow", IfAll, IfNone, IfNull, IfAuto, IfDefault, IfFailed, IfMissing, IfInherited, IfScaled, IfFailed, IfCorrupt, IfInvalid,
-  "MutatingFn",  SetAll, SetNone, SetNull, SetAuto, SetDefault, SetFailed, SetMissing, SetInherited, SetScaled
+  "MutFn",       SetAll, SetNone, SetNull, SetAuto, SetDefault, SetFailed, SetMissing, SetInherited, SetScaled
 ];
 
 PackageExports[

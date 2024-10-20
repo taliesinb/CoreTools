@@ -1,6 +1,6 @@
 PackageExports[
-  "SpecialFn",   CoreBox, MakeCoreBox, ToCoreBox, ClearCoreBoxRegistry,
-  "SpecialVar",  $CoreFormatting, $CoreInteractive,
+  "FmtFn",       CoreBox, MakeCoreBox, ToCoreBox, ClearCoreBoxRegistry,
+  "SpecVar",     $CoreFormatting, $CoreInteractive,
   "ScopingFn",   BlockFormatting, BlockInteractive,
   "Predicate",   HasCoreBoxQ, HasCoreSubBoxQ, CoreBoxSubHeadQ, CoreBoxHeadQ
 ];
@@ -59,8 +59,10 @@ SetCoreBox[sym_Symbol] := With[
   $CoreBoxHeadDict[Hold[sym]] = True;
   KeyStoreAdd[$CoreBoxStore, NoEval @ sym];
 
-  MakeBoxes[$LHS:sym | _sym, _] /; $CoreFormatting :=
-    With[{res = MakeCBox @ $LHS}, res /; res =!= $Failed];
+  SetD[
+    MakeBoxes[LHS:sym | _sym, _] /; $CoreFormatting,
+    With[{res = MakeCBox @ LHS}, res /; res =!= $Failed]
+  ];
 ];
 
 (**************************************************************************************************)
@@ -75,8 +77,10 @@ SetCoreSubBox[sym_Symbol] := With[
   KeyStoreAdd[$CoreBoxStore,    NoEval @ sym];
   KeyStoreAdd[$CoreBoxSubStore, NoEval @ sym];
 
-  MakeBoxes[$LHS:(_sym[___]), _] /; $CoreFormatting :=
-    With[{res = MakeCBox @ $LHS}, res /; res =!= $Failed];
+  SetD[
+    MakeBoxes[LHS:(_sym[___]), _] /; $CoreFormatting,
+    With[{res = MakeCBox @ LHS}, res /; res =!= $Failed]
+  ];
 ];
 
 (**************************************************************************************************)

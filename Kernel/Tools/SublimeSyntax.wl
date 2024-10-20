@@ -4,13 +4,13 @@ PackageExports[
 ];
 
 PrivateExports[
-  "Function",        SystemSymbolKinds, CoreToolsSymbolKinds,
+  "Function",        SystemSymbolKinds, CoreToolsSymbolKinds, SymbolKindToSyntaxScope,
   "SpecialVariable", $SublimeKindColors
 ];
 
 (*************************************************************************************************)
 
-SystemSymbolKinds[] := ImportStringTable @ systemSymbolFile @ "SystemSymbolKinds.wlsyms";
+SystemSymbolKinds[] := ImportStringTable @ systemSymbolFile @ "SymbolKinds.wlsyms";
 
 CoreToolsSymbolKinds[] := Merge[PackageSymbolKinds /@ {"CoreTools`", "Prelude`"}, Catenate];
 
@@ -23,10 +23,11 @@ $SublimeKindColors := Unimplemented;
 SublimeUpdateSyntax::notInstalled = "Cannot find the \"WolframLanguage\" Sublime Text package at expected location ``.";
 SublimeUpdateSyntax::messagesOccurred = "Message(s) occurred during computation, aborting.";
 SublimeUpdateSyntax::invalidResult = "Did not produce valid results, aborting.";
+SublimeUpdateSyntax::unknownKind = "Unknown symbol kind: ``.";
 
 SetDelayedInitial[$SublimePackagesPath, "~/Library/Application Support/Sublime Text/Packages"];
 
-SublimeUpdateSyntax[] := Locals[
+SublimeUpdateSyntax[] := Locals @ CatchMessages[
 
   targetDir = NormalizePath @ PathJoin[$SublimePackagesPath, "WolframLanguage"];
   If[!DirectoryQ[targetDir], ReturnFailed["notInstalled", targetDir]];
@@ -36,14 +37,14 @@ SublimeUpdateSyntax[] := Locals[
 
   (* load syntax groups from syntax files, and list of internal context -> symbols *)
   systemKinds = SystemSymbolKinds[];
-  librarySymbolFiles = userSymbolFile @ FileList["*.wlsyms"];
-  libraryKinds = Merge[ImportStringTable /@ librarySymbolFiles, Catenate];
-  ExportStringTable[staticFile @ "LibraryKinds.wlsyms", libraryKinds];
+  userSymbolFiles = userSymbolFile @ FileList["*.wlsyms"];
+  userKinds = Merge[ImportStringTable /@ userSymbolFiles, Catenate];
+  ExportStringTable[staticFile @ "LibraryKinds.wlsyms", userKinds];
 
   coreKinds = CoreToolsSymbolKinds[];
   coreSymbols = Union @ Flatten @ Values @ coreKinds;
-  libraryKinds //= Map[Complement[#, coreSymbols]&];
-  (* KeyValueMap[KeyUnionTo[libraryKinds, #1, #2]&, coreKinds]; *)
+  userKinds //= Map[Complement[#, coreSymbols]&];
+  (* KeyValueMap[KeyUnionTo[userKinds, #1, #2]&, coreKinds]; *)
 
   (* generate strings *)
   res = Check[
@@ -52,7 +53,7 @@ SublimeUpdateSyntax[] := Locals[
     JoinTo[internalSymbols, preludeSymbols];
     {builtinRegexs, builtinDefs, builtinContext} = makeGroupsRegexpsDefs[systemKinds,  "System"];
     {coreRegexs,    coreDefs,    coreContext}    = makeGroupsRegexpsDefs[coreKinds,    "Core"];
-    {libraryRegexs, libraryDefs, libraryContext} = makeGroupsRegexpsDefs[libraryKinds, "Library"];
+    {libraryRegexs, libraryDefs, libraryContext} = makeGroupsRegexpsDefs[userKinds,    "Library"];
     regexVars = Join[builtinRegexs, coreRegexs, libraryRegexs];
     internalDefs = KeyValueMap[makeInternalSymbolDefs, internalSymbols];
     syntaxDefinition = $syntaxTemplate @ Dict[
@@ -68,7 +69,7 @@ SublimeUpdateSyntax[] := Locals[
     If[!StringQ[syntaxDefinition], ReturnFailed["invalidResult"]];
     ExportUTF8[staticFile @ "WolframLanguage.sublime-syntax", syntaxDefinition];
 
-    symbolKinds = Merge[{systemKinds, libraryKinds}, Catenate];
+    symbolKinds = Merge[{systemKinds, coreKinds, userKinds}, Catenate];
     symbolKinds["InternalSymbol"] = Flatten @ KeyValueMap[StrPre[#1][#2]&, internalSymbols];
     completions = Flatten @ KeyValueMap[makeKindCompletions, symbolKinds];
     completionsJSON = ExportJSONString[Dict["scope" -> "source.wolfram", "completions" -> completions], 2];
@@ -112,7 +113,7 @@ $contextSymbolsDefinitionTemplate := $contextSymbolsDefinitionTemplate =
 
 makeGroupsRegexpsDefs[kinds_, prefix_] := Locals[
   $groupPrefix = prefix;
-  $groupFnTag = Switch[prefix, "System", "builtin", "Core", "core", _, "library"];
+  $originTag = Switch[prefix, "System", ".sys", "Core", ".core", _, ".user"];
   pair = Transpose @ KeyValueMap[makeGroup0, kinds];
   Append[pair, makeSingleContext @ StringRiffle[Last @ pair, "\n"]]
 ];
@@ -132,7 +133,7 @@ $symNotFound = "
 
 makeSingleContext[defs_] := StrJoin[StrRep[defs, $addPopRule], $symNotFound; ""];
 
-makeGroup0[group:"Variable" | "SpecialVariable" | "CacheVariable" | "SlotVariable", names_] :=
+makeGroup0[group_ ? (StrEndsQ["Variable"]), names_] :=
   MapLast[
     StringReplace["- match: '{{" -> "- match: '\\${{"],
     If[!AllTrue[names, StringStartsQ["$"]],
@@ -183,39 +184,22 @@ makeLetterSubDef[subDefName_, strings_] :=
     "))\n"
 ];
 
-$groupFnTag = "builtin";
+groupToSyntaxScope[group_] := groupToSyntaxScope[group] = SymbolKindToSyntaxScope[group];
 
-groupToSyntaxScope = CaseOf[
-  "PackageDeclaration" := "meta.package.declaration.wolfram";
-  "PackageFunction"    := "meta.package.function.wolfram";
-  "Symbol"             := "constant.language.symbol..wolfram";
-  "SpecialSymbol"      := "constant.language.symbol.special.wolfram";
-  "Head"               := "constant.language.head.wolfram";
-  "ObjectHead"         := "support.function.object.wolfram";
-  "Function"           := "support.function." <> $groupFnTag <> ".wolfram";
-  "Option"             := "constant.language.symbol.option." <> $groupFnTag <> ".wolfram";
-  "BoxOption"          := "constant.language.symbol.option.box.wolfram";
-  "FormOption"         := "constant.language.symbol.option.form.wolfram";
-  "GraphicsOption"     := "constant.language.symbol.option.graphics.wolfram";
-  group_     := Which[
-    StrEndsQ[group, "Symbol"],
-      StrJoin["constant.language.symbol.", ToLowerCase @ StrDelete[group, "Symbol"], ".wolfram"],
-    StrEndsQ[group, "Head"],
-      StrJoin["constant.language.head.", ToLowerCase @ StrDelete[group, "Head"], ".wolfram"],
-    True,
-      igroupToSyntaxScope @ group
-  ];
+(*************************************************************************************************)
+
+$originTag = "";
+
+SymbolKindToSyntaxScope["PackageDeclaration"] := "meta.pkg.dec";
+
+SymbolKindToSyntaxScope["PackageFunction"]    := "meta.pkg.fn";
+
+SymbolKindToSyntaxScope[kind_Str] := Locals[
+  shortKind = Lookup[$ToShortKind, kind, ThrowMsg["unknownKind", kind]];
+  tokens = ToLowerCase @ CamelCaseSplit @ shortKind;
+  extraTag = If[!MemberQ[tokens, "spec"], "", tokens //= DelCases["spec"]; "spec."];
+  StrJoin[extraTag, Riffle[Rev @ tokens, "."], $originTag]
 ];
-
-igroupToSyntaxScope[group_] := igroupToSyntaxScope[str] =
-  StrJoin[
-    "support.function.",
-    ToLowerCase @ StringRiffle[
-      CamelCaseSplit @ StringReplace[group, {"Function" -> "", "IO" -> "Io"}],
-      "."
-    ],
-    ".wolfram"
-  ];
 
 (*************************************************************************************************)
 

@@ -1,6 +1,6 @@
 PackageExports[
-  "Function", DAGLayout, PolyDagLayout,
-  "GraphicsOption", HStretch, VStretch
+  "Function",       DAGLayout,
+  "PlotOption", HStretch, VStretch
 ];
 
 (*************************************************************************************************)

@@ -6,6 +6,7 @@ PackageExports[
     Applied,
     NullFn, ConstFn, HoldConstFn,
     TrueFn, FalseFn,
+    HoldNullFn, HoldTrueFn, HoldFalseFn,
     Supply1, Supply2, Supply3,
     AttributeFn, HoldFirstFn, HoldRestFn, HoldAllFn, HoldCompFn,
   "SymbolicHead",
@@ -72,9 +73,15 @@ SetHoldA[HoldConstFn]
 ConstFn[v_]     := Fn[Null, v];
 HoldConstFn[v_] := Fn[Null, v];
 
-NullFn[___]  := Null;
-TrueFn[___]  := True;
-FalseFn[___] := False;
+_NullFn  := Null;
+_TrueFn  := True;
+_FalseFn := False;
+
+SetHoldC[HoldNullFn, HoldTrueFn, HoldFalseFn]
+
+_HoldNullFn  := Null;
+_HoldTrueFn  := True;
+_HoldFalseFn := False;
 
 (**************************************************************************************************)
 

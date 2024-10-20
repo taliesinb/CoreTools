@@ -12,3 +12,4 @@ Patches.wl
 Random.wl
 ToStr.wl
 Symbols.wl
+Unicode.wl

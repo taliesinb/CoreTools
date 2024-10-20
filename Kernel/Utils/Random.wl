@@ -22,7 +22,7 @@ SystemExports[
     RandomPart,
   "ControlFlow",
     CoinToss,
-    BlockSeed
+    BlockSeed, NextSeed
 ];
 
 PackageExports[
@@ -30,6 +30,10 @@ PackageExports[
     RandInt, RandDict, RandUDict, RandAtom, RandDatum, RandSym, RandLet,
     RandDec, RandBit, RandNat, RandBool, RandSign, RandRange, RandReal, RandNorm
 ];
+
+SessionExports[
+  "Variable", $LastSeed, $InBlockSeed
+]
 
 (*************************************************************************************************)
 
@@ -55,8 +59,16 @@ DefineAliasRules[
 
 SetHoldF[BlockSeed];
 
-BlockSeed[body_] := BlockRandom[body, RandomSeeding -> 1];
-BlockSeed[body_, seed_] := BlockRandom[body, RandomSeeding -> seed];
+SetInitial[$LastSeed, 0];
+
+$InBlockSeed = False;
+
+NextSeed[] := $LastSeed = ($Line * 100) + ($CurrentEvaluationSeed++);
+
+BlockSeed[body_]        := BlockSeed[body, Auto];
+BlockSeed[body_, Auto]  := If[$InBlockSeed, body, BlockSeed[body, NextSeed[]]];
+BlockSeed[body_, None]  := BlockSeed[body, $LastSeed];
+BlockSeed[body_, seed_] := Block[{$InBlockSeed = True}, BlockRandom[body, RandomSeeding -> seed]];
 
 (*************************************************************************************************)
 

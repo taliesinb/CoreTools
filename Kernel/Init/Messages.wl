@@ -9,7 +9,7 @@ PackageExports[
     CatchMessages,
     CatchAsFailure,
 
-    ThrowException,
+    ThrowRawException,
     ThrowErrorValue,
 
     IssueMessage,
@@ -20,19 +20,23 @@ PackageExports[
     ErrorInternal,
     ThrowInternal,
 
+    ErrorNotInt, ErrorNotNum, ErrorNotBool, ErrorNotStr, ErrorNotList, ErrorNotDict, ErrorNotFn,
+    ThrowNotInt, ThrowNotNum, ThrowNotBool, ThrowNotStr, ThrowNotList, ThrowNotDict, ThrowNotFn,
+    ErrorNotIn, ErrorNotKey, ErrorNotSubset,
+    ThrowNotIn, ThrowNotKey, ThrowNotSubset,
     CheckIntQ, CheckBoolQ, CheckListQ, CheckDictQ, CheckStrQ, CheckNumQ, CheckFnQ,
     AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ,
 
     CheckInQ, CheckSameQ, CheckSameLenQ, CheckSameSetQ, CheckSubsetOfQ, CheckLookup, CheckLookupList, CheckHeadQ, CheckOptKeys,
     AssertInQ, AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ, AssertOptKeys,
-    ErrorOptIn, ErrorOptKey, ErrorOptVal, CheckOptVal, AssertOptVal,
-    ThrowOptIn, ThrowOptKey, ThrowOptVal, AssertOptsValid,
+    ErrorOptKey, ErrorOptVal, CheckOptVal, AssertOptVal,
+    ThrowOptKey, ThrowOptVal, AssertOptsValid,
 
-    AssertOpts,
+    ErrorNotIn, ThrowNotIn,
     ErrorOptKeyFn, ErrorOptValFn,
     ThrowOptKeyFn, ThrowOptValFn,
 
-    AssertThat, SetThrowing,
+    AssertThat,
 
   "DebuggingFunction", Panic,
   "SpecialFunction",   Unimplemented, InternalError,
@@ -213,7 +217,8 @@ QuietStack[id_] := Select[QuietStack[], First /* GreaterThan[id]];
 
 SetHoldF[MessageNameActiveQ]
 
-MessageNameActiveQ[msg:MessageName[_, name_], id_] := FreeQ[QuietStack[id], All | HoldP[msg] | HoldP[General::name]];
+MessageNameActiveQ[msg:MessageName[_, name_], id_] :=
+  FreeQ[QuietStack[id], All | HoldP[msg] | HoldP[General::name]] && Head[msg] =!= $Off;
 
 (**************************************************************************************************)
 
@@ -264,10 +269,10 @@ SetExcepting @ SetHoldF @ ThrowMessage;
 ThrowMessage[MessageName[sym_Sym, name_Str], args___] := iThrowMessage[sym -> name, args];
 ThrowMessage[args___]                                 := iThrowMessage[args];
 
-iThrowMessage[sym_Sym -> msgName_Str, msgArgs___] := ThrowException @ MessageException[$SrcLocStack, sym, msgName, msgArgs];
-iThrowMessage[msgName_String, msgArgs___]         := ThrowException @ MessageException[$SrcLocStack, Inherited, msgName, msgArgs];
-iThrowMessage["quiet", ___]                       := ThrowException @ LiteralException[$SrcLocStack, $Failed];
-iThrowMessage[args___]                            := ThrowException @ MessageException[$SrcLocStack, ThrowMessage, "invalidThrowMessage", HoldForm @ ThrowMessage[args]];
+iThrowMessage[sym_Sym -> msgName_Str, msgArgs___] := ThrowRawException @ MessageException[$SrcLocStack, sym, msgName, msgArgs];
+iThrowMessage[msgName_String, msgArgs___]         := ThrowRawException @ MessageException[$SrcLocStack, Inherited, msgName, msgArgs];
+iThrowMessage["quiet", ___]                       := ThrowRawException @ LiteralException[$SrcLocStack, $Failed];
+iThrowMessage[args___]                            := ThrowRawException @ MessageException[$SrcLocStack, ThrowMessage, "invalidThrowMessage", HoldForm @ ThrowMessage[args]];
 
 ThrowMessage::invalidThrowMessage = "Invalid call to ThrowMessage: ``.";
 
@@ -323,6 +328,52 @@ MakeAsserting[ThrowInternal];
 
 (**************************************************************************************************)
 
+SetStrict[ErrorNotInt, ErrorNotNum, ErrorNotBool, ErrorNotStr, ErrorNotList, ErrorNotDict, ErrorNotFn];
+SetStrict[ThrowNotInt, ThrowNotNum, ThrowNotBool, ThrowNotStr, ThrowNotList, ThrowNotDict, ThrowNotFn] // SetExcepting;
+
+ErrorNotInt[a_, head_:General]        := ErrorMessage[head -> "notInt", a];
+ErrorNotNum[a_, head_:General]        := ErrorMessage[head -> "notNum", a];
+ErrorNotStr[a_, head_:General]        := ErrorMessage[head -> "notStr", a];
+ErrorNotBool[a_, head_:General]       := ErrorMessage[head -> "notBool", a];
+ErrorNotList[a_, head_:General]       := ErrorMessage[head -> "notList", a];
+ErrorNotDict[a_, head_:General]       := ErrorMessage[head -> "notDict", a];
+ErrorNotFn[a_, head_:General]         := ErrorMessage[head -> "notFn", a];
+
+ThrowNotInt[a_]                       := ThrowMessage["notInt", a];
+ThrowNotNum[a_]                       := ThrowMessage["notNum", a];
+ThrowNotStr[a_]                       := ThrowMessage["notStr", a];
+ThrowNotBool[a_]                      := ThrowMessage["notBool", a];
+ThrowNotList[a_]                      := ThrowMessage["notList", a];
+ThrowNotDict[a_]                      := ThrowMessage["notDict", a];
+ThrowNotFn[a_]                        := ThrowMessage["notFn", a];
+
+General::notInt  = "Value not an integer: ``.";
+General::notNum  = "Value not a number: ``.";
+General::notStr  = "Value not a string: ``.";
+General::notBool = "Value not a boolean: ``.";
+General::notList = "Value not a list: ``.";
+General::notDict = "Value not a dict: ``.";
+General::notFn   = "Value not a function: ``.";
+
+(**************************************************************************************************)
+
+SetStrict[ErrorNotIn, ErrorNotKey, ErrorNotSubset];
+SetStrict[ThrowNotIn, ThrowNotKey, ThrowNotSubset] // SetExcepting;
+
+ErrorNotIn[a_, b_, head_:General]     := ErrorMessage[head -> "notIn", a, b];
+ErrorNotKey[a_, dict_, head_:General] := ErrorMessage[head -> "notKeyOf", a, Keys @ dict];
+ErrorNotSubset[a_, b_, head_:General] := ErrorMessage[head -> "notSubset", a, b];
+
+ThrowNotIn[a_, b_]                    := ThrowMessage["notIn", a, b];
+ThrowNotKey[a_, dict_]                := ThrowMessage["notKeyOf", a, Keys @ dict];
+ThrowNotSubset[a_, b_]                := ThrowMessage["notSubset", a];
+
+General::notKeyOf  = "Set `` not a subset of ``.";
+General::notIn     = "Value `` not one of ``.";
+General::notSubset = "Set `` not a subset of ``.";
+
+(**************************************************************************************************)
+
 SetStrict[CheckIntQ, CheckBoolQ, CheckListQ, CheckDictQ, CheckStrQ, CheckNumQ, CheckFnQ];
 
 CheckIntQ[a_, msg_:"notInt", args___]     := Or[IntQ[a],     ErrorMessage[msg, a, args]; False];
@@ -332,14 +383,6 @@ CheckListQ[a_, msg_:"notList", args___]   := Or[ListQ[a],    ErrorMessage[msg, a
 CheckDictQ[a_, msg_:"notDict", args___]   := Or[DictQ[a],    ErrorMessage[msg, a, args]; False];
 CheckStrQ[a_, msg_:"notStr", args___]     := Or[StrQ[a],     ErrorMessage[msg, a, args]; False];
 CheckFnQ[a_, msg_:"notFn", args___]       := Or[MaybeFnQ[a], ErrorMessage[msg, a, args]; False];
-
-General::notInt = "Value not an integer: ``.";
-General::notNum = "Value not a number: ``.";
-General::notBool = "Value not a boolean: ``.";
-General::notList = "Value not a list: ``.";
-General::notDict = "Value not a dict: ``.";
-General::notStr = "Value not a string: ``.";
-General::notFn = "Value not a function: ``.";
 
 DeclaredHere[AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ];
 MakeAsserting[AssertIntQ, AssertBoolQ, AssertListQ, AssertDictQ, AssertStrQ, AssertNumQ, AssertFnQ];
@@ -354,20 +397,18 @@ CheckSameLenQ[a_, b_, msg_:"notSameLen", args___]        := If[Len[a] === Len[b]
 CheckSameSetQ[a_, b_, msg_:"notSameSet", args___]        := If[SameSetQ[a, b], True, ErrorMessage[msg, Compl[a, b], Compl[b, a], args]; False];
 CheckSubsetOfQ[a_, b_, msg_:"notSubset", args___]        := If[SubsetOfQ[a, b], True, ErrorMessage[msg, Compl[a, b], b, args]; False];
 CheckHeadQ[e_, h_Sym, msg_:"notHead", args___]           := If[Head[e] === h, True, ErrorMessage[msg, h, Head @ e, args]; False];
-CheckLookup[d_, key_, msg_:"badKey", args___]            := Lookup[d, Key @ key, ErrorMessage[msg, key, args]];
-CheckLookupList[d_, keys_List, msg_:"badKeys", args___]  := Lookup[d, keys, ErrorMessage[msg, Compl[keys, Keys @ d], args]];
+CheckLookup[d_, key_, msg_:"badKey", args___]            := Lookup[d, Key @ key, ErrorMessage[msg, key, Keys @ d, args]];
+CheckLookupList[d_, keys_List, msg_:"badKeys", args___]  := Lookup[d, keys, ErrorMessage[msg, Compl[keys, Keys @ d], Keys @ d, args]];
 
- DeclaredHere[AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
-MakeAsserting[AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
+ DeclaredHere[AssertInQ, AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
+MakeAsserting[AssertInQ, AssertSameQ, AssertSameLenQ, AssertSameSetQ, AssertSubsetOfQ, AssertLookup, AssertLookupList, AssertHeadQ];
 
-General::notIn = "Value `` not one of ``.";
 General::notSame = "Value `` is not ``.";
 General::notSameLen = "Length `` does not match ``.";
 General::notSameSet = "Sets not same, with diff `` and ``.";
-General::notSubset = "Set `` not a subset of ``.";
 General::notHead = "Value had head ``, not ``.";
-General::badKey = "Key not found: ``.";
-General::badKeys = "Keys not found: ``.";
+General::badKey = "Key not found: ``. Available keys: ``";
+General::badKeys = "Keys not found: ``. Available keys: ``";
 
 (**************************************************************************************************)
 
@@ -445,21 +486,21 @@ assertOpt[key_ -> val_ -> test_] := AssertOptVal[key, val, test];
 
 "ThrowErrorValue[value$] returns value$ from the containing HandleException-based body."
 
-ThrowErrorValue[value_] := ThrowException @ LiteralException[None, value];
+ThrowErrorValue[value_] := ThrowRawException @ LiteralException[None, value];
 
 (**************************************************************************************************)
 
-"ThrowException[] returns a $Failed from the containing HandleException-based body.
-ThrowException[exception$] throws an exception, which should be a MessageException, FailureException, or LiteralException."
+"ThrowRawException[] returns a $Failed from the containing HandleException-based body.
+ThrowRawException[exception$] throws an exception, which should be a MessageException, FailureException, or LiteralException."
 
 General::uncaughtMessage = "The message name \"``\" was thrown but not caught. Aborting.";
 
-ThrowException[] := ThrowException @ LiteralException[None, $Failed];
-ThrowException[e_] /; $HandlerSet := Throw[e, ExceptionTag];
-ThrowException[e_]                := UnhandledException @ e;
+ThrowRawException[] := ThrowRawException @ LiteralException[None, $Failed];
+ThrowRawException[e_] /; $HandlerSet := Throw[e, ExceptionTag];
+ThrowRawException[e_]                := UnhandledException @ e;
 
-ThrowException::invalidThrowException = "Invalid call to ThrowException.";
-t_ThrowException := Then[Message[ThrowException::invalidThrowException, HoldForm[t]], ThrowException[]];
+ThrowRawException::invalidThrowExceptionObj = "Invalid call to ThrowRawException.";
+t_ThrowExceptionObj := Then[Message[ThrowRawException::invalidThrowExceptionObj, HoldForm[t]], ThrowRawException[]];
 
 (**************************************************************************************************)
 

@@ -1,15 +1,16 @@
 SystemExports[
-  "IOFunction",
+  "FrontendFunction",
     AvailableWindowSize,
     AvailableScreenSize,
     UserNotebooks
 ];
 
 PackageExports[
-  "IOFunction",
+  "FrontendFunction",
     CallFrontEnd,
     CodeCellData,
-    DisableFloatingSymbolPopup,
+    SetFrontEndDefaults,
+    ToggleFrontEndDebugFlag,
     PrintInputCell, PrintOutputCell,
     PrintNextCellBoxData, PrintPreviousCellBoxData,
     DeleteNextGeneratedCells,
@@ -33,9 +34,32 @@ UserNotebooks[] := DelCases[Notebooks[], MessagesNotebook[]];
 
 (*************************************************************************************************)
 
-DisableFloatingSymbolPopup[] := (
-  SetOptions[$FrontEnd, CodeAssistOptions -> {"FloatingElementEnable" -> False}]
-);
+ToggleFrontEndDebugFlag[] := FrontEndTokenExecute["ToggleDebugFlag"];
+
+(*************************************************************************************************)
+
+SetFrontEndDefaults[] := SetOptions[$FrontEnd, $frontendDefaults];
+
+$frontendDefaults = List[
+  CodeAssistOptions   -> {
+    "FloatingElementEnable" -> False,
+    "AutoDetectHyperlinks"  -> False,
+    "MaxContextMatches"     -> 10,
+    "MaxGlobalMatches"      -> 10,
+    "CompletionInclusions"  -> {}
+  },
+  "DisplayImagePixels"         -> True,
+  EvaluationCompletionAction   -> "ShowTiming",
+  InitializationCellWarning    -> False,
+  OutputSizeLimit              -> 4048576,
+  "NotebooksMenuHistoryLength" -> 50,
+  "AllowDataUpdates"           -> False,
+  "AllowDownloads"             -> False,
+  DelimiterAutoMatching        -> False,
+  InitializationCellEvaluation -> False,
+  "MaxMessageCount"            -> 5,
+  ShowAutoSpellCheck           -> False
+];
 
 (*************************************************************************************************)
 

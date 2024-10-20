@@ -5,7 +5,7 @@ PackageExports[
     UntallyInts, FastNumericIndices,
     OutermostToInnermost, InnermostToOutermost, ListJoin, ContainedSymbols
   "ControlFlow",
-    FastQuietCheck, WithLocalSettings,
+    FastQuietCheck, WithLocalSettings, NoMessages,
   "MutatingFunction",
     TransposeInPlace,
   "ScopingFunction",
@@ -44,6 +44,7 @@ DefineAliasRules[
 DefineAliasRules[
   TransposeInPlace             -> Internal`TransposeInPlace,
   FastQuietCheck               -> Internal`UnsafeQuietCheck,
+  NoMessages                   -> Internal`DeactivateMessages,
   WithLocalSettings            -> Internal`WithLocalSettings,
   InheritedBlock               -> Internal`InheritedBlock,
   IBlock                       -> Internal`InheritedBlock
@@ -51,3 +52,4 @@ DefineAliasRules[
 
 (* JoinOrFail issues this message, but it isn't defined *)
 Join::nonlist = "`` is not a list.";
+

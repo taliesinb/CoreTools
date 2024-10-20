@@ -1,5 +1,5 @@
 SystemExports[
-  "GraphicsOption",
+  "PlotOption",
     GraphScale, HStretch, VStretch,
     SplitPosition,
     NodeData,
@@ -13,9 +13,9 @@ SystemExports[
 ];
 
 PackageExports[
-  "SymbolicHead",     FaceEdge,
-  "GraphicsOption",   SplitPos, NodeClickFn, EdgeClickFn,
-  "GraphicsFunction", ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor
+  "SymbolicHead", FaceEdge,
+  "PlotOption",   SplitPos, NodeClickFn, EdgeClickFn,
+  "PlotFn",       ExprTreePlot, NiceTreePlot, InsetNode, TreeNodeColor
 ];
 
 (**************************************************************************************************)
@@ -102,12 +102,14 @@ NiceTreePlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
 
   aspectRatio = 0.66*vStretch / hStretch;
-  {vertexCoords, edgeCoords, plotBounds} = OrderedTreeLayout[graph,
+  result = OrderedTreeLayout[graph,
     RootPosition -> rootPosition, "LayerDepths" -> aspectRatio,
     SharedLeaves -> sharedLeaves, PMargin -> pMargin,
     Setback -> setback,
     SplitPosition -> splitPosition, RoundingRadius -> rounding
   ];
+  If[!MatchQ[result, {PackedP, _List, _List}], ReturnFailed[]];
+  {vertexCoords, edgeCoords, plotBounds} = result;
 
   {{plotL, plotR}, {plotB, plotT}} = plotBounds;
   {plotW, plotH} = plotSize = Dist @@@ plotBounds;

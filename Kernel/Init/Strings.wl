@@ -130,7 +130,11 @@ ToCamelCase[s_String] :=
 
 SetListable[CamelCaseSplit];
 
-CamelCaseSplit[s_String] := StringSplit[s, RegularExpression["(?<=[a-z])(?=[A-Z])"]];
+$knownAbbrevs = {"IO", "JSON", "XML", "HTML", "PDF", "MX", "WL", "CSV", "JPG", "JPEG", "PNG", "FE"};
+$ccsRegex = RegularExpression["(?<=[a-z])(?=[A-Z])"];
+$ccsSplitP = Prepend[$ccsRegex] @ Thread[$knownAbbrevs -> $knownAbbrevs];
+
+CamelCaseSplit[s_String] := StringSplit[s, $ccsSplitP];
 
 (**************************************************************************************************)
 

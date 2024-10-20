@@ -102,7 +102,7 @@ SetStrict @ SetHoldR[registerOps];
 registerOps[ops:{__Sym}, defs__SetD] := Scan[op |-> registerOps[op, defs], ops];
 registerOps[op_Sym, defs__SetD]      := HoldScan[def |-> registerOps[op, def], defs];
 registerOps[op_Sym, SetD[lhs_, rhs_]] := With[
-  {hold = MakeTagSetD[NArray, lhs, rhs] /. $ -> op},
+  {hold = MakeTagSetD[NArray, lhs, rhs, Hold] /. $ -> op},
   ReleaseHold @ hold;
   ReleaseHold @ ReplaceAll[hold, NArray -> GradedSum];
 ];
@@ -139,7 +139,7 @@ fromGradeRules = CaseOf[
 
 checkRes[grade_, Nothing]      := Nothing;
 checkRes[grade_, array_NArray] := Rule[grade, array];
-checkRes[grade_, _]            := ThrowException[];
+checkRes[grade_, _]            := ThrowRawException[];
 
 (**************************************************************************************************)
 

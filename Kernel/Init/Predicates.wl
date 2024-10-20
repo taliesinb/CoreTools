@@ -97,6 +97,7 @@ PackageExports[
     PackedDepth12Q, PackedDepth2NQ, PackedDepth3NQ,
     ArrayDepth12Q, ArrayDepth2NQ, ArrayDepth3NQ,
     ArrayDepthAtLeastQ, PackedDepthAtLeastQ,
+    RectListVecQ,
 
   "Variable",
     $IntegerPredicateFns,
@@ -715,7 +716,6 @@ PackedIntMatQ[list_]    := PackedQ[list, Int, 2];
 PackedRealMatQ[list_]   := PackedQ[list, Real, 2];
 PackedNumMatQ[list_]    := PackedQ[list, Int, 2] || PackedQ[list, Real, 2];
 
-
 (*************************************************************************************************)
 
 SetPred2[ArrayDepthAtLeastQ, PackedDepthAtLeastQ]
@@ -740,10 +740,18 @@ ArrayDepth3NQ[a_] := ArrayDepth[a] >= 3;
 
 (*************************************************************************************************)
 
+SetPred1[RectListVecQ];
+
+RectListVecQ[list_List]         := NoMessages @ IntQ @ Part[Dims[arr, 2], 2];
+
+(*************************************************************************************************)
+
 SetPred1[OptionRuleQ, OptionRuleVectorQ];
 
-OptionRuleQ[ORuleP]             = True;
-OptionRuleVectorQ[ORuleVecP]    = True;
+OptionRuleQ[_List]          = False;
+OptionRuleQ[_ ? ORuleTreeQ] = True;
+
+OptionRuleVectorQ[(_List ? ORuleTreeQ) ? VecQ] = True;
 
 (*************************************************************************************************)
 

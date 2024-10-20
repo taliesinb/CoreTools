@@ -14,11 +14,11 @@ DispatchOf::badCaseDefinition = "Bad Case definition for ``.";
 SetHoldA[DispatchOf, ExtendDispatchOf];
 
 ComplexMacroDefs[DispatchOf,
-  SetD[lhs_, DispatchOf[args___]] := attachedDispatchOf[lhs, True, Hold[pre], args]
+  SetD[LHS_, DispatchOf[args___]] := attachedDispatchOf[LHS, True, Hold[pre], args]
 ];
 
 ComplexMacroDefs[ExtendDispatchOf,
-  SetD[lhs_, ExtendDispatchOf[args___]] := attachedDispatchOf[lhs, False, Hold[pre], args]
+  SetD[LHS_, ExtendDispatchOf[args___]] := attachedDispatchOf[LHS, False, Hold[pre], args]
 ];
 
 SetHoldC[attachedDispatchOf]
@@ -36,4 +36,4 @@ attachedDispatchOf[lhs_, excl_, pre_, Then[args__SetD, Null...]] := Module[
   SetD @@@ res;
 ];
 
-toUnmatched[Hold[sym_]][HoldC[lhs_, _]] := HoldC[$LHS:lhs, ThrowUnmatchedError[sym, $LHS]];
+toUnmatched[Hold[sym_]][HoldC[lhs_, _]] := HoldC[LHS:lhs, ThrowUnmatchedError[sym, LHS]];

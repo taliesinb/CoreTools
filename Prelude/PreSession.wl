@@ -5,6 +5,7 @@ SessionExports[
   "Variable",
     $LastEvaluationTime,
     $EvaluationsCount,
+    $CurrentEvaluationSeed,
     $CurrentEvaluationStartTime,
     $CurrentEvaluationCellState,
     $EvaluationsSinceDict,
@@ -101,12 +102,14 @@ DefaultPostEvaluationHook[] := If[FrontEnd`Private`$KernelName =!= "LinkSnooper"
 If[!IntegerQ[$EvaluationsCount], $EvaluationsCount = 0];
 If[!IntegerQ[$SublimeRunCount], $SublimeRunCount = 0];
 
+$CurrentEvaluationSeed = 0;
 $CurrentEvaluationStartTime = 0;
 
 (* $KernelName only gets set after a little delay so we remove this noisy stuff from LinkSnooper kernels when we can *)
 SaveEvaluationCellState[] := Block[
   {notebook, cell, cellInfo, cursorPos},
 
+  $CurrentEvaluationSeed = 0;
   $CurrentEvaluationCellState = None;
   $SublimeRunCount = 0;
   notebook = EvaluationNotebook[];

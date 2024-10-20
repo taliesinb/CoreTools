@@ -1,5 +1,5 @@
 SystemExports[
-  "GraphicsOption",
+  "PlotOption",
     LabelFunction, VertexLabelFunction, EdgeLabelFunction, PostGraphicsFunction,
     EdgeColor, EdgeThickness, ThemeParent,
     VertexColorFunction, VertexTooltips,
@@ -313,11 +313,11 @@ patchMakeGraphBoxes[] := Then[
   patchCustomGraphDrawing[]
 ];
 
-RegisterPackagePatchFunctions[
+(* RegisterPackagePatchFunctions[
   "Network`GraphBoxes`",
   "MakeGraphBoxes" -> patchMakeGraphBoxes
 ];
-
+ *)
 (*************************************************************************************************)
 
 VertexAnnotation::usage =

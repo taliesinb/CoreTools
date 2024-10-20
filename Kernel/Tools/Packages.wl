@@ -2,7 +2,7 @@ SystemExports[
   "IOFunction",
     GetPackageDirectory,
   "Option",
-    PriorityRules, MacroRules
+    PriorityRules, MacroRules, ExtraContexts
 ];
 
 PackageExports[
@@ -25,6 +25,7 @@ PackageTopLevelEvaluate[hc_] := ReleaseHold @ ExpandMacros @ hc;
 Options[GetPackageDirectory] = {
   Verbose -> False,
   PriorityRules -> {},
+  ExtraContexts -> {},
   MacroRules -> None
 };
 
@@ -34,6 +35,7 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
   $publicContext = context;
   $privateContext = context <> "Private`";
   codePreprocFn = ApplyEchoSugar /* insertInputFileHash;
+  extraContexts = OptionValue[ExtraContexts];
   If[NonEmptyQ[macroRules = OptionValue[MacroRules]],
     codePreprocFn = codePreprocFn /* ReplaceRepeated[macroRules]];
   DisableHandleExceptions @ PreludeLoadPackage[
@@ -42,7 +44,7 @@ GetPackageDirectory[context_, dir_, OptionsPattern[]] := Locals[
     "SymbolTableFunction" -> SymbolTableFromDirectives,
     "PreLoadFunction"     -> applyAliases,
     "EvaluationFunction"  -> None,
-    "ContextPath"         -> {$publicContext, $privateContext, "CoreTools`", "System`"},
+    "ContextPath"         -> {$publicContext, $privateContext, extraContexts, "CoreTools`", "System`"},
     "Verbose"             -> OptionValue[Verbose],
     "PriorityRules"       -> OptionValue[PriorityRules]
   ]

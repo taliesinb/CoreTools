@@ -8,10 +8,6 @@ PackageExports[
   "Predicate",     LongExprQ, BigExprQ, LongBigExprQ
 ];
 
-PrivateExports[
-  "DebugFn",       ToExprBoxDebug, MakeExprBoxDebug
-]
-
 (*************************************************************************************************)
 
 DeclaredHere[SystemForm, ExprForm, HoldExprForm, RichElidedForm, Unlimited, Limited];
@@ -203,11 +199,37 @@ exprBox = CaseOf[
 
 (*************************************************************************************************)
 
-SetHoldC[symBox];
+SetHoldC[symBox, stdSymBox, rawSymBox];
 
-symBox[s_Sym] := symBox[s] = AliasSymName @ s;
-_symBox       := "?Symbol?";
+symBox = CaseOf[
+  Int   := "Int";
+  Real  := "Real";
+  Sym   := "Sym";
+  List  := "List";
+  Dict  := "Dict";
+  Str   := "Str";
+  Rule  := "Rule";
+  RuleD := "RuleD";
+  s_    := (stdSymBox[s] = stdSymBox[s]) /; $isStd;
+  s_    := (stdSymBox[s] = stdSymBox[s]) /; $isDebug;
+  s_    := (rawSymBox[s] = rawSymBox[s]);
+  s_    := AliasSymName @ s;
+];
 
+rawSymBox[s_] := AliasSymName @ s;
+
+stdSymBox[s_] /; Context[s] === "System`" := AliasSymName @ s;
+stdSymBox[s_] := niceSymBox[SymPath @ s, AliasSymName @ s, None];
+
+niceSymBox[path_, name_, type_] := Locals[
+  Make[InterpBox, If[StrHasQ[path, "`Private`"], TooltipBox[StyleBox[name, $Orange], path], name], path]
+];
+
+(* niceSymBox[path_, name_, type_] := Locals[
+  style = Seq @@ FlatList @ SymbolTypeStyle @ type;
+  Make[InterpBox, StyleBox[name, style], path]
+];
+ *)
 (*************************************************************************************************)
 
 SetHoldC[patternBox];
@@ -462,10 +484,10 @@ parenifyQ = CaseOf[
 SetHoldC[headBox];
 
 headBox = CaseOf[
-  _ /; $noLenQ       := CDotsS;
-  $[head_Sym, expr_] := With[{name = symBox[head]}, headBox[name, expr]];
-  $[head_Str, _[]]   := RBox[head, "[", "]"];
-  $[head_Str, expr_] := headBox2[head, commaArgsBox @ expr];
+  _ /; $noLenQ                        := CDotsS;
+  $[head_Sym, expr_]                  := With[{name = symBox[head]}, headBox[name, expr]];
+  $[head_Str | head_InterpBox, _[]]   := RBox[head, "[", "]"];
+  $[head_Str | head_InterpBox, expr_] := headBox2[head, commaArgsBox @ expr];
 ];
 
 
@@ -562,7 +584,7 @@ stdBox = CaseOf[
   RawBoxes[b_]     := With[{d = $maxDep - $dep}, DepthTruncateBoxes[b, d]];
   HoldForm[e_]     := exprBox @ e;
   SystemForm[s_]   := MakeBoxes @ s;
-  InputForm[f_]    := Block[{$isStd = False, $maxDep = 32, $maxStrLen = 512, $len = 256, $lenStack = {128}, $elidePacked = False}, exprBox @ f];
+  InputForm[f_]    := Block[{$isStd = False, $maxDep = 32, $maxStrLen = 512, $len = 256, $lenStack = {128}, $elidePacked = False}, StyleBox[exprBox @ f, ShowStrChars -> True]];
   StandardForm[f_] := Block[{$isStd = True}, exprBox @ f];
   c_CodeForm       := MakeBoxes @ c;
   d_DataForm       := MakeBoxes @ d;
@@ -585,14 +607,15 @@ stdBox2 = CaseOf[
   m:(math$)[__]                       := mathBox @ m;
   DirInf[] | DirInf[1]                := "\[Infinity]";
   DirInf[-1]                          := RBox["\[Minus]", "\[Infinity]"];
-  arb:Column[_List, ___]              := rowColBoxes[arb, True];
-  arb:Row[_List, ___]                 := rowColBoxes[arb, False];
+  arb:Column[_List, ___]              := rowColBoxes[arb, False];
+  arb:Row[_List, ___]                 := rowColBoxes[arb, True];
   arb:array$[_List, ___]              := arrayFormBoxes @ arb;
   arb:script$[__]                     := scriptBoxes @ arb;
   arb:Image ? ValidFlagQ              := imageBox @ img;
   arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
   arb_Graphics                        := graphicsBox @ arb;
   col:ColorP ? HoldColorQ             := SwatchBox @ col;
+  m_Manipulate                        := MakeBoxes @ m;
   m_DynamicModule                     := MakeBoxes @ m;
   File[path:StrP]                     := PathBox @ path;
   arb:(_Sym ? OperatorFormHeadQ[___][___]) := operatorFormBox @ arb;
@@ -645,7 +668,9 @@ SetHoldC @ stdBox3;
 
 stdBox3 = CaseOf[
   arb:(_Sym ? CoreBoxSubHeadQ[___][___]) := MaybeEval @ coreBox @ arb;
-  arb:_[___] ? HEntryFlagQ               := genericBox @ arb;
+  arb:(sym_Sym[___] ? HNoEntryFlagQ) /; HasFormatRulesQ[sym] := MakeBoxes @ arb;
+  HoldP[if:GeneralUtilities`InternalFailure[___]] := MakeBoxes @ if;
+  arb:(_[___] ? HEntryFlagQ)             := genericBox @ arb;
   arb_ ? LongBigExprQ                    := elidedBox @ arb;
   arb_                                   := MakeBoxes @ arb;
 ];
@@ -796,7 +821,7 @@ SetHoldC[imageBox, graphBox, graphicsBox];
 
 imageBox[img_Image] /; !Image`ValidImageQ[NoEval @ img] := HoldElidedBox @ img;
 
-$targetSize := 600 / ($dep)^2;
+$targetSize := 600 / ($dep/2)^2;
 
 imageBox[img_Image] := Locals[
   size = Max @ ImageDimensions @ img;
@@ -806,7 +831,8 @@ imageBox[img_Image] := Locals[
 
 graphBox[g_Graph] := ToBoxes @ If[$dep === 1, g, Graph[g, ImageSize -> $targetSize]];
 
-graphicsBox[g_Graphics] := ToBoxes @ If[$dep === 1, g,
+graphicsBox[g_Graphics] := If[$dep === 1 || MemberQ[NoEval @ g, ImageSize -> _],
+  MakeBoxes @ g,
   Append[
     DelCases[g, ImageSize -> _],
     ImageSize -> With[{t = Ceiling @ $targetSize}, UpTo[t]]
@@ -821,7 +847,7 @@ rawInnerBoxes[HoldC[e_]] := exprBox @ e;
 
 rowColBoxes[e_, _] := genericBox @ e;
 rowColBoxes[head_[list_List, opts___], isRow_] := With[
-  {boxes = Map[RawBoxes] @ ListDictMakeBoxes1D[list, isRow, rawInnerBoxes, False, None, 500, $len]},
+  {boxes = Map[RawBoxes] @ ListDictMakeBoxes1D[list, isRow, rawInnerBoxes, False, None, 1000, $len]},
   If[EmptyQ[boxes] || AllTrue[boxes, EmptyQ], CDotsS, ToBoxes @ head[boxes, opts]]
 ];
 

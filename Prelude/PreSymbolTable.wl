@@ -30,12 +30,15 @@ PackageExports[
 
   "Variable",
     $SymbolTableKinds,
+    $LongKinds, $ShortKinds, $ToShortKind, $ToLongKind,
     $SymbolExportFunctions
 ];
 
 Begin["`SymbolTable`Private`"]
 
 (*************************************************************************************************)
+
+(* SmoothingQuality RasterInterpolation string options for RasterBox *)
 
 DeclaredHere[SymbolTableRow];
 
@@ -85,12 +88,12 @@ General::symbolTableArgs = "SymbolTable function called with invalid arguments: 
 DeclaredHere[$SymbolTableKinds];
 
 $kindRules = List[
-  ". Special ControlFlow Declare Define Hold Sequence Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
-  ". Special Box Form Data Object Pattern StringPattern Type Symbolic Field Sort Slot Type Tag" <-> "Symbol Head",
-  ". Special Cache Registry Slot Tag Transient" <-> "Variable",
-  ". Special Box Form Graphics" <-> "Option",
-  "Graphics" <-> "Directive Primitive",
-  "Predicate PredicateOperator Operator Deprecated HoldHead"
+  ". Special Math Data Format ControlFlow Numeric Array Declare Plot Frontend Define Hold Sequence Debugging IO Graphics GraphicsBox Box Message Meta Mutating Scoping Package" <-> "Function",
+  ". Special Box DynamicForm Form Data Object Frontend Pattern StringPattern Type Symbolic Field Sort Slot Type Tag" <-> "Symbol Head",
+  ". Special Cache Registry Slot Tag Transient Bool Path" <-> "Variable",
+  ". Special Box SpecialBox IO MetaBox Cell Object Plot DynamicForm Form Notebook Style Graphics GraphicsBox" <-> "Option",
+  "Graphics Style" <-> "Directive",
+  "GraphicsPrimitive GraphicsHead  Predicate PredicateOperator Operator Deprecated HoldHead"
 ];
 
 enumerateSymbolKinds[] := DeleteCases["SymbolicSymbol"] @ procKindSpecList @ $kindRules;
@@ -100,7 +103,7 @@ procKindSpecList[list_List] := DeleteDuplicates @ StringDelete["."] @ Flatten @ 
 procKindSpec[str_String] := StringSplit @ str;
 procKindSpec[prefix_String <-> suffix_String] := Outer[StringJoin, StringSplit @ prefix, StringSplit @ suffix];
 
-$SymbolTableKinds = enumerateSymbolKinds[]
+$LongKinds = $SymbolTableKinds = enumerateSymbolKinds[]
 
 (*************************************************************************************************)
 
@@ -113,27 +116,61 @@ $SymbolExportFunctions = Block[{$Context = "Prelude`"}, Symbol /@  $symbolExport
 (*************************************************************************************************)
 
 $kindAliasRules = List[
-  "DebuggingFunction"   -> "DebugFn",
-  "OptionSymbol"        -> "Option",
-  "ControlFlowFunction" -> "ControlFlow",
-  "Operator"            -> "Op",
-  "Sequence"            -> "Seq",
-  "Function"            -> "Fn",
-  "String"              -> "Str",
-  "Pattern"             -> "Pat",
-  "Symbol"              -> "Sym",
-  "Primitive"           -> "Prim",
-  "Variable"            -> "Var"
+  "Numeric"     -> "Num",
+  "Format"      -> "Fmt",
+  "Debugging"   -> "Debug",
+  "Notebook"    -> "Nbook",
+  "Frontend"    -> "FE",
+  "Option"      -> "Opt",
+  "Registry"    -> "Reg",
+  "Mutating"    -> "Mut",
+  "Special"     -> "Spec",
+  "Define"      -> "Def",
+  "Declare"     -> "Dec",
+  "ControlFlow" -> "Ctrl",
+  "Operator"    -> "Op",
+  "Sequence"    -> "Seq",
+  "Function"    -> "Fn",
+  "String"      -> "Str",
+  "Pattern"     -> "Pat",
+  "Symbolic"    -> "Sym",
+  "Symbol"      -> "Sym",
+  "Primitive"   -> "Prim",
+  "Variable"    -> "Var",
+  "Graphics"    -> "Gfx",
+  "Dynamic"     -> "Dyn",
+  "Directive"   -> "Dir",
+  "Predicate"   -> "Pred",
+  "Transient"   -> "Tmp",
+  "Scoping"     -> "Scope",
+  "Message"     -> "Msg",
+  "Package"     -> "Pkg",
+  "Deprecated"  -> "Depr",
+  "Object"      -> "Obj"
 ];
 
-makeDealiasRule[long_] := Module[
-  {short = StringReplace[long, $kindAliasRules]},
-  If[short =!= long, short -> long, Nothing]
+$ShortKinds := $ShortKinds = StringReplace[$SymbolTableKinds, $kindAliasRules];
+
+longRules[a_] := Thread @ Rule[a, $LongKinds];
+shortRules[a_] := Thread @ Rule[a, $ShortKinds];
+
+$partialKinds1 = StringReplace[$LongKinds, "Function" -> "Fn"];
+$partialKinds2 = StringReplace[$ShortKinds, "Spec" -> "Special"];
+
+$ToLongKind := $ToLongKind = Association[
+  longRules @ $LongKinds,
+  longRules @ $ShortKinds,
+  longRules @ $partialKinds1,
+  longRules @ $partialKinds2,
+  "ControlFlow"   -> "ControlFlowFunction"
 ];
 
-$checkedKinds := $checkedKinds = Association[
-  Thread[$SymbolTableKinds -> $SymbolTableKinds],
-  Map[makeDealiasRule, $SymbolTableKinds]
+$ToShortKind := $ToShortKind = Association[
+  shortRules @ $ShortKinds,
+  shortRules @ $LongKinds,
+  shortRules @ $partialKinds1,
+  shortRules @ $partialKinds2,
+  "ControlFlow" -> "CtrlFn"
 ];
 
 (**************************************************************************************************)
@@ -287,7 +324,7 @@ checkSymbols[symbols_String] := If[
   failExports["corruptHeader", symbols]
 ];
 
-checkKind[kind_String] := Lookup[$checkedKinds, kind, failExports["unknownKind", kind]];
+checkKind[kind_String] := Lookup[$ToLongKind, kind, failExports["unknownKind", kind]];
 
 $corruptSymbolsSP = RegularExpression["[$[:alnum:]] +[$[:alnum:]]"];
 $headerArgsSP     = RegularExpression["\"([a-zA-Z]+)\",\\s*([$a-zA-Z0-9,\\s]+)"];

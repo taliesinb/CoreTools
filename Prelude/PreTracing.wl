@@ -4,7 +4,8 @@ SystemExports[
   "DebuggingFunction",
     TraceSymbolChanges,
     TraceFunctionCalls,
-    TraceAutoloads,
+    TraceLoading,
+    BlockLoading,
     BlockPrint,
     Capture,
     RawPrintBoxes,
@@ -63,7 +64,7 @@ SessionExports[
     $PrintIndent,
     $ShouldPrint,
     $CellPrintLabel,
-    $CurrentlyTracingAutoloads,
+    $CurrentlyTracingLoading,
     $CurrentlyTracingSymbols
 ];
 
@@ -524,7 +525,7 @@ MicroTimingTable[fn_, list_List] := Map[Function[z, MicroTiming[fn[z]]], list];
 
 (*************************************************************************************************)
 
-SetAttributes[TraceAutoloads, HoldFirst];
+DeclareHoldFirst[TraceLoading, BlockLoading];
 DeclareHoldAllComplete[$hookAutoload, $autoLoadHandler, $getHandler];
 
 $loadDepth = 0;
@@ -581,10 +582,10 @@ mxGet[fn_, file_] := Block[{$hookAutoload = False},
   With[{res = fn @ file}, $loadCallbackFn[file, End]; res]
 ];
 
-If[!BooleanQ[$CurrentlyTracingAutoloads], $CurrentlyTracingAutoloads = False];
+If[!BooleanQ[$CurrentlyTracingLoading], $CurrentlyTracingLoading = False];
 
-TraceAutoloads[expr_, callback_:None] := Block[
-  {$CurrentlyTracingAutoloads = True, $hookAutoload = True, $loadCallbackFn = callback},
+TraceLoading[expr_, callback_:None] := Block[
+  {$CurrentlyTracingLoading = True, $hookAutoload = True, $loadCallbackFn = callback},
   Internal`WithLocalSettings[
     Unprotect[Package`ActivateLoad, System`Dump`AutoLoad, Get, DumpGet];
     Package`ActivateLoad[sym_, _, context_String, _] /; $autoLoadHandler[sym, context] := Null;
@@ -607,6 +608,8 @@ TraceAutoloads[expr_, callback_:None] := Block[
     Protect[Package`ActivateLoad, System`Dump`AutoLoad, Get, DumpGet];
   ]
 ];
+
+BlockLoading[expr_] := Block[{Package`ActivateLoad, System`Dump`AutoLoad}, expr];
 
 (*************************************************************************************************)
 

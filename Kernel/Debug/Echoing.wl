@@ -55,7 +55,7 @@ EchoProgress[(head:Map|Scan|MapP|ScanP|ZipMap|ZipScan|MapApply|KeyValueMap|KeyVa
     $Failed
   ];
   If[result =!= $Failed, NotebookDelete @ cell];
-  $ProgressCounterMax = $ProgressCounterCounter = 0;
+  $ProgressCounterMax = $ProgressCounter = 0;
   result
 ];
 

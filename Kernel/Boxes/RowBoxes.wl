@@ -27,6 +27,7 @@ PackageExports[
 (**************************************************************************************************)
 
 DefineAliasRules[
+  FullCol  -> FullColumn,
   DelimRow -> DelimitedRow,
   RiffRow  -> RiffledRow,
   RiffBox  -> RiffRowBox
@@ -39,6 +40,7 @@ SetFormR[RawRow];
 
 SystemBox[FullRow[list_List]]        := MakeBox @ RawRow @ list;
 SystemBox[FullRow[list_List, riff_]] := MakeBox @ RawRow[list, riff];
+
 SystemBox[RawRow[list_List]]         := RiffRowBox[MapMakeBox @ list, Spc0];
 SystemBox[RawRow[list_List, riff_]]  := RiffRowBox[MapMakeBox @ list, MakeBox @ riff];
 

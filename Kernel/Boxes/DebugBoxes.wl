@@ -36,7 +36,7 @@ PathBox[path_Str, line_:None] := Locals[
   pathElems = FileNameSplit @ path;
   shortPath = ShortPathStr @ path;
   If[IntQ[line], shortPath = StrJoin[shortPath, ":", IntStr @ line]];
-  ColorFrameBox[shortPath, color]
+  ClickBox[ColorFrameBox[shortPath, color], SystemOpen @ path, CopyToClipboard @ path]
 ];
 
 $pathTypeColor = Dict[

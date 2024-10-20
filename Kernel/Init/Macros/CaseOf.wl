@@ -72,7 +72,7 @@ SetHoldC[unmatchedErrorRule];
 
 unmatchedErrorRule[sym_] := With[
   {sloc = SourceLocation[]},
-  RuleDM[$LHS___, SetSrcLoc[sloc, ThrowUnmatchedError[sym, $LHS]]]
+  RuleDM[LHS___, SetSrcLoc[sloc, ThrowUnmatchedError[sym, LHS]]]
 ];
 
 SetHoldC[procRewrites];
@@ -106,7 +106,7 @@ $unmatchRule = RuleD[_, ThrowUnmatchedError[]];
 SetHoldA @ ThrowUnmatchedError;
 
 General::unmatchedCase = "Case unmatched: ``.";
-ThrowUnmatchedError[head_Sym, $LHS___] := ThrowMsg[head -> "unmatchedCase", PrivHold @ head[$LHS]];
+ThrowUnmatchedError[head_Sym, LHS___] := ThrowMsg[head -> "unmatchedCase", PrivHold @ head[LHS]];
 
 CaseOf::unmatched = "Unmatched case in a CaseOf application.";
 ThrowUnmatchedError[] := ThrowMsg["unmatched"];

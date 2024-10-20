@@ -1,23 +1,42 @@
 SystemExports[
   "FormHead",
-    RawGrid, RawColumn, RowGrid, ColumnGrid
+    RawGrid, RawColumn, RowGrid, ColumnGrid, FullColumn
 ];
 
 PackageExports[
   "FormHead",
     RawGrid, RowGrid, ColGrid, TightRowGrid, TightColGrid,
-    RawCol,
+    FullCol, RawCol,
   "BoxFunction",
     ColumnBox, ColBox,
-    GridBoxRule, RowGridBox, ColGridBox, TightRowGridBox, TightColGridBox
+    GridBoxRule, RowGridBox, ColGridBox, TightRowGridBox, TightColGridBox,
+  "SpecialFunction",
+    MakeFullColBox
 ];
 
 (**************************************************************************************************)
 
+DeclaredHere[FullColumn, RawColumn, ColumnBox, ColumnGrid]
+
 DefineAliasRules[
+  FullCol -> FullColumn,
   RawCol  -> RawColumn,
   ColBox  -> ColumnBox,
   ColGrid -> ColumnGrid
+];
+
+(**************************************************************************************************)
+
+SetForm0[FullCol];
+
+SystemBox[FullCol[args___]] := MakeFullColBox[args];
+
+SetBoxFn[FullColBox];
+
+MakeFullColBox = ExtendCaseOf[
+  $[EmptyP, opts___Rule]    := SpacerBox[0];
+  $[list_List, opts___Rule] := ColBox[MapMakeBox @ list, opts];
+  $[dict_Dict, opts___Rule] := GridBox[KVMapMakeBox @ dict, opts, $baseGridOpts];
 ];
 
 (**************************************************************************************************)
