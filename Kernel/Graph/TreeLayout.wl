@@ -1,18 +1,17 @@
 PackageExports[
-  "Function",            OrderedTreeLayout
+  "Function",  OrderedTreeLayout, GraphSourceIndices,
+  "Option",    RootPosition, RootVertex, SharedLeaves, SplitPos, HStretch, VStretch
 ];
 
 (*************************************************************************************************)
 
 "
 OrderedTreeLayout[$$] is a layout engine for ExtendedGraph that supports the following options:
-| %Orientation | one of Top or Left, Bottom, or Right |
+| %RootPosition | one of Top or Left, Bottom, or Right |
 | %RootVertex | the root vertex, Automatic means the first vertex |
 | %SplitPosition | where to put the fan-out between a parent and its children |
 | %RoundingRadius | bend radius of parent-to-child edges |
-| %LayerDepths | gives a list of depths for each layer, excluding first |
-| %GlobalCentering | whether to center parent on all children or just immediate children |
-* %FanoutStyle can be one of Top, Center, Bottom, or 'Circuit'.
+| %Alignment | Auto: center parent on immediate children, All: all children |
 * Leaf vertices are visited in depth-first order.
 * Leaf vertices occupy successive horizontal positions.
 * Parent vertices use the center over the interval spanned by their descendents.
@@ -20,30 +19,30 @@ OrderedTreeLayout[$$] is a layout engine for ExtendedGraph that supports the fol
 "
 
 Options[OrderedTreeLayout] = {
-  "RootPosition"     -> Top,
-  "RootVertex"       -> Auto,
-  "RoundingRadius"   -> Auto,
-  "SplitPosition"    -> Auto,
-  "LayerDepths"      -> Auto,
-  "Setback"          -> 0,
-  "GlobalCentering"  -> False,
-  "FirstLastDelta"   -> 0.00125,
-  "SharedLeaves"     -> {},
-  "PlotRangePadding" -> 0.5
+  RootPosition     -> Top,
+  SharedLeaves     -> {},
+  SplitPos         -> Auto,
+  Rounding         -> Auto,
+  HStretch         -> 1.0,
+  VStretch         -> 1.0,
+  PMargin          -> 0.5,
+  Setback          -> 0,
+  Alignment        -> False
 };
 
 OrderedTreeLayout::vertexCoordsError = "Couldn't construct vertex coordinates.";
 OrderedTreeLayout::badRootPosition = "Bad root position ``.";
-OrderedTreeLayout::badRoot = "Specified root vertex `` doesn't occur in the graph.";
 
-OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeLayout",
+OrderedTreeLayout[graph_, opts___Rule] := Locals @ DebugGroup["OrderedTreeLayout",
 
-  UnpackOptions[
-    rootPosition, rootVertex, plotRangePadding,
-    splitPosition, roundingRadius, layerDepths,
-    setback,
-    layerDepths, $globalCentering, $firstLastDelta
+  UnpackSymbolsAs[OrderedTreeLayout, {opts},
+    rootPosition, sharedLeaves,
+    splitPos, rounding,
+    $hStretch, $vStretch, pMargin,
+    setback, alignment
   ];
+
+  $centerGlobal = alignment === All;
 
   If[VertexCount[graph] === 0, Return @ {{}, {}}];
   indexGraph = vertexEdgeIndexGraph @ graph;
@@ -51,20 +50,12 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeL
   vertexCount = VertexCount @ indexGraph;
   DPrint["VertexCount = ", vertexCount];
 
-  rootVertex = If[rootVertex === Auto, 1, FastQuietCheck[
-    VertexIndex[graph, rootVertex],
-    ReturnFailed["badRoot", rootVertex]
-  ]];
-  DPrint["RootVertex = ", rootVertex];
-
-  SetAuto[layerDepths, {}];
-  If[NumericQ[layerDepths], layerDepths //= ToList];
-
   vrange = Range @ vertexCount;
   $inDeg = VertexInDegree @ indexGraph;
   $outDeg = VertexOutDegree @ indexGraph;
   roots = Pick[vrange, $inDeg, 0];
   If[roots === {}, roots = {1}];
+  DPrint["Roots = ", roots];
 
   $corrupt = False; retries = 0;
   Label[$retry$];
@@ -74,13 +65,18 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeL
   $xs = $ys = ConstList[0., vertexCount];
   $bounds = ConstList[{}, vertexCount];
   $isLast = $isFirst = $discovered = $previsited = $postvisited = ConstList[False, vertexCount];
-  Part[$ccount, rootVertex] = -1;
+  Part[$ccount, roots] = -1;
   If[EdgeCount[indexGraph] == 0, $xs = vrange; Goto[done]];
-  Scan[root |-> DepthFirstScan[indexGraph, root, {
-    "DiscoverVertex"  -> discoverVertex,
-    "PrevisitVertex"  -> previsitVertex,
-    "PostvisitVertex" -> postvisitVertex
-  }], roots];
+  DebugGroup["Visiting",
+    Scan[
+      root |-> DepthFirstScan[indexGraph, root, {
+        "DiscoverVertex"  -> discoverVertex,
+        "PrevisitVertex"  -> previsitVertex,
+        "PostvisitVertex" -> postvisitVertex
+      }],
+      roots
+    ]
+  ];
 
   If[$corrupt && retries < 3, Goto[$retry$]];
   DebugPrint["Ending scan"];
@@ -104,18 +100,7 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeL
   If[maxD > 64, ReturnFailed[]];
   DPrint["MaxD = ", maxD];
 
-  DebugPrint["Layout"];
-  If[layerDepths =!= {},
-    numDepths = Len @ layerDepths;
-    PrependTo[layerDepths, 0];
-    If[maxD >= numDepths,
-      DebugPrint["Extending depths"];
-      depthDelta = Subtract @@ Part[layerDepths, {-1, -2}];
-      newDepths = Last[layerDepths, 1] + Range[maxD - numDepths] * depthDelta;
-      JoinTo[layerDepths, newDepths]
-    ];
-    $ys = N @ Part[layerDepths, $ys + 1];
-  ];
+  $firstLastDelta = 0.00125;
   $xDelta = $firstLastDelta / 128;
   DebugPrint["Done"];
 
@@ -152,12 +137,13 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeL
   DebugPrint["Constructing edges"];
   $shrTargets = UDictThread[Part[vertexCoords, Keys @ $share], Part[vertexCoords, Vals @ $share]];
   edgePaths = ExtractIndices[vertexCoords, edgePairs];
-  edgePaths = SetbackLine[setback] @ constructEdgePaths[edgePaths, roundingRadius, splitPosition];
+  DPrint[Graphics[Arrow /@ edgePaths, ImageSize -> 200]];
+  edgePaths = SetbackLine[setback] @ constructEdgePaths[edgePaths, rounding, splitPos];
 
   vertexCoords //= coordFn;
   edgePaths //= coordFn;
   DebugPrint["Calculating bounds"];
-  bounds = CoordinateBounds[vertexCoords, plotRangePadding];
+  bounds = CoordinateBounds[vertexCoords, pMargin];
   If[numShared > 0,
     KeyValueScan[Set[Part[vertexCoords, #1], Part[vertexCoords, #2, All]]&, $share];
     vertexCoords = Drop[vertexCoords, -numShared];
@@ -166,8 +152,10 @@ OrderedTreeLayout[graph_, OptionsPattern[]] := Locals @ DebugGroup["OrderedTreeL
   vertexCoords = EnsurePackedReals[vertexCoords, ReturnFailed["vertexCoordsError"]];
   DPrint["Done with layout"];
 
-  {vertexCoords, edgePaths, bounds}
+  {vertexCoords, edgePaths, bounds, {}}
 ]
+
+(*************************************************************************************************)
 
 makeFTF = CaseOf[
   1  := {False};
@@ -176,6 +164,7 @@ makeFTF = CaseOf[
 ];
 
 discoverVertex[t_, s_, d_] := If[Part[$discovered, t], Null,
+  DPrint["Discover: ", DEdge[s, t], " at ", d];
   Part[$discovered, t] = True;
   Part[$ccount, s]++;
   Part[$cindex, t] = Part[$ccount, s];
@@ -186,23 +175,25 @@ discoverVertex[t_, s_, d_] := If[Part[$discovered, t], Null,
 OrderedTreeLayout::corrupt = "Hit bug in kernel: ``";
 
 previsitVertex[v_] := If[Part[$previsited, v], Null,
+  DPrint["PreVisit: ", v];
   Part[$previsited, v] = True;
-  Part[$ys, v] = Part[$depth, v];
+  Part[$ys, v] = Part[$depth, v] * $vStretch;
   If[Part[$outDeg, v] > 0,
-    If[$globalCentering && Part[$xs, v] == 0., Part[$xs, v] = $x],
-    Part[$xs, v] = $x++;
+    If[$centerGlobal && Part[$xs, v] == 0., Part[$xs, v] = $x],
+    Part[$xs, v] = $x += $hStretch;
   ];
 ];
 
 postvisitVertex[v_] := If[Part[$postvisited, v], Null,
+  DPrint["PostVisit: ", v];
   Part[$postvisited, v] = True;
   If[Part[$outDeg, v] > 0,
-    Part[$xs, v] = If[$globalCentering,
+    Part[$xs, v] = If[$centerGlobal,
       Avg[Part[$xs, v], ($x-1)],
       Replace[Part[$bounds, v], {{} :> Part[$xs, v], e_ :> Mean[e]}]
     ];
   ];
-  If[!$globalCentering, Part[$bounds, Part[$parent, v]] //= MinMax[Flatten @ {#, Part[$xs, v]}]&];
+  If[!$centerGlobal, Part[$bounds, Part[$parent, v]] //= MinMax[Flatten @ {#, Part[$xs, v]}]&];
 ];
 
 (*************************************************************************************************)
@@ -211,24 +202,25 @@ vertexEdgeIndexGraph[g_] := IndexEdgeTaggedGraph @ IndexGraph @ g;
 
 (*************************************************************************************************)
 
-constructEdgePaths[edgePaths_, rounding_, splitPosition_] := Locals[
+constructEdgePaths[edgePaths_, rounding_, splitPos_] := Locals[
   $r = rounding;
   SetAuto[$r, 0.333 * MinDist @ Join[Col1 @ edgePaths, ColN @ edgePaths]];
-  Switch[splitPosition,
-
-    "Top" | Top | Scaled[1|1.],    Map[bendTop, edgePaths],
-    "Bottom" | Bot | Scaled[0|0.], Map[bendBot, edgePaths],
-    "Center" | Center,             Map[bendCenterFraction[#, 0.5]&, edgePaths],
-    Scaled[NumP],                  Map[bendCenterFraction[#, Last @ splitPosition]&, edgePaths],
-    "Circuit",                     Map[bendCenter, edgePaths],
+  Switch[splitPos,
+    "Top" | Top | Scaled[0|0.],    Map[bendTop, edgePaths],
+    "Bottom" | Bot | Scaled[1|1.], Map[bendBot, edgePaths],
+    "Center" | Center,             Map[bendScl[0.5], edgePaths],
+    Scaled[NumP],                  Map[bendScl[Last[splitPos]], edgePaths],
+    "Circuit",                     Map[bendCen, edgePaths],
+    NumP,                          Map[bendPos[splitPos * $vStretch], edgePaths],
     Auto | None,                   edgePaths,
     _,
-      Message[OrderedTreeLayout::optVal, SplitPosition, splitPosition];
+      Message[OrderedTreeLayout::optVal, SplitPosition, splitPos];
       edgePaths
   ]
 ]
 
-bendCenter[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
+bendCen[{a:{ax_, ay_}, b:{bx_, by_}}] /; $isShared[b] := bendCenShared[a, b, .5];
+bendCen[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
   If[Min[Abs[ax - bx], Abs[ay - by]] < 0.0001, Return @ {a, b}];
   aby = (ay + by) / 2;
   abx = (ax + bx) / 2;
@@ -240,7 +232,20 @@ bendCenter[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
   Join[{a}, BezierPoints[{ca, c, cd}], BezierPoints[{dc, d, db}], {b}]
 ];
 
-bendCenterFraction[{a:{ax_, ay_}, b:{bx_, by_}}, f_] := Locals[
+bendPos[o_][{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
+  If[$trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.0001, Return @ {a, b}];
+  aby = If[o >= 0, ay - o, by - o];
+  If[isMidX[bx], Return @ {{bx, aby}, {bx, by}}];
+  c = {ax, aby}; d = {bx, aby};
+  ca = ptAlong[c, a, $r];
+  cd = ptAlong[c, d, $r];
+  dc = ptAlong[d, c, $r];
+  db = ptAlong[d, b, $r];
+  Join[{a, c}, BezierPoints[{dc, d, db}], {b}]
+];
+
+bendScl[f_][{a:{ax_, ay_}, b:{bx_, by_}}] /; $isShared[b] := bendCenShared[a, b, f];
+bendScl[f_][{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
   If[$trimCorner && Min[Abs[ax - bx], Abs[ay - by]] < 0.0001, Return @ {a, b}];
   aby = Lerp[ay, by, f];
   If[isMidX[bx], Return @ {{bx, aby}, {bx, by}}];
@@ -256,15 +261,12 @@ isMidX[x_] := Norm[FractionalPart[x] - $firstLastDelta] < $xDelta;
 
 $trimCorner = True;
 
-bendCenter[{a:{ax_, ay_}, b:{bx_, by_}}] /; $isShared[b] := bendCenterShared[a, b, .5];
-bendCenterFraction[{a:{ax_, ay_}, b:{bx_, by_}}, f_] /; $isShared[b] := bendCenterShared[a, b, f];
-
-bendCenterShared[a_, b_, f_] := Module[{c, d},
+bendCenShared[a_, b_, f_] := Module[{c, d},
   $isShared[b] = False;
   d = $shrTargets[b];
   c = d + {0, 0.33};
   Join[
-    bendCenterFraction[{a, b}, f],
+    bendScl[f][{a, b}],
     BlockFalse[$trimCorner, bendBot @ {b, c}],
     List[c, d]
   ]
@@ -300,10 +302,25 @@ bendBot[{a:{ax_, ay_}, b:{bx_, by_}}] := Locals[
 
 bendBot[line_] := line;
 bendTop[line_] := line;
-bendCenter[line_] := line;
-bendCenterFraction[line_, _] := line;
+bendCen[line_] := line;
+bendCenFraction[line_, _] := line;
 
 ptAlong[a_, b_, d_] := Which[d <= 0, a, d >= Dist[a, b], b, True, PointAlongLine[{a, b}, d]];
 
-
 (*************************************************************************************************)
+
+GraphSourceIndices[graph_, Auto] := Locals[
+  vrange  = Range @ VertexCount @ graph;
+  inDeg  = VertexInDegree @ graph;
+  outDeg = VertexOutDegree @ graph;
+  roots = Pick[vrange, inDeg, 0];
+  If[roots === {}, roots = {1}];
+  roots
+];
+
+GraphSourceIndices[graph_, spec_] := FastQuietCheck[
+  VertexIndex[graph, spec],
+  ThrowMessage["badGraphRoot", spec]
+];
+
+General::badGraphRoot = "Specified root vertex `` doesn't occur in the graph.";

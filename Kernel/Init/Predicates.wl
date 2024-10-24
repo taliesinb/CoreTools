@@ -37,8 +37,8 @@ SystemExports[
     StringMatrixQ,  AssociationMatrixQ,
     StringArrayQ,   AssociationArrayQ,
 
-    NullQ, NoneQ, AutomaticQ, InheritedQ, InfinityQ,
-    NotNullQ, NotNoneQ, NotAutomaticQ, NotInfinityQ,
+    NullQ, NoneQ, ScaledQ, AutomaticQ, InheritedQ, InfinityQ,
+    NotNullQ, NotNoneQ, NotScaledQ, NotAutomaticQ, NotInfinityQ,
     NotAllSameQ, AllEqualQ, NotAllEqualQ, NotMatchQ,
     AnySameQ, NoneSameQ, AnySameByQ, NoneSameByQ,
 
@@ -755,9 +755,10 @@ OptionRuleVectorQ[(_List ? ORuleTreeQ) ? VecQ] = True;
 
 (*************************************************************************************************)
 
-SetPred1[NullQ, NoneQ, AutomaticQ, InheritedQ, AutoNoneQ, InfinityQ]
-SetNPred1[NotNullQ, NotNoneQ, NotAutomaticQ, NotAutoNoneQ, NotInfinityQ]
+SetPred1[NullQ, NoneQ, ScaledQ, AutomaticQ, InheritedQ, AutoNoneQ, InfinityQ]
+SetNPred1[NotNullQ, NotNoneQ, NotScaledQ, NotAutomaticQ, NotAutoNoneQ, NotInfinityQ]
 
+ScaledQ[Scaled[NumP]]     = True;
 NullQ[Null]               = True;
 NoneQ[None]               = True;
 AutomaticQ[Auto]          = True;
@@ -766,6 +767,7 @@ AutoNoneQ[None | Auto]    = True;
 InfinityQ[Infinity]       = True;
 
 NotNullQ[Null]            = False;
+NotScaledQ[Scaled[NumP]]  = False;
 NotNoneQ[None]            = False;
 NotAutomaticQ[Auto]       = False;
 NotAutoNoneQ[None | Auto] = False;

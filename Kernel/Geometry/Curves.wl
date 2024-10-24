@@ -5,6 +5,10 @@ SystemExports[
     LineLength, LineLengthAcc
 ];
 
+PackageExports[
+  "SymbolicHead", VScaled
+];
+
 (*************************************************************************************************)
 
 BezierPoints::badPoints = "Points `` must be a numeric matrix.";
@@ -107,8 +111,36 @@ PointAlongLine[{a_, b_}, d:NumP] :=
 PointAlongLine[coords_, Scaled[d_]] :=
   PointAlongLine[coords, LineLength[coords] * d];
 
+PointAlongLine[coords_, VScaled[d_]] :=
+  vscaledPointAlongLine[coords, d];
+
 PointAlongLine[coords_List, d:NumP] :=
   First @ tangentAlongLine[coords, d];
+
+(**************************************************************************************************)
+
+vscaledPointAlongLine[coords_, f_] /; f <= 0. := P1 @ coords;
+vscaledPointAlongLine[coords_, f_] /; f >= 1. := PN @ coords;
+
+vscaledPointAlongLine[{{x1_, y1_}, {x2_, y2_}}, f_] := Locals[
+  ym = Lerp[y1, y2, f];
+  xm = Lerp[x1, x2, (ym - y1) / (y2 - y1)];
+  List[xm, ym]
+];
+
+vscaledPointAlongLine[coords_, f_] := Locals[
+  ym = Lerp[P12 @ coords, PN2 @ coords, f];
+  {x2, y2} = First @ coords;
+  Do[
+    {x1, y1} = {x2, y2};
+    {x2, y2} = Part[coords, i];
+    If[Sign[y2 - ym] != Sign[y1 - ym],
+      xm = Lerp[x1, x2, (ym - y1) / (y2 - y1)];
+      Return @ {xm, ym}
+    ],
+    {i, 2, Len @ coords}
+  ]
+];
 
 (**************************************************************************************************)
 

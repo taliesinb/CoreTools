@@ -64,7 +64,7 @@ rootNodeBoxes[str_, node_] := NiceTooltipBox[
 
 Options[ExprTreePlot] = JoinOptions[
   {NodePattern -> Auto, NodeColor -> TreeNodeColor, GraphScale -> 20},
-  Options @ NiceTreePlot
+  Options @ TreeGraphPlot
 ];
 
 ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
@@ -74,7 +74,7 @@ ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
   nodes = Extract[expr, List @@@ paths];
   graph = PrefixGraph @ paths;
   isLeaf = Map[ZeroQ, VertexOutDegree @ graph];
-  NiceTreePlot[graph,
+  TreeGraphPlot[graph,
     NodeData -> <|"Expression" -> nodes, "IsLeaf" -> isLeaf|>,
     GraphScale -> graphScale,
     NodeColor -> "Expression" -> nodeColor,

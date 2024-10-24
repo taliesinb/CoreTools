@@ -39,7 +39,7 @@ iMultiedgeTreePlot[m_Multiedge, opts___Rule] := Locals[
   tree = MultiedgePathGraph @ m;
   exprs = GraphVertexData[tree, VertexAnnotation[Expression]];
   nodeColors = Map[MultigraphEdgeColor, exprs];
-  plot = NiceTreePlot[tree,
+  plot = TreeGraphPlot[tree,
     opts,
     NodeShape     -> Map[nodeShapeFn, toNodeSort /@ exprs],
     NodeColor     -> nodeColors,

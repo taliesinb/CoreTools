@@ -5,6 +5,7 @@ PackageExports[
     GroupedView, RowColumnView,
     RowView, ColumnView, ColView,
     MultiRowView, MultiColumnView, MultiColView,
+    FullMultiRowView, FullMultiColView, FullRowView, FullColView,
     HeadingView,
     LabeledFlipView,
     PickView, MapView, EitherView,
@@ -106,7 +107,7 @@ headingViewBoxes = CaseOf[
   EmptyDict  := RBox[LAssoc, " ", RAssoc];
   EmptyUDict := RBox["UDict", "[", " ", "]"];
   items_List := At[$, RangeDict @ items];
-  items_Dict := ColGridBox[KeyValueMap[LabelTopBox, items], 1];
+  items_Dict := ColGridBox[KeyValueMap[LabelTopLBox[MakeBox @ #1, MakeBox @ #2]&, items], 1];
   e_         := BoxMsgBox["bad HeadingView data: ``", e];
 ];
 
@@ -248,7 +249,7 @@ toHeldKeysItems = CaseOf[
 
 $rowColViewOptions = {
    ItemFn -> None,  ItemDivs -> False,  ItemGaps -> 1,  ItemStyle -> None,
-  LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> Bold,
+  LabelFn -> None, LabelDivs -> False, LabelGaps -> 1, LabelStyle -> $LabelStyle,
   MaxWidth -> Auto, MaxHeight -> Auto, MaxItems -> Inf, MaxSize -> 1200,
   LabelPos -> Auto
 };
@@ -264,10 +265,15 @@ rcOptVal = UDict[$rowColViewOptions];
 Options[MultiColView] = $multiRowColViewOptions;
 Options[MultiRowView] = $multiRowColViewOptions;
 
-SetForm0[MultiRowView, MultiColView];
+SetForm0[MultiRowView, MultiColView, FullMultiRowView, FullMultiColView, FullRowView, FullColView];
 
+CoreBox[FullMultiRowView[items_, opts___Rule]] := MakeBoxes[MultiRowView[items, MaxHeight -> Inf, opts]];
+CoreBox[FullMultiColView[items_, opts___Rule]] := MakeBoxes[MultiColView[items, MaxWidth -> Inf, opts]];
 CoreBox[MultiRowView[Unlimited[items_], opts___Rule]] := MakeBoxes[MultiRowView[items, MaxHeight -> Inf, opts]];
 CoreBox[MultiColView[Unlimited[items_], opts___Rule]] := MakeBoxes[MultiColView[items, MaxWidth -> Inf, opts]];
+
+CoreBox[FullRowView[items_, opts___Rule]] := MakeBoxes[RowView[items, MaxSize -> Inf, opts]];
+CoreBox[FullColView[items_, opts___Rule]] := MakeBoxes[ColView[items, MaxSize -> Inf, opts]];
 CoreBox[RowView[Unlimited[items_], opts___Rule]] := MakeBoxes[RowView[items, MaxSize -> Inf, opts]];
 CoreBox[ColView[Unlimited[items_], opts___Rule]] := MakeBoxes[ColView[items, MaxSize -> Inf, opts]];
 
@@ -470,10 +476,10 @@ ChoiceView[expr_] := Module[{held, results},
   MultiRowView @ results
 ];
 
-procChoice[h_] /; VFreeQ[h, $choice$] :=ReleaseHold @ h;
-procChoice[h_] := Labeled[
-  ReleaseHold[h /. $choice$[___, a_] :> a],
-  CommaRow @ Occs[h, $choice$[l_, ___] :> l]
+procChoice[h_] /; VFreeQ[h, $choice$] := ReleaseHold @ h;
+procChoice[h_] := LabelBotC[
+  CommaRow @ Occs[h, $choice$[l_, ___] :> l],
+  ReleaseHold[h /. $choice$[___, a_] :> a]
 ];
 
 (*************************************************************************************************)

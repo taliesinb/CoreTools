@@ -38,9 +38,11 @@ SetCurry2BoxFn[RaiseBox, LowerBox];
 SetBoxFn[MarginBox];
 
 SystemBoxDefs[
-  RaiseForm[e_, a___]  := RaiseBox[MakeBoxes @ e, a];
-  LowerForm[e_, a___]  := LowerBox[MakeBoxes @ e, a];
-  MarginForm[e_, m___] := MarginBox[MakeBoxes @ e, m];
+  RaiseForm[e_, n_]  := RaiseBox[MakeBoxes @ e, n];
+  RaiseForm[n_][e_]  := RaiseBox[MakeBoxes @ e, n];
+  LowerForm[n_][e_]  := LowerBox[MakeBoxes @ e, n];
+  LowerForm[e_, n_]  := LowerBox[MakeBoxes @ e, n];
+  MarginForm[e_, m_] := MarginBox[MakeBoxes @ e, m];
 ];
 
 RaiseBox[e_, n:NumP] := AdjBox[e, BoxBaselineShift -> -n];

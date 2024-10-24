@@ -469,10 +469,10 @@ MakeAsserting[AssertOptKeys];
 
 (**************************************************************************************************)
 
-ErrorOptKeyFn[head_][key_] := ErrorOptKey[key, key];
-ErrorOptValFn[head_][key_] := ErrorOptVal[key, key];
-ThrowOptKeyFn[head_][key_] := ThrowOptKey[key, key];
-ThrowOptValFn[head_][key_] := ThrowOptVal[key, key];
+ErrorOptKeyFn[opt_][key_] := ErrorOptKey[opt, key];
+ErrorOptValFn[opt_][key_] := ErrorOptVal[opt, key];
+ThrowOptKeyFn[opt_][key_] := ThrowOptKey[opt, key];
+ThrowOptValFn[opt_][key_] := ThrowOptVal[opt, key];
 
 (**************************************************************************************************)
 

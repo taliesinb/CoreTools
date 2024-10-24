@@ -218,6 +218,12 @@ symBox = CaseOf[
 
 rawSymBox[s_] := AliasSymName @ s;
 
+stdSymBox[r:Alt[Primes, Integers, Rationals, Reals, Algebraics, Complexes, Booleans,
+  PositiveReals, NonNegativeReals, NonPositiveReals, NegativeReals,
+  PositiveRationals, NonNegativeRationals, NonPositiveRationals, NegativeRationals,
+  PositiveIntegers, NonNegativeIntegers, NonPositiveIntegers, NegativeIntegers
+]] := MakeBoxes @ r;
+
 stdSymBox[s_] /; Context[s] === "System`" := AliasSymName @ s;
 stdSymBox[s_] := niceSymBox[SymPath @ s, AliasSymName @ s, None];
 
@@ -611,8 +617,8 @@ stdBox2 = CaseOf[
   arb:Row[_List, ___]                 := rowColBoxes[arb, True];
   arb:array$[_List, ___]              := arrayFormBoxes @ arb;
   arb:script$[__]                     := scriptBoxes @ arb;
-  arb:Image ? ValidFlagQ              := imageBox @ img;
-  arb:Graph ? NoEntryFlagQ            := graphBox @ grp;
+  arb_Image ? ValidFlagQ              := imageBox @ arb;
+  arb_Graph ? NoEntryFlagQ            := graphBox @ arb;
   arb_Graphics                        := graphicsBox @ arb;
   col:ColorP ? HoldColorQ             := SwatchBox @ col;
   m_Manipulate                        := MakeBoxes @ m;
@@ -762,11 +768,12 @@ inlineFracs[boxes_] /; (!$multiline || $dep > 2) && VContainsQ[boxes, FractionBo
 SetHoldC @ inpBox;
 
 inpBox = CaseOf[
-  _ /; $noLenQ         := CDotsS;
-  m:(math$)[__]        := inpMathBox @ m;
-  DirInf[] | DirInf[1] := "Inf";
-  DirInf[-1]           := RBox["\[Minus]", "Inf"];
-  e_                   := genericBox @ e;
+  _ /; $noLenQ           := CDotsS;
+  m:(math$)[__]          := inpMathBox @ m;
+  DirInf[] | DirInf[1]   := "Inf";
+  DirInf[-1]             := RBox["\[Minus]", "Inf"];
+  g_Graph ? NoEntryFlagQ := MakeBoxes @ InputForm @ g; (* TODO: why not HNoEntryFlag? *)
+  e_                     := genericBox @ e;
 ,
   {math$ -> Join[MathSymP, ExtMathSymP]}
 ];
@@ -829,7 +836,8 @@ imageBox[img_Image] := Locals[
   ToBoxes @ If[size <= maxSize, img, Thumbnail[img, UpTo @ size]]
 ];
 
-graphBox[g_Graph] := ToBoxes @ If[$dep === 1, g, Graph[g, ImageSize -> $targetSize]];
+graphBox[g_Graph] := ToBoxes @ If[$dep === 1, g, Graph[g, ImageSize -> UpTo[Ceiling[0.5*$targetSize]]]];
+graphBox[e_]      := BoxFnErrBox[graphBox, e];
 
 graphicsBox[g_Graphics] := If[$dep === 1 || MemberQ[NoEval @ g, ImageSize -> _],
   MakeBoxes @ g,
@@ -911,8 +919,9 @@ operatorFormBox[e_] := compoundForm1Box[e];
 SetHoldC @ elidedBox;
 
 elidedBox[d:Unlimited[_, ___Int]] /; $isStd := directiveBoxes @ d;
+elidedBox[e_ ? HNoEntryFlagQ]               := HoldElidedBox @ e;
 elidedBox[(s_Sym ? CompoundFormHeadQ)[___]] := CDotsS;
-elidedBox[e_] := HoldElidedBox @ e;
+elidedBox[e_]                               := HoldElidedBox @ e;
 _elidedBox := CDotsS;
 
 (*************************************************************************************************)

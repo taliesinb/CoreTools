@@ -22,7 +22,7 @@ PackageExports[
     DeepCount, DeepReplace, DeepCases, DeepFirstCase,
     DeepStrMatchQ, DeepStrHasQ, DeepStrFreeQ, DeepStrTestQ,
     FindExprPaths, AllExprPaths, LeafExprPaths,
-    ToExprPaths, ExtractExprPaths,
+    ToExprPaths, ExtractExprPaths, ReplaceExprPaths,
     FnRule,
     MatchFn,
 
@@ -58,8 +58,8 @@ DeepReplace[expr_, repl_]                  := deepReplace[expr, repl, False];
 DeepReplace[expr_, repl_, Heads -> heads_] := deepReplace[expr, repl, heads];
 deepReplace[expr_, repl_, heads_]          := Replace[expr, repl, {0,Infinity}, Heads -> heads];
 
-DeepCases[expr_, repl_,            level_:All] := Cases[expr, Infinity, level];
-DeepFirstCase[expr_, repl_, else_, level_:All] := FirstCase[expr, patt, else, level];
+DeepCases[expr_, patt_,            level_:All] := Cases[expr, patt, level];
+DeepFirstCase[expr_, patt_, else_:None, level_:All] := FirstCase[expr, patt, else, level];
 
 (**************************************************************************************************)
 
@@ -151,6 +151,11 @@ extractPaths = CaseOf[
 ];
 
 ExtractExprPaths::notExprPath = "Expected a (list or association of) ExprPath, not ``."
+
+(*************************************************************************************************)
+
+ReplaceExprPaths[expr_, ExprPath[] -> new_] := new;
+ReplaceExprPaths[expr_, ExprPath[p__] -> new_] := ReplacePart[expr, List[p] -> new];
 
 (*************************************************************************************************)
 

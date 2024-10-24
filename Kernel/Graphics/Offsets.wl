@@ -31,7 +31,7 @@ PointPlus[p1_, p2_]             := p1 + p2;
 
 PointTangent[a_, Offset[_, b_]] := PointTangent[a, b];
 PointTangent[Offset[_, a_], b_] := PointTangent[a, b];
-PointTangent[a_, b_]            := VecTangent[b - a];
+PointTangent[a_, b_]            := VecTangent[a, b];
 
 PointDist[Offset[_, a_], b_]    := PointDist[a, b];
 PointDist[a_, Offset[_, b_]]    := PointDist[a, b];

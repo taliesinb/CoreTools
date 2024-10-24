@@ -24,12 +24,9 @@ SetStrict[Eye, Ones, Zeros];
 
 Eye[d_Int]             := IdentityMatrix @ d;
 Eye[r_Int, c_Int]      := IdentityMatrix @ {r, c};
-Ones[d___Int]          := ConstArr[1, d];
-Zeros[d___Int]         := ConstArr[0, d];
-SymbolicDots[d___Int]  := ConstArr[SymbolicDot, d];
-ConstArr[c_, d___Int]  := ConstantArray[c, ToList @ d];
-
-CoreBox[SymbolicDot] := "\[Bullet]";
+Ones[d___]             := ConstArr[1, d];
+Zeros[d___]            := ConstArr[0, d];
+ConstArr[c_, d___]     := ConstantArray[c, ToList @ d];
 
 (*************************************************************************************************)
 

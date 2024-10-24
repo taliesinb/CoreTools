@@ -131,7 +131,7 @@ OrderSort[list_List, order_] := Part[list, Ordering[
 (**************************************************************************************************)
 
 MostCommon[EmptyP] := None;
-MostCommon[expr_]  := Commonest @ list;
+MostCommon[expr_]  := First @ Commonest @ expr;
 
 (**************************************************************************************************)
 

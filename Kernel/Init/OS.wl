@@ -12,7 +12,8 @@ SystemExports[
 ];
 
 PackageExports[
-  "Predicate",   ForbiddenPathQ, ArchiveFileQ
+  "Predicate",  ForbiddenPathQ, ArchiveFileQ,
+  "IOFunction", ClipImage, ClipText
 ];
 
 PrivateExports[
@@ -403,8 +404,14 @@ RunAppleScript[cmd_String] := Module[{file},
 
 (*************************************************************************************************)
 
+DefineAliasRules[
+  ClipImage -> CopyImageToClipboard,
+  ClipText  -> CopyTextToClipboard
+];
+
+(*************************************************************************************************)
+
 CopyImageToClipboard[expr_] := (
-  CopyToClipboard @ ImagePad[Rasterize[expr, ImageFormattingWidth -> Inf, ImageResolution -> 144], 20, White];
   expr
 );
 

@@ -7,7 +7,7 @@ PackageExports[
   "IOFunction",
     DebugE, DebugP, DebugC,
   "Function",
-    ToList, ToVals, ToRowVec, ToColVec, KeysVals,
+    ToList, ToSeq, ToVals, ToRowVec, ToColVec, KeysVals, KVScan,
     Len2, LenN, DimN, LenRange, RangeLen,
     MapVals, MapValsP, MapF, MapL, MapM, MapR,
     VecRep,
@@ -35,8 +35,14 @@ DefineAliasRules[
   ToVals           -> ToValues,
   ToRowVec         -> ToRowVector,
   ToColVec         -> ToColumnVector,
-  KeysVals         -> KeysValues
+  KeysVals         -> KeysValues,
+  KVScan           -> KeyValueScan
 ];
+
+ToSeq[]           := Seq[];
+ToSeq[List[a___]] := Seq[a];
+ToSeq[a_]         := a;
+ToSeq[a__]        := Apply[Seq, ToList[a]];
 
 (*************************************************************************************************)
 

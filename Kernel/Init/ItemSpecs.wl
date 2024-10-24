@@ -93,7 +93,8 @@ notDataKeyQ[k_] := NotKeyQ[$data, k];
 
 evalDictFn[fn_]            := CheckedDictMapThread[fn, $data, throwKey]
 
-evalDataFn[dict_Dict, key_] := AssertLookupList[dict, getData @ key];
+evalDataFn[dict_Dict, key_] /; KeyExistsQ[dict, DefV] := Lookup[dict, getData @ key, dict[DefV]];
+evalDataFn[dict_Dict, key_] := AssertLookupList[dict, getData @ key, "missingDataFnKey", $key];
 evalDataFn[fn_, keys_List]  := MapThread[fn, getData @ keys];
 evalDataFn[fn_, key_]       := fn @ getData @ key;
 
@@ -107,6 +108,8 @@ getData = CaseOf[
 throwMissing[Missing[_, "Theme"]] := $theme;
 throwMissing[Missing[_, key_]] := throwKey[key];
 throwMissing[e_] := e;
+
+General::missingDataFnKey = "While processing `3`: data function requested keys `1`. Present keys: `2`.";
 
 (**************************************************************************************************)
 
