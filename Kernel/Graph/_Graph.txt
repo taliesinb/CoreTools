@@ -3,7 +3,7 @@ GraphUtils.wl
 GraphPaths.wl
 TreePlotting.wl
 TreeLayout.wl
-PolyGraphPlotting.wl
+# PolyGraphPlotting.wl
 DAGLayout.wl
 Bigraph.wl
 Trees.wl

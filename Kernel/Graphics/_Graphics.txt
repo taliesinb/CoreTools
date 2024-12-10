@@ -1,7 +1,6 @@
 Primitives/
 MapCoords.wl
 Transforms.wl
-Graphics2D.wl
 Offsets.wl
 PlotRange.wl
 Colors.wl
