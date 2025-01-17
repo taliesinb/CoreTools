@@ -73,11 +73,10 @@ ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
   paths = FindExprPaths[expr, nodePattern];
   nodes = Extract[expr, List @@@ paths];
   graph = PrefixGraph @ paths;
-  isLeaf = Map[ZeroQ, VertexOutDegree @ graph];
+  isLeaf = Map[MatchQ[0], VertexOutDegree @ graph];
   TreeGraphPlot[graph,
     NodeData -> <|"Expression" -> nodes, "IsLeaf" -> isLeaf|>,
     GraphScale -> graphScale,
-    NodeColor -> "Expression" -> nodeColor,
     NarrowOptions @ opts
   ]
 ];

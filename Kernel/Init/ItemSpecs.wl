@@ -96,7 +96,7 @@ evalDictFn[fn_]            := CheckedDictMapThread[fn, $data, throwKey]
 evalDataFn[dict_Dict, key_] /; KeyExistsQ[dict, DefV] := Lookup[dict, getData @ key, dict[DefV]];
 evalDataFn[dict_Dict, key_] := AssertLookupList[dict, getData @ key, "missingDataFnKey", $key];
 evalDataFn[fn_, keys_List]  := MapThread[fn, getData @ keys];
-evalDataFn[fn_, key_]       := fn @ getData @ key;
+evalDataFn[fn_, key_]       := Map[fn, getData @ key];
 
 getData = CaseOf[
   ItemData  := ZipDictLists @ $data;
@@ -149,7 +149,7 @@ applyItemSpec2[{testFn_, globalI_, localI_, finalFn_, useBroad_}] := Locals @ De
       Null
     ,
     MatchQ[spec, Broadcast[_]],               DPrint["[Broadcast]"];
-      scalar = finFn @ First @ spec
+      scalar = finalFn @ First @ spec
     ,
     RuleLVecQ @ spec,                         DPrint["[Rules]"];
       {scalar, vector} = applyRules[localI, spec]
@@ -345,7 +345,7 @@ makeCanonFn[canonSpec_, default_, inherit_, method_] := Locals[
     Inherited -> inherit,
     FnRule[_String, method]
   ];
-  CanonicalizationFn[canonRules, finFn]
+  CanonicalizationFn[canonRules, Id]
 ];
 
 (**************************************************************************************************)
