@@ -1,5 +1,6 @@
 SystemExports[
   "Function",
+    EdgeEnumeratedGraph, EdgeMergedGraph,
     VertexContractAgainst, VertexContractIndices,
     PrefixEdges, PrefixGraph,
     EdgeTagIndex,
@@ -20,6 +21,37 @@ PackageExports[
     GraphVertexData, GraphEdgeData,
   "SymbolicHead",
     DebugRules
+];
+
+(*************************************************************************************************)
+
+"EdgeEnumeratedGraph[graph$] gives a version of graph$ in which all edges are \
+tagged with their integer position in the edge list."
+
+EdgeEnumeratedGraph[graph_Graph] := Graph[
+  VertexList[graph],
+  MapP[Append[Take[#, 2], #2]&, EdgeList @ graph],
+  Options @ graph
+];
+
+(*************************************************************************************************)
+
+"EdgeMergedGraph[graph$] merges edges with the same source and target.
+* Each such edge gets a new annotation called 'IDList' that contains the IDs \
+of the original edges that were merged."
+
+EdgeMergedGraph[graph_Graph] := Locals[
+  edges = EdgeList[graph];
+  edgeIndex = PositionIndex[Take[edges, All, 2]];
+  annoEdges = KeyValueMap[
+    Annotation[#1, "IDList" -> #2]&,
+    edgeIndex
+  ];
+  Graph[
+    VertexList @ graph,
+    annoEdges,
+    Options @ graph
+  ]
 ];
 
 (*************************************************************************************************)

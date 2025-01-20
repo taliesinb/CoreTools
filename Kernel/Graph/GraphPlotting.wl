@@ -384,6 +384,8 @@ AddVertexAnnotations::badAnnoData = "Data for key `` should be a list or dict, n
 
 (*************************************************************************************************)
 
+"GraphEdgeAnnotations[graph$] gives an association of the form <|edge$i -> <|key$1 -> anno$1, $$|>, $$|>."
+
 SetStrict[GraphVertexAnnotations, GraphEdgeAnnotations, AddSelfAnnotations];
 
 GraphVertexAnnotations[graph_Graph]                  := graphItemAnnos[graph, VertexList @ graph];

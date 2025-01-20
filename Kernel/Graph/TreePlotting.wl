@@ -10,7 +10,7 @@ SystemExports[
     RootPosition,
     NodeGroups, NodeStyles,
     NodeBackground, NodeOffset,
-    SharedLeaves, EdgeFn,
+    SharedLeaves, ReverseEdges, EdgeFn,
     SplayDistance,
     DebugItemData,
     FrameOptions
@@ -23,6 +23,58 @@ PackageExports[
 ];
 
 (**************************************************************************************************)
+
+"TreeGraphPlot[graph$, opts$] gives customizable plotting of a DAG.
+
+The following options can be specified to be a single global value, or can be
+computed per-item based on a properties or derived properties.
+
+For vertices:
+| NodeTooltips |
+| NodeClickFn |
+| NodeClickData |
+| NodeColor |
+| NodeSize |
+| NodeShape |
+
+For edges:
+| EdgeLabel     |
+| EdgeTooltips  |
+| EdgeClickFn   |
+| EdgeClickData |
+
+The way values are specified is as follows:
+| value$ or Broadcast[value$] | a single global value |
+| 'Name' | the vertex / edge itself |
+| 'EdgeTag' | the tag of an edge (if present) |
+| 'Index' | the integer index in order of EdgeList or VertexList |
+| 'anno$' | take the per-item value of the annotation with given key |
+
+The options NodeGroups and NodeStyles can be used to give 'themes' that
+apply whenever a property has a particular value. This is useful for
+discrete-valued properties.
+
+NodeGroups can be one of the following:
+| {n$1, n$2, $$} | the group(s) that each vertex is a member of |
+| fn$            | a function mapping vertex names to groups |
+| assoc$         | an association mapping as above (with special key DefaultValue) |
+| 'key$'         | one of the vertex annotation keys |
+| rules$         | use pattern matching on vertices to derive groups |
+
+A 'group assignment' mentioned above is either a list of strings, which allows
+a vertex to be a member of multiple groups (their styles are combined), or, a
+single string.
+
+Once groups are assigned, styles will be applied by looking up 'overrides' for
+each group. These are contained in NodeStyles, which is an association of the
+form <| 'group' -> options$ |>.
+
+The options are the very same options (e.g. NodeTooltips etc) as mentioned above.
+They simply override that *part* of the graph.
+
+TODOs:
+* allow EdgeFn to be edge-data customized
+"
 
 Options[TreeGraphPlot] = {
   GraphScale        -> 30,
@@ -88,6 +140,8 @@ PolyGraphPlot[edges:{___Rule}, opts___Rule] := PolyGraphPlot[Graph[edges], opts]
 TreeGraphPlot[graph_Graph, opts___Rule]  := Locals @ CatchMessages[genericTreePlot[TreeGraphPlot, graph, opts]];
 PolyGraphPlot[graph_Graph, opts___Rule] := Locals @ CatchMessages[genericTreePlot[PolyGraphPlot, graph, opts]];
 
+General::graphNotDAG = "Input graph should be directed and acyclic."
+
 genericTreePlot[head_, graph_, opts___Rule] := Locals[
 
   CheckOptKeys[PolyGraphPlot, opts];
@@ -101,7 +155,7 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
     $splitPos, $rounding, $splayDistance,
     nodeThickness, $nodeBCol, $nodeOffset,
     setback, reverseEdges, debugItemData,
-    edgeTooltips, edgeClickFn, edgeClickData, edgeColor, edgeThickness, edgeFn,
+    edgeTooltips, edgeClickFn, edgeClickData, edgeFn,
     nodeLabel, edgeLabel, $frameOptions
   ];
 
@@ -109,11 +163,10 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
 
   AssertOptsValid[
     NodeThickness -> nodeThickness -> NumQ,
-    GraphScale    -> graphScale    -> NumQ,
-    EdgeColor     -> edgeColor     -> ColorQ,
-    EdgeThickness -> edgeThickness -> NumQ
+    GraphScale    -> graphScale    -> NumQ
   ];
 
+  If[!(DirectedGraphQ[graph] && AcyclicGraphQ[graph]), ThrowMessage["graphNotDAG"]];
   vertexCount = VertexCount @ graph;
   {vertexList, edgeList} = VertexEdgeList @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
@@ -160,7 +213,7 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
     If[ListQ[edgeFn],
       If[Len[edgeFn] =!= 3, ReturnFailed[]];
       {pathFn, fanOFn, fanIFn} = edgeFn;
-    ,
+
       pathFn = fanOFn = fanIFn = edgeFn;
     ];
     If[$splitPos === None,
@@ -183,7 +236,7 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
     pathFn = fanOFn = fanIFn = If[ListQ[edgeFn], First, Id] @ edgeFn;
     edgePrims = Map[edgeFn, edgeCoords];
   ];
-  edgeStyle = Directive[AThickness @ edgeThickness, $niceArrowhead];
+  edgeStyle = Directive[$niceArrowhead];
   nodeStyle = EdgeForm @ AThickness @ nodeThickness;
 
   edgeLabelPrims = {};
@@ -201,8 +254,8 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
         $treePlotEdgeSpecs, edgeList, {opts}, UseBroadcast -> True,
         ItemData -> edgeData
       ];
-      edgeSpecs = Lookup[edgeSpecs, {EdgeLabel, EdgeTooltips, EdgeClickFn, EdgeClickData}];
-      edgeLabelPrims = makeEdgeLabelPrimitives[edgeSpecs, edgePrims];
+      edgeSpecs = Lookup[edgeSpecs, {EdgeLabel, EdgeTooltips, EdgeClickFn, EdgeClickData, EdgeColor, EdgeThickness}];
+      {edgePrims, edgeLabelPrims} = makeEdgeLabelPrimitives[edgeSpecs, edgePrims];
     ];
   ];
   vertexSpecs = Lookup[
@@ -211,8 +264,6 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
   ];
   vertexPrims = makeVertexPrimitives[vertexSpecs, vertexCoords];
 
-  SetAuto[edgeColor, GrayLevel[0.5]];
-  AppendTo[edgeStyle, edgeColor];
   fontStyle = DelCases[
     List[FontSize -> fontSize, FontWeight -> fontWeight, FontFamily -> fontFamily, FontSlant -> fontSlant],
     _ -> Inherited
@@ -323,13 +374,43 @@ InsetNode[content_, fn_:Id, opts___][pos_, size_, color_] :=
 
 SetStrict @ makeEdgeLabelPrimitives;
 
-makeEdgeLabelPrimitives[{labels_, tooltips_, clickFns_, clickData_}, primitives_] := Locals[
-  If[BMatchQ[labels, None], Return @ {}];
-  labelPrims = BMap[toEdgeLabel, primitives, labels];
-  If[!BMatchQ[tooltips, None], labelPrims = BMap[Tooltip, labelPrims, tooltips]];
-  If[!BMatchQ[clickFns, None], labelPrims = BMap[makeClicker, labelPrims, clickFns, clickData]];
-  Discard[labelPrims, VContainsQ[#, $Failed]&]
+makeEdgeLabelPrimitives[{labels_, tooltips_, clickFns_, clickData_, color_, thickness_}, primitives_] := Locals[
+  edgePrims = primitives;
+  hasLabels   = !BMatchQ[labels, None];
+  hasTooltips = !BMatchQ[tooltips, None];
+  hasClicks   = !BMatchQ[clickFns, None];
+
+  If[hasLabels,
+    labelPrims = BMap[toEdgeLabel, primitives, labels];
+    If[hasTooltips, labelPrims = BMap[Tooltip, labelPrims, tooltips]];
+    If[hasClicks,   labelPrims = BMap[makeClicker, labelPrims, clickFns, clickData]];
+    labelPrims = Discard[labelPrims, VContainsQ[#, $Failed]&];
+  ,
+    labelPrims = {}
+  ];
+  If[hasTooltips, edgePrims = BMap[Tooltip, edgePrims, tooltips]];
+  If[hasClicks,   edgePrims = BMap[makeClicker, edgePrims, clickFns, clickData]];
+  edgePrims = applyColorThickness[edgePrims, color, thickness];
+  {edgePrims, labelPrims}
 ];
+
+(**************************************************************************************************)
+
+SetStrict[applyColorThickness];
+
+applyColorThickness[prims_List, Broadcast[col_, _], Broadcast[thick_, _]] :=
+  Style[prims, col, AbsoluteThickness[thick]];
+
+applyColorThickness[prims_List, Broadcast[col_, _], thick_List] :=
+  Style[ZipMap[Style[#1, AbsoluteThickness[#2]]&, prims, thick], col]
+
+applyColorThickness[prims_List, col_List, Broadcast[thick_, _]] :=
+  Style[ZipMap[Style, prims, col], AbsoluteThickness @ thick];
+
+applyColorThickness[prims_List, col_List, thick_List] :=
+  ZipMap[Style[#1, AbsoluteThickness[#2], #3]&, prims, thick, col]
+
+(**************************************************************************************************)
 
 toEdgeLabel[prim_, None]   := $Failed;
 toEdgeLabel[prim_, label_] := makeEdgeLabel[prim, getEdgePos @ prim, label];
@@ -533,6 +614,8 @@ $treePlotVertexSpecs = {
 
 $treePlotEdgeSpecs = {
   ItemSpec[EdgeLabel,     None, None],
+  ItemSpec[EdgeColor,     extColorQ, Black],
+  ItemSpec[EdgeThickness, NumQ, 1],
   ItemSpec[EdgeTooltips,  None, None],
   ItemSpec[EdgeClickFn,   OrOp[MaybeFnQ, NoneQ], None],
   ItemSpec[EdgeClickData, None, None]
