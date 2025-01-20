@@ -40,6 +40,7 @@ DAGLayout[graph_Graph, opts___Rule] := Locals[
     ,
       {4}
     ];
+    edgePosDict = Dict @ Map[edge |-> edge -> Lookup[vertPosDict, {Part[edge, 1], Part[edge, 2]}], edges];
     JoinTo[extra, {vertPosDict, edgePosDict}];
   ];
 

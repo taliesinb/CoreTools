@@ -78,7 +78,10 @@ OrderedTreeLayout[graph_, opts___Rule] := Locals @ DebugGroup["OrderedTreeLayout
     ]
   ];
 
-  If[$corrupt && retries < 3, Goto[$retry$]];
+  If[$corrupt,
+    If[retries < 3, retries += 1; Goto[$retry$]];
+    Return @ DAGLayout[graph, NarrowOptions @ opts];
+  ];
   DebugPrint["Ending scan"];
 
   isShared = ConstList[False, vertexCount];
@@ -169,7 +172,7 @@ discoverVertex[t_, s_, d_] := If[Part[$discovered, t], Null,
   Part[$ccount, s]++;
   Part[$cindex, t] = Part[$ccount, s];
   Part[$parent, t] = s;
-  Part[$depth, t] = If[d > 512, $corrupt = True; Message[OrderedTreeLayout::corrupt, {t, s, d}]; 0, d];
+  Part[$depth, t] = If[d > 512, $corrupt = True; zMessage[OrderedTreeLayout::corrupt, {t, s, d}]; 0, d];
 ];
 
 OrderedTreeLayout::corrupt = "Hit bug in kernel: ``";

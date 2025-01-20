@@ -42,7 +42,7 @@ SetStrict @ ParseItemOptions;
   * it can be a string key present in ItemData.
   * it can be a set of rules that assign to groups via pattern matching.
 * The GroupSettings option provided by the ultimate user should be a list of rules or a dictionary whose \
-keys are valid options in the spec list,."
+keys are valid options in the spec list."
 
 Options[ParseItemOptions] = {
   ItemData      -> None,
@@ -419,7 +419,7 @@ applySingleGroupSpec[settingsDict_][groupName_, indices_] := Locals @ DebugGroup
   groupSettings = Switch[groupSettingsSpec,
     noneOrEmptyP,     Return[],
     RuleP | RuleVecP, Dict @ groupSettingsSpec,
-    _Dict,            Null,
+    _Dict,            groupSettingsSpec,
     _,                ThrowMsg["invalidGroupSettings", groupName, groupSettingsSpec]
   ];
 
