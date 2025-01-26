@@ -142,13 +142,18 @@ IssueMessage[head_ -> slocs_, args___] := Then[
 
 IssueMessage[msgHead_Sym, msgName_String, msgArgs___] := Then[
   If[!SymbolMessageQ[msgHead, msgName],
-    Message[MessageName[msgHead, "unknownMessage"], msgName, msgHead, PrivSeq @ msgArgs],
-    If[!StringQ[MessageName[msgHead, msgName]],
-      MessageName[msgHead, msgName] = MessageName[General, msgName]]; (* ? *)
-    Message[MessageName[msgHead, msgName], msgArgs]
+    Message[MessageName[msgHead, "unknownMessage"], msgName, msgHead, PrivSeq @ msgArgs]
+  ,
+    Message[MessageName[msgHead, msgName], msgArgs];
   ],
   $Failed
 ];
+
+(*
+copyFromGeneral[sym_Sym, name_Str] := NoMessages @ With[
+  {msgStr = MessageName[General, name]},
+  Print[MessageName[sym, name] = msgStr]
+];*)
 
 e_IssueMessage := GeneralMessage["invalidMessage", IssueMessage, HoldForm @ e];
 

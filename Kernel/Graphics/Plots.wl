@@ -2,7 +2,9 @@ SystemExports[
   "FormHead",
     BinaryDigitsForm,
   "GraphicsFunction",
-    CompactArrayPlot, BinaryArrayPlot, MeshImage, SmartArrayPlot,
+    CompactArrayPlot, BitPlot, BinaryArrayPlot, MeshImage, SmartArrayPlot,
+  "Option",
+    ShowDimensions,
   "SpecialVariable",
     $ArrayPlotMagnitude
 ];
@@ -69,9 +71,9 @@ ObjectFieldBox[k_, v_] := RBox[
 
 SetStrict[MeshImage]
 
-MeshImage::meshImageBlockSize = "Block size `` is not a positive integer.";
-MeshImage::meshImageDataNumeric = "Input data should be a numeric array."
-MeshImage::meshImageDataDims = "Input data should be of shape (w * h * 3) or (w * h), but was ``."
+General::meshImageBlockSize = "Block size `` is not a positive integer.";
+General::meshImageDataNumeric = "Input data should be a numeric array."
+General::meshImageDataDims = "Input data should be of shape (w * h * 3) or (w * h), but was ``."
 
 Options[MeshImage] = {
   Frame      -> True,
@@ -80,11 +82,14 @@ Options[MeshImage] = {
   MeshStyle  -> GrayLevel[0.4]
 };
 
-MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshImage,
+MeshImage[array2_, blockSize_, opts___] := CatchMessages[MeshImage, iMeshImage[array2, blockSize, opts]];
 
-  UnpackOptions[frame, mesh, frameStyle, meshStyle];
+iMeshImage[array2_, blockSize_, opts___Rule] := Locals[
 
-  If[!PosIntQ[blockSize], ReturnFailed["meshImageBlockSize", blockSize]];
+  UnpackSymbolsAs[MeshImage, {opts}, frame, mesh, frameStyle, meshStyle];
+
+  If[!PosIntQ[blockSize], ThrowMessage["meshImageBlockSize", blockSize]];
+
   AssertOptVal[Frame, frame, BoolQ];
   AssertOptVal[Mesh, mesh, BoolQ];
 
@@ -100,9 +105,10 @@ MeshImage[array2_, blockSize_, OptionsPattern[]] := Locals @ CatchMessages[MeshI
     GrayLevel[UnitNumP], meshStyle = P1 @ meshStyle,
     _,                   ThrowOptVal[Mesh, meshStyle]];
 
-  array = EnsurePackedReals[array2, ThrowRealArray[array2, {2, 3}]];
+  array = checkArray @ array2;
+  array = EnsurePackedReals[array, ThrowRealArray[array2, {2, 3}]];
   dims = Dims @ array;
-  If[!MatchQ[dims, {_, _, 3} | {_, _}], ReturnFailed["meshImageDataDims", dims]];
+  If[!MatchQ[dims, {_, _, 3} | {_, _}], ThrowMessage["meshImageDataDims", dims]];
 
   {h, w} = Take[dims, 2];
 
@@ -190,15 +196,18 @@ Options[CompactArrayPlot] = {
 
 CompactArrayPlot::badRank = "Array should be of rank 2 or 3, but had rank ``.";
 
-CompactArrayPlot[array_, OptionsPattern[]] := Locals @ CatchMessages[CompactArrayPlot,
+CompactArrayPlot[array2_, opts___Rule] := Locals @ CatchMessages[CompactArrayPlot,
 
-  UnpackOptions[pixelConstrained, colorFunction, frame, mesh, meshStyle, imageSize];
+  UnpackSymbolsAs[CompactArrayPlot, {opts}, pixelConstrained, colorFunction, frame, mesh, meshStyle, imageSize];
 
   {w, h} = EnsurePair[imageSize];
   {w1, w2} = EnsurePair[w, PosIntQ];
   {h1, h2} = EnsurePair[h, PosIntQ];
 
+  array = checkArray @ array2;
   pixelArray = ApplyColorFunctionToArray[colorFunction, array, 2];
+
+
   If[pixelArray === None, Return[Spacer[1]]];
 
   rc = {r, c} = Dims[pixelArray, 2]+1;
@@ -221,7 +230,7 @@ CompactArrayPlot[array_, OptionsPattern[]] := Locals @ CatchMessages[CompactArra
   pc = Round @ Median @ pb;
   SetAuto[mesh, pc > 3];
 
-  graphics = MeshImage[
+  graphics = iMeshImage[
     pixelArray, pc,
     Frame -> frame, Mesh -> mesh, MeshStyle -> meshStyle
   ];
@@ -260,16 +269,18 @@ splitAndSample[arr_, dims_] := Locals[
 
 Options[SmartArrayPlot] = {
   PixelConstrained -> UpTo[20],
-  ImageSize -> {500, 200},
-  "ShowDimensions" -> True
+  ImageSize        -> {500, 200},
+  ShowDimensions   -> True
 };
 
 SetInitial[$ArrayPlotMagnitude, Automatic];
 
-SmartArrayPlot[array_, OptionsPattern[]] := Locals[
-  arr = array;
-  If[NumericArrayQ[arr], arr = Normal @ array];
-  UnpackOptions[imageSize, pixelConstrained, showDimensions];
+SmartArrayPlot[array_, opts___Rule] := Locals @ CatchMessages[SmartArrayPlot,
+
+  arr = checkArray @ array;
+
+  UnpackSymbolsAs[SmartArrayPlot, {opts}, imageSize, pixelConstrained, showDimensions];
+
   {w, h} = Round @ imageSize;
   dims = Dims @ arr;
   minMax = MinMax @ arr;
@@ -319,32 +330,47 @@ $timesStr = Style["\[ThinSpace]\[Times]\[ThinSpace]", FontWeight -> Plain, FontC
 
 (**************************************************************************************************)
 
+checkArray[array_NumericArray] := Normal @ array;
+checkArray[array_List] := array;
+checkArray[array_] := ThrowMessage["notPlottableArray", array];
+
+General::notPlottableArray = "Cannot plot non-array ``."
+
+(**************************************************************************************************)
+
+BitPlot = BinaryArrayPlot;
+
 Options[BinaryArrayPlot] = {
   PixelConstrained -> 4
 }
 
-BinaryArrayPlot[array_, opts:OptionsPattern[]] :=
+BinaryArrayPlot[array_, opts___Rule] :=
   BinaryArrayPlot[array, Auto, opts];
 
-BinaryArrayPlot[array2_, digits:(_Int|Auto), OptionsPattern[]] := Locals[
-  UnpackOptions[pixelConstrained];
-  array = array2;
+BinaryArrayPlot[array2_, digits2:(_Int|Auto), opts___Rule] := Locals @ CatchMessages[BinaryArrayPlot,
+
+  UnpackSymbolsAs[BinaryArrayPlot, {opts}, pixelConstrained];
+
+  array = checkArray @ array2;
+  digits = digits2;
   {min, max} = MinMax @ array;
   Which[
     VecQ[array, NonNegativeIntegerQ],
-      SetAuto[digits, If[max == 0, 0, Floor[1 + Log2 @ max]]];
+      SetAuto[digits, If[max == 0, 1, Floor[1 + Log2 @ max]]];
       array = IntDigits[array, 2, digits];
     ,
     MatrixQ[array, NonNegativeIntegerQ],
       If[IntQ[digits] && LengthN[array] > digits,
         array = Take[array, All, digits]];
-      If[max > 1, ReturnFailed[]];
+      If[max > 1, ThrowMessage["notBinaryArray", array]];
     ,
     True,
-      ReturnFailed[];
+      ThrowMessage["notBinaryArray", array]
   ];
   CompactArrayPlot[1 - array, PixelConstrained -> pixelConstrained]
 ];
+
+BinaryArrayPlot::notBinaryArray = "Input `` is not a binary array."
 
 (**************************************************************************************************)
 

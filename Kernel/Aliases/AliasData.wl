@@ -5,6 +5,7 @@ PackageExports[
     HashTable,
     PackedTree,
     InternalData,
+    BoolFn,
 
   "MutatingFunction",
     StuffBag,
@@ -35,7 +36,8 @@ DefineAliasRules[
   Bag                -> Internal`Bag,
   HashTable          -> System`Utilities`HashTable,
   PackedTree         -> NumericalMath`Derivatives`PackedExpression,
-  InternalData       -> System`Private`InternalData
+  InternalData       -> System`Private`InternalData,
+  BoolFn             -> BooleanFunction
 ];
 
 (*************************************************************************************************)

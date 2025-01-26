@@ -275,6 +275,7 @@ ApplyColorFunctionToArray[_, {}, _] := None;
 
 ApplyColorFunctionToArray[type:Automatic|None, array2_, depth1_] := Locals[
   array = ToPacked @ array2;
+
   bounds = colorFn = None;
 
   depth2 = depth1 + 1;
@@ -328,21 +329,22 @@ unitBoundsQ[{min_, max_}] := TrueQ[0 <= min <= max <= 1];
 discreteBoundsQ[{min_, max_}] := TrueQ[(0 <= min <= 1) && max < 8];
 
 ApplyColorFunctionToArray[colorFn_, array_, depth_] := Locals[
+
   Which[
     Head[colorFn] === NumericColorFunction,
       rgbArray = CompileColorFunction[colorFn, depth] @ array,
-    MaybeFnQ @ colorFN,
+    MaybeFnQ @ colorFn,
       rgbArray = ToPackedReals @ Map[colorFn, array, {depth}];
       If[!PackedRealsQ[rgbArray] && ArrayQ[rgbArray, 2, ColorQ],
         rgbArray //= ColorToRGBArray],
     True,
-      ThrowMsg["notPossibleColorFunction", colorFn];
+      ThrowMsg["inertColorFunction", colorFn];
   ];
   EnsurePackedReals[rgbArray,
     ThrowMsg["badColorFunctionValues", colorFn, firstNonRGB @ rgbArray]]
 ];
 
-General::notPossibleColorFunction = "ColorFunction -> `` cannot evaluate.";
+General::inertColorFunction = "ColorFunction -> `` does not seem to be a function.";
 General::badColorFunctionValues = "ColorFunction -> `` produced non-RGB values, first was: ``.";
 
 firstNonRGB[arr_] := Locals[

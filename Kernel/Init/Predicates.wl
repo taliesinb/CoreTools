@@ -581,14 +581,15 @@ RuleVectorQ[{___Rule}]         := True;
 RuleDelayedVectorQ[{___RuleD}] := True;
 RuleLikeVectorQ[l:RuleLVecP]   := VectorQ[l, RuleLikeQ];
 
-hasBoolsQ[e_] := CouldContainQ[list, True] || CouldContainQ[list, False];
+hasBoolsQ[e_] := CouldContainQ[e, True] || CouldContainQ[e, False];
 
 (*************************************************************************************************)
 
 DeclaredHere[BooleanVectorQ, SymbolVectorQ, ColorVectorQ];
 setPackedIsFalse[BoolVecQ, SymVecQ, ColVecQ];
 
-BoolVecQ[list_ ? hasBoolsQ]     := MatchQ[list, {True|False...}];
+BoolVecQ[list_ ? hasBoolsQ]     := MatchQ[list, {(True|False)...}];
+BoolVecQ[_]                     := False;
 SymVecQ[list_]                  := SymbolQ[First[list]] && MatchQ[list, {___Symbol}];
 ColVecQ[list_]                  := VectorQ[list, ColorQ];
 

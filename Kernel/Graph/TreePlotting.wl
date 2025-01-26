@@ -78,6 +78,7 @@ TODOs:
 
 Options[TreeGraphPlot] = {
   GraphScale        -> 30,
+  GraphLayout       -> Auto,
   HStretch          -> 1.0,
   VStretch          -> 1.0,
 
@@ -148,15 +149,16 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
 
   UnpackSymbolsAs[
     head, List @ opts,
-    graphScale,
-    graphScale, hStretch, vStretch, pMargin,
+    graphScale, graphLayout,
+    hStretch, vStretch, pMargin,
     nodeData, rootPosition, baselinePosition, sharedLeaves,
     fontSize, fontWeight, fontFamily, fontSlant,
     $splitPos, $rounding, $splayDistance,
     nodeThickness, $nodeBCol, $nodeOffset,
     setback, reverseEdges, debugItemData,
     edgeTooltips, edgeClickFn, edgeClickData, edgeFn,
-    nodeLabel, edgeLabel, $frameOptions
+    nodeLabel, edgeLabel,
+    $frameOptions
   ];
 
   {$s1, $s2} = EnsurePair[setback, NumQ];
@@ -181,26 +183,32 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
     $splitPos = Scaled[0.5];
   ],
 
-  If[head === PolyGraphPlot,
-    layoutData = DAGLayout[graph,
-      RootPosition  -> rootPosition,
-      HStretch      -> hStretch,
-      VStretch      -> vStretch,
-      PMargin       -> pMargin
-    ];
-  ,
-    layoutData = OrderedTreeLayout[graph,
-      RootPosition  -> rootPosition,
-      SharedLeaves  -> sharedLeaves,
-      HStretch      -> hStretch,
-      VStretch      -> vStretch,
-      PMargin       -> pMargin,
-      SplitPos      -> $splitPos,
-      Rounding      -> $rounding,
-      Setback       -> {$s1, $s2}
-    ];
+  SetAuto[graphLayout, If[head === PolyGraphPlot, "UnorderedTree", "MultiTree"]];
+
+  Switch[graphLayout,
+    "UnorderedTree" | "MultiTree",
+      layoutData = DAGLayout[graph,
+        RootPosition  -> rootPosition,
+        HStretch      -> hStretch,
+        VStretch      -> vStretch,
+        PMargin       -> pMargin
+      ],
+    "OrderedTree",
+      layoutData = OrderedTreeLayout[graph,
+        RootPosition  -> rootPosition,
+        SharedLeaves  -> sharedLeaves,
+        HStretch      -> hStretch,
+        VStretch      -> vStretch,
+        PMargin       -> pMargin,
+        SplitPos      -> $splitPos,
+        Rounding      -> $rounding,
+        Setback       -> {$s1, $s2}
+      ],
+    _,
+      ErrorOptVal[GraphLayout, graphLayout, {"OrderedTree", "UnorderedTree", "MultiTree"}];
+      ReturnFailed[];
   ];
-  If[!MatchQ[layoutData, {PackedP, _List, _List, _List}], ReturnFailed[]];
+  If[!MatchQ[layoutData, {PackedP, _List, _List, _List}], ThrowMessage["internalError"]];
 
   {vertexCoords, edgeCoords, plotBounds, extra} = layoutData;
   {{plotL, plotR}, {plotB, plotT}} = plotBounds;
@@ -209,15 +217,15 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
   $scale = 0.5 / graphScale;
   $maxSplayDistance = 0.15;
 
-  If[head === PolyGraphPlot,
+  If[graphLayout === "MultiTree",
     If[ListQ[edgeFn],
       If[Len[edgeFn] =!= 3, ReturnFailed[]];
-      {pathFn, fanOFn, fanIFn} = edgeFn;
-
+      {pathFn, fanOFn, fanIFn} = edgeFn
+    ,
       pathFn = fanOFn = fanIFn = edgeFn;
     ];
     If[$splitPos === None,
-      edgePrims = pathFn /@ Map[edgeFn, edgeCoords]
+      edgePrims = Map[edgeFn, edgeCoords]
     ,
       If[reverseEdges,
         {$fwdFn, $revFn} = {Rev, Id};
@@ -233,7 +241,6 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
       edgePrims = List[pathPrims, fanOPrims, fanIPrims];
     ];
   ,
-    pathFn = fanOFn = fanIFn = If[ListQ[edgeFn], First, Id] @ edgeFn;
     edgePrims = Map[edgeFn, edgeCoords];
   ];
   edgeStyle = Directive[$niceArrowhead];
