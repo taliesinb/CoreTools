@@ -1,8 +1,8 @@
 SystemExports[
   "PlotOption",
     GraphScale, HStretch, VStretch,
-    SplitPosition,
-    NodeData,
+    SplitPosition, TreeLayout,
+    NodeData, ColorLegend,
     NodeTooltips, NodeClickFunction, NodeClickData,
     NodeLabel, EdgeLabel,
     EdgeTooltips, EdgeClickFunction, EdgeClickData,
@@ -78,7 +78,7 @@ TODOs:
 
 Options[TreeGraphPlot] = {
   GraphScale        -> 30,
-  GraphLayout       -> Auto,
+  TreeLayout        -> Auto,
   HStretch          -> 1.0,
   VStretch          -> 1.0,
 
@@ -116,11 +116,15 @@ Options[TreeGraphPlot] = {
   FontWeight        -> Inherited,
   FontSlant         -> Inherited,
 
+  PerformanceGoal   -> Auto,
+  Balancing         -> Auto,
+
   RootPosition      -> Top,
   SharedLeaves      -> {},
   ReverseEdges      -> False,
   DebugItemData     -> False,
-  FrameOptions      -> {}
+  FrameOptions      -> {},
+  ColorLegend       -> False
 };
 
 Options[PolyGraphPlot] = OptionValueRules[TreeGraphPlot,
@@ -132,6 +136,8 @@ SetPred1 @ extColorQ;
 extColorQ[FaceEdge[ColorP, ColorP] | ColorP] := True;
 
 $defaultColor = RGBColor[0.4, 0.4, 0.4];
+
+$treeLayouts = {"OrderedTree", "OrderedGraph",  "UnorderedTree", "UnorderedGraph", Automatic};
 
 SetStrict[TreeGraphPlot];
 
@@ -149,7 +155,7 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
 
   UnpackSymbolsAs[
     head, List @ opts,
-    graphScale, graphLayout,
+    graphScale, treeLayout, performanceGoal, balancing,
     hStretch, vStretch, pMargin,
     nodeData, rootPosition, baselinePosition, sharedLeaves,
     fontSize, fontWeight, fontFamily, fontSlant,
@@ -157,8 +163,8 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
     nodeThickness, $nodeBCol, $nodeOffset,
     setback, reverseEdges, debugItemData,
     edgeTooltips, edgeClickFn, edgeClickData, edgeFn,
-    nodeLabel, edgeLabel,
-    $frameOptions
+    nodeLabel, edgeLabel, nodeColor,
+    $frameOptions, colorLegend
   ];
 
   {$s1, $s2} = EnsurePair[setback, NumQ];
@@ -173,39 +179,46 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
   {vertexList, edgeList} = VertexEdgeList @ graph;
   If[vertexCount === 0, Return @ Graphics[{}, ImageSize -> graphScale]];
 
-  Switch[$splitPos,
-    Top, $splitPos = Scaled[0.0],
-    Bot, $splitPos = Scaled[1.0],
-    Cen, $splitPos = Scaled[0.5],
-    Scaled[NumP] | NumP, Null,
-    None, Null,
-    _, ErrorOptVal[SplitPos, $splitPos];
-    $splitPos = Scaled[0.5];
-  ],
+  SetAuto[performanceGoal, If[vertexCount > 16, "Speed", "Quality"]];
+  speed = performanceGoal === "Speed";
 
-  SetAuto[graphLayout, If[head === PolyGraphPlot, "UnorderedTree", "MultiTree"]];
+  AssertInQ[treeLayout, $treeLayouts];
+  SetAuto[treeLayout, If[head === PolyGraphPlot, "UnorderedTree", If[speed, "UnorderedGraph", "OrderedTree"]]];
 
-  Switch[graphLayout,
-    "UnorderedTree" | "MultiTree",
+  {isTree, isGraph} = StringEndsQ[treeLayout, #]& /@ {"Tree", "Graph"};
+  {isOrdered, isUnordered} = StringStartsQ[treeLayout, #]& /@ {"Ordered", "Unordered"};
+
+  Which[
+    isUnordered,
       layoutData = DAGLayout[graph,
         RootPosition  -> rootPosition,
         HStretch      -> hStretch,
         VStretch      -> vStretch,
-        PMargin       -> pMargin
+        PMargin       -> pMargin,
+        Balancing     -> IfAuto[balancing, isTree]
       ],
-    "OrderedTree",
+    isOrdered,
+      Switch[$splitPos,
+        Top, $splitPos = Scaled[0.0],
+        Bot, $splitPos = Scaled[1.0],
+        Cen, $splitPos = Scaled[0.5],
+        Scaled[NumP] | NumP, Null,
+        None, Null,
+        _, ErrorOptVal[SplitPos, $splitPos];
+        $splitPos = Scaled[0.5];
+      ];
       layoutData = OrderedTreeLayout[graph,
         RootPosition  -> rootPosition,
         SharedLeaves  -> sharedLeaves,
         HStretch      -> hStretch,
         VStretch      -> vStretch,
         PMargin       -> pMargin,
-        SplitPos      -> $splitPos,
+        SplitPos      -> If[isTree, $splitPos, None],
         Rounding      -> $rounding,
         Setback       -> {$s1, $s2}
       ],
     _,
-      ErrorOptVal[GraphLayout, graphLayout, {"OrderedTree", "UnorderedTree", "MultiTree"}];
+      ErrorOptVal[TreeLayout, treeLayout, $treeLayouts];
       ReturnFailed[];
   ];
   If[!MatchQ[layoutData, {PackedP, _List, _List, _List}], ThrowMessage["internalError"]];
@@ -215,9 +228,9 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
   {plotW, plotH} = plotSize = Dist @@@ plotBounds;
   imageSize = plotSize * graphScale;
   $scale = 0.5 / graphScale;
-  $maxSplayDistance = 0.15;
 
-  If[graphLayout === "MultiTree",
+  If[Len[extra] === 5 && isTree,
+    $maxSplayDistance = 0.15;
     If[ListQ[edgeFn],
       If[Len[edgeFn] =!= 3, ReturnFailed[]];
       {pathFn, fanOFn, fanIFn} = edgeFn
@@ -254,6 +267,8 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
       $treePlotVertexSpecs, vertexList, {opts}, UseBroadcast -> True,
       ItemData -> vertexData, ItemGroups -> NodeGroups, GroupSettings -> NodeStyles
     ];
+    vertexSpecs = Lookup[vertexSpecs, {NodeLabel, NodeShape, NodeSize, NodeTooltips, NodeColor, NodeClickFn, NodeClickData}];
+    {vertexPrims, vertexLabelPrims} = makeVertexPrimitives[vertexSpecs, vertexCoords];
 
     If[head === TreeGraphPlot && EdgeCount[graph] > 0,
       edgeData = transposeDict @ GraphEdgeAnnotations @ graph;
@@ -265,11 +280,6 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
       {edgePrims, edgeLabelPrims} = makeEdgeLabelPrimitives[edgeSpecs, edgePrims];
     ];
   ];
-  vertexSpecs = Lookup[
-    vertexSpecs,
-    {NodeShape, NodeSize, NodeTooltips, NodeColor, NodeClickFn, NodeClickData}
-  ];
-  vertexPrims = makeVertexPrimitives[vertexSpecs, vertexCoords];
 
   fontStyle = DelCases[
     List[FontSize -> fontSize, FontWeight -> fontWeight, FontFamily -> fontFamily, FontSlant -> fontSlant],
@@ -277,7 +287,17 @@ genericTreePlot[head_, graph_, opts___Rule] := Locals[
   ];
 
   vertexPrims = vertexPrims /. Circle[c_, p_] :> {Style[Disk[c, p], FaceForm @ White], Circle[c, p]};
+
   If[NotEmptyQ[edgeLabelPrims], AppendTo[vertexPrims, edgeLabelPrims]];
+  If[NotEmptyQ[vertexLabelPrims],
+    AppendTo[vertexPrims, vertexLabelPrims];
+    plotBounds[[1]] += {-1, 1} * hStretch * .75;
+    imageSize[[1]] += 10;
+  ,
+    plotBounds[[1]] += {-1, 1} * hStretch * .1;
+    plotBounds[[2]] += {-1, 1} * vStretch * .1;
+  ];
+
   primitives = List[
     Style[edgePrims, edgeStyle],
     Style[vertexPrims, nodeStyle, Seq @@ fontStyle]
@@ -382,10 +402,12 @@ InsetNode[content_, fn_:Id, opts___][pos_, size_, color_] :=
 SetStrict @ makeEdgeLabelPrimitives;
 
 makeEdgeLabelPrimitives[{labels_, tooltips_, clickFns_, clickData_, color_, thickness_}, primitives_] := Locals[
+
   edgePrims = primitives;
-  hasLabels   = !BMatchQ[labels, None];
-  hasTooltips = !BMatchQ[tooltips, None];
-  hasClicks   = !BMatchQ[clickFns, None];
+
+  hasLabels   = BNotNoneQ @ labels;
+  hasTooltips = BNotNoneQ @ tooltips;
+  hasClicks   = BNotNoneQ @ clickFns;
 
   If[hasLabels,
     labelPrims = BMap[toEdgeLabel, primitives, labels];
@@ -395,9 +417,13 @@ makeEdgeLabelPrimitives[{labels_, tooltips_, clickFns_, clickData_, color_, thic
   ,
     labelPrims = {}
   ];
+
   If[hasTooltips, edgePrims = BMap[Tooltip, edgePrims, tooltips]];
+
   If[hasClicks,   edgePrims = BMap[makeClicker, edgePrims, clickFns, clickData]];
+
   edgePrims = applyColorThickness[edgePrims, color, thickness];
+
   {edgePrims, labelPrims}
 ];
 
@@ -453,16 +479,31 @@ labelPos[list_] := N @ Map[DelDups /* Median, Round[Flip @ list, .1]];
 
 SetStrict @ makeVertexPrimitives;
 
-makeVertexPrimitives[{shape_, size_, tooltips_, colors_, clickFns_, clickData_}, coords_] := Locals[
-  prims = BMap[makeShape, shape, coords, size, colors];
+makeVertexPrimitives[{labels_, shape_, size_, tooltips_, colors_, clickFns_, clickData_}, coords_] := Locals[
+
+  vertexPrims = BMap[makeShape, shape, coords, size, colors];
+
   GlobalVar[$meanSize]; $meanSize = Mean @ FromB @ size;
-  If[!BMatchQ[tooltips, None], prims = BMap[Tooltip, prims, tooltips]];
-  If[!BMatchQ[clickFns, None], prims = BMap[makeClicker, prims, clickFns, clickData]];
-  prims
+
+  labelPrims = {};
+
+  If[BNotNoneQ @ tooltips, vertexPrims = BMap[Tooltip, vertexPrims, tooltips]];
+
+  If[BNotNoneQ @ clickFns, vertexPrims = BMap[makeClicker, vertexPrims, clickFns, clickData]];
+
+  If[BNotNoneQ @ labels, labelPrims = BMap[makeLabel, labels, size, coords]];
+
+  {vertexPrims, labelPrims}
 ];
 
 makeClicker[prim_, None | Auto | Inherit, _] := prim;
 makeClicker[prim_, fn_, data_] := Button[prim, fn @ data];
+
+makeLabel[None | Null, _, _] := Nothing;
+makeLabel[label_, size_, pos_] := Inset[
+  Style[label, Background -> GrayLevel[1,1]],
+  Offset[{0, 1} * size, pos], Baseline, Alignment -> Center
+];
 
 (**************************************************************************************************)
 
@@ -611,6 +652,7 @@ shapeError[_, value_] := ErrorOptVal[NodeShape, value, LitStr @ StrJoin[
 ]];
 
 $treePlotVertexSpecs = {
+  ItemSpec[NodeLabel,     None, None],
   ItemSpec[NodeTooltips,  None, None],
   ItemSpec[NodeClickFn,   OrOp[MaybeFnQ, NoneQ], None],
   ItemSpec[NodeClickData, None, None],

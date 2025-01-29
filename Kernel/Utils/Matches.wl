@@ -131,7 +131,8 @@ exprPathBoxes[a__] := RowBox @ FlatList @ Map[z |-> {ToBoxes[z], $dimDot}, {a}];
 
 ToExprPaths[list_ ? ListVecQ] := Sort[ExprPath @@@ list];
 
-FindExprPaths[expr_, spec:Blank12] := ToExprPaths @ Position[expr, spec, Heads -> False];
+FindExprPaths[expr_, spec:Blank12, maxDepth:ExtPosIntP] :=
+  ToExprPaths @ Position[expr, spec, {0, maxDepth}, Heads -> False];
 
 AllExprPaths[expr_]  := FindExprPaths[expr, _];
 

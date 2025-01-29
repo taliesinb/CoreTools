@@ -63,23 +63,30 @@ rootNodeBoxes[str_, node_] := NiceTooltipBox[
 (**************************************************************************************************)
 
 Options[ExprTreePlot] = JoinOptions[
-  {NodePattern -> Auto, NodeColor -> TreeNodeColor, GraphScale -> 20},
+  MaxDepth -> Inf,
+  {NodePattern -> Auto, NodeColor -> ("Head" -> TreeNodeColor), GraphScale -> 20},
   Options @ TreeGraphPlot
 ];
 
 ExprTreePlot[expr_, opts:OptionsPattern[]] := Locals[
-  UnpackOptions[nodePattern, graphScale, nodeColor];
+  UnpackOptions[maxDepth, nodePattern, graphScale, nodeColor];
   SetAuto[nodePattern, _];
-  paths = FindExprPaths[expr, nodePattern];
-  nodes = Extract[expr, List @@@ paths];
+  paths = FindExprPaths[expr, nodePattern, maxDepth];
+  exprs = Extract[expr, List @@@ paths];
+  heads = Map[toHead, exprs];
   graph = PrefixGraph @ paths;
   isLeaf = Map[MatchQ[0], VertexOutDegree @ graph];
   TreeGraphPlot[graph,
-    NodeData -> <|"Expression" -> nodes, "IsLeaf" -> isLeaf|>,
-    GraphScale -> graphScale,
-    NarrowOptions @ opts
+    NodeData -> <|"Expr" -> exprs, "Head" -> heads, "IsLeaf" -> isLeaf|>,
+    NarrowOptions @ opts,
+    GraphScale -> graphScale, NodeColor -> nodeColor, NodeTooltips -> "Head",
+    EdgeColor -> GrayLevel[0.8]
   ]
 ];
+
+toHead[sym_Sym[___]] := sym;
+toHead[sym_Sym] := sym;
+toHead[other_] := Head @ other;
 
 (**************************************************************************************************)
 
@@ -94,7 +101,7 @@ toNodeColor = CaseOf[
   None | Null       := $Gray;
   i_Real ? UnitNumberQ := GrayLevel[i];
   i_Real            := NiceHue @ i;
-  e_                := HashToColor @ Hash @ Head @ e;
+  e_                := HashToColor[Hash @ toHead @ e, 0];
 ];
 
 (**************************************************************************************************)

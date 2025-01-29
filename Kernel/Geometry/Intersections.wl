@@ -87,7 +87,7 @@ LineRectInter[line_List, rect:Pos2PairP] := Locals[
 
 SetStrict @ NudgeOverlapping;
 
-"NudgeOverlapping[points$] moves points that intersect away from eachother.";
+"NudgeOverlapping[points$, dx$] moves points that are within distance dx$ away from eachother.";
 
 NudgeOverlapping[points2_List, dx_] := Locals[
   points = points2; r = Norm @ dx;

@@ -1,6 +1,6 @@
 PackageExports[
   "Function",   DAGLayout, EdgeArityGroups,
-  "PlotOption", HStretch, VStretch, Balacing, FixOverlaps
+  "PlotOption", HStretch, VStretch, Balancing, FixOverlaps, EnsureSpaced
 ];
 
 (*************************************************************************************************)
@@ -31,12 +31,16 @@ DAGLayout[graph_Graph, opts___Rule] := Locals[
   {verts, edges} = VertexEdgeList @ edgeTagged;
   GraphComputation`GraphDrawing @ edgeTagged;
   extra = {};
+
+  vertPosList = ToPackedReals  @ Lookup[vertPosDict, verts];
+
   If[TrueQ @ balancing,
     {paths, fanOs, fanIs} = extra = EdgeArityGroups @ edgeTagged;
+    dx = {.75, 0} * hStretch;
     Do[
       KVMap[ApplyTo[vertPosDict[#1],      blendXs[Lookup[vertPosDict, Col2 @ #2]]]&, fanOs];
       KVMap[ApplyTo[vertPosDict[P1 @ #1], blendXs[Lookup[vertPosDict, Col2 @ #2]]]&, paths];
-      If[fixOverlaps, vertPosDict = DThread[verts, NudgeOverlapping[Values @ vertPosDict, {.75, 0}]]];
+      If[fixOverlaps, vertPosDict = DThread[verts, NudgeOverlapping[Values @ vertPosDict, dx]]];
     ,
       {4}
     ];

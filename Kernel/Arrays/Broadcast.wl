@@ -7,7 +7,7 @@ SystemExports[
 
 PackageExports[
   "SymbolicHead", Broadcast,
-  "Predicate",    BroadcastQ, BMatchQ, BTrueQ, strongDimsSeq,
+  "Predicate",    BroadcastQ, BMatchQ, BNoneQ, BNotNoneQ, BTrueQ, strongDimsSeq,
   "Function",     ToBroadcast, FromBroadcast,
                   ToBroadcastRows, FromBroadcastRows,
                   BroadcastAt, BroadcastMap
@@ -163,6 +163,9 @@ BMap = CaseOf[
 (**************************************************************************************************)
 
 SetCurry2[BMatchQ, BTrueQ]
+
+BNoneQ[list_]    := BTrueQ[NoneQ, list];
+BNotNoneQ[list_] := BTrueQ[NotNoneQ, list];
 
 BMatchQ[list_, patt_]   := BTrueQ[MatchQ @ patt, list];
 BMatchQ[list_, b_Broad] := BTrueQ[MapF[MatchQ, b], list];
